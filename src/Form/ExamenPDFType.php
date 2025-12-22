@@ -46,7 +46,9 @@ class ExamenPDFType extends AbstractType
                 ],
                 'constraints' => $options['require_file'] ? [
                     new File(
-                        maxSize: '20M'
+                        maxSize: '20M',
+                        extensions: ['pdf'],
+                        extensionsMessage: 'Por favor, sube un archivo PDF válido'
                     )
                 ] : [],
                 'help' => 'Tamaño máximo: 20MB. Solo archivos PDF (extensión .pdf).'

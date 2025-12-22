@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nuevo Tema Municipal{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Nuevo Tema Municipal</h1>
+    </div>
+    <div class="card-body">
+        {{ form_start(form, {'attr': {'enctype': 'multipart/form-data'}}) }}
+            {{ form_row(form.nombre) }}
+            {{ form_row(form.municipio) }}
+            {{ form_row(form.pdfFile) }}
+            
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+                <a href="{{ path('app_tema_municipal_index') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
+

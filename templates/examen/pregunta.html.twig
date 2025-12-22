@@ -15,7 +15,11 @@
         </div>
     </div>
     <div class="card-body">
-        {% if temas|length > 1 %}
+        {% if esMunicipal is defined and esMunicipal %}
+            <div class="mb-3">
+                <strong>Tipo:</strong> <span class="badge" style="background-color: #2196F3;">Examen Municipal</span>
+            </div>
+        {% elseif temas|length > 1 %}
             <div class="mb-3">
                 <strong>Temas:</strong>
                 {% for tema in temas %}

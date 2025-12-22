@@ -1,0 +1,100 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Preguntas Municipales{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4">
+    <h1>Preguntas Municipales</h1>
+    <a href="{{ path('app_pregunta_municipal_new') }}" class="btn btn-primary">Nueva Pregunta Municipal</a>
+</div>
+
+<form method="get" action="{{ path('app_pregunta_municipal_index') }}" style="margin-bottom: 2rem;">
+    <div class="card">
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Municipio:</label>
+                    <select name="municipio" class="form-control">
+                        <option value="0">Todos los municipios</option>
+                        {% for municipio in municipios %}
+                            <option value="{{ municipio.id }}" {% if municipioSeleccionado == municipio.id %}selected{% endif %}>
+                                {{ municipio.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Dificultad:</label>
+                    <select name="dificultad" class="form-control">
+                        <option value="">Todas</option>
+                        <option value="facil" {% if dificultadSeleccionada == 'facil' %}selected{% endif %}>Fácil</option>
+                        <option value="moderada" {% if dificultadSeleccionada == 'moderada' %}selected{% endif %}>Moderada</option>
+                        <option value="dificil" {% if dificultadSeleccionada == 'dificil' %}selected{% endif %}>Difícil</option>
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ path('app_pregunta_municipal_index') }}" class="btn btn-secondary">Limpiar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if preguntas|length > 0 %}
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Texto</th>
+                    <th>Municipio</th>
+                    <th>Tema</th>
+                    <th>Dificultad</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pregunta in preguntas %}
+                    <tr>
+                        <td>{{ pregunta.id }}</td>
+                        <td>{{ pregunta.texto|slice(0, 80) }}{% if pregunta.texto|length > 80 %}...{% endif %}</td>
+                        <td>{{ pregunta.municipio.nombre }}</td>
+                        <td>{{ pregunta.temaMunicipal.nombre }}</td>
+                        <td>
+                            <span class="badge badge-{{ pregunta.dificultad }}">{{ pregunta.getDificultadLabel() }}</span>
+                        </td>
+                        <td>
+                            {% if pregunta.isActivo %}
+                                <span class="badge badge-success" style="background-color: var(--color-success);">Activa</span>
+                            {% else %}
+                                <span class="badge badge-danger" style="background-color: var(--color-danger);">Inactiva</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="{{ path('app_pregunta_municipal_edit', {'id': pregunta.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                <form method="post" action="{{ path('app_pregunta_municipal_toggle_activo', {'id': pregunta.id}) }}" style="display: inline;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ pregunta.id) }}">
+                                    <button type="submit" class="btn btn-sm {% if pregunta.isActivo %}btn-warning{% else %}btn-success{% endif %}">
+                                        {% if pregunta.isActivo %}Desactivar{% else %}Activar{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <p>No hay preguntas municipales registradas aún.</p>
+            <a href="{{ path('app_pregunta_municipal_new') }}" class="btn btn-primary">Crear Primera Pregunta Municipal</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+

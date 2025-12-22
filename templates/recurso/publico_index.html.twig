@@ -15,43 +15,81 @@
         {# Diseño de dos columnas como el dashboard del alumno #}
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
             {# Columna izquierda: Temario #}
-            <div class="card">
-                <div class="card-header">
-                    <h2>Temario (30 Temas)</h2>
-                </div>
-                <div class="card-body">
-                    {% if temas|length > 0 %}
-                        <div style="max-height: 600px; overflow-y: auto;">
-                            <div style="display: grid; gap: 0.5rem;">
-                                {% for tema in temas %}
-                                    <div style="padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; background-color: {% if tema.rutaPdf %}#e8f5e9{% else %}#fff{% endif %};">
-                                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                                            <div style="flex: 1;">
-                                                <strong style="color: var(--color-primary); font-size: 0.95rem;">
-                                                    Tema {{ tema.id }}: {{ tema.nombre }}
-                                                </strong>
-                                                {% if tema.descripcion %}
-                                                    <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--color-text-light);">
-                                                        {{ tema.descripcion|slice(0, 80) }}{% if tema.descripcion|length > 80 %}...{% endif %}
-                                                    </p>
+            <div>
+                {# Temario General #}
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h2>Temario General (30 Temas)</h2>
+                    </div>
+                    <div class="card-body">
+                        {% if temas|length > 0 %}
+                            <div style="max-height: 400px; overflow-y: auto;">
+                                <div style="display: grid; gap: 0.5rem;">
+                                    {% for tema in temas %}
+                                        <div style="padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; background-color: {% if tema.rutaPdf %}#e8f5e9{% else %}#fff{% endif %};">
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <div style="flex: 1;">
+                                                    <strong style="color: var(--color-primary); font-size: 0.95rem;">
+                                                        Tema {{ tema.id }}: {{ tema.nombre }}
+                                                    </strong>
+                                                    {% if tema.descripcion %}
+                                                        <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--color-text-light);">
+                                                            {{ tema.descripcion|slice(0, 80) }}{% if tema.descripcion|length > 80 %}...{% endif %}
+                                                        </p>
+                                                    {% endif %}
+                                                </div>
+                                                {% if tema.rutaPdf %}
+                                                    <div style="margin-left: 1rem;">
+                                                        <a href="{{ tema.rutaPdf }}" target="_blank" class="btn btn-sm btn-success" rel="noopener noreferrer">
+                                                            Ver PDF
+                                                        </a>
+                                                    </div>
                                                 {% endif %}
                                             </div>
-                                            {% if tema.rutaPdf %}
-                                                <div style="margin-left: 1rem;">
-                                                    <a href="{{ tema.rutaPdf }}" target="_blank" class="btn btn-sm btn-success" rel="noopener noreferrer">
-                                                        Ver PDF
-                                                    </a>
-                                                </div>
-                                            {% endif %}
                                         </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <p style="text-align: center; color: #666; margin: 1rem 0;">No hay temas disponibles.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {# Temarios Municipales #}
+                {% if temasPorMunicipio|length > 0 %}
+                    {% for municipioId, datos in temasPorMunicipio %}
+                        <div class="card" style="margin-bottom: 1.5rem;">
+                            <div class="card-header" style="background-color: #e3f2fd;">
+                                <h2>Temario {{ datos.municipio.nombre }}</h2>
+                            </div>
+                            <div class="card-body">
+                                <div style="max-height: 400px; overflow-y: auto;">
+                                    <div style="display: grid; gap: 0.5rem;">
+                                        {% for tema in datos.temas %}
+                                            <div style="padding: 0.75rem; border: 1px solid #2196F3; border-radius: 4px; background-color: {% if tema.rutaPdf %}#e3f2fd{% else %}#fff{% endif %};">
+                                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                    <div style="flex: 1;">
+                                                        <strong style="color: #1976D2; font-size: 0.95rem;">
+                                                            {{ tema.nombre }}
+                                                        </strong>
+                                                    </div>
+                                                    {% if tema.rutaPdf %}
+                                                        <div style="margin-left: 1rem;">
+                                                            <a href="{{ tema.rutaPdf }}" target="_blank" class="btn btn-sm btn-primary" rel="noopener noreferrer">
+                                                                Ver PDF
+                                                            </a>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        {% endfor %}
                                     </div>
-                                {% endfor %}
+                                </div>
                             </div>
                         </div>
-                    {% else %}
-                        <p style="text-align: center; color: #666; margin: 1rem 0;">No hay temas disponibles.</p>
-                    {% endif %}
-                </div>
+                    {% endfor %}
+                {% endif %}
             </div>
 
             {# Columna derecha: Exámenes PDF #}

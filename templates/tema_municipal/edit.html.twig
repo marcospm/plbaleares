@@ -1,0 +1,36 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Editar Tema Municipal{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Editar Tema Municipal: {{ tema_municipal.nombre }}</h1>
+    </div>
+    <div class="card-body">
+        {{ form_start(form, {'attr': {'enctype': 'multipart/form-data'}}) }}
+            {{ form_row(form.nombre) }}
+            {{ form_row(form.municipio) }}
+            {{ form_row(form.pdfFile) }}
+            
+            {% if tema_municipal.rutaPdf %}
+                <div class="form-group">
+                    <label class="form-label">PDF Actual:</label>
+                    <div>
+                        <a href="{{ tema_municipal.rutaPdf }}" target="_blank" class="btn btn-secondary">Ver PDF Actual</a>
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--color-text-light); margin-top: 0.5rem;">
+                        Sube un nuevo PDF para reemplazar el actual.
+                    </p>
+                </div>
+            {% endif %}
+            
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Actualizar</button>
+                <a href="{{ path('app_tema_municipal_index') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
+

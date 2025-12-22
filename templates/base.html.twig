@@ -15,14 +15,52 @@
                     const dropdown = element.nextElementSibling;
                     const isOpen = dropdown.classList.contains('show');
                     
-                    // Cerrar todos los dropdowns
-                    document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                        menu.classList.remove('show');
-                    });
+                    // Cerrar todos los dropdowns del mismo nivel
+                    const parent = element.closest('.nav-dropdown');
+                    if (parent) {
+                        parent.querySelectorAll('.dropdown-menu').forEach(menu => {
+                            if (menu !== dropdown) {
+                                menu.classList.remove('show');
+                            }
+                        });
+                    } else {
+                        // Cerrar todos los dropdowns principales
+                        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                            menu.classList.remove('show');
+                        });
+                    }
                     
                     // Abrir/cerrar el dropdown actual
                     if (!isOpen) {
                         dropdown.classList.add('show');
+                    } else {
+                        dropdown.classList.remove('show');
+                    }
+                }
+                
+                function toggleSubmenu(element) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const submenu = element.nextElementSibling;
+                    const isOpen = submenu && submenu.classList.contains('show');
+                    
+                    // Cerrar otros submenús del mismo nivel
+                    const parent = element.closest('.dropdown-menu');
+                    if (parent) {
+                        parent.querySelectorAll('.submenu').forEach(menu => {
+                            if (menu !== submenu) {
+                                menu.classList.remove('show');
+                            }
+                        });
+                    }
+                    
+                    // Abrir/cerrar el submenu actual
+                    if (submenu) {
+                        if (!isOpen) {
+                            submenu.classList.add('show');
+                        } else {
+                            submenu.classList.remove('show');
+                        }
                     }
                 }
                 
@@ -32,12 +70,41 @@
                         document.querySelectorAll('.dropdown-menu').forEach(menu => {
                             menu.classList.remove('show');
                         });
+                        document.querySelectorAll('.submenu').forEach(menu => {
+                            menu.classList.remove('show');
+                        });
                     }
                 });
             </script>
         {% endblock %}
     </head>
     <body>
+        {# Barra de información del usuario #}
+        {% if app.user %}
+            <div style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 0.5rem 0;">
+                <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                        <span style="font-size: 0.9rem; color: #495057;">
+                            <strong>Usuario:</strong> {{ app.user.userIdentifier }}
+                        </span>
+                        <span style="font-size: 0.9rem; color: #495057;">
+                            <strong>Rol:</strong> 
+                            {% if is_granted('ROLE_ADMIN') %}
+                                <span class="badge" style="background-color: #dc3545; color: white; padding: 0.25rem 0.5rem; border-radius: 3px;">Administrador</span>
+                            {% elseif is_granted('ROLE_PROFESOR') %}
+                                <span class="badge" style="background-color: #007bff; color: white; padding: 0.25rem 0.5rem; border-radius: 3px;">Profesor</span>
+                            {% else %}
+                                <span class="badge" style="background-color: #28a745; color: white; padding: 0.25rem 0.5rem; border-radius: 3px;">Alumno</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div style="font-size: 0.85rem; color: #6c757d;">
+                        Sesión activa
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
         <nav class="navbar">
             <div class="container">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 1rem;">
@@ -75,23 +142,53 @@
                                     <a href="#" class="nav-link dropdown-toggle" onclick="event.preventDefault(); toggleDropdown(this);" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">
                                         Profesor ▼
                                     </a>
-                                    <ul class="dropdown-menu" style="border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                                        <li class="dropdown-header" style="padding: 0.5rem 1rem; font-weight: bold; color: #666;">Contenido</li>
-                                        <li><a href="{{ path('app_tema_index') }}" class="dropdown-item">Temas</a></li>
-                                        <li><a href="{{ path('app_ley_index') }}" class="dropdown-item">Leyes</a></li>
-                                        <li><a href="{{ path('app_articulo_index') }}" class="dropdown-item">Artículos</a></li>
-                                        <li><a href="{{ path('app_pregunta_index') }}" class="dropdown-item">Preguntas</a></li>
-                                        <li><a href="{{ path('app_recurso_index') }}" class="dropdown-item">Recursos</a></li>
-                                        <li><a href="{{ path('app_examen_pdf_index') }}" class="dropdown-item">Exámenes PDF</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li class="dropdown-header" style="padding: 0.5rem 1rem; font-weight: bold; color: #666;">Planificación</li>
-                                        <li><a href="{{ path('app_planificacion_semanal_index') }}" class="dropdown-item">Planificaciones Semanales</a></li>
-                                        <li><a href="{{ path('app_tarea_index') }}" class="dropdown-item">Tareas</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li class="dropdown-header" style="padding: 0.5rem 1rem; font-weight: bold; color: #666;">Gestión</li>
-                                        <li><a href="{{ path('app_user_index') }}" class="dropdown-item">Usuarios</a></li>
-                                        <li><a href="{{ path('app_fechas_pruebas_index') }}" class="dropdown-item">Fechas de Pruebas</a></li>
-                                        <li><a href="{{ path('app_examen_profesor') }}" class="dropdown-item">Exámenes de Alumnos</a></li>
+                                    <ul class="dropdown-menu">
+                                        <li class="dropdown-item-with-submenu">
+                                            <a href="#" class="dropdown-item" onclick="toggleSubmenu(this); return false;">
+                                                <span>Contenido</span>
+                                                <span style="margin-left: 1rem;">▶</span>
+                                            </a>
+                                            <ul class="submenu">
+                                                <li><a href="{{ path('app_tema_index') }}" class="dropdown-item">Temas</a></li>
+                                                <li><a href="{{ path('app_ley_index') }}" class="dropdown-item">Leyes</a></li>
+                                                <li><a href="{{ path('app_articulo_index') }}" class="dropdown-item">Artículos</a></li>
+                                                <li><a href="{{ path('app_pregunta_index') }}" class="dropdown-item">Preguntas</a></li>
+                                                <li><a href="{{ path('app_recurso_index') }}" class="dropdown-item">Recursos</a></li>
+                                                <li><a href="{{ path('app_examen_pdf_index') }}" class="dropdown-item">Exámenes PDF</a></li>
+                                            </ul>
+                                        </li>
+                                        <li class="dropdown-item-with-submenu">
+                                            <a href="#" class="dropdown-item" onclick="toggleSubmenu(this); return false;">
+                                                <span>Municipios</span>
+                                                <span style="margin-left: 1rem;">▶</span>
+                                            </a>
+                                            <ul class="submenu">
+                                                <li><a href="{{ path('app_municipio_index') }}" class="dropdown-item">Municipios</a></li>
+                                                <li><a href="{{ path('app_tema_municipal_index') }}" class="dropdown-item">Temas Municipales</a></li>
+                                                <li><a href="{{ path('app_pregunta_municipal_index') }}" class="dropdown-item">Preguntas Municipales</a></li>
+                                            </ul>
+                                        </li>
+                                        <li class="dropdown-item-with-submenu">
+                                            <a href="#" class="dropdown-item" onclick="toggleSubmenu(this); return false;">
+                                                <span>Planificación</span>
+                                                <span style="margin-left: 1rem;">▶</span>
+                                            </a>
+                                            <ul class="submenu">
+                                                <li><a href="{{ path('app_planificacion_semanal_index') }}" class="dropdown-item">Planificaciones Semanales</a></li>
+                                                <li><a href="{{ path('app_tarea_index') }}" class="dropdown-item">Tareas</a></li>
+                                            </ul>
+                                        </li>
+                                        <li class="dropdown-item-with-submenu">
+                                            <a href="#" class="dropdown-item" onclick="toggleSubmenu(this); return false;">
+                                                <span>Gestión</span>
+                                                <span style="margin-left: 1rem;">▶</span>
+                                            </a>
+                                            <ul class="submenu">
+                                                <li><a href="{{ path('app_user_index') }}" class="dropdown-item">Usuarios</a></li>
+                                                <li><a href="{{ path('app_convocatoria_index') }}" class="dropdown-item">Convocatorias</a></li>
+                                                <li><a href="{{ path('app_examen_profesor') }}" class="dropdown-item">Exámenes de Alumnos</a></li>
+                                            </ul>
+                                        </li>
                                     </ul>
                                 </li>
                             {% endif %}
@@ -102,7 +199,7 @@
                                     <a href="#" class="nav-link dropdown-toggle" onclick="event.preventDefault(); toggleDropdown(this);" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">
                                         Administración ▼
                                     </a>
-                                    <ul class="dropdown-menu" style="border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                    <ul class="dropdown-menu">
                                         <li><a href="{{ path('app_contacto_mensajes') }}" class="dropdown-item">Mensajes de Contacto</a></li>
                                     </ul>
                                 </li>

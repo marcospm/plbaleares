@@ -17,6 +17,14 @@
 
         {{ form_start(form) }}
             <div class="form-group">
+                {{ form_row(form.tipoExamen) }}
+            </div>
+
+            <div class="form-group" id="municipio_group" style="display: none;">
+                {{ form_row(form.municipio) }}
+            </div>
+
+            <div class="form-group" id="temas_general_group">
                 {{ form_label(form.temas) }}
                 <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--color-border); padding: 1rem; border-radius: 4px; background: #fafafa;">
                     {% for tema in form.temas %}
@@ -34,6 +42,19 @@
                         {% endfor %}
                     </div>
                 {% endif %}
+            </div>
+
+            <div class="form-group" id="temas_municipales_group" style="display: none;">
+                {{ form_label(form.temasMunicipales) }}
+                <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--color-border); padding: 1rem; border-radius: 4px; background: #fafafa;">
+                    {% for tema in form.temasMunicipales %}
+                        <div style="margin-bottom: 0.75rem; display: flex; align-items: flex-start; gap: 0.5rem;">
+                            {{ form_widget(tema, {'attr': {'style': 'margin-top: 0.25rem;'}}) }}
+                            {{ form_label(tema, null, {'label_attr': {'style': 'margin-bottom: 0; cursor: pointer;'}}) }}
+                        </div>
+                    {% endfor %}
+                </div>
+                {{ form_errors(form.temasMunicipales) }}
             </div>
 
             <div class="form-group">
@@ -63,5 +84,66 @@
         {{ form_end(form) }}
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoExamenRadios = document.querySelectorAll('input[name="examen_iniciar[tipoExamen]"]');
+    const municipioGroup = document.getElementById('municipio_group');
+    const municipioSelect = document.querySelector('select[name="examen_iniciar[municipio]"]');
+    const temasGeneralGroup = document.getElementById('temas_general_group');
+    const temasMunicipalesGroup = document.getElementById('temas_municipales_group');
+    const temasMunicipalesInputs = document.querySelectorAll('#temas_municipales input[type="checkbox"]');
+    const temasGeneralInputs = document.querySelectorAll('#temas_general input[type="checkbox"]');
+
+    function updateFormVisibility() {
+        let tipoExamen = 'general';
+        tipoExamenRadios.forEach(radio => {
+            if (radio.checked) {
+                tipoExamen = radio.value;
+            }
+        });
+        
+        if (tipoExamen === 'municipal') {
+            if (municipioGroup) municipioGroup.style.display = 'block';
+            if (temasGeneralGroup) temasGeneralGroup.style.display = 'none';
+            if (temasMunicipalesGroup) temasMunicipalesGroup.style.display = 'block';
+            // Desmarcar temas generales
+            temasGeneralInputs.forEach(input => input.checked = false);
+            // Hacer requerido municipio y temas municipales
+            if (municipioSelect) municipioSelect.required = true;
+            temasMunicipalesInputs.forEach(input => input.required = true);
+            temasGeneralInputs.forEach(input => input.required = false);
+        } else {
+            if (municipioGroup) municipioGroup.style.display = 'none';
+            if (temasGeneralGroup) temasGeneralGroup.style.display = 'block';
+            if (temasMunicipalesGroup) temasMunicipalesGroup.style.display = 'none';
+            // Desmarcar temas municipales
+            temasMunicipalesInputs.forEach(input => input.checked = false);
+            // Hacer requerido temas generales
+            temasGeneralInputs.forEach(input => input.required = true);
+            temasMunicipalesInputs.forEach(input => input.required = false);
+            if (municipioSelect) municipioSelect.required = false;
+        }
+    }
+
+    tipoExamenRadios.forEach(radio => {
+        radio.addEventListener('change', updateFormVisibility);
+    });
+    updateFormVisibility();
+
+    // Actualizar temas municipales cuando cambia el municipio
+    if (municipioSelect) {
+        municipioSelect.addEventListener('change', function() {
+            const municipioId = this.value;
+            if (municipioId) {
+                // Recargar la página con el municipio seleccionado para actualizar los temas
+                const url = new URL(window.location.href);
+                url.searchParams.set('municipio', municipioId);
+                window.location.href = url.toString();
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
 

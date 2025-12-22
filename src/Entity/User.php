@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -33,6 +35,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $activo = false;
+
+    #[ORM\ManyToMany(targetEntity: Municipio::class, mappedBy: 'usuarios')]
+    private Collection $municipios;
+
+    #[ORM\ManyToMany(targetEntity: Convocatoria::class, mappedBy: 'usuarios')]
+    private Collection $convocatorias;
+
+    public function __construct()
+    {
+        $this->municipios = new ArrayCollection();
+        $this->convocatorias = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -106,6 +120,60 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setActivo(bool $activo): static
     {
         $this->activo = $activo;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Municipio>
+     */
+    public function getMunicipios(): Collection
+    {
+        return $this->municipios;
+    }
+
+    public function addMunicipio(Municipio $municipio): static
+    {
+        if (!$this->municipios->contains($municipio)) {
+            $this->municipios->add($municipio);
+            $municipio->addUsuario($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMunicipio(Municipio $municipio): static
+    {
+        if ($this->municipios->removeElement($municipio)) {
+            $municipio->removeUsuario($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Convocatoria>
+     */
+    public function getConvocatorias(): Collection
+    {
+        return $this->convocatorias;
+    }
+
+    public function addConvocatoria(Convocatoria $convocatoria): static
+    {
+        if (!$this->convocatorias->contains($convocatoria)) {
+            $this->convocatorias->add($convocatoria);
+            $convocatoria->addUsuario($this);
+        }
+
+        return $this;
+    }
+
+    public function removeConvocatoria(Convocatoria $convocatoria): static
+    {
+        if ($this->convocatorias->removeElement($convocatoria)) {
+            $convocatoria->removeUsuario($this);
+        }
 
         return $this;
     }

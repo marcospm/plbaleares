@@ -3,9 +3,10 @@
 namespace App\Controller;
 
 use App\Repository\ExamenRepository;
-use App\Repository\FechasPruebasRepository;
 use App\Repository\PlanificacionPersonalizadaRepository;
 use App\Repository\TareaAsignadaRepository;
+use App\Repository\MunicipioRepository;
+use App\Repository\ConvocatoriaRepository;
 use App\Service\PlanificacionService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,7 +22,8 @@ class DashboardController extends AbstractController
         PlanificacionPersonalizadaRepository $planificacionRepository,
         TareaAsignadaRepository $tareaAsignadaRepository,
         PlanificacionService $planificacionService,
-        FechasPruebasRepository $fechasPruebasRepository
+        MunicipioRepository $municipioRepository,
+        ConvocatoriaRepository $convocatoriaRepository
     ): Response {
         $user = $this->getUser();
         
@@ -64,8 +66,10 @@ class DashboardController extends AbstractController
             }
         }
 
-        // Obtener fechas de pruebas
-        $fechasPruebas = $fechasPruebasRepository->findActivas();
+        // Obtener convocatorias activas del usuario
+        $convocatorias = $user->getConvocatorias()->filter(function($convocatoria) {
+            return $convocatoria->isActivo();
+        })->toArray();
 
         // Obtener cantidad de exámenes para el ranking (por defecto 3)
         $cantidadRanking = $request->query->getInt('cantidad', 3);
@@ -76,6 +80,7 @@ class DashboardController extends AbstractController
         $posicionesUsuario = [];
         $dificultades = ['facil', 'moderada', 'dificil'];
         
+        // Rankings del temario general
         foreach ($dificultades as $dificultad) {
             $ranking = $examenRepository->getRankingPorDificultad($dificultad, $cantidadRanking);
             $rankings[$dificultad] = $ranking;
@@ -88,6 +93,38 @@ class DashboardController extends AbstractController
             ];
         }
 
+        // Rankings por municipio
+        $rankingsPorMunicipio = [];
+        $posicionesPorMunicipio = [];
+        $municipiosActivos = $user->getMunicipios();
+        
+        foreach ($municipiosActivos as $municipio) {
+            if (!$municipio->isActivo()) {
+                continue;
+            }
+            
+            $rankingsMunicipio = [];
+            $posicionesMunicipio = [];
+            
+            foreach ($dificultades as $dificultad) {
+                $ranking = $examenRepository->getRankingPorMunicipioYDificultad($municipio, $dificultad, $cantidadRanking);
+                $rankingsMunicipio[$dificultad] = $ranking;
+                $posicion = $examenRepository->getPosicionUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidadRanking);
+                $notaMedia = $examenRepository->getNotaMediaUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidadRanking);
+                $posicionesMunicipio[$dificultad] = [
+                    'posicion' => $posicion,
+                    'notaMedia' => $notaMedia,
+                    'totalUsuarios' => count($ranking),
+                ];
+            }
+            
+            $rankingsPorMunicipio[$municipio->getId()] = [
+                'municipio' => $municipio,
+                'rankings' => $rankingsMunicipio,
+                'posiciones' => $posicionesMunicipio,
+            ];
+        }
+
         return $this->render('dashboard/index.html.twig', [
             'isProfesor' => false,
             'ultimosExamenes' => $ultimosExamenes,
@@ -96,8 +133,9 @@ class DashboardController extends AbstractController
             'tareasPendientes' => array_slice($tareasPendientes, 0, 5), // Primeras 5 tareas pendientes
             'resumenTareas' => $resumenTareas,
             'proximasTareas' => $proximasTareas,
-            'fechasPruebas' => $fechasPruebas,
+            'convocatorias' => $convocatorias,
             'posicionesUsuario' => $posicionesUsuario,
+            'rankingsPorMunicipio' => $rankingsPorMunicipio,
             'cantidadRanking' => $cantidadRanking,
         ]);
     }

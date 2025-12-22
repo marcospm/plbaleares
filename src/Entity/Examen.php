@@ -48,9 +48,18 @@ class Examen
     #[ORM\JoinTable(name: 'examen_tema')]
     private Collection $temas;
 
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Municipio $municipio = null;
+
+    #[ORM\ManyToMany(targetEntity: TemaMunicipal::class)]
+    #[ORM\JoinTable(name: 'examen_tema_municipal')]
+    private Collection $temasMunicipales;
+
     public function __construct()
     {
         $this->temas = new ArrayCollection();
+        $this->temasMunicipales = new ArrayCollection();
         $this->fecha = new \DateTime();
     }
 
@@ -187,6 +196,42 @@ class Examen
     public function removeTema(Tema $tema): static
     {
         $this->temas->removeElement($tema);
+
+        return $this;
+    }
+
+    public function getMunicipio(): ?Municipio
+    {
+        return $this->municipio;
+    }
+
+    public function setMunicipio(?Municipio $municipio): static
+    {
+        $this->municipio = $municipio;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, TemaMunicipal>
+     */
+    public function getTemasMunicipales(): Collection
+    {
+        return $this->temasMunicipales;
+    }
+
+    public function addTemasMunicipale(TemaMunicipal $temasMunicipale): static
+    {
+        if (!$this->temasMunicipales->contains($temasMunicipale)) {
+            $this->temasMunicipales->add($temasMunicipale);
+        }
+
+        return $this;
+    }
+
+    public function removeTemasMunicipale(TemaMunicipal $temasMunicipale): static
+    {
+        $this->temasMunicipales->removeElement($temasMunicipale);
 
         return $this;
     }

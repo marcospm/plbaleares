@@ -7,7 +7,10 @@ use App\Entity\Pregunta;
 use App\Form\ExamenIniciarType;
 use App\Repository\ExamenRepository;
 use App\Repository\PreguntaRepository;
+use App\Repository\PreguntaMunicipalRepository;
 use App\Repository\TemaRepository;
+use App\Repository\TemaMunicipalRepository;
+use App\Repository\MunicipioRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -23,7 +26,10 @@ class ExamenController extends AbstractController
 {
     public function __construct(
         private PreguntaRepository $preguntaRepository,
+        private PreguntaMunicipalRepository $preguntaMunicipalRepository,
         private TemaRepository $temaRepository,
+        private TemaMunicipalRepository $temaMunicipalRepository,
+        private MunicipioRepository $municipioRepository,
         private ExamenRepository $examenRepository,
         private EntityManagerInterface $entityManager
     ) {
@@ -38,7 +44,11 @@ class ExamenController extends AbstractController
         $session->remove('examen_config');
         $session->remove('examen_pregunta_actual');
 
-        $form = $this->createForm(ExamenIniciarType::class);
+        $municipioId = $request->query->getInt('municipio');
+        $form = $this->createForm(ExamenIniciarType::class, null, [
+            'user' => $this->getUser(),
+            'municipio_id' => $municipioId > 0 ? $municipioId : null,
+        ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted()) {
@@ -57,47 +67,88 @@ class ExamenController extends AbstractController
             } else {
                 // Formulario válido, procesar
                 $data = $form->getData();
+                $tipoExamen = $data['tipoExamen'] ?? 'general';
+                $municipio = $data['municipio'] ?? null;
                 $temas = $data['temas'] ?? null;
+                $temasMunicipales = $data['temasMunicipales'] ?? null;
                 $dificultad = $data['dificultad'] ?? null;
                 $numeroPreguntas = $data['numeroPreguntas'] ?? 20;
-
-                // Debug: ver qué tipo de dato es $temas
-                if ($temas === null) {
-                    $this->addFlash('error', 'No se recibieron temas. Por favor, selecciona al menos un tema.');
-                    return $this->redirectToRoute('app_examen_iniciar');
-                }
-
-                // Convertir temas a array si es una Collection
-                if ($temas instanceof \Doctrine\Common\Collections\Collection) {
-                    $temasArray = $temas->toArray();
-                } elseif (is_array($temas)) {
-                    $temasArray = $temas;
-                } else {
-                    // Si es un solo objeto Tema, convertirlo a array
-                    $temasArray = [$temas];
-                }
-
-                // Validar datos básicos
-                if (empty($temasArray) || count($temasArray) === 0) {
-                    $this->addFlash('error', 'Debes seleccionar al menos un tema. (Array vacío)');
-                    return $this->redirectToRoute('app_examen_iniciar');
-                }
 
                 if (empty($dificultad)) {
                     $this->addFlash('error', 'Debes seleccionar una dificultad.');
                     return $this->redirectToRoute('app_examen_iniciar');
                 }
-                
-                // Obtener preguntas activas de los temas seleccionados con la dificultad
-                $preguntas = $this->preguntaRepository->createQueryBuilder('p')
-                    ->where('p.dificultad = :dificultad')
-                    ->andWhere('p.tema IN (:temas)')
-                    ->andWhere('p.activo = :activo')
-                    ->setParameter('dificultad', $dificultad)
-                    ->setParameter('temas', $temasArray)
-                    ->setParameter('activo', true)
-                    ->getQuery()
-                    ->getResult();
+
+                $preguntas = [];
+                $temasArray = [];
+                $temasMunicipalesArray = [];
+                $esMunicipal = false;
+
+                if ($tipoExamen === 'municipal' && $municipio) {
+                    // Examen municipal
+                    $esMunicipal = true;
+                    
+                    if ($temasMunicipales === null) {
+                        $this->addFlash('error', 'No se recibieron temas municipales. Por favor, selecciona al menos un tema municipal.');
+                        return $this->redirectToRoute('app_examen_iniciar');
+                    }
+
+                    if ($temasMunicipales instanceof \Doctrine\Common\Collections\Collection) {
+                        $temasMunicipalesArray = $temasMunicipales->toArray();
+                    } elseif (is_array($temasMunicipales)) {
+                        $temasMunicipalesArray = $temasMunicipales;
+                    } else {
+                        $temasMunicipalesArray = [$temasMunicipales];
+                    }
+
+                    if (empty($temasMunicipalesArray)) {
+                        $this->addFlash('error', 'Debes seleccionar al menos un tema municipal.');
+                        return $this->redirectToRoute('app_examen_iniciar');
+                    }
+
+                    // Verificar que el usuario tenga acceso al municipio
+                    $user = $this->getUser();
+                    if (!$user->getMunicipios()->contains($municipio)) {
+                        $this->addFlash('error', 'No tienes acceso a este municipio.');
+                        return $this->redirectToRoute('app_examen_iniciar');
+                    }
+
+                    // Obtener preguntas municipales
+                    $preguntas = $this->preguntaMunicipalRepository->findByTemasMunicipales(
+                        $temasMunicipalesArray,
+                        $dificultad
+                    );
+                } else {
+                    // Examen general
+                    if ($temas === null) {
+                        $this->addFlash('error', 'No se recibieron temas. Por favor, selecciona al menos un tema.');
+                        return $this->redirectToRoute('app_examen_iniciar');
+                    }
+
+                    if ($temas instanceof \Doctrine\Common\Collections\Collection) {
+                        $temasArray = $temas->toArray();
+                    } elseif (is_array($temas)) {
+                        $temasArray = $temas;
+                    } else {
+                        $temasArray = [$temas];
+                    }
+
+                    if (empty($temasArray)) {
+                        $this->addFlash('error', 'Debes seleccionar al menos un tema.');
+                        return $this->redirectToRoute('app_examen_iniciar');
+                    }
+                    
+                    // Obtener preguntas activas de los temas seleccionados con la dificultad
+                    $preguntas = $this->preguntaRepository->createQueryBuilder('p')
+                        ->where('p.dificultad = :dificultad')
+                        ->andWhere('p.tema IN (:temas)')
+                        ->andWhere('p.activo = :activo')
+                        ->setParameter('dificultad', $dificultad)
+                        ->setParameter('temas', $temasArray)
+                        ->setParameter('activo', true)
+                        ->getQuery()
+                        ->getResult();
+                }
 
                 // Validar que haya al menos una pregunta
                 if (count($preguntas) === 0) {
@@ -119,13 +170,22 @@ class ExamenController extends AbstractController
                 $preguntasIds = array_map(fn($p) => $p->getId(), $preguntasSeleccionadas);
 
                 // Guardar en sesión
+                $config = [
+                    'dificultad' => $dificultad,
+                    'numero_preguntas' => $preguntasAUsar,
+                    'es_municipal' => $esMunicipal,
+                ];
+                
+                if ($esMunicipal) {
+                    $config['municipio_id'] = $municipio->getId();
+                    $config['temas_municipales'] = array_map(fn($t) => $t->getId(), $temasMunicipalesArray);
+                } else {
+                    $config['temas'] = array_map(fn($t) => $t->getId(), $temasArray);
+                }
+                
                 $session->set('examen_preguntas', $preguntasIds);
                 $session->set('examen_respuestas', []);
-                $session->set('examen_config', [
-                    'temas' => array_map(fn($t) => $t->getId(), $temasArray),
-                    'dificultad' => $dificultad,
-                    'numero_preguntas' => $preguntasAUsar, // Usar el número real de preguntas
-                ]);
+                $session->set('examen_config', $config);
                 $session->set('examen_pregunta_actual', 0);
 
                 return $this->redirectToRoute('app_examen_pregunta', ['numero' => 1]);
@@ -142,13 +202,29 @@ class ExamenController extends AbstractController
         if ($form->isSubmitted() && !$form->isValid()) {
             $submittedData = $request->request->all()['examen_iniciar'] ?? [];
             
-            if (isset($submittedData['temas']) && is_array($submittedData['temas']) && !empty($submittedData['temas']) 
-                && isset($submittedData['dificultad']) && !empty($submittedData['dificultad'])) {
+            $tipoExamen = $submittedData['tipoExamen'] ?? 'general';
+            $dificultad = $submittedData['dificultad'] ?? null;
+            
+            if ($tipoExamen === 'municipal' && isset($submittedData['municipio']) && !empty($submittedData['municipio'])
+                && isset($submittedData['temasMunicipales']) && is_array($submittedData['temasMunicipales']) && !empty($submittedData['temasMunicipales'])
+                && !empty($dificultad)) {
+                
+                $temaMunicipalIds = array_filter(array_map('intval', $submittedData['temasMunicipales']));
+                if (!empty($temaMunicipalIds)) {
+                    $temasMunicipalesEntidades = $this->temaMunicipalRepository->findBy(['id' => $temaMunicipalIds]);
+                    if (!empty($temasMunicipalesEntidades)) {
+                        $preguntas = $this->preguntaMunicipalRepository->findByTemasMunicipales(
+                            $temasMunicipalesEntidades,
+                            $dificultad
+                        );
+                        $preguntasDisponibles = count($preguntas);
+                    }
+                }
+            } elseif (isset($submittedData['temas']) && is_array($submittedData['temas']) && !empty($submittedData['temas']) 
+                && !empty($dificultad)) {
                 
                 $temaIds = array_filter(array_map('intval', $submittedData['temas']));
-                $dificultad = $submittedData['dificultad'];
-                
-                if (!empty($temaIds) && !empty($dificultad)) {
+                if (!empty($temaIds)) {
                     // Cargar las entidades Tema desde los IDs
                     $temasEntidades = $this->temaRepository->findBy(['id' => $temaIds]);
                     if (!empty($temasEntidades)) {
@@ -222,7 +298,14 @@ class ExamenController extends AbstractController
             return $this->redirectToRoute('app_examen_resultado');
         }
 
-        $pregunta = $this->preguntaRepository->find($preguntasIds[$indice]);
+        $esMunicipal = $config['es_municipal'] ?? false;
+        
+        if ($esMunicipal) {
+            $pregunta = $this->preguntaMunicipalRepository->find($preguntasIds[$indice]);
+        } else {
+            $pregunta = $this->preguntaRepository->find($preguntasIds[$indice]);
+        }
+        
         if (!$pregunta) {
             $this->addFlash('error', 'Pregunta no encontrada.');
             return $this->redirectToRoute('app_examen_iniciar');
@@ -258,7 +341,8 @@ class ExamenController extends AbstractController
             'respuestaActual' => $respuestaActual,
             'esUltima' => $esUltima,
             'esPrimera' => $esPrimera,
-            'temas' => $this->temaRepository->findBy(['id' => $config['temas'] ?? []]),
+            'temas' => $esMunicipal ? [] : $this->temaRepository->findBy(['id' => $config['temas'] ?? []]),
+            'esMunicipal' => $esMunicipal,
         ]);
     }
 
@@ -278,9 +362,14 @@ class ExamenController extends AbstractController
         $preguntas = [];
         $aciertos = 0;
         $errores = 0;
+        $esMunicipal = $config['es_municipal'] ?? false;
 
         foreach ($preguntasIds as $preguntaId) {
-            $pregunta = $this->preguntaRepository->find($preguntaId);
+            if ($esMunicipal) {
+                $pregunta = $this->preguntaMunicipalRepository->find($preguntaId);
+            } else {
+                $pregunta = $this->preguntaRepository->find($preguntaId);
+            }
             if (!$pregunta) {
                 continue;
             }
@@ -319,10 +408,22 @@ class ExamenController extends AbstractController
         $examen->setRespuestas($respuestas);
         $examen->setPreguntasIds($preguntasIds);
 
-        // Agregar temas
-        $temas = $this->temaRepository->findBy(['id' => $config['temas'] ?? []]);
-        foreach ($temas as $tema) {
-            $examen->addTema($tema);
+        // Agregar temas o temas municipales
+        $esMunicipal = $config['es_municipal'] ?? false;
+        if ($esMunicipal) {
+            $municipio = $this->municipioRepository->find($config['municipio_id'] ?? null);
+            if ($municipio) {
+                $examen->setMunicipio($municipio);
+            }
+            $temasMunicipales = $this->temaMunicipalRepository->findBy(['id' => $config['temas_municipales'] ?? []]);
+            foreach ($temasMunicipales as $temaMunicipal) {
+                $examen->addTemasMunicipale($temaMunicipal);
+            }
+        } else {
+            $temas = $this->temaRepository->findBy(['id' => $config['temas'] ?? []]);
+            foreach ($temas as $tema) {
+                $examen->addTema($tema);
+            }
         }
 
         $this->entityManager->persist($examen);
@@ -341,6 +442,7 @@ class ExamenController extends AbstractController
             'aciertos' => $aciertos,
             'errores' => $errores,
             'total' => $total,
+            'esMunicipal' => $esMunicipal,
         ]);
     }
 
@@ -440,10 +542,16 @@ class ExamenController extends AbstractController
         $preguntas = [];
         $respuestas = $examen->getRespuestas();
         $preguntasIds = $examen->getPreguntasIds() ?? [];
+        $esMunicipal = $examen->getMunicipio() !== null;
 
         // Obtener las preguntas del examen usando los IDs guardados
         foreach ($preguntasIds as $preguntaId) {
-            $pregunta = $this->preguntaRepository->find($preguntaId);
+            if ($esMunicipal) {
+                $pregunta = $this->preguntaMunicipalRepository->find($preguntaId);
+            } else {
+                $pregunta = $this->preguntaRepository->find($preguntaId);
+            }
+            
             if ($pregunta) {
                 $respuestaAlumno = $respuestas[$preguntaId] ?? null;
                 $esCorrecta = ($respuestaAlumno === $pregunta->getRespuestaCorrecta());
@@ -458,6 +566,7 @@ class ExamenController extends AbstractController
         return $this->render('examen/detalle.html.twig', [
             'examen' => $examen,
             'preguntas' => $preguntas,
+            'esMunicipal' => $esMunicipal,
         ]);
     }
 }

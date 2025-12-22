@@ -1,0 +1,93 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Temas Municipales{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4">
+    <h1>Temas Municipales</h1>
+    <a href="{{ path('app_tema_municipal_new') }}" class="btn btn-primary">Nuevo Tema Municipal</a>
+</div>
+
+<form method="get" action="{{ path('app_tema_municipal_index') }}" style="margin-bottom: 2rem;">
+    <div class="card">
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Filtrar por Municipio:</label>
+                    <select name="municipio" class="form-control">
+                        <option value="0">Todos los municipios</option>
+                        {% for municipio in municipios %}
+                            <option value="{{ municipio.id }}" {% if municipioSeleccionado == municipio.id %}selected{% endif %}>
+                                {{ municipio.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ path('app_tema_municipal_index') }}" class="btn btn-secondary">Limpiar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if temas|length > 0 %}
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Municipio</th>
+                    <th>PDF</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tema in temas %}
+                    <tr>
+                        <td>{{ tema.id }}</td>
+                        <td><strong>{{ tema.nombre }}</strong></td>
+                        <td>{{ tema.municipio.nombre }}</td>
+                        <td>
+                            {% if tema.rutaPdf %}
+                                <a href="{{ tema.rutaPdf }}" target="_blank" class="btn btn-sm btn-secondary">Ver PDF</a>
+                            {% else %}
+                                <span class="text-muted">Sin PDF</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if tema.isActivo %}
+                                <span class="badge badge-success" style="background-color: var(--color-success);">Activo</span>
+                            {% else %}
+                                <span class="badge badge-danger" style="background-color: var(--color-danger);">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="{{ path('app_tema_municipal_edit', {'id': tema.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                <form method="post" action="{{ path('app_tema_municipal_toggle_activo', {'id': tema.id}) }}" style="display: inline;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ tema.id) }}">
+                                    <button type="submit" class="btn btn-sm {% if tema.isActivo %}btn-warning{% else %}btn-success{% endif %}">
+                                        {% if tema.isActivo %}Desactivar{% else %}Activar{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <p>No hay temas municipales registrados aún.</p>
+            <a href="{{ path('app_tema_municipal_new') }}" class="btn btn-primary">Crear Primer Tema Municipal</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+

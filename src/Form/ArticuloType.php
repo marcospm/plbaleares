@@ -26,7 +26,10 @@ class ArticuloType extends AbstractType
             ->add('explicacion', TextareaType::class, [
                 'label' => 'Explicación para el Opositor',
                 'required' => false,
-                'attr' => ['class' => 'form-control', 'rows' => 6]
+                'attr' => [
+                    'class' => 'form-control tinymce-editor',
+                    'rows' => 10
+                ]
             ])
             ->add('videoFile', FileType::class, [
                 'label' => 'Video Explicativo',

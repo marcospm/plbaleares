@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Municipio: {{ municipio.nombre }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>{{ municipio.nombre }}</h1>
+    </div>
+    <div class="card-body">
+        <div class="form-group">
+            <label class="form-label"><strong>Estado:</strong></label>
+            <p>
+                {% if municipio.isActivo %}
+                    <span class="badge badge-success" style="background-color: var(--color-success);">Activo</span>
+                {% else %}
+                    <span class="badge badge-danger" style="background-color: var(--color-danger);">Inactivo</span>
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><strong>Fecha de Creación:</strong></label>
+            <p>{{ municipio.fechaCreacion|date('d/m/Y H:i') }}</p>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><strong>Alumnos Asignados:</strong></label>
+            <p>
+                <span class="badge badge-moderada">{{ municipio.usuarios|length }} alumno(s)</span>
+            </p>
+            {% if municipio.usuarios|length > 0 %}
+                <ul>
+                    {% for usuario in municipio.usuarios %}
+                        <li>{{ usuario.username }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><strong>Temas Municipales:</strong></label>
+            <p>
+                <span class="badge badge-success">{{ municipio.temasMunicipales|length }} tema(s)</span>
+            </p>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><strong>Preguntas Municipales:</strong></label>
+            <p>
+                <span class="badge badge-primary">{{ municipio.preguntasMunicipales|length }} pregunta(s)</span>
+            </p>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <a href="{{ path('app_municipio_edit', {'id': municipio.id}) }}" class="btn btn-primary">Editar</a>
+            <a href="{{ path('app_municipio_asignar_alumnos', {'id': municipio.id}) }}" class="btn btn-info">Asignar Alumnos</a>
+            <a href="{{ path('app_municipio_index') }}" class="btn btn-secondary">Volver</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

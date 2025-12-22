@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nueva Pregunta Municipal{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Nueva Pregunta Municipal</h1>
+    </div>
+    <div class="card-body">
+        {{ form_start(form) }}
+            {{ form_row(form.municipio) }}
+            {{ form_row(form.temaMunicipal) }}
+            {{ form_row(form.texto) }}
+            {{ form_row(form.dificultad) }}
+            {{ form_row(form.opcionA) }}
+            {{ form_row(form.opcionB) }}
+            {{ form_row(form.opcionC) }}
+            {{ form_row(form.opcionD) }}
+            {{ form_row(form.respuestaCorrecta) }}
+            {{ form_row(form.retroalimentacion) }}
+            
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+                <a href="{{ path('app_pregunta_municipal_index') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const municipioSelect = document.getElementById('pregunta_municipal_municipio');
+    const temaSelect = document.getElementById('pregunta_municipal_temaMunicipal');
+    
+    if (municipioSelect && temaSelect) {
+        municipioSelect.addEventListener('change', function() {
+            const municipioId = this.value;
+            // Recargar la página con el municipio seleccionado para actualizar los temas
+            if (municipioId) {
+                window.location.href = '{{ path('app_pregunta_municipal_new') }}?municipio=' + municipioId;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+

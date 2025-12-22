@@ -1,0 +1,106 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Convocatorias{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4">
+    <h1>Convocatorias</h1>
+    <a href="{{ path('app_convocatoria_new') }}" class="btn btn-primary">Nueva Convocatoria</a>
+</div>
+
+{% if convocatorias|length > 0 %}
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Municipio</th>
+                    <th>Alumnos Asignados</th>
+                    <th>Fechas</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for convocatoria in convocatorias %}
+                    <tr>
+                        <td>{{ convocatoria.id }}</td>
+                        <td><strong>{{ convocatoria.nombre }}</strong></td>
+                        <td>
+                            {% if convocatoria.municipio %}
+                                <span class="badge" style="background-color: #2196F3;">{{ convocatoria.municipio.nombre }}</span>
+                            {% else %}
+                                <span class="text-muted">General</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge badge-moderada">{{ convocatoria.usuarios|length }} alumno(s)</span>
+                        </td>
+                        <td>
+                            <div style="font-size: 0.85rem;">
+                                <div>
+                                    <strong>Teórico:</strong> 
+                                    {% if convocatoria.fechaTeorico %}
+                                        {{ convocatoria.fechaTeorico|date('d/m/Y') }}
+                                    {% else %}
+                                        <span style="color: #999; font-style: italic;">Pendiente</span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <strong>Físicas:</strong> 
+                                    {% if convocatoria.fechaFisicas %}
+                                        {{ convocatoria.fechaFisicas|date('d/m/Y') }}
+                                    {% else %}
+                                        <span style="color: #999; font-style: italic;">Pendiente</span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <strong>Psicotécnico:</strong> 
+                                    {% if convocatoria.fechaPsicotecnico %}
+                                        {{ convocatoria.fechaPsicotecnico|date('d/m/Y') }}
+                                    {% else %}
+                                        <span style="color: #999; font-style: italic;">Pendiente</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if convocatoria.isActivo %}
+                                <span class="badge badge-success" style="background-color: var(--color-success);">Activa</span>
+                            {% else %}
+                                <span class="badge badge-danger" style="background-color: var(--color-danger);">Inactiva</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="{{ path('app_convocatoria_show', {'id': convocatoria.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
+                                <a href="{{ path('app_convocatoria_edit', {'id': convocatoria.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                <a href="{{ path('app_convocatoria_asignar_alumnos', {'id': convocatoria.id}) }}" class="btn btn-info btn-sm">Asignar Alumnos</a>
+                                <form method="post" action="{{ path('app_convocatoria_toggle_activo', {'id': convocatoria.id}) }}" style="display: inline;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ convocatoria.id) }}">
+                                    <button type="submit" class="btn btn-sm {% if convocatoria.isActivo %}btn-warning{% else %}btn-success{% endif %}">
+                                        {% if convocatoria.isActivo %}Desactivar{% else %}Activar{% endif %}
+                                    </button>
+                                </form>
+                                <form method="post" action="{{ path('app_convocatoria_delete', {'id': convocatoria.id}) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de eliminar esta convocatoria?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ convocatoria.id) }}">
+                                    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <p>No hay convocatorias registradas aún.</p>
+            <a href="{{ path('app_convocatoria_new') }}" class="btn btn-primary">Crear Primera Convocatoria</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+

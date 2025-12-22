@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Municipios{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4">
+    <h1>Municipios</h1>
+    <a href="{{ path('app_municipio_new') }}" class="btn btn-primary">Nuevo Municipio</a>
+</div>
+
+{% if municipios|length > 0 %}
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Alumnos Asignados</th>
+                    <th>Temas</th>
+                    <th>Preguntas</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for municipio in municipios %}
+                    <tr>
+                        <td>{{ municipio.id }}</td>
+                        <td><strong>{{ municipio.nombre }}</strong></td>
+                        <td>
+                            <span class="badge badge-moderada">{{ municipio.usuarios|length }} alumno(s)</span>
+                        </td>
+                        <td>
+                            <span class="badge badge-success">{{ municipio.temasMunicipales|length }} tema(s)</span>
+                        </td>
+                        <td>
+                            <span class="badge badge-primary">{{ municipio.preguntasMunicipales|length }} pregunta(s)</span>
+                        </td>
+                        <td>
+                            {% if municipio.isActivo %}
+                                <span class="badge badge-success" style="background-color: var(--color-success);">Activo</span>
+                            {% else %}
+                                <span class="badge badge-danger" style="background-color: var(--color-danger);">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="{{ path('app_municipio_show', {'id': municipio.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
+                                <a href="{{ path('app_municipio_edit', {'id': municipio.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                <a href="{{ path('app_municipio_asignar_alumnos', {'id': municipio.id}) }}" class="btn btn-info btn-sm">Asignar Alumnos</a>
+                                <form method="post" action="{{ path('app_municipio_toggle_activo', {'id': municipio.id}) }}" style="display: inline;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ municipio.id) }}">
+                                    <button type="submit" class="btn btn-sm {% if municipio.isActivo %}btn-warning{% else %}btn-success{% endif %}">
+                                        {% if municipio.isActivo %}Desactivar{% else %}Activar{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <p>No hay municipios registrados aún.</p>
+            <a href="{{ path('app_municipio_new') }}" class="btn btn-primary">Crear Primer Municipio</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+

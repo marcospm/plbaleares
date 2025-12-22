@@ -16,7 +16,7 @@
         <div class="form-group">
             <label class="form-label"><strong>Explicación para el Opositor:</strong></label>
             <div style="background-color: #f5f5f5; padding: 1rem; border-radius: 4px; border-left: 4px solid var(--color-primary);">
-                {{ articulo.explicacion|default('Sin explicación')|nl2br }}
+                {{ articulo.explicacion|default('Sin explicación')|raw }}
             </div>
         </div>
 

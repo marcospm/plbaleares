@@ -1,0 +1,27 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Editar Convocatoria{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Editar Convocatoria: {{ convocatoria.nombre }}</h1>
+    </div>
+    <div class="card-body">
+        {{ form_start(form) }}
+            {{ form_row(form.nombre) }}
+            {{ form_row(form.municipio) }}
+            {{ form_row(form.fechaTeorico) }}
+            {{ form_row(form.fechaFisicas) }}
+            {{ form_row(form.fechaPsicotecnico) }}
+            {{ form_row(form.activo) }}
+            
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Actualizar</button>
+                <a href="{{ path('app_convocatoria_index') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
+
