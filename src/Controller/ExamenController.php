@@ -12,6 +12,7 @@ use App\Repository\TemaRepository;
 use App\Repository\TemaMunicipalRepository;
 use App\Repository\MunicipioRepository;
 use App\Repository\UserRepository;
+use App\Service\NotificacionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -31,7 +32,8 @@ class ExamenController extends AbstractController
         private TemaMunicipalRepository $temaMunicipalRepository,
         private MunicipioRepository $municipioRepository,
         private ExamenRepository $examenRepository,
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        private NotificacionService $notificacionService
     ) {
     }
 
@@ -429,6 +431,15 @@ class ExamenController extends AbstractController
         $this->entityManager->persist($examen);
         $this->entityManager->flush();
 
+        // Crear notificación para el profesor asignado
+        try {
+            $this->notificacionService->crearNotificacionExamen($examen);
+        } catch (\Exception $e) {
+            // Si hay error al crear la notificación, no fallar la operación principal
+            // Solo loguear el error (en producción usar un logger)
+            error_log('Error al crear notificación de examen: ' . $e->getMessage());
+        }
+
         // Limpiar sesión
         $session->remove('examen_preguntas');
         $session->remove('examen_respuestas');
@@ -447,7 +458,7 @@ class ExamenController extends AbstractController
     }
 
     #[Route('/historial', name: 'app_examen_historial', methods: ['GET'])]
-    public function historial(Request $request): Response
+    public function historial(Request $request, TemaRepository $temaRepository, TemaMunicipalRepository $temaMunicipalRepository): Response
     {
         $user = $this->getUser();
         $examenes = $this->examenRepository->findBy(['usuario' => $user], ['fecha' => 'DESC']);
@@ -458,16 +469,40 @@ class ExamenController extends AbstractController
             $cantidad = 2;
         }
 
-        // Calcular rankings por dificultad
+        // Obtener tema seleccionado para temario general (opcional)
+        $temaId = $request->query->getInt('tema', 0);
+        $tema = null;
+        if ($temaId > 0) {
+            $tema = $temaRepository->find($temaId);
+        }
+
+        // Obtener tema municipal seleccionado (opcional)
+        $temaMunicipalId = $request->query->getInt('tema_municipal', 0);
+        $temaMunicipal = null;
+        if ($temaMunicipalId > 0) {
+            $temaMunicipal = $temaMunicipalRepository->find($temaMunicipalId);
+        }
+
+        // Obtener municipio seleccionado para filtrar rankings municipales
+        $municipioId = $request->query->getInt('municipio', 0);
+        $municipioSeleccionado = null;
+        if ($municipioId > 0) {
+            $municipioSeleccionado = $this->municipioRepository->find($municipioId);
+        }
+
+        // Obtener todos los temas activos para el filtro
+        $temas = $temaRepository->findBy(['activo' => true], ['id' => 'ASC']);
+
+        // Calcular rankings por dificultad (temario general)
         $rankings = [];
         $posicionesUsuario = [];
         $dificultades = ['facil', 'moderada', 'dificil'];
         
         foreach ($dificultades as $dificultad) {
-            $ranking = $this->examenRepository->getRankingPorDificultad($dificultad, $cantidad);
+            $ranking = $this->examenRepository->getRankingPorDificultad($dificultad, $cantidad, $tema);
             $rankings[$dificultad] = $ranking;
-            $posicion = $this->examenRepository->getPosicionUsuario($user, $dificultad, $cantidad);
-            $notaMedia = $this->examenRepository->getNotaMediaUsuario($user, $dificultad, $cantidad);
+            $posicion = $this->examenRepository->getPosicionUsuario($user, $dificultad, $cantidad, $tema);
+            $notaMedia = $this->examenRepository->getNotaMediaUsuario($user, $dificultad, $cantidad, $tema);
             $posicionesUsuario[$dificultad] = [
                 'posicion' => $posicion,
                 'notaMedia' => $notaMedia,
@@ -475,18 +510,67 @@ class ExamenController extends AbstractController
             ];
         }
 
+        // Calcular rankings por municipio
+        $rankingsPorMunicipio = [];
+        $posicionesPorMunicipio = [];
+        $municipiosActivos = $user->getMunicipios();
+        
+        foreach ($municipiosActivos as $municipio) {
+            if (!$municipio->isActivo()) {
+                continue;
+            }
+
+            // Si hay un municipio seleccionado y no es este, saltarlo
+            if ($municipioSeleccionado && $municipioSeleccionado->getId() !== $municipio->getId()) {
+                continue;
+            }
+
+            // Obtener temas municipales de este municipio
+            $temasMunicipales = $temaMunicipalRepository->findByMunicipio($municipio);
+            
+            $rankingsMunicipio = [];
+            $posicionesMunicipio = [];
+            
+            foreach ($dificultades as $dificultad) {
+                // Si hay un tema municipal seleccionado, usarlo para filtrar
+                $temaMunicipalFiltro = ($temaMunicipal && in_array($temaMunicipal, $temasMunicipales)) ? $temaMunicipal : null;
+                
+                $ranking = $this->examenRepository->getRankingPorMunicipioYDificultad($municipio, $dificultad, $cantidad, $temaMunicipalFiltro);
+                $rankingsMunicipio[$dificultad] = $ranking;
+                $posicion = $this->examenRepository->getPosicionUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidad, $temaMunicipalFiltro);
+                $notaMedia = $this->examenRepository->getNotaMediaUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidad, $temaMunicipalFiltro);
+                $posicionesMunicipio[$dificultad] = [
+                    'posicion' => $posicion,
+                    'notaMedia' => $notaMedia,
+                    'totalUsuarios' => count($ranking),
+                ];
+            }
+            
+            $rankingsPorMunicipio[$municipio->getId()] = [
+                'municipio' => $municipio,
+                'rankings' => $rankingsMunicipio,
+                'posiciones' => $posicionesMunicipio,
+                'temasMunicipales' => $temasMunicipales,
+            ];
+        }
+
         return $this->render('examen/historial.html.twig', [
             'examenes' => $examenes,
             'rankings' => $rankings,
             'posicionesUsuario' => $posicionesUsuario,
+            'rankingsPorMunicipio' => $rankingsPorMunicipio,
             'cantidad' => $cantidad,
             'usuarioActual' => $user,
+            'temas' => $temas,
+            'temaSeleccionado' => $tema,
+            'municipioSeleccionado' => $municipioSeleccionado,
+            'temaMunicipalSeleccionado' => $temaMunicipal,
         ]);
     }
 
     #[Route('/profesor', name: 'app_examen_profesor', methods: ['GET'])]
     #[IsGranted('ROLE_PROFESOR')]
-    public function profesor(Request $request, UserRepository $userRepository): Response
+    public function profesor(Request $request, UserRepository $userRepository, TemaRepository $temaRepository): Response
     {
         $usuarioActual = $this->getUser();
         $esAdmin = $this->isGranted('ROLE_ADMIN');
@@ -506,15 +590,33 @@ class ExamenController extends AbstractController
         
         $usuarioId = $request->query->getInt('usuario');
         $dificultad = $request->query->get('dificultad');
+        $temaId = $request->query->getInt('tema', 0);
+        $tema = null;
+        if ($temaId > 0) {
+            $tema = $temaRepository->find($temaId);
+        }
         
-        $qb = $this->examenRepository->createQueryBuilder('e')
+        // Obtener todos los temas activos para el filtro
+        $temas = $temaRepository->findBy(['activo' => true], ['id' => 'ASC']);
+        
+        // Query para exámenes generales (sin municipio)
+        $qbGeneral = $this->examenRepository->createQueryBuilder('e')
             ->join('e.usuario', 'u')
+            ->where('e.municipio IS NULL')
+            ->orderBy('e.fecha', 'DESC');
+        
+        // Query para exámenes municipales
+        $qbMunicipal = $this->examenRepository->createQueryBuilder('e')
+            ->join('e.usuario', 'u')
+            ->where('e.municipio IS NOT NULL')
             ->orderBy('e.fecha', 'DESC');
         
         // Filtrar por alumnos asignados si no es admin
         if (!$esAdmin && !empty($alumnosIds)) {
-            $qb->andWhere('u.id IN (:alumnosIds)')
-               ->setParameter('alumnosIds', $alumnosIds);
+            $qbGeneral->andWhere('u.id IN (:alumnosIds)')
+                      ->setParameter('alumnosIds', $alumnosIds);
+            $qbMunicipal->andWhere('u.id IN (:alumnosIds)')
+                        ->setParameter('alumnosIds', $alumnosIds);
         }
         
         if ($usuarioId) {
@@ -523,16 +625,37 @@ class ExamenController extends AbstractController
                 $this->addFlash('error', 'No tienes acceso a los exámenes de ese alumno.');
                 return $this->redirectToRoute('app_examen_profesor', [], Response::HTTP_SEE_OTHER);
             }
-            $qb->andWhere('e.usuario = :usuario')
-               ->setParameter('usuario', $usuarioId);
+            $qbGeneral->andWhere('e.usuario = :usuario')
+                       ->setParameter('usuario', $usuarioId);
+            $qbMunicipal->andWhere('e.usuario = :usuario')
+                        ->setParameter('usuario', $usuarioId);
         }
         
         if ($dificultad && in_array($dificultad, ['facil', 'moderada', 'dificil'])) {
-            $qb->andWhere('e.dificultad = :dificultad')
-               ->setParameter('dificultad', $dificultad);
+            $qbGeneral->andWhere('e.dificultad = :dificultad')
+                       ->setParameter('dificultad', $dificultad);
+            $qbMunicipal->andWhere('e.dificultad = :dificultad')
+                        ->setParameter('dificultad', $dificultad);
         }
         
-        $examenes = $qb->getQuery()->getResult();
+        // Filtrar por tema si está seleccionado (solo para exámenes generales)
+        if ($tema !== null) {
+            $qbGeneral->innerJoin('e.temas', 't')
+                      ->andWhere('t.id = :temaId')
+                      ->setParameter('temaId', $tema->getId())
+                      ->groupBy('e.id')
+                      ->having('COUNT(t.id) = 1');
+        }
+        
+        $examenesGeneral = $qbGeneral->getQuery()->getResult();
+        $examenesMunicipal = $qbMunicipal->getQuery()->getResult();
+        
+        // Filtrar en PHP para asegurar que solo sean exámenes íntegramente del tema
+        if ($tema !== null) {
+            $examenesGeneral = array_filter($examenesGeneral, function($examen) use ($tema) {
+                return $examen->getTemas()->count() === 1 && $examen->getTemas()->contains($tema);
+            });
+        }
         
         // Obtener usuarios para el filtro (solo alumnos asignados si no es admin)
         if ($esAdmin) {
@@ -564,10 +687,13 @@ class ExamenController extends AbstractController
         });
         
         return $this->render('examen/profesor.html.twig', [
-            'examenes' => $examenes,
+            'examenesGeneral' => $examenesGeneral,
+            'examenesMunicipal' => $examenesMunicipal,
             'usuarios' => $usuarios,
+            'temas' => $temas,
             'usuarioSeleccionado' => $usuarioId,
             'dificultadSeleccionada' => $dificultad,
+            'temaSeleccionado' => $tema,
         ]);
     }
 

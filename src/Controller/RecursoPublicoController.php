@@ -7,6 +7,7 @@ use App\Repository\ExamenPDFRepository;
 use App\Repository\TemaRepository;
 use App\Repository\TemaMunicipalRepository;
 use App\Repository\MunicipioRepository;
+use App\Repository\RecursoEspecificoRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -19,7 +20,8 @@ class RecursoPublicoController extends AbstractController
         ExamenPDFRepository $examenPDFRepository, 
         TemaRepository $temaRepository,
         TemaMunicipalRepository $temaMunicipalRepository,
-        MunicipioRepository $municipioRepository
+        MunicipioRepository $municipioRepository,
+        RecursoEspecificoRepository $recursoEspecificoRepository
     ): Response {
         $user = $this->getUser();
         
@@ -28,6 +30,12 @@ class RecursoPublicoController extends AbstractController
         usort($examenes, function($a, $b) {
             return $b->getFechaSubida() <=> $a->getFechaSubida();
         });
+        
+        // Obtener recursos específicos asignados al usuario
+        $recursosEspecificos = [];
+        if ($user) {
+            $recursosEspecificos = $recursoEspecificoRepository->findByAlumno($user);
+        }
         
         // Obtener todos los temas activos, ordenados por ID
         $temas = $temaRepository->findBy(['activo' => true], ['id' => 'ASC']);
@@ -51,6 +59,7 @@ class RecursoPublicoController extends AbstractController
         
         return $this->render('recurso/publico_index.html.twig', [
             'examenes' => $examenes,
+            'recursosEspecificos' => $recursosEspecificos,
             'temas' => $temas,
             'temasPorMunicipio' => $temasPorMunicipio,
         ]);

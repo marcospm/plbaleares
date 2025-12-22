@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Ver Recurso Específico{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>{{ recursoEspecifico.nombre }}</h1>
+            <div>
+                <a href="{{ path('app_recurso_especifico_edit', {'id': recursoEspecifico.id}) }}" class="btn btn-primary">Editar</a>
+                <a href="{{ path('app_recurso_especifico_index') }}" class="btn btn-secondary">Volver</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div style="margin-bottom: 1.5rem;">
+            <h3>Descripción</h3>
+            <p>{{ recursoEspecifico.descripcion ?? 'Sin descripción' }}</p>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <h3>Archivo</h3>
+            {% if recursoEspecifico.rutaArchivo %}
+                <p>
+                    <strong>Nombre:</strong> {{ recursoEspecifico.nombreArchivoOriginal ?? 'Sin nombre' }}<br>
+                    <a href="{{ recursoEspecifico.rutaArchivo }}" target="_blank" class="btn btn-primary" rel="noopener noreferrer">Descargar Archivo</a>
+                </p>
+            {% else %}
+                <p class="text-muted">No hay archivo asociado.</p>
+            {% endif %}
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <h3>Alumnos Asignados</h3>
+            {% if recursoEspecifico.alumnos|length > 0 %}
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    {% for alumno in recursoEspecifico.alumnos %}
+                        <span class="badge" style="background-color: var(--color-primary); font-size: 0.9rem;">{{ alumno.username }}</span>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted">No hay alumnos asignados.</p>
+            {% endif %}
+        </div>
+
+        <div>
+            <h3>Información</h3>
+            <p>
+                <strong>Profesor:</strong> {{ recursoEspecifico.profesor.username }}<br>
+                <strong>Fecha de creación:</strong> {{ recursoEspecifico.fechaCreacion|date('d/m/Y H:i') }}
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

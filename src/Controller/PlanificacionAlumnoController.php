@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\TareaAsignada;
 use App\Repository\PlanificacionPersonalizadaRepository;
 use App\Repository\TareaAsignadaRepository;
+use App\Service\NotificacionService;
 use App\Service\PlanificacionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,6 +19,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_USER')]
 class PlanificacionAlumnoController extends AbstractController
 {
+    public function __construct(
+        private NotificacionService $notificacionService
+    ) {
+    }
     #[Route('/', name: 'app_planificacion_alumno_index', methods: ['GET'])]
     public function index(
         Request $request,
@@ -169,6 +174,15 @@ class PlanificacionAlumnoController extends AbstractController
 
         $tareaAsignada->setCompletada(true);
         $entityManager->flush();
+
+        // Crear notificación para el profesor asignado
+        try {
+            $this->notificacionService->crearNotificacionTarea($tareaAsignada);
+        } catch (\Exception $e) {
+            // Si hay error al crear la notificación, no fallar la operación principal
+            // Solo loguear el error (en producción usar un logger)
+            error_log('Error al crear notificación de tarea: ' . $e->getMessage());
+        }
 
         return new JsonResponse(['success' => true, 'message' => 'Tarea marcada como completada.']);
     }

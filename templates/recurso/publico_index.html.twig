@@ -92,52 +92,106 @@
                 {% endif %}
             </div>
 
-            {# Columna derecha: Exámenes PDF #}
-            <div class="card">
-                <div class="card-header">
-                    <h2>Exámenes PDF</h2>
-                </div>
-                <div class="card-body">
-                    {% if examenes|length > 0 %}
-                        <p style="margin-bottom: 1rem; color: var(--color-text-light); font-size: 0.9rem;">
-                            Exámenes originales en formato PDF organizados por tema. Se muestran ordenados por fecha de publicación.
-                        </p>
-                        <div style="max-height: 600px; overflow-y: auto;">
-                            <div style="display: grid; gap: 1rem;">
-                                {% for examen in examenes %}
-                                    <div style="padding: 1rem; border: 1px solid #ddd; border-radius: 4px; background-color: #fff;">
-                                        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-                                            <div style="flex: 1;">
-                                                <h3 style="color: var(--color-primary); margin-bottom: 0.5rem; font-size: 1rem;">
-                                                    {{ examen.nombre }}
-                                                </h3>
-                                                {% if examen.tema %}
-                                                    <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.85rem;">
-                                                        <strong>Tema:</strong> {{ examen.tema.nombre }}
+            {# Columna derecha: Exámenes PDF y Recursos Específicos (mitad cada uno) #}
+            <div>
+                {# Exámenes PDF #}
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h2>Exámenes PDF</h2>
+                    </div>
+                    <div class="card-body">
+                        {% if examenes|length > 0 %}
+                            <p style="margin-bottom: 1rem; color: var(--color-text-light); font-size: 0.9rem;">
+                                Exámenes originales en formato PDF organizados por tema. Se muestran ordenados por fecha de publicación.
+                            </p>
+                            <div style="max-height: 300px; overflow-y: auto;">
+                                <div style="display: grid; gap: 1rem;">
+                                    {% for examen in examenes %}
+                                        <div style="padding: 1rem; border: 1px solid #ddd; border-radius: 4px; background-color: #fff;">
+                                            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                                                <div style="flex: 1;">
+                                                    <h3 style="color: var(--color-primary); margin-bottom: 0.5rem; font-size: 1rem;">
+                                                        {{ examen.nombre }}
+                                                    </h3>
+                                                    {% if examen.tema %}
+                                                        <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.85rem;">
+                                                            <strong>Tema:</strong> {{ examen.tema.nombre }}
+                                                        </p>
+                                                    {% endif %}
+                                                    {% if examen.descripcion %}
+                                                        <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.85rem;">
+                                                            {{ examen.descripcion|slice(0, 80) }}{% if examen.descripcion|length > 80 %}...{% endif %}
+                                                        </p>
+                                                    {% endif %}
+                                                    <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.8rem;">
+                                                        <strong>Publicado:</strong> {{ examen.fechaSubida|date('d/m/Y') }}
                                                     </p>
-                                                {% endif %}
-                                                {% if examen.descripcion %}
-                                                    <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.85rem;">
-                                                        {{ examen.descripcion|slice(0, 100) }}{% if examen.descripcion|length > 100 %}...{% endif %}
-                                                    </p>
-                                                {% endif %}
-                                                <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.8rem;">
-                                                    <strong>Publicado:</strong> {{ examen.fechaSubida|date('d/m/Y') }}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <a href="{{ examen.rutaArchivo }}" target="_blank" class="btn btn-sm btn-primary" rel="noopener noreferrer">
-                                                    Ver PDF
-                                                </a>
+                                                </div>
+                                                <div>
+                                                    <a href="{{ examen.rutaArchivo }}" target="_blank" class="btn btn-sm btn-primary" rel="noopener noreferrer">
+                                                        Ver PDF
+                                                    </a>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                {% endfor %}
+                                    {% endfor %}
+                                </div>
                             </div>
-                        </div>
-                    {% else %}
-                        <p style="text-align: center; color: #666; margin: 1rem 0;">No hay exámenes PDF disponibles.</p>
-                    {% endif %}
+                        {% else %}
+                            <p style="text-align: center; color: #666; margin: 1rem 0;">No hay exámenes PDF disponibles.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {# Recursos Específicos #}
+                <div class="card">
+                    <div class="card-header" style="background-color: #FF9800; color: white;">
+                        <h2 style="margin: 0; color: white;">📎 Recursos Específicos</h2>
+                    </div>
+                    <div class="card-body">
+                        {% if recursosEspecificos|length > 0 %}
+                            <p style="margin-bottom: 1rem; color: var(--color-text-light); font-size: 0.9rem;">
+                                Recursos compartidos específicamente contigo por tu profesor. Se muestran ordenados por fecha de creación.
+                            </p>
+                            <div style="max-height: 300px; overflow-y: auto;">
+                                <div style="display: grid; gap: 1rem;">
+                                    {% for recurso in recursosEspecificos %}
+                                        <div style="padding: 1rem; border: 1px solid #FF9800; border-radius: 4px; background-color: #fff3e0;">
+                                            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                                                <div style="flex: 1;">
+                                                    <h3 style="color: #FF9800; margin-bottom: 0.5rem; font-size: 1rem;">
+                                                        {{ recurso.nombre }}
+                                                    </h3>
+                                                    {% if recurso.descripcion %}
+                                                        <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.85rem;">
+                                                            {{ recurso.descripcion|slice(0, 80) }}{% if recurso.descripcion|length > 80 %}...{% endif %}
+                                                        </p>
+                                                    {% endif %}
+                                                    {% if recurso.nombreArchivoOriginal %}
+                                                        <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.8rem;">
+                                                            <strong>Archivo:</strong> {{ recurso.nombreArchivoOriginal }}
+                                                        </p>
+                                                    {% endif %}
+                                                    <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.8rem;">
+                                                        <strong>Profesor:</strong> {{ recurso.profesor.username }} | <strong>Fecha:</strong> {{ recurso.fechaCreacion|date('d/m/Y') }}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    {% if recurso.rutaArchivo %}
+                                                        <a href="{{ recurso.rutaArchivo }}" target="_blank" class="btn btn-sm" style="background-color: #FF9800; color: white; border: none;" rel="noopener noreferrer">
+                                                            Descargar
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <p style="text-align: center; color: #666; margin: 1rem 0;">No tienes recursos específicos asignados por tu profesor.</p>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

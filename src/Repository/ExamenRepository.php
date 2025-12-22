@@ -5,6 +5,8 @@ namespace App\Repository;
 use App\Entity\Examen;
 use App\Entity\User;
 use App\Entity\Municipio;
+use App\Entity\Tema;
+use App\Entity\TemaMunicipal;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -50,18 +52,37 @@ class ExamenRepository extends ServiceEntityRepository
 
     /**
      * Obtiene la nota media de un usuario para los últimos N exámenes de una dificultad específica
+     * Si se proporciona un tema, solo considera exámenes íntegramente de ese tema (que tengan exactamente ese tema único)
      */
-    public function getNotaMediaUsuario(User $usuario, string $dificultad, int $cantidadExamenes): ?float
+    public function getNotaMediaUsuario(User $usuario, string $dificultad, int $cantidadExamenes, ?Tema $tema = null): ?float
     {
-        $examenes = $this->createQueryBuilder('e')
+        $qb = $this->createQueryBuilder('e')
             ->where('e.usuario = :usuario')
             ->andWhere('e.dificultad = :dificultad')
+            ->andWhere('e.municipio IS NULL') // Solo exámenes generales (no municipales)
             ->setParameter('usuario', $usuario)
-            ->setParameter('dificultad', $dificultad)
-            ->orderBy('e.fecha', 'DESC')
-            ->setMaxResults($cantidadExamenes)
-            ->getQuery()
-            ->getResult();
+            ->setParameter('dificultad', $dificultad);
+
+        // Si hay un tema específico, filtrar solo exámenes íntegramente de ese tema
+        if ($tema !== null) {
+            $qb->innerJoin('e.temas', 't')
+               ->andWhere('t.id = :temaId')
+               ->setParameter('temaId', $tema->getId())
+               ->groupBy('e.id')
+               ->having('COUNT(t.id) = 1'); // Solo exámenes con exactamente 1 tema (ese tema)
+        }
+
+        $qb->orderBy('e.fecha', 'DESC')
+           ->setMaxResults($cantidadExamenes);
+
+        $examenes = $qb->getQuery()->getResult();
+
+        // Filtrar en PHP para asegurar que solo sean exámenes íntegramente del tema
+        if ($tema !== null) {
+            $examenes = array_filter($examenes, function($examen) use ($tema) {
+                return $examen->getTemas()->count() === 1 && $examen->getTemas()->contains($tema);
+            });
+        }
 
         if (empty($examenes)) {
             return null;
@@ -77,9 +98,10 @@ class ExamenRepository extends ServiceEntityRepository
 
     /**
      * Obtiene el ranking de usuarios según su nota media de los últimos N exámenes por dificultad
+     * Si se proporciona un tema, solo considera exámenes íntegramente de ese tema
      * @return array Array con ['usuario' => User, 'notaMedia' => float, 'cantidadExamenes' => int]
      */
-    public function getRankingPorDificultad(string $dificultad, int $cantidadExamenes): array
+    public function getRankingPorDificultad(string $dificultad, int $cantidadExamenes, ?Tema $tema = null): array
     {
         // Obtener todos los usuarios activos
         $usuarios = $this->getEntityManager()
@@ -92,18 +114,35 @@ class ExamenRepository extends ServiceEntityRepository
 
         $ranking = [];
         foreach ($usuarios as $usuario) {
-            $notaMedia = $this->getNotaMediaUsuario($usuario, $dificultad, $cantidadExamenes);
+            $notaMedia = $this->getNotaMediaUsuario($usuario, $dificultad, $cantidadExamenes, $tema);
             if ($notaMedia !== null) {
                 // Contar cuántos exámenes tiene realmente
-                $examenesReales = $this->createQueryBuilder('e')
+                $qb = $this->createQueryBuilder('e')
                     ->where('e.usuario = :usuario')
                     ->andWhere('e.dificultad = :dificultad')
+                    ->andWhere('e.municipio IS NULL')
                     ->setParameter('usuario', $usuario)
-                    ->setParameter('dificultad', $dificultad)
-                    ->orderBy('e.fecha', 'DESC')
+                    ->setParameter('dificultad', $dificultad);
+
+                if ($tema !== null) {
+                    $qb->innerJoin('e.temas', 't')
+                       ->andWhere('t.id = :temaId')
+                       ->setParameter('temaId', $tema->getId())
+                       ->groupBy('e.id')
+                       ->having('COUNT(t.id) = 1');
+                }
+
+                $examenesReales = $qb->orderBy('e.fecha', 'DESC')
                     ->setMaxResults($cantidadExamenes)
                     ->getQuery()
                     ->getResult();
+
+                // Filtrar en PHP para asegurar que solo sean exámenes íntegramente del tema
+                if ($tema !== null) {
+                    $examenesReales = array_filter($examenesReales, function($examen) use ($tema) {
+                        return $examen->getTemas()->count() === 1 && $examen->getTemas()->contains($tema);
+                    });
+                }
 
                 $ranking[] = [
                     'usuario' => $usuario,
@@ -127,9 +166,9 @@ class ExamenRepository extends ServiceEntityRepository
     /**
      * Obtiene la posición de un usuario en el ranking por dificultad
      */
-    public function getPosicionUsuario(User $usuario, string $dificultad, int $cantidadExamenes): ?int
+    public function getPosicionUsuario(User $usuario, string $dificultad, int $cantidadExamenes, ?Tema $tema = null): ?int
     {
-        $ranking = $this->getRankingPorDificultad($dificultad, $cantidadExamenes);
+        $ranking = $this->getRankingPorDificultad($dificultad, $cantidadExamenes, $tema);
         
         foreach ($ranking as $index => $entry) {
             if ($entry['usuario']->getId() === $usuario->getId()) {
@@ -142,20 +181,38 @@ class ExamenRepository extends ServiceEntityRepository
 
     /**
      * Obtiene la nota media de un usuario para los últimos N exámenes de un municipio específico
+     * Si se proporciona un tema municipal, solo considera exámenes íntegramente de ese tema
      */
-    public function getNotaMediaUsuarioPorMunicipio(User $usuario, Municipio $municipio, string $dificultad, int $cantidadExamenes): ?float
+    public function getNotaMediaUsuarioPorMunicipio(User $usuario, Municipio $municipio, string $dificultad, int $cantidadExamenes, ?TemaMunicipal $temaMunicipal = null): ?float
     {
-        $examenes = $this->createQueryBuilder('e')
+        $qb = $this->createQueryBuilder('e')
             ->where('e.usuario = :usuario')
             ->andWhere('e.municipio = :municipio')
             ->andWhere('e.dificultad = :dificultad')
             ->setParameter('usuario', $usuario)
             ->setParameter('municipio', $municipio)
-            ->setParameter('dificultad', $dificultad)
-            ->orderBy('e.fecha', 'DESC')
-            ->setMaxResults($cantidadExamenes)
-            ->getQuery()
-            ->getResult();
+            ->setParameter('dificultad', $dificultad);
+
+        // Si hay un tema municipal específico, filtrar solo exámenes íntegramente de ese tema
+        if ($temaMunicipal !== null) {
+            $qb->innerJoin('e.temasMunicipales', 'tm')
+               ->andWhere('tm.id = :temaMunicipalId')
+               ->setParameter('temaMunicipalId', $temaMunicipal->getId())
+               ->groupBy('e.id')
+               ->having('COUNT(tm.id) = 1'); // Solo exámenes con exactamente 1 tema municipal (ese tema)
+        }
+
+        $qb->orderBy('e.fecha', 'DESC')
+           ->setMaxResults($cantidadExamenes);
+
+        $examenes = $qb->getQuery()->getResult();
+
+        // Filtrar en PHP para asegurar que solo sean exámenes íntegramente del tema municipal
+        if ($temaMunicipal !== null) {
+            $examenes = array_filter($examenes, function($examen) use ($temaMunicipal) {
+                return $examen->getTemasMunicipales()->count() === 1 && $examen->getTemasMunicipales()->contains($temaMunicipal);
+            });
+        }
 
         if (empty($examenes)) {
             return null;
@@ -171,9 +228,10 @@ class ExamenRepository extends ServiceEntityRepository
 
     /**
      * Obtiene el ranking de usuarios según su nota media de los últimos N exámenes por municipio y dificultad
+     * Si se proporciona un tema municipal, solo considera exámenes íntegramente de ese tema
      * @return array Array con ['usuario' => User, 'notaMedia' => float, 'cantidadExamenes' => int]
      */
-    public function getRankingPorMunicipioYDificultad(Municipio $municipio, string $dificultad, int $cantidadExamenes): array
+    public function getRankingPorMunicipioYDificultad(Municipio $municipio, string $dificultad, int $cantidadExamenes, ?TemaMunicipal $temaMunicipal = null): array
     {
         // Obtener usuarios que tienen este municipio activado
         $usuarios = $this->getEntityManager()
@@ -189,20 +247,36 @@ class ExamenRepository extends ServiceEntityRepository
 
         $ranking = [];
         foreach ($usuarios as $usuario) {
-            $notaMedia = $this->getNotaMediaUsuarioPorMunicipio($usuario, $municipio, $dificultad, $cantidadExamenes);
+            $notaMedia = $this->getNotaMediaUsuarioPorMunicipio($usuario, $municipio, $dificultad, $cantidadExamenes, $temaMunicipal);
             if ($notaMedia !== null) {
                 // Contar cuántos exámenes tiene realmente
-                $examenesReales = $this->createQueryBuilder('e')
+                $qb = $this->createQueryBuilder('e')
                     ->where('e.usuario = :usuario')
                     ->andWhere('e.municipio = :municipio')
                     ->andWhere('e.dificultad = :dificultad')
                     ->setParameter('usuario', $usuario)
                     ->setParameter('municipio', $municipio)
-                    ->setParameter('dificultad', $dificultad)
-                    ->orderBy('e.fecha', 'DESC')
+                    ->setParameter('dificultad', $dificultad);
+
+                if ($temaMunicipal !== null) {
+                    $qb->innerJoin('e.temasMunicipales', 'tm')
+                       ->andWhere('tm.id = :temaMunicipalId')
+                       ->setParameter('temaMunicipalId', $temaMunicipal->getId())
+                       ->groupBy('e.id')
+                       ->having('COUNT(tm.id) = 1');
+                }
+
+                $examenesReales = $qb->orderBy('e.fecha', 'DESC')
                     ->setMaxResults($cantidadExamenes)
                     ->getQuery()
                     ->getResult();
+
+                // Filtrar en PHP para asegurar que solo sean exámenes íntegramente del tema municipal
+                if ($temaMunicipal !== null) {
+                    $examenesReales = array_filter($examenesReales, function($examen) use ($temaMunicipal) {
+                        return $examen->getTemasMunicipales()->count() === 1 && $examen->getTemasMunicipales()->contains($temaMunicipal);
+                    });
+                }
 
                 $ranking[] = [
                     'usuario' => $usuario,
@@ -226,9 +300,9 @@ class ExamenRepository extends ServiceEntityRepository
     /**
      * Obtiene la posición de un usuario en el ranking por municipio y dificultad
      */
-    public function getPosicionUsuarioPorMunicipio(User $usuario, Municipio $municipio, string $dificultad, int $cantidadExamenes): ?int
+    public function getPosicionUsuarioPorMunicipio(User $usuario, Municipio $municipio, string $dificultad, int $cantidadExamenes, ?TemaMunicipal $temaMunicipal = null): ?int
     {
-        $ranking = $this->getRankingPorMunicipioYDificultad($municipio, $dificultad, $cantidadExamenes);
+        $ranking = $this->getRankingPorMunicipioYDificultad($municipio, $dificultad, $cantidadExamenes, $temaMunicipal);
         
         foreach ($ranking as $index => $entry) {
             if ($entry['usuario']->getId() === $usuario->getId()) {

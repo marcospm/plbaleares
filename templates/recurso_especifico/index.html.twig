@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Recursos Específicos{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>Recursos Específicos</h1>
+            <a href="{{ path('app_recurso_especifico_new') }}" class="btn btn-primary">Nuevo Recurso</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="margin-bottom: 2rem; color: var(--color-text-light);">
+            Gestiona los recursos específicos que compartes con tus alumnos asignados. Estos recursos aparecerán en la sección de recursos de cada alumno asignado.
+        </p>
+
+        {% if recursos|length > 0 %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Archivo</th>
+                        <th>Alumnos Asignados</th>
+                        <th>Fecha Creación</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for recurso in recursos %}
+                        <tr>
+                            <td><strong>{{ recurso.nombre }}</strong></td>
+                            <td>{{ recurso.descripcion|slice(0, 100) }}{% if recurso.descripcion|length > 100 %}...{% endif %}</td>
+                            <td>
+                                {% if recurso.nombreArchivoOriginal %}
+                                    <span class="badge badge-facil">{{ recurso.nombreArchivoOriginal }}</span>
+                                {% else %}
+                                    <span class="text-muted">Sin archivo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% for alumno in recurso.alumnos %}
+                                    <span class="badge" style="background-color: var(--color-primary); margin-right: 0.25rem;">{{ alumno.username }}</span>
+                                {% endfor %}
+                            </td>
+                            <td>{{ recurso.fechaCreacion|date('d/m/Y H:i') }}</td>
+                            <td>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <a href="{{ path('app_recurso_especifico_show', {'id': recurso.id}) }}" class="btn btn-sm btn-secondary">Ver</a>
+                                    <a href="{{ path('app_recurso_especifico_edit', {'id': recurso.id}) }}" class="btn btn-sm btn-primary">Editar</a>
+                                    <form method="post" action="{{ path('app_recurso_especifico_delete', {'id': recurso.id}) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este recurso?');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ recurso.id) }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="text-center" style="padding: 2rem;">
+                <p style="font-size: 1.1rem; color: #666; margin-bottom: 1rem;">No has creado ningún recurso específico aún.</p>
+                <a href="{{ path('app_recurso_especifico_new') }}" class="btn btn-primary">Crear Primer Recurso</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
