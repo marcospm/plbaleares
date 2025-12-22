@@ -41,6 +41,9 @@
                     <th>Nombre de Usuario</th>
                     <th>Roles</th>
                     <th>Estado</th>
+                    {% if is_granted('ROLE_ADMIN') %}
+                        <th>Alumnos Asignados</th>
+                    {% endif %}
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -63,13 +66,31 @@
                                 <span class="badge badge-danger" style="background-color: var(--color-danger);">Inactivo</span>
                             {% endif %}
                         </td>
+                        {% if is_granted('ROLE_ADMIN') %}
+                            <td>
+                                {% if 'ROLE_PROFESOR' in user.roles or 'ROLE_ADMIN' in user.roles %}
+                                    <span class="badge" style="background-color: var(--color-primary);">{{ user.alumnos|length }} alumno(s)</span>
+                                {% elseif user.profesores|length > 0 %}
+                                    {% for profesor in user.profesores %}
+                                        <span class="badge" style="background-color: #007bff; margin-right: 0.25rem;">{{ profesor.username }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="text-muted">Sin asignar</span>
+                                {% endif %}
+                            </td>
+                        {% endif %}
                         <td>
-                            <form method="post" action="{{ path('app_user_toggle_activo', {'id': user.id}) }}" style="display: inline;">
-                                <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ user.id) }}">
-                                <button type="submit" class="btn btn-sm {% if user.isActivo %}btn-warning{% else %}btn-success{% endif %}">
-                                    {% if user.isActivo %}Desactivar{% else %}Activar{% endif %}
-                                </button>
-                            </form>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                {% if is_granted('ROLE_ADMIN') and ('ROLE_PROFESOR' in user.roles or 'ROLE_ADMIN' in user.roles) %}
+                                    <a href="{{ path('app_user_asignar_alumnos', {'id': user.id}) }}" class="btn btn-sm btn-info">Asignar Alumnos</a>
+                                {% endif %}
+                                <form method="post" action="{{ path('app_user_toggle_activo', {'id': user.id}) }}" style="display: inline;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ user.id) }}">
+                                    <button type="submit" class="btn btn-sm {% if user.isActivo %}btn-warning{% else %}btn-success{% endif %}">
+                                        {% if user.isActivo %}Desactivar{% else %}Activar{% endif %}
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 {% endfor %}

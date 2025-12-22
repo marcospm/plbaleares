@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Asignar Alumnos a {{ profesor.username }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Asignar Alumnos a {{ profesor.username }}</h1>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            <div style="margin-bottom: 1.5rem;">
+                <h3>Selecciona los alumnos a asignar:</h3>
+                <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 1rem;">
+                    {% if alumnos|length > 0 %}
+                        {% for alumno in alumnos %}
+                            <div style="padding: 0.75rem; border-bottom: 1px solid #eee;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input type="checkbox" name="alumnos[]" value="{{ alumno.id }}" 
+                                           {% if profesor.alumnos.contains(alumno) %}checked{% endif %}
+                                           style="width: auto;">
+                                    <span><strong>{{ alumno.username }}</strong></span>
+                                    {% if not alumno.isActivo %}
+                                        <span class="badge badge-danger" style="background-color: var(--color-danger); font-size: 0.75rem;">Inactivo</span>
+                                    {% endif %}
+                                </label>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p style="color: #666; text-align: center; padding: 2rem;">No hay alumnos disponibles.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn btn-primary">Guardar Asignaciones</button>
+                <a href="{{ path('app_user_index') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

@@ -42,10 +42,27 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\ManyToMany(targetEntity: Convocatoria::class, mappedBy: 'usuarios')]
     private Collection $convocatorias;
 
+    /**
+     * Profesores asignados a este alumno (solo para alumnos)
+     * @var Collection<int, User>
+     */
+    #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'alumnos')]
+    #[ORM\JoinTable(name: 'user_profesor_alumno')]
+    private Collection $profesores;
+
+    /**
+     * Alumnos asignados a este profesor (solo para profesores)
+     * @var Collection<int, User>
+     */
+    #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'profesores')]
+    private Collection $alumnos;
+
     public function __construct()
     {
         $this->municipios = new ArrayCollection();
         $this->convocatorias = new ArrayCollection();
+        $this->profesores = new ArrayCollection();
+        $this->alumnos = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -173,6 +190,60 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         if ($this->convocatorias->removeElement($convocatoria)) {
             $convocatoria->removeUsuario($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function getProfesores(): Collection
+    {
+        return $this->profesores;
+    }
+
+    public function addProfesore(User $profesore): static
+    {
+        if (!$this->profesores->contains($profesore)) {
+            $this->profesores->add($profesore);
+            $profesore->addAlumno($this);
+        }
+
+        return $this;
+    }
+
+    public function removeProfesore(User $profesore): static
+    {
+        if ($this->profesores->removeElement($profesore)) {
+            $profesore->removeAlumno($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function getAlumnos(): Collection
+    {
+        return $this->alumnos;
+    }
+
+    public function addAlumno(User $alumno): static
+    {
+        if (!$this->alumnos->contains($alumno)) {
+            $this->alumnos->add($alumno);
+            $alumno->addProfesore($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAlumno(User $alumno): static
+    {
+        if ($this->alumnos->removeElement($alumno)) {
+            $alumno->removeProfesore($this);
         }
 
         return $this;

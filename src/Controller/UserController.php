@@ -58,5 +58,64 @@ class UserController extends AbstractController
 
         return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
     }
+
+    #[Route('/{id}/asignar-alumnos', name: 'app_user_asignar_alumnos', methods: ['GET', 'POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function asignarAlumnos(Request $request, User $profesor, UserRepository $userRepository, EntityManagerInterface $entityManager): Response
+    {
+        // Verificar que el usuario es un profesor
+        if (!in_array('ROLE_PROFESOR', $profesor->getRoles()) && !in_array('ROLE_ADMIN', $profesor->getRoles())) {
+            $this->addFlash('error', 'Solo se pueden asignar alumnos a profesores.');
+            return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        if ($request->isMethod('POST')) {
+            $alumnosIds = $request->request->all('alumnos') ?? [];
+            
+            // Obtener todos los alumnos activos
+            $todosAlumnos = $userRepository->createQueryBuilder('u')
+                ->where('u.activo = :activo')
+                ->andWhere('u.roles NOT LIKE :roleProfesor')
+                ->andWhere('u.roles NOT LIKE :roleAdmin')
+                ->setParameter('activo', true)
+                ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+                ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
+                ->getQuery()
+                ->getResult();
+
+            // Limpiar asignaciones actuales
+            foreach ($profesor->getAlumnos() as $alumno) {
+                $profesor->removeAlumno($alumno);
+            }
+
+            // Asignar nuevos alumnos
+            foreach ($todosAlumnos as $alumno) {
+                if (in_array($alumno->getId(), $alumnosIds)) {
+                    $profesor->addAlumno($alumno);
+                }
+            }
+
+            $entityManager->flush();
+            $this->addFlash('success', 'Alumnos asignados correctamente al profesor.');
+            return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        // Obtener todos los alumnos activos
+        $alumnos = $userRepository->createQueryBuilder('u')
+            ->where('u.activo = :activo')
+            ->andWhere('u.roles NOT LIKE :roleProfesor')
+            ->andWhere('u.roles NOT LIKE :roleAdmin')
+            ->setParameter('activo', true)
+            ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+            ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
+            ->orderBy('u.username', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $this->render('user/asignar_alumnos.html.twig', [
+            'profesor' => $profesor,
+            'alumnos' => $alumnos,
+        ]);
+    }
 }
 

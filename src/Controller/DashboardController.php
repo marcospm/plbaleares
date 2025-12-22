@@ -45,44 +45,89 @@ class DashboardController extends AbstractController
 
         // Si es profesor, mostrar dashboard de profesor
         if ($this->isGranted('ROLE_PROFESOR') || $this->isGranted('ROLE_ADMIN')) {
+            // Determinar si es admin (ve todos los alumnos) o profesor (solo sus alumnos)
+            $esAdmin = $this->isGranted('ROLE_ADMIN');
+            $alumnosIds = [];
+            
+            if (!$esAdmin) {
+                // Si es profesor, obtener solo sus alumnos asignados
+                $alumnosIds = array_map(function($alumno) {
+                    return $alumno->getId();
+                }, $user->getAlumnos()->toArray());
+                
+                if (empty($alumnosIds)) {
+                    // Si no tiene alumnos asignados, usar un ID que no existe para que no muestre nada
+                    $alumnosIds = [-1];
+                }
+            }
+
             // Estadísticas de alumnos
-            $totalAlumnos = $userRepository->createQueryBuilder('u')
+            $qbAlumnos = $userRepository->createQueryBuilder('u')
                 ->select('COUNT(u.id)')
                 ->where('u.activo = :activo')
                 ->andWhere('u.roles NOT LIKE :roleProfesor')
                 ->andWhere('u.roles NOT LIKE :roleAdmin')
                 ->setParameter('activo', true)
                 ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
-                ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
-                ->getQuery()
-                ->getSingleScalarResult();
+                ->setParameter('roleAdmin', '%"ROLE_ADMIN"%');
+            
+            if (!$esAdmin && !empty($alumnosIds)) {
+                $qbAlumnos->andWhere('u.id IN (:alumnosIds)')
+                    ->setParameter('alumnosIds', $alumnosIds);
+            }
+            
+            $totalAlumnos = $qbAlumnos->getQuery()->getSingleScalarResult();
 
             // Estadísticas de exámenes
-            $totalExamenes = $examenRepository->createQueryBuilder('e')
-                ->select('COUNT(e.id)')
-                ->getQuery()
-                ->getSingleScalarResult();
+            $qbExamenes = $examenRepository->createQueryBuilder('e')
+                ->select('COUNT(e.id)');
+            
+            if (!$esAdmin && !empty($alumnosIds)) {
+                $qbExamenes->join('e.usuario', 'u')
+                    ->where('u.id IN (:alumnosIds)')
+                    ->setParameter('alumnosIds', $alumnosIds);
+            }
+            
+            $totalExamenes = $qbExamenes->getQuery()->getSingleScalarResult();
 
-            $promedioGeneral = $examenRepository->createQueryBuilder('e')
-                ->select('AVG(e.nota)')
-                ->getQuery()
-                ->getSingleScalarResult();
+            $qbPromedio = $examenRepository->createQueryBuilder('e')
+                ->select('AVG(e.nota)');
+            
+            if (!$esAdmin && !empty($alumnosIds)) {
+                $qbPromedio->join('e.usuario', 'u')
+                    ->where('u.id IN (:alumnosIds)')
+                    ->setParameter('alumnosIds', $alumnosIds);
+            }
+            
+            $promedioGeneral = $qbPromedio->getQuery()->getSingleScalarResult();
 
             $hoy = new \DateTime('today');
-            $examenesHoy = $examenRepository->createQueryBuilder('e')
+            $qbExamenesHoy = $examenRepository->createQueryBuilder('e')
                 ->select('COUNT(e.id)')
                 ->where('e.fecha >= :hoy')
-                ->setParameter('hoy', $hoy)
-                ->getQuery()
-                ->getSingleScalarResult();
+                ->setParameter('hoy', $hoy);
+            
+            if (!$esAdmin && !empty($alumnosIds)) {
+                $qbExamenesHoy->join('e.usuario', 'u')
+                    ->andWhere('u.id IN (:alumnosIds)')
+                    ->setParameter('alumnosIds', $alumnosIds);
+            }
+            
+            $examenesHoy = $qbExamenesHoy->getQuery()->getSingleScalarResult();
 
             $semanaPasada = new \DateTime('-7 days');
-            $examenesSemana = $examenRepository->createQueryBuilder('e')
+            $qbExamenesSemana = $examenRepository->createQueryBuilder('e')
                 ->select('COUNT(e.id)')
                 ->where('e.fecha >= :semanaPasada')
-                ->setParameter('semanaPasada', $semanaPasada)
-                ->getQuery()
-                ->getSingleScalarResult();
+                ->setParameter('semanaPasada', $semanaPasada);
+            
+            if (!$esAdmin && !empty($alumnosIds)) {
+                $qbExamenesSemana->join('e.usuario', 'u')
+                    ->andWhere('u.id IN (:alumnosIds)')
+                    ->setParameter('alumnosIds', $alumnosIds);
+            }
+            
+            $examenesSemana = $qbExamenesSemana->getQuery()->getSingleScalarResult();
 
             // Estadísticas de contenido
             $totalTemas = $temaRepository->createQueryBuilder('t')
@@ -133,19 +178,25 @@ class DashboardController extends AbstractController
                 ->getSingleScalarResult();
 
             // Últimos exámenes realizados
-            $ultimosExamenes = $examenRepository->createQueryBuilder('e')
+            $qbUltimosExamenes = $examenRepository->createQueryBuilder('e')
                 ->join('e.usuario', 'u')
                 ->where('u.roles NOT LIKE :roleProfesor')
                 ->andWhere('u.roles NOT LIKE :roleAdmin')
                 ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
-                ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
-                ->orderBy('e.fecha', 'DESC')
+                ->setParameter('roleAdmin', '%"ROLE_ADMIN"%');
+            
+            if (!$esAdmin && !empty($alumnosIds)) {
+                $qbUltimosExamenes->andWhere('u.id IN (:alumnosIds)')
+                    ->setParameter('alumnosIds', $alumnosIds);
+            }
+            
+            $ultimosExamenes = $qbUltimosExamenes->orderBy('e.fecha', 'DESC')
                 ->setMaxResults(10)
                 ->getQuery()
                 ->getResult();
 
             // Alumnos más activos (top 5 por cantidad de exámenes)
-            $alumnosActivos = $examenRepository->createQueryBuilder('e')
+            $qbAlumnosActivos = $examenRepository->createQueryBuilder('e')
                 ->select('u.id, u.username, COUNT(e.id) as totalExamenes, AVG(e.nota) as promedio')
                 ->join('e.usuario', 'u')
                 ->where('u.activo = :activo')
@@ -153,15 +204,40 @@ class DashboardController extends AbstractController
                 ->andWhere('u.roles NOT LIKE :roleAdmin')
                 ->setParameter('activo', true)
                 ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
-                ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
-                ->groupBy('u.id', 'u.username')
+                ->setParameter('roleAdmin', '%"ROLE_ADMIN"%');
+            
+            if (!$esAdmin && !empty($alumnosIds)) {
+                $qbAlumnosActivos->andWhere('u.id IN (:alumnosIds)')
+                    ->setParameter('alumnosIds', $alumnosIds);
+            }
+            
+            $alumnosActivos = $qbAlumnosActivos->groupBy('u.id', 'u.username')
                 ->orderBy('totalExamenes', 'DESC')
                 ->setMaxResults(5)
                 ->getQuery()
                 ->getResult();
 
+            // Obtener lista de alumnos asignados para mostrar en el dashboard
+            $misAlumnos = [];
+            if (!$esAdmin) {
+                $misAlumnos = $user->getAlumnos()->toArray();
+            } else {
+                // Si es admin, obtener todos los alumnos
+                $misAlumnos = $userRepository->createQueryBuilder('u')
+                    ->where('u.activo = :activo')
+                    ->andWhere('u.roles NOT LIKE :roleProfesor')
+                    ->andWhere('u.roles NOT LIKE :roleAdmin')
+                    ->setParameter('activo', true)
+                    ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+                    ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
+                    ->orderBy('u.username', 'ASC')
+                    ->getQuery()
+                    ->getResult();
+            }
+
             return $this->render('dashboard/index.html.twig', [
                 'isProfesor' => true,
+                'esAdmin' => $esAdmin,
                 'totalAlumnos' => $totalAlumnos,
                 'totalExamenes' => $totalExamenes,
                 'promedioGeneral' => $promedioGeneral ? round((float) $promedioGeneral, 2) : 0,
@@ -175,6 +251,7 @@ class DashboardController extends AbstractController
                 'totalConvocatorias' => $totalConvocatorias,
                 'ultimosExamenes' => $ultimosExamenes,
                 'alumnosActivos' => $alumnosActivos,
+                'misAlumnos' => $misAlumnos,
             ]);
         }
 

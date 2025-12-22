@@ -488,13 +488,41 @@ class ExamenController extends AbstractController
     #[IsGranted('ROLE_PROFESOR')]
     public function profesor(Request $request, UserRepository $userRepository): Response
     {
+        $usuarioActual = $this->getUser();
+        $esAdmin = $this->isGranted('ROLE_ADMIN');
+        $alumnosIds = [];
+        
+        // Si no es admin, obtener solo los alumnos asignados al profesor
+        if (!$esAdmin) {
+            $alumnosIds = array_map(function($alumno) {
+                return $alumno->getId();
+            }, $usuarioActual->getAlumnos()->toArray());
+            
+            if (empty($alumnosIds)) {
+                // Si no tiene alumnos asignados, usar un ID que no existe para que no muestre nada
+                $alumnosIds = [-1];
+            }
+        }
+        
         $usuarioId = $request->query->getInt('usuario');
         $dificultad = $request->query->get('dificultad');
         
         $qb = $this->examenRepository->createQueryBuilder('e')
+            ->join('e.usuario', 'u')
             ->orderBy('e.fecha', 'DESC');
         
+        // Filtrar por alumnos asignados si no es admin
+        if (!$esAdmin && !empty($alumnosIds)) {
+            $qb->andWhere('u.id IN (:alumnosIds)')
+               ->setParameter('alumnosIds', $alumnosIds);
+        }
+        
         if ($usuarioId) {
+            // Verificar que el usuario seleccionado está en los alumnos asignados (si no es admin)
+            if (!$esAdmin && !in_array($usuarioId, $alumnosIds)) {
+                $this->addFlash('error', 'No tienes acceso a los exámenes de ese alumno.');
+                return $this->redirectToRoute('app_examen_profesor', [], Response::HTTP_SEE_OTHER);
+            }
             $qb->andWhere('e.usuario = :usuario')
                ->setParameter('usuario', $usuarioId);
         }
@@ -506,13 +534,28 @@ class ExamenController extends AbstractController
         
         $examenes = $qb->getQuery()->getResult();
         
-        // Obtener todos los usuarios activos que no sean profesores para el filtro
-        $todosUsuarios = $userRepository->createQueryBuilder('u')
-            ->where('u.activo = :activo')
-            ->setParameter('activo', true)
-            ->orderBy('u.username', 'ASC')
-            ->getQuery()
-            ->getResult();
+        // Obtener usuarios para el filtro (solo alumnos asignados si no es admin)
+        if ($esAdmin) {
+            $todosUsuarios = $userRepository->createQueryBuilder('u')
+                ->where('u.activo = :activo')
+                ->setParameter('activo', true)
+                ->orderBy('u.username', 'ASC')
+                ->getQuery()
+                ->getResult();
+        } else {
+            if (!empty($alumnosIds)) {
+                $todosUsuarios = $userRepository->createQueryBuilder('u')
+                    ->where('u.activo = :activo')
+                    ->andWhere('u.id IN (:alumnosIds)')
+                    ->setParameter('activo', true)
+                    ->setParameter('alumnosIds', $alumnosIds)
+                    ->orderBy('u.username', 'ASC')
+                    ->getQuery()
+                    ->getResult();
+            } else {
+                $todosUsuarios = [];
+            }
+        }
         
         // Filtrar usuarios que no sean profesores o administradores
         $usuarios = array_filter($todosUsuarios, function($usuario) {
@@ -532,11 +575,23 @@ class ExamenController extends AbstractController
     public function detalle(Examen $examen): Response
     {
         $usuarioActual = $this->getUser();
-        $esProfesor = $this->isGranted('ROLE_PROFESOR') || $this->isGranted('ROLE_ADMIN');
+        $esAdmin = $this->isGranted('ROLE_ADMIN');
+        $esProfesor = $this->isGranted('ROLE_PROFESOR') || $esAdmin;
         
         // Verificar que el examen pertenece al usuario actual o que es profesor
         if ($examen->getUsuario() !== $usuarioActual && !$esProfesor) {
             throw $this->createAccessDeniedException();
+        }
+        
+        // Si es profesor (pero no admin), verificar que el alumno está asignado
+        if ($esProfesor && !$esAdmin && $examen->getUsuario() !== $usuarioActual) {
+            $alumnosIds = array_map(function($alumno) {
+                return $alumno->getId();
+            }, $usuarioActual->getAlumnos()->toArray());
+            
+            if (!in_array($examen->getUsuario()->getId(), $alumnosIds)) {
+                throw $this->createAccessDeniedException('No tienes acceso a los exámenes de ese alumno.');
+            }
         }
 
         $preguntas = [];
