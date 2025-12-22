@@ -1,0 +1,29 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Editar Examen PDF{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Editar Examen PDF</h1>
+    </div>
+    <div class="card-body">
+        {{ form_start(form) }}
+            {{ form_row(form.nombre) }}
+            {{ form_row(form.descripcion) }}
+            {{ form_row(form.tema) }}
+            {{ form_row(form.archivoPDF) }}
+            
+            <div class="alert alert-info mt-3">
+                <strong>Nota:</strong> Si no seleccionas un nuevo archivo PDF, se mantendrá el archivo actual.
+            </div>
+            
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                <a href="{{ path('app_examen_pdf_index') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
+

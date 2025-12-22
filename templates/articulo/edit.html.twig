@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Editar Artículo{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Editar Artículo: Art. {{ articulo.numero }}</h1>
+    </div>
+    <div class="card-body">
+        {{ form_start(form, {'attr': {'enctype': 'multipart/form-data'}}) }}
+            {{ form_row(form.numero) }}
+            {{ form_row(form.ley) }}
+            {{ form_row(form.explicacion) }}
+            {{ form_row(form.videoFile) }}
+            {% if articulo.video %}
+                <div class="form-group">
+                    <label class="form-label">Video Actual:</label>
+                    <div style="max-width: 400px;">
+                        <video controls style="width: 100%; border-radius: 8px;">
+                            <source src="{{ articulo.video }}" type="video/mp4">
+                            Tu navegador no soporta el elemento de video.
+                        </video>
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--color-text-light); margin-top: 0.5rem;">
+                        Sube un nuevo video para reemplazar el actual.
+                    </p>
+                </div>
+            {% endif %}
+            
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Actualizar</button>
+                <a href="{{ path('app_articulo_index') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
+

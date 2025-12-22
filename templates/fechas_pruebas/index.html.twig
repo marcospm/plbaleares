@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Fechas de Pruebas{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Gestionar Fechas de Pruebas</h1>
+    </div>
+    <div class="card-body">
+        <p style="margin-bottom: 2rem; color: var(--color-text-light);">
+            Establece las fechas del examen teórico, pruebas físicas y psicotécnico. Estas fechas se mostrarán destacadas en el dashboard de los alumnos con un contador de días restantes.
+        </p>
+
+        {{ form_start(form) }}
+            {{ form_row(form.fechaTeorico) }}
+            {{ form_row(form.fechaFisicas) }}
+            {{ form_row(form.fechaPsicotecnico) }}
+            
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Guardar Fechas</button>
+                <a href="{{ path('app_dashboard') }}" class="btn btn-secondary">Volver</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
+

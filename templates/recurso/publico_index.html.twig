@@ -1,0 +1,109 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Recursos - Sistema de Oposiciones{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Recursos de Estudio</h1>
+    </div>
+    <div class="card-body">
+        <p style="margin-bottom: 2rem; color: var(--color-text-light);">
+            Accede al temario completo y descarga los exámenes PDF disponibles para tu preparación.
+        </p>
+
+        {# Diseño de dos columnas como el dashboard del alumno #}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            {# Columna izquierda: Temario #}
+            <div class="card">
+                <div class="card-header">
+                    <h2>Temario (30 Temas)</h2>
+                </div>
+                <div class="card-body">
+                    {% if temas|length > 0 %}
+                        <div style="max-height: 600px; overflow-y: auto;">
+                            <div style="display: grid; gap: 0.5rem;">
+                                {% for tema in temas %}
+                                    <div style="padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; background-color: {% if tema.rutaPdf %}#e8f5e9{% else %}#fff{% endif %};">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <div style="flex: 1;">
+                                                <strong style="color: var(--color-primary); font-size: 0.95rem;">
+                                                    Tema {{ tema.id }}: {{ tema.nombre }}
+                                                </strong>
+                                                {% if tema.descripcion %}
+                                                    <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--color-text-light);">
+                                                        {{ tema.descripcion|slice(0, 80) }}{% if tema.descripcion|length > 80 %}...{% endif %}
+                                                    </p>
+                                                {% endif %}
+                                            </div>
+                                            {% if tema.rutaPdf %}
+                                                <div style="margin-left: 1rem;">
+                                                    <a href="{{ tema.rutaPdf }}" target="_blank" class="btn btn-sm btn-success" rel="noopener noreferrer">
+                                                        Ver PDF
+                                                    </a>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <p style="text-align: center; color: #666; margin: 1rem 0;">No hay temas disponibles.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Columna derecha: Exámenes PDF #}
+            <div class="card">
+                <div class="card-header">
+                    <h2>Exámenes PDF</h2>
+                </div>
+                <div class="card-body">
+                    {% if examenes|length > 0 %}
+                        <p style="margin-bottom: 1rem; color: var(--color-text-light); font-size: 0.9rem;">
+                            Exámenes originales en formato PDF organizados por tema. Se muestran ordenados por fecha de publicación.
+                        </p>
+                        <div style="max-height: 600px; overflow-y: auto;">
+                            <div style="display: grid; gap: 1rem;">
+                                {% for examen in examenes %}
+                                    <div style="padding: 1rem; border: 1px solid #ddd; border-radius: 4px; background-color: #fff;">
+                                        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                                            <div style="flex: 1;">
+                                                <h3 style="color: var(--color-primary); margin-bottom: 0.5rem; font-size: 1rem;">
+                                                    {{ examen.nombre }}
+                                                </h3>
+                                                {% if examen.tema %}
+                                                    <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.85rem;">
+                                                        <strong>Tema:</strong> {{ examen.tema.nombre }}
+                                                    </p>
+                                                {% endif %}
+                                                {% if examen.descripcion %}
+                                                    <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.85rem;">
+                                                        {{ examen.descripcion|slice(0, 100) }}{% if examen.descripcion|length > 100 %}...{% endif %}
+                                                    </p>
+                                                {% endif %}
+                                                <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.8rem;">
+                                                    <strong>Publicado:</strong> {{ examen.fechaSubida|date('d/m/Y') }}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <a href="{{ examen.rutaArchivo }}" target="_blank" class="btn btn-sm btn-primary" rel="noopener noreferrer">
+                                                    Ver PDF
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <p style="text-align: center; color: #666; margin: 1rem 0;">No hay exámenes PDF disponibles.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

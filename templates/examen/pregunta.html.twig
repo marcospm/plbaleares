@@ -1,0 +1,78 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Pregunta {{ numero }} de {{ total }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>Pregunta {{ numero }} de {{ total }}</h2>
+            <div style="flex: 1; margin: 0 2rem;">
+                <div style="background: #e0e0e0; height: 20px; border-radius: 10px; overflow: hidden;">
+                    <div style="background: var(--color-primary); height: 100%; width: {{ (numero / total * 100) }}%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if temas|length > 1 %}
+            <div class="mb-3">
+                <strong>Temas:</strong>
+                {% for tema in temas %}
+                    <span class="badge badge-facil">{{ tema.nombre }}</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="form-group mb-4">
+            <h3 style="color: var(--color-primary); margin-bottom: 1rem;">{{ pregunta.texto }}</h3>
+        </div>
+
+        <form method="post" action="{{ path('app_examen_pregunta', {'numero': numero}) }}">
+            <div class="form-group">
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <label style="display: flex; align-items: start; padding: 1rem; border: 2px solid var(--color-border); border-radius: 4px; cursor: pointer; transition: all 0.3s; {% if respuestaActual == 'A' %}background: #e3f2fd; border-color: var(--color-primary);{% endif %}">
+                        <input type="radio" name="respuesta" value="A" style="margin-right: 1rem; margin-top: 0.25rem;" {% if respuestaActual == 'A' %}checked{% endif %}>
+                        <div>
+                            <strong style="color: var(--color-primary);">A)</strong> {{ pregunta.opcionA }}
+                        </div>
+                    </label>
+
+                    <label style="display: flex; align-items: start; padding: 1rem; border: 2px solid var(--color-border); border-radius: 4px; cursor: pointer; transition: all 0.3s; {% if respuestaActual == 'B' %}background: #e3f2fd; border-color: var(--color-primary);{% endif %}">
+                        <input type="radio" name="respuesta" value="B" style="margin-right: 1rem; margin-top: 0.25rem;" {% if respuestaActual == 'B' %}checked{% endif %}>
+                        <div>
+                            <strong style="color: var(--color-primary);">B)</strong> {{ pregunta.opcionB }}
+                        </div>
+                    </label>
+
+                    <label style="display: flex; align-items: start; padding: 1rem; border: 2px solid var(--color-border); border-radius: 4px; cursor: pointer; transition: all 0.3s; {% if respuestaActual == 'C' %}background: #e3f2fd; border-color: var(--color-primary);{% endif %}">
+                        <input type="radio" name="respuesta" value="C" style="margin-right: 1rem; margin-top: 0.25rem;" {% if respuestaActual == 'C' %}checked{% endif %}>
+                        <div>
+                            <strong style="color: var(--color-primary);">C)</strong> {{ pregunta.opcionC }}
+                        </div>
+                    </label>
+
+                    <label style="display: flex; align-items: start; padding: 1rem; border: 2px solid var(--color-border); border-radius: 4px; cursor: pointer; transition: all 0.3s; {% if respuestaActual == 'D' %}background: #e3f2fd; border-color: var(--color-primary);{% endif %}">
+                        <input type="radio" name="respuesta" value="D" style="margin-right: 1rem; margin-top: 0.25rem;" {% if respuestaActual == 'D' %}checked{% endif %}>
+                        <div>
+                            <strong style="color: var(--color-primary);">D)</strong> {{ pregunta.opcionD }}
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                {% if not esPrimera %}
+                    <button type="submit" name="accion" value="anterior" class="btn btn-secondary">Anterior</button>
+                {% endif %}
+                {% if not esUltima %}
+                    <button type="submit" name="accion" value="siguiente" class="btn btn-primary">Siguiente</button>
+                {% else %}
+                    <button type="submit" name="accion" value="finalizar" class="btn btn-success" onclick="return confirm('¿Estás seguro de finalizar el examen?');">Finalizar Examen</button>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

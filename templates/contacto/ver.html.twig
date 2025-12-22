@@ -1,0 +1,53 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mensaje de Contacto{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h1>Mensaje de Contacto</h1>
+        <div>
+            {% if mensaje.leido %}
+                <span class="badge badge-success">Leído</span>
+            {% else %}
+                <span class="badge badge-warning">No leído</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="mb-4">
+            <p><strong>Fecha:</strong> {{ mensaje.fechaCreacion|date('d/m/Y H:i') }}</p>
+            <p><strong>Nombre:</strong> {{ mensaje.nombre }}</p>
+            <p><strong>Email:</strong> <a href="mailto:{{ mensaje.email }}">{{ mensaje.email }}</a></p>
+            {% if mensaje.asunto %}
+                <p><strong>Asunto:</strong> {{ mensaje.asunto }}</p>
+            {% endif %}
+            {% if mensaje.usuario %}
+                <p><strong>Usuario:</strong> <span class="badge badge-info">{{ mensaje.usuario.username }}</span></p>
+            {% else %}
+                <p><strong>Usuario:</strong> <span class="badge badge-secondary">No registrado</span></p>
+            {% endif %}
+        </div>
+        
+        <div class="card" style="background-color: #f9f9f9;">
+            <div class="card-header">
+                <h4>Mensaje</h4>
+            </div>
+            <div class="card-body">
+                <p style="white-space: pre-wrap;">{{ mensaje.mensaje }}</p>
+            </div>
+        </div>
+        
+        <div class="d-flex gap-2 mt-4">
+            <a href="mailto:{{ mensaje.email }}?subject=Re: {{ mensaje.asunto|default('Consulta') }}" class="btn btn-primary">Responder por Email</a>
+            <a href="{{ path('app_contacto_mensajes') }}" class="btn btn-secondary">Volver a Mensajes</a>
+            <form method="post" action="{{ path('app_contacto_delete', {'id': mensaje.id}) }}" style="display: inline-block;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este mensaje?');">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ mensaje.id) }}">
+                <button type="submit" class="btn btn-danger">Eliminar</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

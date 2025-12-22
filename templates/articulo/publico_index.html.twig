@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Artículos - Sistema de Oposiciones{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Artículos y Explicaciones</h1>
+    </div>
+    <div class="card-body">
+        <p style="margin-bottom: 2rem; color: var(--color-text-light);">
+            Consulta las explicaciones de los artículos de las leyes y accede a videos explicativos.
+        </p>
+
+        <form method="get" action="{{ path('app_articulo_publico_index') }}" style="margin-bottom: 2rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Buscar:</label>
+                    <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Buscar por número, explicación o ley...">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Filtrar por Ley:</label>
+                    <select name="ley" class="form-control">
+                        <option value="0">Todas las leyes</option>
+                        {% for ley in leyes %}
+                            <option value="{{ ley.id }}" {% if leySeleccionada == ley.id %}selected{% endif %}>
+                                {{ ley.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ path('app_articulo_publico_index') }}" class="btn btn-secondary">Limpiar</a>
+                </div>
+            </div>
+        </form>
+
+        {% if articulos|length > 0 %}
+            <div style="display: grid; gap: 1rem;">
+                {% for articulo in articulos %}
+                    <div class="card" style="margin-bottom: 0;">
+                        <div class="card-body">
+                            <h3 style="color: var(--color-primary); margin-bottom: 0.5rem;">
+                                <a href="{{ path('app_articulo_publico_show', {'id': articulo.id}) }}" style="text-decoration: none; color: inherit;">
+                                    Artículo {{ articulo.numero }}
+                                </a>
+                            </h3>
+                            <p style="margin-bottom: 0.5rem; color: var(--color-text-light);">
+                                <strong>Ley:</strong> {{ articulo.ley.nombre }}
+                            </p>
+                            {% if articulo.explicacion %}
+                                <p style="margin-bottom: 0.5rem;">
+                                    {{ articulo.explicacion|slice(0, 150) }}{% if articulo.explicacion|length > 150 %}...{% endif %}
+                                </p>
+                            {% endif %}
+                            {% if articulo.video %}
+                                <p style="margin-bottom: 0.5rem; color: var(--color-secondary);">
+                                    🎥 Video explicativo disponible
+                                </p>
+                            {% endif %}
+                            <div style="margin-top: 1rem;">
+                                <a href="{{ path('app_articulo_publico_show', {'id': articulo.id}) }}" class="btn btn-primary btn-sm">Ver Detalles</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                No se encontraron artículos con los filtros seleccionados.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

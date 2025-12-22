@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Recurso index{% endblock %}
+
+{% block body %}
+    <h1>Recurso index</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Nombre</th>
+                <th>Enlace</th>
+                <th>FechaCreacion</th>
+                <th>actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for recurso in recursos %}
+            <tr>
+                <td>{{ recurso.id }}</td>
+                <td>{{ recurso.nombre }}</td>
+                <td>{{ recurso.enlace }}</td>
+                <td>{{ recurso.fechaCreacion ? recurso.fechaCreacion|date('Y-m-d H:i:s') : '' }}</td>
+                <td>
+                    <a href="{{ path('app_recurso_show', {'id': recurso.id}) }}">show</a>
+                    <a href="{{ path('app_recurso_edit', {'id': recurso.id}) }}">edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="5">no records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_recurso_new') }}">Create new</a>
+{% endblock %}

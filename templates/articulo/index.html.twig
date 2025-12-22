@@ -1,0 +1,100 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Artículos{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4">
+    <h1>Artículos</h1>
+    <a href="{{ path('app_articulo_new') }}" class="btn btn-primary">Nuevo Artículo</a>
+</div>
+
+<form method="get" action="{{ path('app_articulo_index') }}" style="margin-bottom: 2rem;">
+    <div class="card">
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Buscar:</label>
+                    <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Buscar...">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Filtrar por Ley:</label>
+                    <select name="ley" class="form-control">
+                        <option value="0">Todas las leyes</option>
+                        {% for ley in leyes %}
+                            <option value="{{ ley.id }}" {% if leySeleccionada == ley.id %}selected{% endif %}>
+                                {{ ley.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Número:</label>
+                    <input type="text" name="numero" value="{{ numero }}" class="form-control" placeholder="Número de artículo...">
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ path('app_articulo_index') }}" class="btn btn-secondary">Limpiar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if articulos|length > 0 %}
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Número</th>
+                    <th>Ley</th>
+                    <th>Explicación</th>
+                    <th>Preguntas</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for articulo in articulos %}
+                    <tr>
+                        <td>{{ articulo.id }}</td>
+                        <td><strong>Art. {{ articulo.numero }}</strong></td>
+                        <td>{{ articulo.ley.nombre }}</td>
+                        <td>{{ articulo.explicacion|default('Sin explicación')|slice(0, 80) }}{% if articulo.explicacion|length > 80 %}...{% endif %}</td>
+                        <td>
+                            <span class="badge badge-moderada">{{ articulo.preguntas|length }} pregunta(s)</span>
+                        </td>
+                        <td>
+                            {% if articulo.isActivo %}
+                                <span class="badge badge-success" style="background-color: var(--color-success);">Activo</span>
+                            {% else %}
+                                <span class="badge badge-danger" style="background-color: var(--color-danger);">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="{{ path('app_articulo_show', {'id': articulo.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
+                                <a href="{{ path('app_articulo_edit', {'id': articulo.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                <form method="post" action="{{ path('app_articulo_toggle_activo', {'id': articulo.id}) }}" style="display: inline;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ articulo.id) }}">
+                                    <button type="submit" class="btn btn-sm {% if articulo.isActivo %}btn-warning{% else %}btn-success{% endif %}">
+                                        {% if articulo.isActivo %}Desactivar{% else %}Activar{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <p>No hay artículos registrados aún.</p>
+            <a href="{{ path('app_articulo_new') }}" class="btn btn-primary">Crear Primer Artículo</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+

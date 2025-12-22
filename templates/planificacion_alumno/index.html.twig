@@ -1,0 +1,274 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mi Planificación Semanal{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h1>Mi Planificación Semanal - Semana del {{ lunesSemana|date('d/m/Y') }}</h1>
+        <div class="d-flex gap-2 align-items-center">
+            {% if semanaAnterior %}
+                <a href="{{ path('app_planificacion_alumno_index', {'semana': semanaAnterior|date('Y-m-d')}) }}" class="btn btn-sm btn-secondary">← Semana Anterior</a>
+            {% else %}
+                <button class="btn btn-sm btn-secondary" disabled>← Semana Anterior</button>
+            {% endif %}
+            {% if esSemanaActual %}
+                <span class="badge badge-info" style="padding: 0.5rem 1rem;">Semana Actual</span>
+            {% endif %}
+            <a href="{{ path('app_planificacion_alumno_index', {'semana': semanaSiguiente|date('Y-m-d')}) }}" class="btn btn-sm btn-secondary">Semana Siguiente →</a>
+            <a href="{{ path('app_planificacion_alumno_index') }}" class="btn btn-sm btn-primary">Hoy</a>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if planificaciones|length > 1 %}
+            <div class="alert alert-info mb-3">
+                <strong>Planificaciones activas:</strong> Tienes {{ planificaciones|length }} planificaciones asignadas. Las franjas horarias se muestran agrupadas por día.
+            </div>
+        {% endif %}
+        
+        <div class="mb-4">
+            <h3>Resumen de la Semana</h3>
+            <div class="d-flex gap-3">
+                <div class="badge badge-info">Total: {{ resumen.total }}</div>
+                <div class="badge badge-success">Completadas: {{ resumen.completadas }}</div>
+                <div class="badge badge-warning">Pendientes: {{ resumen.pendientes }}</div>
+                {% if resumen.vencidas > 0 %}
+                    <div class="badge badge-danger">Vencidas: {{ resumen.vencidas }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered" style="min-width: 800px;">
+                <thead>
+                    <tr>
+                        <th style="width: 120px;">Hora</th>
+                        {% for dia in 1..7 %}
+                            <th>
+                                {% set fechaDia = lunesSemana|date_modify('+' ~ (dia-1) ~ ' days') %}
+                                <div>{{ fechaDia|date('l')|trans }}</div>
+                                <div style="font-size: 0.85rem; color: #666;">{{ fechaDia|date('d/m') }}</div>
+                            </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set horas = [] %}
+                    {% for dia in 1..7 %}
+                        {% for franja in franjasPorDia[dia] %}
+                            {% set horaInicio = franja.horaInicio|date('H:i') %}
+                            {% if horaInicio not in horas %}
+                                {% set horas = horas|merge([horaInicio]) %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    {% set horas = horas|sort %}
+
+                    {% for hora in horas %}
+                        <tr>
+                            <td><strong>{{ hora }}</strong></td>
+                            {% for dia in 1..7 %}
+                                <td>
+                                    {% set fechaDia = lunesSemana|date_modify('+' ~ (dia-1) ~ ' days') %}
+                                    {% set franjasDelDiaYHora = franjasPorDia[dia]|filter(f => f.horaInicio|date('H:i') == hora) %}
+                                    {% for franja in franjasDelDiaYHora %}
+                                        {% set tareasFranja = [] %}
+                                        {% for tareaAsignada in franja.tareasAsignadas %}
+                                            {% if tareaAsignada.tarea.semanaAsignacion|date('Y-m-d') == lunesSemana|date('Y-m-d') %}
+                                                {% set tareasFranja = tareasFranja|merge([tareaAsignada]) %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        
+                                        <div class="franja-horaria 
+                                            {% if franja.tipoActividad == 'repaso_basico' %}franja-repaso{% else %}franja-estudio{% endif %}
+                                            {% if tareasFranja|length > 0 %}franja-con-tareas{% endif %}"
+                                            style="padding: 0.5rem; margin-bottom: 0.5rem; border-radius: 4px; cursor: pointer;"
+                                            onclick="toggleFranja(this)">
+                                            <div style="font-weight: bold; font-size: 0.9rem;">
+                                                {{ franja.horaInicio|date('H:i') }}-{{ franja.horaFin|date('H:i') }}
+                                            </div>
+                                            <div style="font-size: 0.85rem;">
+                                                {% if franja.tipoActividad == 'repaso_basico' %}
+                                                    <span class="badge badge-info">Repaso</span>
+                                                    <div>{{ franja.descripcionRepaso }}</div>
+                                                {% else %}
+                                                    <span class="badge badge-success">Estudio/Tareas</span>
+                                                    {% if tareasFranja|length > 0 %}
+                                                        <div class="mt-1">
+                                                            <strong>{{ tareasFranja|length }} tarea(s)</strong>
+                                                        </div>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </div>
+                                            
+                                            {% if tareasFranja|length > 0 %}
+                                                <div class="tareas-container" style="display: none; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #ddd;">
+                                                    {% for tareaAsignada in tareasFranja %}
+                                                        <div class="tarea-item" style="margin-bottom: 0.5rem;">
+                                                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                                <input type="checkbox" 
+                                                                       class="tarea-checkbox" 
+                                                                       data-tarea-id="{{ tareaAsignada.id }}"
+                                                                       data-token-completada="{{ csrf_token('marcar_completada' ~ tareaAsignada.id) }}"
+                                                                       data-token-pendiente="{{ csrf_token('marcar_pendiente' ~ tareaAsignada.id) }}"
+                                                                       {% if tareaAsignada.completada %}checked{% endif %}
+                                                                       onchange="marcarTarea(this, {{ tareaAsignada.id }})">
+                                                                <span {% if tareaAsignada.completada %}style="text-decoration: line-through; color: #999;"{% endif %}>
+                                                                    {{ tareaAsignada.tarea.nombre }}
+                                                                </span>
+                                                            </div>
+                                                            <div style="font-size: 0.75rem; color: #666; margin-left: 1.5rem;">
+                                                                {{ tareaAsignada.tarea.descripcion|slice(0, 50) }}{% if tareaAsignada.tarea.descripcion|length > 50 %}...{% endif %}
+                                                            </div>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+
+        {% if tareasPendientesPorSemana|length > 0 %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h3>Tareas Pendientes</h3>
+                </div>
+                <div class="card-body">
+                    <p style="margin-bottom: 1rem; color: var(--color-text-light);">
+                        Todas tus tareas pendientes, organizadas por semana de asignación. Las tareas solo aparecen en su semana correspondiente.
+                    </p>
+                    
+                    {% for semanaKey, tareasSemana in tareasPendientesPorSemana %}
+                        {% set lunesTarea = tareasSemana[0].tarea.semanaAsignacion %}
+                        {% if lunesTarea.format('N') != '1' %}
+                            {% set lunesTarea = lunesTarea|date_modify('monday this week') %}
+                        {% endif %}
+                        {# Solo mostrar tareas de la semana seleccionada #}
+                        {% if lunesTarea|date('Y-m-d') == lunesSemana|date('Y-m-d') %}
+                            <div class="mb-4" style="border-bottom: 2px solid #ddd; padding-bottom: 1rem;">
+                                <h4 style="color: var(--color-primary); margin-bottom: 1rem;">
+                                    Semana del {{ lunesTarea|date('d/m/Y') }}
+                                    <span class="badge bg-info">Semana Seleccionada</span>
+                                </h4>
+                                {% for tareaAsignada in tareasSemana %}
+                                <div class="tarea-item mb-2" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                                    <input type="checkbox" 
+                                           class="tarea-checkbox" 
+                                           data-tarea-id="{{ tareaAsignada.id }}"
+                                           data-token-completada="{{ csrf_token('marcar_completada' ~ tareaAsignada.id) }}"
+                                           data-token-pendiente="{{ csrf_token('marcar_pendiente' ~ tareaAsignada.id) }}"
+                                           {% if tareaAsignada.completada %}checked{% endif %}
+                                           onchange="marcarTarea(this, {{ tareaAsignada.id }})">
+                                    <div style="flex: 1;">
+                                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                            <strong {% if tareaAsignada.completada %}style="text-decoration: line-through; color: #999;"{% endif %}>
+                                                {{ tareaAsignada.tarea.nombre }}
+                                            </strong>
+                                            {% if not tareaAsignada.franjaHoraria %}
+                                                <span class="badge" style="background-color: #ff9800; color: white; font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                                    Sin franja horaria
+                                                </span>
+                                            {% else %}
+                                                <span class="badge" style="background-color: #4caf50; color: white; font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                                    {{ tareaAsignada.franjaHoraria.nombreDia }} {{ tareaAsignada.franjaHoraria.horaInicio|date('H:i') }}-{{ tareaAsignada.franjaHoraria.horaFin|date('H:i') }}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+                                            {{ tareaAsignada.tarea.descripcion }}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% else %}
+            <div class="card mt-4">
+                <div class="card-body text-center">
+                    <p class="text-muted">No tienes tareas pendientes. ¡Excelente trabajo! 🎉</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function toggleFranja(element) {
+    const tareasContainer = element.querySelector('.tareas-container');
+    if (tareasContainer) {
+        tareasContainer.style.display = tareasContainer.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+function marcarTarea(checkbox, tareaId) {
+    const completada = checkbox.checked;
+    const token = completada 
+        ? checkbox.getAttribute('data-token-completada')
+        : checkbox.getAttribute('data-token-pendiente');
+    const url = completada 
+        ? '{{ path('app_planificacion_alumno_marcar_completada', {'id': '__ID__'}) }}'.replace('__ID__', tareaId)
+        : '{{ path('app_planificacion_alumno_marcar_pendiente', {'id': '__ID__'}) }}'.replace('__ID__', tareaId);
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            _token: token
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const tareaItem = checkbox.closest('.tarea-item');
+            const textElement = tareaItem.querySelector('span, strong');
+            if (completada) {
+                textElement.style.textDecoration = 'line-through';
+                textElement.style.color = '#999';
+            } else {
+                textElement.style.textDecoration = 'none';
+                textElement.style.color = '';
+            }
+        } else {
+            checkbox.checked = !completada;
+            alert(data.message || 'Error al actualizar la tarea');
+        }
+    })
+    .catch(error => {
+        checkbox.checked = !completada;
+        alert('Error al actualizar la tarea');
+    });
+}
+
+</script>
+
+<style>
+.franja-repaso {
+    background-color: #e3f2fd;
+    border-left: 4px solid #2196f3;
+}
+
+.franja-estudio {
+    background-color: #e8f5e9;
+    border-left: 4px solid #4caf50;
+}
+
+.franja-con-tareas {
+    border: 2px solid #ff9800;
+    font-weight: bold;
+}
+</style>
+{% endblock %}
+

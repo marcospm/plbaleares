@@ -1,0 +1,67 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Iniciar Examen{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Nuevo Examen</h1>
+    </div>
+    <div class="card-body">
+        {% if not form.vars.valid %}
+            <div class="alert alert-danger">
+                <strong>Errores en el formulario:</strong>
+                {{ form_errors(form) }}
+            </div>
+        {% endif %}
+
+        {{ form_start(form) }}
+            <div class="form-group">
+                {{ form_label(form.temas) }}
+                <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--color-border); padding: 1rem; border-radius: 4px; background: #fafafa;">
+                    {% for tema in form.temas %}
+                        <div style="margin-bottom: 0.75rem; display: flex; align-items: flex-start; gap: 0.5rem;">
+                            {{ form_widget(tema, {'attr': {'style': 'margin-top: 0.25rem;'}}) }}
+                            {{ form_label(tema, null, {'label_attr': {'style': 'margin-bottom: 0; cursor: pointer;'}}) }}
+                        </div>
+                    {% endfor %}
+                </div>
+                {{ form_errors(form.temas) }}
+                {% if form.temas.vars.errors|length > 0 %}
+                    <div class="alert alert-danger">
+                        {% for error in form.temas.vars.errors %}
+                            {{ error.message }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                {{ form_row(form.dificultad) }}
+            </div>
+
+            <div class="form-group">
+                {{ form_row(form.numeroPreguntas) }}
+            </div>
+
+            {% if preguntasDisponibles is defined and preguntasDisponibles is not null %}
+                {% if preguntasDisponibles > 0 %}
+                    <div class="alert alert-info">
+                        <strong>Preguntas disponibles:</strong> {{ preguntasDisponibles }}
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <strong>No hay preguntas disponibles</strong> para la selección actual. Por favor, cambia los temas o la dificultad.
+                    </div>
+                {% endif %}
+            {% endif %}
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Iniciar Examen</button>
+                <a href="{{ path('app_dashboard') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
+

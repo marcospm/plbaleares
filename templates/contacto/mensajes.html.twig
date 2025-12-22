@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mensajes de Contacto{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4">
+    <h1>Mensajes de Contacto</h1>
+    {% if noLeidos > 0 %}
+        <span class="badge badge-warning" style="font-size: 1rem; padding: 0.5rem 1rem;">
+            {{ noLeidos }} mensaje(s) sin leer
+        </span>
+    {% endif %}
+</div>
+
+{% if mensajes|length > 0 %}
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Asunto</th>
+                    <th>Usuario</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mensaje in mensajes %}
+                    <tr style="{% if not mensaje.leido %}background-color: #f0f8ff; font-weight: bold;{% endif %}">
+                        <td>{{ mensaje.fechaCreacion|date('d/m/Y H:i') }}</td>
+                        <td>{{ mensaje.nombre }}</td>
+                        <td><a href="mailto:{{ mensaje.email }}">{{ mensaje.email }}</a></td>
+                        <td>{{ mensaje.asunto|default('Sin asunto') }}</td>
+                        <td>
+                            {% if mensaje.usuario %}
+                                <span class="badge badge-info">{{ mensaje.usuario.username }}</span>
+                            {% else %}
+                                <span class="badge badge-secondary">No registrado</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if mensaje.leido %}
+                                <span class="badge badge-success">Leído</span>
+                            {% else %}
+                                <span class="badge badge-warning">No leído</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ path('app_contacto_ver', {'id': mensaje.id}) }}" class="btn btn-sm btn-info">Ver</a>
+                            <form method="post" action="{{ path('app_contacto_delete', {'id': mensaje.id}) }}" style="display: inline-block;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este mensaje?');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ mensaje.id) }}">
+                                <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <p>No hay mensajes de contacto.</p>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+

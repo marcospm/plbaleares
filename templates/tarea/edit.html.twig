@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Editar Tarea{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Editar Tarea: {{ tarea.nombre }}</h1>
+    </div>
+    <div class="card-body">
+        {{ form_start(form) }}
+            {{ form_row(form.nombre) }}
+            {{ form_row(form.descripcion) }}
+            {{ form_row(form.semanaAsignacion) }}
+            {{ form_row(form.tema) }}
+            {{ form_row(form.ley) }}
+            {{ form_row(form.articulo) }}
+            
+            <div class="alert alert-info">
+                <strong>Nota:</strong> Los usuarios asignados no se pueden modificar desde aquí. Ve a la vista de detalle para gestionar las asignaciones.
+            </div>
+            
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Actualizar Tarea</button>
+                <a href="{{ path('app_tarea_show', {'id': tarea.id}) }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
+

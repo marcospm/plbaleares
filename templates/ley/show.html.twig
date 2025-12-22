@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Ley: {{ ley.nombre }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>{{ ley.nombre }}</h1>
+    </div>
+    <div class="card-body">
+        <div class="form-group">
+            <label class="form-label"><strong>Descripción:</strong></label>
+            <p>{{ ley.descripcion|default('Sin descripción') }}</p>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><strong>Temas relacionados:</strong></label>
+            {% if ley.temas|length > 0 %}
+                <ul>
+                    {% for tema in ley.temas %}
+                        <li><a href="{{ path('app_tema_show', {'id': tema.id}) }}">{{ tema.nombre }}</a></li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p style="color: var(--color-text-light);">No hay temas asociados a esta ley.</p>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><strong>Artículos:</strong></label>
+            {% if ley.articulos|length > 0 %}
+                <ul>
+                    {% for articulo in ley.articulos %}
+                        <li><a href="{{ path('app_articulo_show', {'id': articulo.id}) }}">Art. {{ articulo.numero }}</a></li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p style="color: var(--color-text-light);">No hay artículos registrados para esta ley.</p>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><strong>Preguntas:</strong></label>
+            <p><span class="badge badge-facil">{{ ley.preguntas|length }} pregunta(s)</span></p>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <a href="{{ path('app_ley_edit', {'id': ley.id}) }}" class="btn btn-primary">Editar</a>
+            <a href="{{ path('app_ley_index') }}" class="btn btn-secondary">Volver</a>
+            <form method="post" action="{{ path('app_ley_delete', {'id': ley.id}) }}" onsubmit="return confirm('¿Estás seguro de eliminar esta ley?');" style="display: inline;">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ ley.id) }}">
+                <button type="submit" class="btn btn-danger">Eliminar</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

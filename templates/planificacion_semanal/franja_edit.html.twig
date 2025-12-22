@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Editar Franja Horaria{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Editar Franja Horaria</h1>
+        <p class="mb-0 text-muted">Planificación: {{ planificacion.nombre }}</p>
+    </div>
+    <div class="card-body">
+        {{ form_start(form) }}
+            {{ form_row(form.diaSemana) }}
+            {{ form_row(form.horaInicio) }}
+            {{ form_row(form.horaFin) }}
+            {{ form_row(form.tipoActividad) }}
+            {{ form_row(form.descripcionRepaso) }}
+            
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                <a href="{{ path('app_planificacion_semanal_show', {'id': planificacion.id}) }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
+
+

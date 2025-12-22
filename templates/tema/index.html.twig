@@ -1,0 +1,87 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Temas{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4">
+    <h1>Temas</h1>
+    <a href="{{ path('app_tema_new') }}" class="btn btn-primary">Nuevo Tema</a>
+</div>
+
+<form method="get" action="{{ path('app_tema_index') }}" style="margin-bottom: 2rem;">
+    <div class="card">
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Buscar:</label>
+                    <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Buscar por nombre o descripción...">
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ path('app_tema_index') }}" class="btn btn-secondary">Limpiar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if temas|length > 0 %}
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Leyes</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tema in temas %}
+                    <tr>
+                        <td>{{ tema.id }}</td>
+                        <td><strong>{{ tema.nombre }}</strong></td>
+                        <td>{{ tema.descripcion|default('Sin descripción')|slice(0, 100) }}{% if tema.descripcion|length > 100 %}...{% endif %}</td>
+                        <td>
+                            {% if tema.leyes|length > 0 %}
+                                <span class="badge badge-facil">{{ tema.leyes|length }} ley(es)</span>
+                            {% else %}
+                                <span style="color: var(--color-text-light);">Sin leyes</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if tema.isActivo %}
+                                <span class="badge badge-success" style="background-color: var(--color-success);">Activo</span>
+                            {% else %}
+                                <span class="badge badge-danger" style="background-color: var(--color-danger);">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="{{ path('app_tema_show', {'id': tema.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
+                                <a href="{{ path('app_tema_edit', {'id': tema.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                <form method="post" action="{{ path('app_tema_toggle_activo', {'id': tema.id}) }}" style="display: inline;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ tema.id) }}">
+                                    <button type="submit" class="btn btn-sm {% if tema.isActivo %}btn-warning{% else %}btn-success{% endif %}">
+                                        {% if tema.isActivo %}Desactivar{% else %}Activar{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <p>No hay temas registrados aún.</p>
+            <a href="{{ path('app_tema_new') }}" class="btn btn-primary">Crear Primer Tema</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+

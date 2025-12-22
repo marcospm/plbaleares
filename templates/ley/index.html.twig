@@ -1,0 +1,91 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Leyes{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4">
+    <h1>Leyes</h1>
+    <a href="{{ path('app_ley_new') }}" class="btn btn-primary">Nueva Ley</a>
+</div>
+
+<form method="get" action="{{ path('app_ley_index') }}" style="margin-bottom: 2rem;">
+    <div class="card">
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Buscar:</label>
+                    <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Buscar por nombre o descripción...">
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ path('app_ley_index') }}" class="btn btn-secondary">Limpiar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if leyes|length > 0 %}
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Temas</th>
+                    <th>Artículos</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ley in leyes %}
+                    <tr>
+                        <td>{{ ley.id }}</td>
+                        <td><strong>{{ ley.nombre }}</strong></td>
+                        <td>{{ ley.descripcion|default('Sin descripción')|slice(0, 100) }}{% if ley.descripcion|length > 100 %}...{% endif %}</td>
+                        <td>
+                            {% if ley.temas|length > 0 %}
+                                <span class="badge badge-facil">{{ ley.temas|length }} tema(s)</span>
+                            {% else %}
+                                <span style="color: var(--color-text-light);">Sin temas</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge badge-moderada">{{ ley.articulos|length }} artículo(s)</span>
+                        </td>
+                        <td>
+                            {% if ley.isActivo %}
+                                <span class="badge badge-success" style="background-color: var(--color-success);">Activa</span>
+                            {% else %}
+                                <span class="badge badge-danger" style="background-color: var(--color-danger);">Inactiva</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="{{ path('app_ley_show', {'id': ley.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
+                                <a href="{{ path('app_ley_edit', {'id': ley.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                <form method="post" action="{{ path('app_ley_toggle_activo', {'id': ley.id}) }}" style="display: inline;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ ley.id) }}">
+                                    <button type="submit" class="btn btn-sm {% if ley.isActivo %}btn-warning{% else %}btn-success{% endif %}">
+                                        {% if ley.isActivo %}Desactivar{% else %}Activar{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <p>No hay leyes registradas aún.</p>
+            <a href="{{ path('app_ley_new') }}" class="btn btn-primary">Crear Primera Ley</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+

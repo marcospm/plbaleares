@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}New Recurso{% endblock %}
+
+{% block body %}
+    <h1>Create new Recurso</h1>
+
+    {{ include('recurso/_form.html.twig') }}
+
+    <a href="{{ path('app_recurso_index') }}">back to list</a>
+{% endblock %}

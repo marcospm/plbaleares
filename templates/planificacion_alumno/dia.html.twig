@@ -1,0 +1,122 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Planificación del Día{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Planificación del Día: {{ fecha|date('l, d/m/Y') }}</h1>
+    </div>
+    <div class="card-body">
+        {% if franjasDelDia|length > 0 %}
+            {% for franja in franjasDelDia %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h4>
+                                    {{ franja.horaInicio|date('H:i') }} - {{ franja.horaFin|date('H:i') }}
+                                    {% if franja.tipoActividad == 'repaso_basico' %}
+                                        <span class="badge badge-info">Repaso Básico</span>
+                                    {% else %}
+                                        <span class="badge badge-success">Estudio y Tareas</span>
+                                    {% endif %}
+                                </h4>
+                                {% if franja.descripcionRepaso %}
+                                    <p>{{ franja.descripcionRepaso }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        {% set tareasFranja = [] %}
+                        {% for tareaAsignada in franja.tareasAsignadas %}
+                            {% if tareaAsignada.tarea.semanaAsignacion|date('Y-m-d') == lunesSemana|date('Y-m-d') %}
+                                {% set tareasFranja = tareasFranja|merge([tareaAsignada]) %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if tareasFranja|length > 0 %}
+                            <div class="mt-3">
+                                <h5>Tareas Asignadas ({{ tareasFranja|length }})</h5>
+                                {% for tareaAsignada in tareasFranja %}
+                                    <div class="tarea-item mb-2" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                                        <input type="checkbox" 
+                                               class="tarea-checkbox" 
+                                               data-tarea-id="{{ tareaAsignada.id }}"
+                                               data-token-completada="{{ csrf_token('marcar_completada' ~ tareaAsignada.id) }}"
+                                               data-token-pendiente="{{ csrf_token('marcar_pendiente' ~ tareaAsignada.id) }}"
+                                               {% if tareaAsignada.completada %}checked{% endif %}
+                                               onchange="marcarTarea(this, {{ tareaAsignada.id }})">
+                                        <div>
+                                            <strong {% if tareaAsignada.completada %}style="text-decoration: line-through; color: #999;"{% endif %}>
+                                                {{ tareaAsignada.tarea.nombre }}
+                                            </strong>
+                                            <div style="font-size: 0.85rem; color: #666;">
+                                                {{ tareaAsignada.tarea.descripcion }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted mt-3">Estudio libre - No hay tareas asignadas</p>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-muted">No hay franjas horarias configuradas para este día.</p>
+        {% endif %}
+
+
+        <div class="d-flex gap-2 mt-4">
+            <a href="{{ path('app_planificacion_alumno_index', {'semana': lunesSemana|date('Y-m-d')}) }}" class="btn btn-secondary">Volver a Vista Semanal</a>
+        </div>
+    </div>
+</div>
+
+<script>
+function marcarTarea(checkbox, tareaId) {
+    const completada = checkbox.checked;
+    const token = completada 
+        ? checkbox.getAttribute('data-token-completada')
+        : checkbox.getAttribute('data-token-pendiente');
+    const url = completada 
+        ? '{{ path('app_planificacion_alumno_marcar_completada', {'id': '__ID__'}) }}'.replace('__ID__', tareaId)
+        : '{{ path('app_planificacion_alumno_marcar_pendiente', {'id': '__ID__'}) }}'.replace('__ID__', tareaId);
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            _token: token
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const tareaItem = checkbox.closest('.tarea-item');
+            const textElement = tareaItem.querySelector('strong');
+            if (completada) {
+                textElement.style.textDecoration = 'line-through';
+                textElement.style.color = '#999';
+            } else {
+                textElement.style.textDecoration = 'none';
+                textElement.style.color = '';
+            }
+        } else {
+            checkbox.checked = !completada;
+            alert(data.message || 'Error al actualizar la tarea');
+        }
+    })
+    .catch(error => {
+        checkbox.checked = !completada;
+        alert('Error al actualizar la tarea');
+    });
+}
+</script>
+{% endblock %}
+

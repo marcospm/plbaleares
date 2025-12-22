@@ -1,0 +1,87 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestión de Usuarios{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4">
+    <h1>Gestión de Usuarios</h1>
+</div>
+
+<form method="get" action="{{ path('app_user_index') }}" style="margin-bottom: 2rem;">
+    <div class="card">
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Buscar:</label>
+                    <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Buscar por nombre de usuario...">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Estado:</label>
+                    <select name="activo" class="form-control">
+                        <option value="">Todos</option>
+                        <option value="1" {% if activoFiltro == '1' %}selected{% endif %}>Activos</option>
+                        <option value="0" {% if activoFiltro == '0' %}selected{% endif %}>Inactivos</option>
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ path('app_user_index') }}" class="btn btn-secondary">Limpiar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if users|length > 0 %}
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre de Usuario</th>
+                    <th>Roles</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td><strong>{{ user.username }}</strong></td>
+                        <td>
+                            {% for role in user.roles %}
+                                <span class="badge {% if role == 'ROLE_PROFESOR' %}badge-dificil{% else %}badge-facil{% endif %}">
+                                    {{ role }}
+                                </span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if user.isActivo %}
+                                <span class="badge badge-success" style="background-color: var(--color-success);">Activo</span>
+                            {% else %}
+                                <span class="badge badge-danger" style="background-color: var(--color-danger);">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form method="post" action="{{ path('app_user_toggle_activo', {'id': user.id}) }}" style="display: inline;">
+                                <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ user.id) }}">
+                                <button type="submit" class="btn btn-sm {% if user.isActivo %}btn-warning{% else %}btn-success{% endif %}">
+                                    {% if user.isActivo %}Desactivar{% else %}Activar{% endif %}
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <p>No se encontraron usuarios con los filtros seleccionados.</p>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+

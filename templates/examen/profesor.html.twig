@@ -1,0 +1,138 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Exámenes de Alumnos{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Exámenes de Alumnos</h1>
+    </div>
+    <div class="card-body">
+        <p style="margin-bottom: 2rem; color: var(--color-text-light);">
+            Visualiza y gestiona todos los exámenes realizados por los alumnos. Puedes filtrar por alumno y dificultad.
+        </p>
+
+        {# Filtros #}
+        <div class="card" style="margin-bottom: 2rem; background-color: #f8f9fa;">
+            <div class="card-body">
+                <form method="GET" action="{{ path('app_examen_profesor') }}" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
+                    <div>
+                        <label for="usuario" class="form-label">Filtrar por Alumno:</label>
+                        <select name="usuario" id="usuario" class="form-control">
+                            <option value="">Todos los alumnos</option>
+                            {% for usuario in usuarios %}
+                                <option value="{{ usuario.id }}" {% if usuarioSeleccionado == usuario.id %}selected{% endif %}>
+                                    {{ usuario.username }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="dificultad" class="form-label">Filtrar por Dificultad:</label>
+                        <select name="dificultad" id="dificultad" class="form-control">
+                            <option value="">Todas las dificultades</option>
+                            <option value="facil" {% if dificultadSeleccionada == 'facil' %}selected{% endif %}>Fácil</option>
+                            <option value="moderada" {% if dificultadSeleccionada == 'moderada' %}selected{% endif %}>Moderada</option>
+                            <option value="dificil" {% if dificultadSeleccionada == 'dificil' %}selected{% endif %}>Difícil</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-primary">Filtrar</button>
+                        <a href="{{ path('app_examen_profesor') }}" class="btn btn-secondary">Limpiar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {# Estadísticas rápidas #}
+        {% if examenes|length > 0 %}
+            {% set totalExamenes = examenes|length %}
+            {% set sumaNotas = 0 %}
+            {% set mejorNota = 0 %}
+            {% set peorNota = 20 %}
+            {% for examen in examenes %}
+                {% set nota = examen.nota|number_format(2, '.', '') %}
+                {% set sumaNotas = sumaNotas + nota %}
+                {% if nota > mejorNota %}{% set mejorNota = nota %}{% endif %}
+                {% if nota < peorNota %}{% set peorNota = nota %}{% endif %}
+            {% endfor %}
+            {% set promedio = sumaNotas / totalExamenes %}
+            
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
+                <div style="text-align: center; padding: 1rem; background-color: #e3f2fd; border-radius: 4px;">
+                    <div style="font-size: 2rem; font-weight: bold; color: var(--color-primary);">{{ totalExamenes }}</div>
+                    <div style="font-size: 0.9rem; color: #666;">Total Exámenes</div>
+                </div>
+                <div style="text-align: center; padding: 1rem; background-color: #e8f5e9; border-radius: 4px;">
+                    <div style="font-size: 2rem; font-weight: bold; color: var(--color-success);">{{ promedio|number_format(2, ',', '.') }}</div>
+                    <div style="font-size: 0.9rem; color: #666;">Nota Promedio</div>
+                </div>
+                <div style="text-align: center; padding: 1rem; background-color: #fff3e0; border-radius: 4px;">
+                    <div style="font-size: 2rem; font-weight: bold; color: #ff9800;">{{ mejorNota|number_format(2, ',', '.') }}</div>
+                    <div style="font-size: 0.9rem; color: #666;">Mejor Nota</div>
+                </div>
+                <div style="text-align: center; padding: 1rem; background-color: #ffebee; border-radius: 4px;">
+                    <div style="font-size: 2rem; font-weight: bold; color: var(--color-danger);">{{ peorNota|number_format(2, ',', '.') }}</div>
+                    <div style="font-size: 0.9rem; color: #666;">Peor Nota</div>
+                </div>
+            </div>
+        {% endif %}
+
+        {# Tabla de exámenes #}
+        {% if examenes|length > 0 %}
+            <div class="card">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Alumno</th>
+                            <th>Temas</th>
+                            <th>Dificultad</th>
+                            <th>Preguntas</th>
+                            <th>Nota</th>
+                            <th>Aciertos</th>
+                            <th>Errores</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for examen in examenes %}
+                            <tr>
+                                <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>
+                                <td>
+                                    <strong>{{ examen.usuario.username }}</strong>
+                                </td>
+                                <td>
+                                    {% for tema in examen.temas %}
+                                        <span class="badge badge-facil">{{ tema.nombre }}</span>
+                                    {% endfor %}
+                                </td>
+                                <td><span class="badge badge-{{ examen.dificultad }}">{{ examen.getDificultadLabel() }}</span></td>
+                                <td>{{ examen.numeroPreguntas }}</td>
+                                <td>
+                                    <strong style="font-size: 1.2rem; color: {% if examen.nota >= 10 %}var(--color-success){% else %}var(--color-danger){% endif %};">
+                                        {{ examen.nota|number_format(2, ',', '.') }}
+                                    </strong>
+                                </td>
+                                <td style="color: var(--color-success);"><strong>{{ examen.aciertos }}</strong></td>
+                                <td style="color: var(--color-danger);"><strong>{{ examen.errores }}</strong></td>
+                                <td>
+                                    <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-sm btn-primary">Ver Detalle</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="card">
+                <div class="card-body text-center">
+                    <p style="font-size: 1.1rem; color: #666;">No se encontraron exámenes con los filtros seleccionados.</p>
+                    <a href="{{ path('app_examen_profesor') }}" class="btn btn-primary mt-3">Ver Todos los Exámenes</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

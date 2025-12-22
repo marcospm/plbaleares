@@ -1,0 +1,149 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Historial de Exámenes{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4">
+    <h1>Historial de Exámenes</h1>
+    <a href="{{ path('app_examen_iniciar') }}" class="btn btn-primary">Nuevo Examen</a>
+</div>
+
+{# Sección de Ranking #}
+{% if rankings %}
+    <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-header">
+            <h2>🏆 Ranking por Dificultad</h2>
+        </div>
+        <div class="card-body">
+            <div style="margin-bottom: 1rem;">
+                <label for="cantidad-select" style="margin-right: 0.5rem;">Calcular ranking con los últimos:</label>
+                <select id="cantidad-select" class="form-control" style="display: inline-block; width: auto;" onchange="window.location.href='{{ path('app_examen_historial') }}?cantidad=' + this.value">
+                    <option value="2" {% if cantidad == 2 %}selected{% endif %}>2 exámenes</option>
+                    <option value="3" {% if cantidad == 3 %}selected{% endif %}>3 exámenes</option>
+                    <option value="4" {% if cantidad == 4 %}selected{% endif %}>4 exámenes</option>
+                    <option value="5" {% if cantidad == 5 %}selected{% endif %}>5 exámenes</option>
+                    <option value="10" {% if cantidad == 10 %}selected{% endif %}>10 exámenes</option>
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">
+                {% for dificultad, ranking in rankings %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 style="margin: 0;">
+                                {% if dificultad == 'facil' %}Fácil
+                                {% elseif dificultad == 'moderada' %}Moderada
+                                {% else %}Difícil
+                                {% endif %}
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            {% if ranking|length > 0 %}
+                                <div style="max-height: 400px; overflow-y: auto;">
+                                    {% for index, entry in ranking %}
+                                        {% set esUsuarioActual = entry.usuario.id == usuarioActual.id %}
+                                        <div style="padding: 0.75rem; margin-bottom: 0.5rem; border-radius: 4px; {% if esUsuarioActual %}background-color: #e3f2fd; border: 2px solid var(--color-primary); font-weight: bold;{% else %}background-color: #f8f9fa; border: 1px solid #ddd;{% endif %}">
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <div>
+                                                    <span style="font-size: 1.2rem; color: {% if index == 0 %}#ffd700{% elseif index == 1 %}#c0c0c0{% elseif index == 2 %}#cd7f32{% else %}#666{% endif %};">
+                                                        {% if index == 0 %}🥇
+                                                        {% elseif index == 1 %}🥈
+                                                        {% elseif index == 2 %}🥉
+                                                        {% else %}#{{ index + 1 }}
+                                                        {% endif %}
+                                                    </span>
+                                                    <span style="margin-left: 0.5rem;">
+                                                        {% if esUsuarioActual %}
+                                                            {{ entry.usuario.username }}
+                                                        {% else %}
+                                                            {{ ofuscar_nombre(entry.usuario.id) }}
+                                                        {% endif %}
+                                                    </span>
+                                                    {% if esUsuarioActual %}
+                                                        <span class="badge bg-primary" style="margin-left: 0.5rem;">Tú</span>
+                                                    {% endif %}
+                                                </div>
+                                                <div style="text-align: right;">
+                                                    <div style="font-size: 1.1rem; font-weight: bold; color: var(--color-primary);">
+                                                        {{ entry.notaMedia|number_format(2, ',', '.') }}
+                                                    </div>
+                                                    <div style="font-size: 0.75rem; color: #666;">
+                                                        ({{ entry.cantidadExamenes }} exam.)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                
+                                {% if posicionesUsuario[dificultad].posicion %}
+                                    <div style="margin-top: 1rem; padding: 1rem; background-color: #f0f7ff; border-radius: 4px; text-align: center;">
+                                        <div style="font-size: 0.9rem; color: #666; margin-bottom: 0.25rem;">Tu posición:</div>
+                                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--color-primary);">
+                                            {{ posicionesUsuario[dificultad].posicion }}/{{ posicionesUsuario[dificultad].totalUsuarios }}
+                                        </div>
+                                        {% if posicionesUsuario[dificultad].notaMedia %}
+                                            <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+                                                Nota media: {{ posicionesUsuario[dificultad].notaMedia|number_format(2, ',', '.') }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            {% else %}
+                                <p style="text-align: center; color: #999;">No hay exámenes de esta dificultad</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+{% if examenes|length > 0 %}
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Temas</th>
+                    <th>Dificultad</th>
+                    <th>Preguntas</th>
+                    <th>Nota</th>
+                    <th>Aciertos</th>
+                    <th>Errores</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for examen in examenes %}
+                    <tr>
+                        <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>
+                        <td>
+                            {% for tema in examen.temas %}
+                                <span class="badge badge-facil">{{ tema.nombre }}</span>
+                            {% endfor %}
+                        </td>
+                        <td><span class="badge badge-{{ examen.dificultad }}">{{ examen.getDificultadLabel() }}</span></td>
+                        <td>{{ examen.numeroPreguntas }}</td>
+                        <td><strong style="font-size: 1.2rem; color: var(--color-primary);">{{ examen.nota|number_format(2, ',', '.') }}</strong></td>
+                        <td style="color: var(--color-success);"><strong>{{ examen.aciertos }}</strong></strong></td>
+                        <td style="color: var(--color-danger);"><strong>{{ examen.errores }}</strong></td>
+                        <td>
+                            <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-secondary btn-sm">Ver Detalle</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <p>No has realizado ningún examen aún.</p>
+            <a href="{{ path('app_examen_iniciar') }}" class="btn btn-primary">Realizar Primer Examen</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+

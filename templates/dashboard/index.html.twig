@@ -1,0 +1,338 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Inicio - Sistema de Oposiciones - Policía Local Illes Balears{% endblock %}
+
+{% block body %}
+{% if isProfesor %}
+    {# Dashboard Profesor #}
+    <div class="card">
+        <div class="card-header">
+            <h1>Panel de Profesor</h1>
+        </div>
+        <div class="card-body">
+            <p style="font-size: 1.1rem; margin-bottom: 2rem; color: var(--color-text-light);">
+                Sistema de gestión para opositores de Policía Local de las Illes Balears. Gestiona temas, leyes, artículos y preguntas de examen.
+            </p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 style="color: var(--color-primary); margin-bottom: 1rem;">📚 Temas</h3>
+                        <p>Gestiona los temas de la oposición.</p>
+                        <a href="{{ path('app_tema_index') }}" class="btn btn-primary" style="margin-top: 1rem;">Ver Temas</a>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <h3 style="color: var(--color-primary); margin-bottom: 1rem;">⚖️ Leyes</h3>
+                        <p>Administra las leyes relacionadas con los temas.</p>
+                        <a href="{{ path('app_ley_index') }}" class="btn btn-primary" style="margin-top: 1rem;">Ver Leyes</a>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <h3 style="color: var(--color-primary); margin-bottom: 1rem;">📄 Artículos</h3>
+                        <p>Gestiona los artículos de las leyes con sus explicaciones.</p>
+                        <a href="{{ path('app_articulo_index') }}" class="btn btn-primary" style="margin-top: 1rem;">Ver Artículos</a>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <h3 style="color: var(--color-primary); margin-bottom: 1rem;">❓ Preguntas</h3>
+                        <p>Crea y gestiona preguntas de examen con retroalimentación.</p>
+                        <a href="{{ path('app_pregunta_index') }}" class="btn btn-primary" style="margin-top: 1rem;">Ver Preguntas</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% else %}
+    {# Dashboard Usuario Normal #}
+    
+    {# Sección destacada de fechas de pruebas #}
+    {% if fechasPruebas %}
+        <div class="card" style="margin-bottom: 1.5rem; border: 2px solid var(--color-primary); background-color: #f0f7ff;">
+            <div class="card-header" style="background-color: var(--color-primary); color: white;">
+                <h2 style="margin: 0; color: white;">📅 Fechas de Pruebas</h2>
+            </div>
+            <div class="card-body">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                    {% if fechasPruebas.fechaTeorico %}
+                        {% set diasTeorico = (fechasPruebas.fechaTeorico|date('U') - 'now'|date('U')) / 86400 %}
+                        <div style="text-align: center; padding: 1rem; background-color: white; border-radius: 4px; border: 1px solid #ddd;">
+                            <h3 style="color: var(--color-primary); margin-bottom: 0.5rem; font-size: 1rem;">Examen Teórico</h3>
+                            <p style="margin: 0.25rem 0; font-size: 0.9rem;">{{ fechasPruebas.fechaTeorico|date('d/m/Y') }}</p>
+                            <p style="margin: 0.5rem 0 0 0; font-size: 1.5rem; font-weight: bold; color: {% if diasTeorico < 0 %}#dc3545{% elseif diasTeorico <= 30 %}#ff9800{% else %}#28a745{% endif %};">
+                                {% if diasTeorico < 0 %}
+                                    {{ (diasTeorico * -1)|round }} días<br><small style="font-size: 0.8rem;">hace</small>
+                                {% else %}
+                                    {{ diasTeorico|round }} días<br><small style="font-size: 0.8rem;">restantes</small>
+                                {% endif %}
+                            </p>
+                        </div>
+                    {% endif %}
+                    
+                    {% if fechasPruebas.fechaFisicas %}
+                        {% set diasFisicas = (fechasPruebas.fechaFisicas|date('U') - 'now'|date('U')) / 86400 %}
+                        <div style="text-align: center; padding: 1rem; background-color: white; border-radius: 4px; border: 1px solid #ddd;">
+                            <h3 style="color: var(--color-primary); margin-bottom: 0.5rem; font-size: 1rem;">Pruebas Físicas</h3>
+                            <p style="margin: 0.25rem 0; font-size: 0.9rem;">{{ fechasPruebas.fechaFisicas|date('d/m/Y') }}</p>
+                            <p style="margin: 0.5rem 0 0 0; font-size: 1.5rem; font-weight: bold; color: {% if diasFisicas < 0 %}#dc3545{% elseif diasFisicas <= 30 %}#ff9800{% else %}#28a745{% endif %};">
+                                {% if diasFisicas < 0 %}
+                                    {{ (diasFisicas * -1)|round }} días<br><small style="font-size: 0.8rem;">hace</small>
+                                {% else %}
+                                    {{ diasFisicas|round }} días<br><small style="font-size: 0.8rem;">restantes</small>
+                                {% endif %}
+                            </p>
+                        </div>
+                    {% endif %}
+                    
+                    {% if fechasPruebas.fechaPsicotecnico %}
+                        {% set diasPsicotecnico = (fechasPruebas.fechaPsicotecnico|date('U') - 'now'|date('U')) / 86400 %}
+                        <div style="text-align: center; padding: 1rem; background-color: white; border-radius: 4px; border: 1px solid #ddd;">
+                            <h3 style="color: var(--color-primary); margin-bottom: 0.5rem; font-size: 1rem;">Psicotécnico</h3>
+                            <p style="margin: 0.25rem 0; font-size: 0.9rem;">{{ fechasPruebas.fechaPsicotecnico|date('d/m/Y') }}</p>
+                            <p style="margin: 0.5rem 0 0 0; font-size: 1.5rem; font-weight: bold; color: {% if diasPsicotecnico < 0 %}#dc3545{% elseif diasPsicotecnico <= 30 %}#ff9800{% else %}#28a745{% endif %};">
+                                {% if diasPsicotecnico < 0 %}
+                                    {{ (diasPsicotecnico * -1)|round }} días<br><small style="font-size: 0.8rem;">hace</small>
+                                {% else %}
+                                    {{ diasPsicotecnico|round }} días<br><small style="font-size: 0.8rem;">restantes</small>
+                                {% endif %}
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    {# Sección pequeña de ranking #}
+    {% if posicionesUsuario %}
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0;">🏆 Mi Ranking</h3>
+                    <div>
+                        <label for="cantidad-ranking-select" style="margin-right: 0.5rem; font-size: 0.9rem;">Últimos:</label>
+                        <select id="cantidad-ranking-select" class="form-control" style="display: inline-block; width: auto; font-size: 0.9rem;" onchange="window.location.href='{{ path('app_dashboard') }}?cantidad=' + this.value">
+                            <option value="2" {% if cantidadRanking == 2 %}selected{% endif %}>2 exámenes</option>
+                            <option value="3" {% if cantidadRanking == 3 %}selected{% endif %}>3 exámenes</option>
+                            <option value="4" {% if cantidadRanking == 4 %}selected{% endif %}>4 exámenes</option>
+                            <option value="5" {% if cantidadRanking == 5 %}selected{% endif %}>5 exámenes</option>
+                            <option value="10" {% if cantidadRanking == 10 %}selected{% endif %}>10 exámenes</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                    {% for dificultad, datos in posicionesUsuario %}
+                        {% if datos.posicion %}
+                            <div style="text-align: center; padding: 0.75rem; background-color: #f8f9fa; border-radius: 4px;">
+                                <div style="font-weight: bold; color: var(--color-primary); margin-bottom: 0.25rem;">
+                                    {% if dificultad == 'facil' %}Fácil
+                                    {% elseif dificultad == 'moderada' %}Moderada
+                                    {% else %}Difícil
+                                    {% endif %}
+                                </div>
+                                <div style="font-size: 1.2rem; font-weight: bold; color: var(--color-success);">
+                                    Posición {{ datos.posicion }}/{{ datos.totalUsuarios }}
+                                </div>
+                                {% if datos.notaMedia %}
+                                    <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+                                        Media: {{ datos.notaMedia|number_format(2, ',', '.') }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <div style="text-align: center; padding: 0.75rem; background-color: #f8f9fa; border-radius: 4px;">
+                                <div style="font-weight: bold; color: var(--color-primary); margin-bottom: 0.25rem;">
+                                    {% if dificultad == 'facil' %}Fácil
+                                    {% elseif dificultad == 'moderada' %}Moderada
+                                    {% else %}Difícil
+                                    {% endif %}
+                                </div>
+                                <div style="font-size: 0.9rem; color: #999;">
+                                    Sin exámenes
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+        <div class="card">
+            <div class="card-header">
+                <h2>📚 Mis Exámenes</h2>
+            </div>
+            <div class="card-body">
+                <div style="text-align: center; margin-bottom: 1rem;">
+                    <a href="{{ path('app_examen_iniciar') }}" class="btn btn-primary" style="font-size: 1.1rem; padding: 0.75rem 1.5rem;">Nuevo Examen</a>
+                </div>
+
+                {% if estadisticas.total > 0 %}
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1rem;">
+                        <div style="text-align: center; padding: 0.75rem; background-color: #f8f9fa; border-radius: 4px;">
+                            <h4 style="color: var(--color-primary); font-size: 1.5rem; margin: 0;">{{ estadisticas.total }}</h4>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem;">Exámenes</p>
+                        </div>
+                        <div style="text-align: center; padding: 0.75rem; background-color: #f8f9fa; border-radius: 4px;">
+                            <h4 style="color: var(--color-primary); font-size: 1.5rem; margin: 0;">{{ estadisticas.promedio|number_format(2, ',', '.') }}</h4>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem;">Promedio</p>
+                        </div>
+                        <div style="text-align: center; padding: 0.75rem; background-color: #f8f9fa; border-radius: 4px;">
+                            <h4 style="color: var(--color-success); font-size: 1.5rem; margin: 0;">{{ estadisticas.mejorNota|number_format(2, ',', '.') }}</h4>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem;">Mejor Nota</p>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <h4 style="margin-top: 1rem; margin-bottom: 0.75rem; font-size: 1rem;">Últimos Exámenes</h4>
+
+                {% if ultimosExamenes|length > 0 %}
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        <table class="table" style="font-size: 0.85rem;">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Dificultad</th>
+                                    <th>Nota</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for examen in ultimosExamenes|slice(0, 5) %}
+                                    <tr>
+                                        <td>{{ examen.fecha|date('d/m/Y') }}</td>
+                                        <td><span class="badge badge-{{ examen.dificultad }}">{{ examen.getDificultadLabel() }}</span></td>
+                                        <td><strong style="color: var(--color-primary);">{{ examen.nota|number_format(2, ',', '.') }}</strong></td>
+                                        <td>
+                                            <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-sm btn-secondary">Ver</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="text-align: center; margin-top: 0.5rem;">
+                        <a href="{{ path('app_examen_historial') }}" class="btn btn-sm btn-secondary">Ver Todos</a>
+                    </div>
+                {% else %}
+                    <p style="text-align: center; color: #666; margin: 1rem 0;">No has realizado ningún examen aún.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>📋 Mis Tareas</h2>
+            </div>
+            <div class="card-body">
+                {% if planificacion %}
+                    <div style="margin-bottom: 1rem;">
+                        <a href="{{ path('app_planificacion_alumno_index') }}" class="btn btn-primary" style="width: 100%;">Ver Mi Planificación</a>
+                    </div>
+                    
+                    {% if resumenTareas.total > 0 %}
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+                            <div style="text-align: center; padding: 0.5rem; background-color: #e8f5e9; border-radius: 4px;">
+                                <strong style="color: var(--color-success); font-size: 1.2rem;">{{ resumenTareas.completadas }}</strong>
+                                <p style="margin: 0.25rem 0 0 0; font-size: 0.75rem;">Completadas</p>
+                            </div>
+                            <div style="text-align: center; padding: 0.5rem; background-color: #fff3cd; border-radius: 4px;">
+                                <strong style="color: var(--color-warning); font-size: 1.2rem;">{{ resumenTareas.pendientes }}</strong>
+                                <p style="margin: 0.25rem 0 0 0; font-size: 0.75rem;">Pendientes</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <p style="text-align: center; color: #666; margin: 1rem 0;">No tienes planificación asignada.</p>
+                {% endif %}
+
+                <h4 style="margin-top: 1rem; margin-bottom: 0.75rem; font-size: 1rem;">Tareas Pendientes</h4>
+                {% if tareasPendientes|length > 0 %}
+                    <div style="max-height: 250px; overflow-y: auto;">
+                        {% for tareaAsignada in tareasPendientes %}
+                            <div style="padding: 0.5rem; margin-bottom: 0.5rem; border: 1px solid #ddd; border-radius: 4px; background-color: {% if tareaAsignada.franjaHoraria %}#f0f0f0{% else %}#fff{% endif %};">
+                                <div style="font-weight: bold; font-size: 0.9rem;">{{ tareaAsignada.tarea.nombre }}</div>
+                                <div style="font-size: 0.75rem; color: #666; margin-top: 0.25rem;">
+                                    Semana: {{ tareaAsignada.tarea.semanaAsignacion|date('d/m/Y') }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div style="text-align: center; margin-top: 0.5rem;">
+                        <a href="{{ path('app_planificacion_alumno_index') }}" class="btn btn-sm btn-secondary">Ver Todas</a>
+                    </div>
+                {% else %}
+                    <p style="text-align: center; color: #666; margin: 1rem 0;">¡No tienes tareas pendientes! 🎉</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# Sección completa de exámenes #}
+    <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+            <h1>Historial de Exámenes</h1>
+        </div>
+        <div class="card-body">
+            {% if ultimosExamenes|length > 0 %}
+                <div class="card">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Temas</th>
+                                <th>Dificultad</th>
+                                <th>Preguntas</th>
+                                <th>Nota</th>
+                                <th>Aciertos</th>
+                                <th>Errores</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for examen in ultimosExamenes %}
+                                <tr>
+                                    <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>
+                                    <td>
+                                        {% for tema in examen.temas %}
+                                            <span class="badge badge-facil">{{ tema.nombre }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td><span class="badge badge-{{ examen.dificultad }}">{{ examen.getDificultadLabel() }}</span></td>
+                                    <td>{{ examen.numeroPreguntas }}</td>
+                                    <td><strong style="font-size: 1.2rem; color: var(--color-primary);">{{ examen.nota|number_format(2, ',', '.') }}</strong></td>
+                                    <td style="color: var(--color-success);"><strong>{{ examen.aciertos }}</strong></td>
+                                    <td style="color: var(--color-danger);"><strong>{{ examen.errores }}</strong></td>
+                                    <td>
+                                        <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div style="text-align: center; margin-top: 1rem;">
+                    <a href="{{ path('app_examen_historial') }}" class="btn btn-secondary">Ver Historial Completo</a>
+                </div>
+            {% else %}
+                <div class="card">
+                    <div class="card-body text-center">
+                        <p>No has realizado ningún examen aún.</p>
+                        <a href="{{ path('app_examen_iniciar') }}" class="btn btn-primary">Realizar Primer Examen</a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+

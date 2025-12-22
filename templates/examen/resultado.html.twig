@@ -1,0 +1,114 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Resultado del Examen{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Resultado del Examen</h1>
+    </div>
+    <div class="card-body">
+        <div style="text-align: center; padding: 2rem; background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%); color: white; border-radius: 8px; margin-bottom: 2rem;">
+            <h2 style="margin: 0; font-size: 3rem;">{{ nota|number_format(2, ',', '.') }}</h2>
+            <p style="margin: 0.5rem 0 0 0; font-size: 1.2rem;">sobre 20 puntos</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+            <div class="card" style="text-align: center;">
+                <div class="card-body">
+                    <h3 style="color: var(--color-success); font-size: 2rem; margin: 0;">{{ aciertos }}</h3>
+                    <p style="margin: 0.5rem 0 0 0;">Aciertos</p>
+                </div>
+            </div>
+            <div class="card" style="text-align: center;">
+                <div class="card-body">
+                    <h3 style="color: var(--color-danger); font-size: 2rem; margin: 0;">{{ errores }}</h3>
+                    <p style="margin: 0.5rem 0 0 0;">Errores</p>
+                </div>
+            </div>
+            <div class="card" style="text-align: center;">
+                <div class="card-body">
+                    <h3 style="color: var(--color-primary); font-size: 2rem; margin: 0;">{{ total }}</h3>
+                    <p style="margin: 0.5rem 0 0 0;">Total</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <strong>Dificultad:</strong> <span class="badge badge-{{ examen.dificultad }}">{{ examen.getDificultadLabel() }}</span>
+        </div>
+
+        <div class="mb-4">
+            <strong>Temas:</strong>
+            {% for tema in examen.temas %}
+                <span class="badge badge-facil">{{ tema.nombre }}</span>
+            {% endfor %}
+        </div>
+
+        <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Detalle de Preguntas</h3>
+
+        {% for item in preguntas %}
+            <div class="card mb-3" style="{% if item.esCorrecta %}border-left: 4px solid var(--color-success);{% else %}border-left: 4px solid var(--color-danger);{% endif %}">
+                <div class="card-body">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                        <h4 style="margin: 0;">Pregunta {{ loop.index }}</h4>
+                        {% if item.esCorrecta %}
+                            <span class="badge badge-facil">✓ Correcta</span>
+                        {% else %}
+                            <span class="badge badge-dificil">✗ Incorrecta</span>
+                        {% endif %}
+                    </div>
+
+                    <p><strong>{{ item.pregunta.texto }}</strong></p>
+
+                    <div style="margin: 1rem 0;">
+                        <div style="padding: 0.5rem; margin: 0.25rem 0; {% if item.respuestaAlumno == 'A' and not item.esCorrecta %}background: #ffebee;{% elseif item.pregunta.respuestaCorrecta == 'A' %}background: #e8f5e9;{% endif %}">
+                            <strong>A)</strong> {{ item.pregunta.opcionA }}
+                            {% if item.respuestaAlumno == 'A' and not item.esCorrecta %}<span style="color: var(--color-danger);">← Tu respuesta (incorrecta)</span>{% endif %}
+                            {% if item.pregunta.respuestaCorrecta == 'A' %}<span style="color: var(--color-success);">← Correcta</span>{% endif %}
+                        </div>
+                        <div style="padding: 0.5rem; margin: 0.25rem 0; {% if item.respuestaAlumno == 'B' and not item.esCorrecta %}background: #ffebee;{% elseif item.pregunta.respuestaCorrecta == 'B' %}background: #e8f5e9;{% endif %}">
+                            <strong>B)</strong> {{ item.pregunta.opcionB }}
+                            {% if item.respuestaAlumno == 'B' and not item.esCorrecta %}<span style="color: var(--color-danger);">← Tu respuesta (incorrecta)</span>{% endif %}
+                            {% if item.pregunta.respuestaCorrecta == 'B' %}<span style="color: var(--color-success);">← Correcta</span>{% endif %}
+                        </div>
+                        <div style="padding: 0.5rem; margin: 0.25rem 0; {% if item.respuestaAlumno == 'C' and not item.esCorrecta %}background: #ffebee;{% elseif item.pregunta.respuestaCorrecta == 'C' %}background: #e8f5e9;{% endif %}">
+                            <strong>C)</strong> {{ item.pregunta.opcionC }}
+                            {% if item.respuestaAlumno == 'C' and not item.esCorrecta %}<span style="color: var(--color-danger);">← Tu respuesta (incorrecta)</span>{% endif %}
+                            {% if item.pregunta.respuestaCorrecta == 'C' %}<span style="color: var(--color-success);">← Correcta</span>{% endif %}
+                        </div>
+                        <div style="padding: 0.5rem; margin: 0.25rem 0; {% if item.respuestaAlumno == 'D' and not item.esCorrecta %}background: #ffebee;{% elseif item.pregunta.respuestaCorrecta == 'D' %}background: #e8f5e9;{% endif %}">
+                            <strong>D)</strong> {{ item.pregunta.opcionD }}
+                            {% if item.respuestaAlumno == 'D' and not item.esCorrecta %}<span style="color: var(--color-danger);">← Tu respuesta (incorrecta)</span>{% endif %}
+                            {% if item.pregunta.respuestaCorrecta == 'D' %}<span style="color: var(--color-success);">← Correcta</span>{% endif %}
+                        </div>
+                    </div>
+
+                    {% if item.pregunta.retroalimentacion %}
+                        <div class="alert alert-info" style="margin-top: 1rem;">
+                            <strong>Retroalimentación:</strong> {{ item.pregunta.retroalimentacion }}
+                        </div>
+                    {% endif %}
+
+                    {% if item.pregunta.articulo.explicacion %}
+                        <details style="margin-top: 1rem;">
+                            <summary style="cursor: pointer; font-weight: bold; color: var(--color-primary);">Ver Explicación del Artículo</summary>
+                            <div style="background: #e3f2fd; padding: 1rem; border-radius: 4px; margin-top: 0.5rem; border-left: 4px solid var(--color-secondary);">
+                                <p><strong>Artículo {{ item.pregunta.articulo.numero }} - {{ item.pregunta.ley.nombre }}</strong></p>
+                                <p>{{ item.pregunta.articulo.explicacion|nl2br }}</p>
+                            </div>
+                        </details>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+
+        <div class="d-flex gap-2 mt-4">
+            <a href="{{ path('app_examen_iniciar') }}" class="btn btn-primary">Nuevo Examen</a>
+            <a href="{{ path('app_examen_historial') }}" class="btn btn-secondary">Ver Historial</a>
+            <a href="{{ path('app_dashboard') }}" class="btn btn-secondary">Volver al Dashboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

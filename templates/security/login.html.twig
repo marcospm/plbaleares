@@ -1,0 +1,79 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Iniciar Sesión - Sistema de Oposiciones{% endblock %}
+
+{% block body %}
+<div style="max-width: 500px; margin: 3rem auto;">
+    <div class="card">
+        <div class="card-header">
+            <h1>Iniciar Sesión</h1>
+        </div>
+        <div class="card-body">
+            {% if error %}
+                <div class="alert alert-danger">
+                    <strong>Error:</strong> {{ error.messageKey|trans(error.messageData, 'security') }}
+                </div>
+            {% endif %}
+
+            {% if app.user %}
+                <div class="alert alert-info">
+                    Ya estás conectado como <strong>{{ app.user.userIdentifier }}</strong>.
+                    <a href="{{ path('app_logout') }}" class="btn btn-sm btn-secondary" style="margin-left: 1rem;">Cerrar Sesión</a>
+                </div>
+            {% else %}
+                <form method="post">
+                    <div class="form-group">
+                        <label for="inputUsername" class="form-label">Nombre de Usuario</label>
+                        <input type="text" 
+                               value="{{ last_username }}" 
+                               name="username" 
+                               id="inputUsername" 
+                               class="form-control" 
+                               autocomplete="username" 
+                               required 
+                               autofocus
+                               placeholder="Introduce tu nombre de usuario">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inputPassword" class="form-label">Contraseña</label>
+                        <input type="password" 
+                               name="password" 
+                               id="inputPassword" 
+                               class="form-control" 
+                               autocomplete="current-password" 
+                               required
+                               placeholder="Introduce tu contraseña">
+                    </div>
+
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="_remember_me" style="width: auto;">
+                            <span>Recordarme</span>
+                        </label>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" type="submit" style="flex: 1;">
+                            Iniciar Sesión
+                        </button>
+                        <a href="{{ path('app_home') }}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                </form>
+
+                <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--color-border); text-align: center;">
+                    <p style="color: var(--color-text-light); margin-bottom: 1rem;">
+                        ¿No tienes cuenta?
+                    </p>
+                    <a href="{{ path('app_register') }}" class="btn btn-secondary">
+                        Crear Cuenta
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

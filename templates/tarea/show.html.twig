@@ -1,0 +1,92 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tarea: {{ tarea.nombre }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>{{ tarea.nombre }}</h1>
+    </div>
+    <div class="card-body">
+        <div class="form-group">
+            <label class="form-label"><strong>Descripción:</strong></label>
+            <p>{{ tarea.descripcion|nl2br }}</p>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label"><strong>Semana de Asignación:</strong></label>
+            <p>{{ tarea.semanaAsignacion|date('d/m/Y') }} ({{ tarea.semanaAsignacion|date('l') }})</p>
+        </div>
+
+        {% if tarea.tema or tarea.ley or tarea.articulo %}
+            <div class="form-group">
+                <label class="form-label"><strong>Relaciones:</strong></label>
+                <ul>
+                    {% if tarea.tema %}<li><strong>Tema:</strong> {{ tarea.tema.nombre }}</li>{% endif %}
+                    {% if tarea.ley %}<li><strong>Ley:</strong> {{ tarea.ley.nombre }}</li>{% endif %}
+                    {% if tarea.articulo %}<li><strong>Artículo:</strong> {{ tarea.articulo }}</li>{% endif %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <h3 class="mt-4">Usuarios Asignados</h3>
+        <div class="card">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Estado</th>
+                        <th>Franja Horaria</th>
+                        <th>Fecha Completación</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asignacion in tarea.asignaciones %}
+                        <tr>
+                            <td><strong>{{ asignacion.usuario.username }}</strong></td>
+                            <td>
+                                {% if asignacion.completada %}
+                                    <span class="badge badge-success">Completada</span>
+                                {% else %}
+                                    <span class="badge badge-warning">Pendiente</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if asignacion.franjaHoraria %}
+                                    {{ asignacion.franjaHoraria.nombreDia }} 
+                                    {{ asignacion.franjaHoraria.horaInicio|date('H:i') }}-{{ asignacion.franjaHoraria.horaFin|date('H:i') }}
+                                {% else %}
+                                    <span class="text-muted">Sin franja asignada</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if asignacion.fechaCompletada %}
+                                    {{ asignacion.fechaCompletada|date('d/m/Y H:i') }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ path('app_tarea_asignar_franja', {'id': tarea.id, 'asignacionId': asignacion.id}) }}" class="btn btn-sm btn-primary">
+                                    {% if asignacion.franjaHoraria %}Editar Franja{% else %}Asignar Franja{% endif %}
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <a href="{{ path('app_tarea_edit', {'id': tarea.id}) }}" class="btn btn-secondary">Editar</a>
+            <form method="post" action="{{ path('app_tarea_delete', {'id': tarea.id}) }}" style="display: inline-block;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta tarea?');">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ tarea.id) }}">
+                <button type="submit" class="btn btn-danger">Eliminar</button>
+            </form>
+            <a href="{{ path('app_tarea_index') }}" class="btn btn-secondary">Volver</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,179 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sistema de Oposiciones - Policía Local Illes Balears{% endblock %}
+
+{% block body %}
+<div style="min-height: 80vh;">
+    <!-- Hero Section -->
+    <div style="background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color: white; padding: 4rem 2rem; text-align: center; margin: -2rem -1rem 3rem -1rem; border-bottom: 3px solid var(--color-secondary);">
+        <div class="container" style="max-width: 1200px; margin: 0 auto;">
+            <h1 style="font-size: 3rem; margin-bottom: 1rem; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                Sistema de Oposiciones
+            </h1>
+            <h2 style="font-size: 2rem; margin-bottom: 2rem; font-weight: 400; opacity: 0.95;">
+                Policía Local - Illes Balears
+            </h2>
+            <p style="font-size: 1.3rem; margin-bottom: 2rem; max-width: 800px; margin-left: auto; margin-right: auto; line-height: 1.6;">
+                Prepara tu oposición con nuestra plataforma especializada. Accede a exámenes, recursos de estudio y explicaciones detalladas de todos los artículos.
+            </p>
+            {% if not app.user %}
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="{{ path('app_register') }}" class="btn" style="background: var(--color-secondary); color: white; padding: 1rem 2rem; font-size: 1.1rem; font-weight: 600; text-decoration: none; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: transform 0.3s;">
+                        Crear Cuenta
+                    </a>
+                    <a href="{{ path('app_login') }}" class="btn" style="background: rgba(255,255,255,0.2); color: white; padding: 1rem 2rem; font-size: 1.1rem; font-weight: 600; text-decoration: none; border-radius: 8px; border: 2px solid white; transition: transform 0.3s;">
+                        Iniciar Sesión
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="container" style="max-width: 1200px;">
+        <!-- Servicios -->
+        <div style="margin-bottom: 4rem;">
+            <h2 style="text-align: center; color: var(--color-primary); margin-bottom: 3rem; font-size: 2.5rem;">
+                Nuestros Servicios
+            </h2>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
+                <!-- Exámenes -->
+                <div class="card" style="text-align: center; transition: transform 0.3s;">
+                    <div class="card-body" style="padding: 2rem;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">📝</div>
+                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
+                            Exámenes Personalizados
+                        </h3>
+                        <p style="color: var(--color-text-light); line-height: 1.6;">
+                            Realiza exámenes adaptados a tus necesidades. Elige los temas, la dificultad y el número de preguntas. Recibe feedback inmediato y mejora tu preparación.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Artículos -->
+                <div class="card" style="text-align: center; transition: transform 0.3s;">
+                    <div class="card-body" style="padding: 2rem;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">📚</div>
+                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
+                            Explicaciones de Artículos
+                        </h3>
+                        <p style="color: var(--color-text-light); line-height: 1.6;">
+                            Accede a explicaciones sencillas de todos los artículos de las leyes. Incluye videos explicativos de YouTube para una mejor comprensión.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Recursos -->
+                <div class="card" style="text-align: center; transition: transform 0.3s;">
+                    <div class="card-body" style="padding: 2rem;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">📥</div>
+                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
+                            Recursos de Estudio
+                        </h3>
+                        <p style="color: var(--color-text-light); line-height: 1.6;">
+                            Descarga todos los recursos necesarios para tu preparación. Accede a los 30 temas completos y materiales adicionales.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Historial -->
+                <div class="card" style="text-align: center; transition: transform 0.3s;">
+                    <div class="card-body" style="padding: 2rem;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">📊</div>
+                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
+                            Seguimiento de Progreso
+                        </h3>
+                        <p style="color: var(--color-text-light); line-height: 1.6;">
+                            Consulta tu historial de exámenes, notas y estadísticas. Identifica tus fortalezas y áreas de mejora.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Dificultad -->
+                <div class="card" style="text-align: center; transition: transform 0.3s;">
+                    <div class="card-body" style="padding: 2rem;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">🎯</div>
+                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
+                            Niveles de Dificultad
+                        </h3>
+                        <p style="color: var(--color-text-light); line-height: 1.6;">
+                            Practica con preguntas de diferentes niveles: fácil, moderada y difícil. Adapta tu estudio a tu nivel actual.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Retroalimentación -->
+                <div class="card" style="text-align: center; transition: transform 0.3s;">
+                    <div class="card-body" style="padding: 2rem;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">💡</div>
+                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
+                            Retroalimentación Inmediata
+                        </h3>
+                        <p style="color: var(--color-text-light); line-height: 1.6;">
+                            Recibe explicaciones detalladas de cada pregunta. Aprende de tus errores y refuerza tus conocimientos.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Características -->
+        <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 3rem 2rem; border-radius: 12px; margin-bottom: 3rem;">
+            <h2 style="text-align: center; color: var(--color-primary); margin-bottom: 2rem; font-size: 2rem;">
+                ¿Por qué elegir nuestra plataforma?
+            </h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                <div style="display: flex; align-items: start; gap: 1rem;">
+                    <span style="font-size: 2rem;">✅</span>
+                    <div>
+                        <strong style="color: var(--color-primary);">30 Temas Completos</strong>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Todos los temas de la oposición organizados y accesibles.</p>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: start; gap: 1rem;">
+                    <span style="font-size: 2rem;">✅</span>
+                    <div>
+                        <strong style="color: var(--color-primary);">Sistema de Notas</strong>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Sistema de calificación de 0 a 20 puntos con penalización por errores.</p>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: start; gap: 1rem;">
+                    <span style="font-size: 2rem;">✅</span>
+                    <div>
+                        <strong style="color: var(--color-primary);">Acceso 24/7</strong>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Estudia cuando quieras, desde cualquier dispositivo.</p>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: start; gap: 1rem;">
+                    <span style="font-size: 2rem;">✅</span>
+                    <div>
+                        <strong style="color: var(--color-primary);">Contenido Actualizado</strong>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Leyes y artículos actualizados según las bases oficiales.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA Final -->
+        {% if not app.user %}
+        <div style="text-align: center; padding: 3rem 2rem; background: var(--color-primary); color: white; border-radius: 12px; margin-bottom: 3rem;">
+            <h2 style="font-size: 2rem; margin-bottom: 1rem;">¿Listo para comenzar?</h2>
+            <p style="font-size: 1.2rem; margin-bottom: 2rem; opacity: 0.9;">
+                Crea tu cuenta gratuita y comienza a preparar tu oposición hoy mismo.
+            </p>
+            <a href="{{ path('app_register') }}" class="btn" style="background: var(--color-secondary); color: white; padding: 1rem 2.5rem; font-size: 1.2rem; font-weight: 600; text-decoration: none; border-radius: 8px; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                Registrarse Ahora
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+</style>
+{% endblock %}
+

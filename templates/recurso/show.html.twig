@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Recurso{% endblock %}
+
+{% block body %}
+    <h1>Recurso</h1>
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <th>Id</th>
+                <td>{{ recurso.id }}</td>
+            </tr>
+            <tr>
+                <th>Nombre</th>
+                <td>{{ recurso.nombre }}</td>
+            </tr>
+            <tr>
+                <th>Enlace</th>
+                <td>{{ recurso.enlace }}</td>
+            </tr>
+            <tr>
+                <th>FechaCreacion</th>
+                <td>{{ recurso.fechaCreacion ? recurso.fechaCreacion|date('Y-m-d H:i:s') : '' }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a href="{{ path('app_recurso_index') }}">back to list</a>
+
+    <a href="{{ path('app_recurso_edit', {'id': recurso.id}) }}">edit</a>
+
+    {{ include('recurso/_delete_form.html.twig') }}
+{% endblock %}

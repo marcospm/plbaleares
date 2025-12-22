@@ -1,0 +1,89 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tareas{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4">
+    <h1>Tareas</h1>
+    <a href="{{ path('app_tarea_new') }}" class="btn btn-primary">Nueva Tarea</a>
+</div>
+
+<form method="get" action="{{ path('app_tarea_index') }}" style="margin-bottom: 2rem;">
+    <div class="card">
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Buscar:</label>
+                    <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Buscar...">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Semana:</label>
+                    <input type="date" name="semana" value="{{ semana }}" class="form-control">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Estado:</label>
+                    <select name="completadas" class="form-control">
+                        <option value="">Todos</option>
+                        <option value="true" {% if completadas == 'true' %}selected{% endif %}>Completadas</option>
+                        <option value="false" {% if completadas == 'false' %}selected{% endif %}>Pendientes</option>
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ path('app_tarea_index') }}" class="btn btn-secondary">Limpiar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if tareas|length > 0 %}
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Semana</th>
+                    <th>Usuarios</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tarea in tareas %}
+                    <tr>
+                        <td>{{ tarea.id }}</td>
+                        <td><strong>{{ tarea.nombre }}</strong></td>
+                        <td>{{ tarea.semanaAsignacion|date('d/m/Y') }}</td>
+                        <td>
+                            <span class="badge badge-info">{{ tarea.asignaciones|length }} usuario(s)</span>
+                        </td>
+                        <td>
+                            {% set completadas = tarea.asignaciones|filter(a => a.completada)|length %}
+                            <span class="badge {% if completadas == tarea.asignaciones|length %}badge-success{% else %}badge-warning{% endif %}">
+                                {{ completadas }}/{{ tarea.asignaciones|length }} completadas
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{{ path('app_tarea_show', {'id': tarea.id}) }}" class="btn btn-sm btn-info">Ver</a>
+                            <a href="{{ path('app_tarea_edit', {'id': tarea.id}) }}" class="btn btn-sm btn-secondary">Editar</a>
+                            <form method="post" action="{{ path('app_tarea_delete', {'id': tarea.id}) }}" style="display: inline-block;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta tarea?');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ tarea.id) }}">
+                                <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <p>No hay tareas registradas.</p>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+

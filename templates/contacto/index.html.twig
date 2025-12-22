@@ -1,0 +1,45 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Contacto{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Contacto</h1>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Información de Contacto</h3>
+                <div style="margin-top: 2rem;">
+                    <p><strong>📧 Email:</strong> <a href="mailto:contacto@policialocal-illesbalears.es">contacto@policialocal-illesbalears.es</a></p>
+                    <p><strong>📞 Teléfono:</strong> <a href="tel:+34971234567">971 234 567</a></p>
+                    <p><strong>📍 Dirección:</strong><br>
+                    Policía Local - Illes Balears<br>
+                    Calle Ejemplo, 123<br>
+                    07001 Palma, Illes Balears</p>
+                    <p><strong>🕐 Horario de Atención:</strong><br>
+                    Lunes a Viernes: 9:00 - 14:00<br>
+                    Sábados: 10:00 - 13:00</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h3>Envíanos un Mensaje</h3>
+                <p class="text-muted">Completa el formulario y nos pondremos en contacto contigo lo antes posible.</p>
+                
+                {{ form_start(form) }}
+                    {{ form_row(form.nombre) }}
+                    {{ form_row(form.email) }}
+                    {{ form_row(form.asunto) }}
+                    {{ form_row(form.mensaje) }}
+                    
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary">Enviar Mensaje</button>
+                        <a href="{% if app.user %}{{ path('app_dashboard') }}{% else %}{{ path('app_home') }}{% endif %}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                {{ form_end(form) }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Preguntas{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4">
+    <h1>Preguntas</h1>
+    <a href="{{ path('app_pregunta_new') }}" class="btn btn-primary">Nueva Pregunta</a>
+</div>
+
+<form method="get" action="{{ path('app_pregunta_index') }}" style="margin-bottom: 2rem;">
+    <div class="card">
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Buscar:</label>
+                    <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Buscar...">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Tema:</label>
+                    <select name="tema" class="form-control">
+                        <option value="0">Todos los temas</option>
+                        {% for tema in temas %}
+                            <option value="{{ tema.id }}" {% if temaSeleccionado == tema.id %}selected{% endif %}>
+                                {{ tema.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Ley:</label>
+                    <select name="ley" class="form-control">
+                        <option value="0">Todas las leyes</option>
+                        {% for ley in leyes %}
+                            <option value="{{ ley.id }}" {% if leySeleccionada == ley.id %}selected{% endif %}>
+                                {{ ley.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Dificultad:</label>
+                    <select name="dificultad" class="form-control">
+                        <option value="">Todas</option>
+                        <option value="facil" {% if dificultadSeleccionada == 'facil' %}selected{% endif %}>Fácil</option>
+                        <option value="moderada" {% if dificultadSeleccionada == 'moderada' %}selected{% endif %}>Moderada</option>
+                        <option value="dificil" {% if dificultadSeleccionada == 'dificil' %}selected{% endif %}>Difícil</option>
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ path('app_pregunta_index') }}" class="btn btn-secondary">Limpiar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if preguntas|length > 0 %}
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Texto</th>
+                    <th>Tema</th>
+                    <th>Ley</th>
+                    <th>Artículo</th>
+                    <th>Dificultad</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pregunta in preguntas %}
+                    <tr>
+                        <td>{{ pregunta.id }}</td>
+                        <td>{{ pregunta.texto|slice(0, 80) }}{% if pregunta.texto|length > 80 %}...{% endif %}</td>
+                        <td>{{ pregunta.tema.nombre }}</td>
+                        <td>{{ pregunta.ley.nombre }}</td>
+                        <td>Art. {{ pregunta.articulo.numero }}</td>
+                        <td>
+                            <span class="badge badge-{{ pregunta.dificultad }}">{{ pregunta.getDificultadLabel() }}</span>
+                        </td>
+                        <td>
+                            {% if pregunta.isActivo %}
+                                <span class="badge badge-success" style="background-color: var(--color-success);">Activa</span>
+                            {% else %}
+                                <span class="badge badge-danger" style="background-color: var(--color-danger);">Inactiva</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="{{ path('app_pregunta_show', {'id': pregunta.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
+                                <a href="{{ path('app_pregunta_edit', {'id': pregunta.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                <form method="post" action="{{ path('app_pregunta_toggle_activo', {'id': pregunta.id}) }}" style="display: inline;">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ pregunta.id) }}">
+                                    <button type="submit" class="btn btn-sm {% if pregunta.isActivo %}btn-warning{% else %}btn-success{% endif %}">
+                                        {% if pregunta.isActivo %}Desactivar{% else %}Activar{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <p>No hay preguntas registradas aún.</p>
+            <a href="{{ path('app_pregunta_new') }}" class="btn btn-primary">Crear Primera Pregunta</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+

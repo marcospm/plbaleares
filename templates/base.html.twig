@@ -2,16 +2,144 @@
 <html>
     <head>
         <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{% block title %}Sistema de Oposiciones - Policía Local Illes Balears{% endblock %}</title>
+        <link rel="icon" href="https://usuaris.tinet.cat/polis/images/3245.gif">
         {% block stylesheets %}
         {% endblock %}
 
         {% block javascripts %}
             {% block importmap %}{{ importmap('app') }}{% endblock %}
+            <script>
+                function toggleDropdown(element) {
+                    const dropdown = element.nextElementSibling;
+                    const isOpen = dropdown.classList.contains('show');
+                    
+                    // Cerrar todos los dropdowns
+                    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                        menu.classList.remove('show');
+                    });
+                    
+                    // Abrir/cerrar el dropdown actual
+                    if (!isOpen) {
+                        dropdown.classList.add('show');
+                    }
+                }
+                
+                // Cerrar dropdown al hacer click fuera
+                document.addEventListener('click', function(event) {
+                    if (!event.target.closest('.nav-dropdown')) {
+                        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                            menu.classList.remove('show');
+                        });
+                    }
+                });
+            </script>
         {% endblock %}
     </head>
     <body>
-        {% block body %}{% endblock %}
+        <nav class="navbar">
+            <div class="container">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 1rem;">
+                    <a href="{% if app.user %}{{ path('app_dashboard') }}{% else %}{{ path('app_home') }}{% endif %}" class="navbar-brand">
+                        <div class="logo-container">
+                            <div class="logo-badge">
+                                <img src="https://usuaris.tinet.cat/polis/images/3245.gif" alt="Logo Policía Local Illes Balears" class="logo-img">
+                            </div>
+                            <div class="logo-text">
+                                <span class="logo-text-main">POLICÍA LOCAL</span>
+                                <span class="logo-text-sub">Illes Balears - Sistema de Oposiciones</span>
+                            </div>
+                        </div>
+                    </a>
+                    <ul class="navbar-nav">
+                        {% if app.user %}
+                            {# Menú para usuarios autenticados #}
+                            <li><a href="{{ path('app_dashboard') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Inicio</a></li>
+                            
+                            {# Menú para alumnos (ROLE_USER sin ROLE_PROFESOR ni ROLE_ADMIN) #}
+                            {% if not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
+                                <li><a href="{{ path('app_planificacion_alumno_index') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Mi Planificación</a></li>
+                            {% endif %}
+                            
+                            {# Menú común para todos los usuarios autenticados #}
+                            <li><a href="{{ path('app_examen_iniciar') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Nuevo Examen</a></li>
+                            <li><a href="{{ path('app_examen_historial') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Historial</a></li>
+                            <li><a href="{{ path('app_articulo_publico_index') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Artículos</a></li>
+                            <li><a href="{{ path('app_recurso_publico_index') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Recursos</a></li>
+                            <li><a href="{{ path('app_contacto') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Contacto</a></li>
+                            
+                            {# Menú para profesores y administradores #}
+                            {% if is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN') %}
+                                <li class="nav-dropdown">
+                                    <a href="#" class="nav-link dropdown-toggle" onclick="event.preventDefault(); toggleDropdown(this);" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">
+                                        Profesor ▼
+                                    </a>
+                                    <ul class="dropdown-menu" style="border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                        <li class="dropdown-header" style="padding: 0.5rem 1rem; font-weight: bold; color: #666;">Contenido</li>
+                                        <li><a href="{{ path('app_tema_index') }}" class="dropdown-item">Temas</a></li>
+                                        <li><a href="{{ path('app_ley_index') }}" class="dropdown-item">Leyes</a></li>
+                                        <li><a href="{{ path('app_articulo_index') }}" class="dropdown-item">Artículos</a></li>
+                                        <li><a href="{{ path('app_pregunta_index') }}" class="dropdown-item">Preguntas</a></li>
+                                        <li><a href="{{ path('app_recurso_index') }}" class="dropdown-item">Recursos</a></li>
+                                        <li><a href="{{ path('app_examen_pdf_index') }}" class="dropdown-item">Exámenes PDF</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li class="dropdown-header" style="padding: 0.5rem 1rem; font-weight: bold; color: #666;">Planificación</li>
+                                        <li><a href="{{ path('app_planificacion_semanal_index') }}" class="dropdown-item">Planificaciones Semanales</a></li>
+                                        <li><a href="{{ path('app_tarea_index') }}" class="dropdown-item">Tareas</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li class="dropdown-header" style="padding: 0.5rem 1rem; font-weight: bold; color: #666;">Gestión</li>
+                                        <li><a href="{{ path('app_user_index') }}" class="dropdown-item">Usuarios</a></li>
+                                        <li><a href="{{ path('app_fechas_pruebas_index') }}" class="dropdown-item">Fechas de Pruebas</a></li>
+                                        <li><a href="{{ path('app_examen_profesor') }}" class="dropdown-item">Exámenes de Alumnos</a></li>
+                                    </ul>
+                                </li>
+                            {% endif %}
+                            
+                            {# Menú para administradores #}
+                            {% if is_granted('ROLE_ADMIN') %}
+                                <li class="nav-dropdown">
+                                    <a href="#" class="nav-link dropdown-toggle" onclick="event.preventDefault(); toggleDropdown(this);" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">
+                                        Administración ▼
+                                    </a>
+                                    <ul class="dropdown-menu" style="border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                        <li><a href="{{ path('app_contacto_mensajes') }}" class="dropdown-item">Mensajes de Contacto</a></li>
+                                    </ul>
+                                </li>
+                            {% endif %}
+                            
+                            <li><a href="{{ path('app_logout') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Cerrar Sesión</a></li>
+                        {% else %}
+                            {# Menú para usuarios no autenticados #}
+                            <li><a href="{{ path('app_home') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Inicio</a></li>
+                            <li><a href="{{ path('app_contacto') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Contacto</a></li>
+                            <li><a href="{{ path('app_register') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Registrarse</a></li>
+                            <li><a href="{{ path('app_login') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Iniciar Sesión</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container">
+            {% for message in app.flashes('success') %}
+                <div class="alert alert-success">{{ message }}</div>
+            {% endfor %}
+            {% for message in app.flashes('error') %}
+                <div class="alert alert-danger">{{ message }}</div>
+            {% endfor %}
+            
+            {% block body %}{% endblock %}
+        </div>
+
+        <footer class="footer">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 2rem; flex-wrap: wrap; padding: 0.5rem 0;">
+                <img src="https://cloud10.todocoleccion.online/coleccionismo/tc/2021/08/31/14/284728403.webp" alt="Parche Policía Local Illes Balears" style="height: 70px; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4)); border-radius: 8px;">
+                <div style="text-align: center;">
+                    <p style="margin: 0; font-size: 1rem; font-weight: 500;">&copy; {{ 'now'|date('Y') }} Policía Local - Illes Balears</p>
+                    <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; opacity: 0.85;">Sistema de Oposiciones. Todos los derechos reservados.</p>
+                </div>
+            </div>
+        </footer>
     </body>
 </html>

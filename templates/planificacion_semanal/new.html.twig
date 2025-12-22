@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nueva Planificación Semanal{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Nueva Planificación Semanal</h1>
+    </div>
+    <div class="card-body">
+        {{ form_start(form) }}
+            {{ form_row(form.nombre) }}
+            {{ form_row(form.descripcion) }}
+            {{ form_row(form.fechaFin) }}
+            
+            <div class="alert alert-info mt-3">
+                <strong>Nota:</strong> Después de crear la planificación, podrás añadir las franjas horarias desde la vista de la planificación. Si especificas una fecha de finalización, la planificación solo se mostrará hasta esa fecha.
+            </div>
+            
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Crear Planificación</button>
+                <a href="{{ path('app_planificacion_semanal_index') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
+

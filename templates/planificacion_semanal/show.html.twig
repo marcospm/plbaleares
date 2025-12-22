@@ -1,0 +1,121 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Planificación: {{ planificacion.nombre }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>{{ planificacion.nombre }}</h1>
+    </div>
+    <div class="card-body">
+        {% if planificacion.descripcion %}
+            <div class="form-group">
+                <label class="form-label"><strong>Descripción:</strong></label>
+                <p>{{ planificacion.descripcion|nl2br }}</p>
+            </div>
+        {% endif %}
+
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <h3>Franjas Horarias</h3>
+            <a href="{{ path('app_planificacion_semanal_franja_new', {'id': planificacion.id}) }}" class="btn btn-primary">+ Añadir Franja</a>
+        </div>
+        
+        {% if franjasPorDia|length > 0 %}
+            {% set diasSemana = {1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 7: 'Domingo'} %}
+            {% for diaNum, diaNombre in diasSemana %}
+                {% if franjasPorDia[diaNum] is defined %}
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">{{ diaNombre }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Hora Inicio</th>
+                                        <th>Hora Fin</th>
+                                        <th>Tipo</th>
+                                        <th>Descripción</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for franja in franjasPorDia[diaNum] %}
+                                        <tr>
+                                            <td>{{ franja.horaInicio|date('H:i') }}</td>
+                                            <td>{{ franja.horaFin|date('H:i') }}</td>
+                                            <td>
+                                                {% if franja.tipoActividad == 'repaso_basico' %}
+                                                    <span class="badge bg-info">Repaso Básico</span>
+                                                {% else %}
+                                                    <span class="badge bg-success">Estudio y Tareas</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ franja.descripcionRepaso|default('-') }}</td>
+                                            <td>
+                                                <a href="{{ path('app_planificacion_semanal_franja_edit', {'id': franja.id}) }}" class="btn btn-sm btn-secondary">Editar</a>
+                                                <form method="post" action="{{ path('app_planificacion_semanal_franja_delete', {'id': franja.id}) }}" style="display: inline-block;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta franja?');">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ franja.id) }}">
+                                                    <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-info mt-3">
+                <p class="mb-0">No hay franjas horarias definidas. <a href="{{ path('app_planificacion_semanal_franja_new', {'id': planificacion.id}) }}">Añade la primera franja</a></p>
+            </div>
+        {% endif %}
+
+        <h3 class="mt-4">Usuarios con esta Planificación</h3>
+        <div class="card">
+            {% if usuariosConPlanificacion|length > 0 %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Fecha de Asignación</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for planificacionPersonalizada in usuariosConPlanificacion %}
+                            <tr>
+                                <td><strong>{{ planificacionPersonalizada.usuario.username }}</strong></td>
+                                <td>{{ planificacionPersonalizada.fechaCreacion|date('d/m/Y') }}</td>
+                                <td>
+                                    <form method="post" action="{{ path('app_planificacion_semanal_desasignar', {'id': planificacion.id, 'usuarioId': planificacionPersonalizada.usuario.id}) }}" style="display: inline-block;" onsubmit="return confirm('¿Estás seguro de que deseas desasignar a {{ planificacionPersonalizada.usuario.username }}?');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('desasignar' ~ planificacion.id ~ planificacionPersonalizada.usuario.id) }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">Desasignar</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="card-body">
+                    <p class="text-muted">Ningún usuario tiene esta planificación asignada.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <a href="{{ path('app_planificacion_semanal_edit', {'id': planificacion.id}) }}" class="btn btn-secondary">Editar</a>
+            <a href="{{ path('app_planificacion_semanal_asignar', {'id': planificacion.id}) }}" class="btn btn-primary">Asignar a Usuarios</a>
+            <form method="post" action="{{ path('app_planificacion_semanal_delete', {'id': planificacion.id}) }}" style="display: inline-block;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta planificación?');">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ planificacion.id) }}">
+                <button type="submit" class="btn btn-danger">Eliminar</button>
+            </form>
+            <a href="{{ path('app_planificacion_semanal_index') }}" class="btn btn-secondary">Volver</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

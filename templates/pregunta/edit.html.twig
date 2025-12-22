@@ -1,0 +1,27 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Editar Pregunta{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Editar Pregunta #{{ pregunta.id }}</h1>
+    </div>
+    <div class="card-body">
+        {{ form_start(form) }}
+            {{ form_row(form.texto) }}
+            {{ form_row(form.dificultad) }}
+            {{ form_row(form.tema) }}
+            {{ form_row(form.ley) }}
+            {{ form_row(form.articulo) }}
+            {{ form_row(form.retroalimentacion) }}
+            
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Actualizar</button>
+                <a href="{{ path('app_pregunta_index') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
+

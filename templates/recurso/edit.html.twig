@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit Recurso{% endblock %}
+
+{% block body %}
+    <h1>Edit Recurso</h1>
+
+    {{ include('recurso/_form.html.twig', {'button_label': 'Update'}) }}
+
+    <a href="{{ path('app_recurso_index') }}">back to list</a>
+
+    {{ include('recurso/_delete_form.html.twig') }}
+{% endblock %}

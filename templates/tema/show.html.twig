@@ -1,0 +1,45 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tema: {{ tema.nombre }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>{{ tema.nombre }}</h1>
+    </div>
+    <div class="card-body">
+        <div class="form-group">
+            <label class="form-label"><strong>Descripción:</strong></label>
+            <p>{{ tema.descripcion|default('Sin descripción') }}</p>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><strong>Leyes relacionadas:</strong></label>
+            {% if tema.leyes|length > 0 %}
+                <ul>
+                    {% for ley in tema.leyes %}
+                        <li><a href="{{ path('app_ley_show', {'id': ley.id}) }}">{{ ley.nombre }}</a></li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p style="color: var(--color-text-light);">No hay leyes asociadas a este tema.</p>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><strong>Preguntas:</strong></label>
+            <p><span class="badge badge-facil">{{ tema.preguntas|length }} pregunta(s)</span></p>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <a href="{{ path('app_tema_edit', {'id': tema.id}) }}" class="btn btn-primary">Editar</a>
+            <a href="{{ path('app_tema_index') }}" class="btn btn-secondary">Volver</a>
+            <form method="post" action="{{ path('app_tema_delete', {'id': tema.id}) }}" onsubmit="return confirm('¿Estás seguro de eliminar este tema?');" style="display: inline;">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ tema.id) }}">
+                <button type="submit" class="btn btn-danger">Eliminar</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
