@@ -67,47 +67,223 @@
 {% block body %}
 {% if isProfesor %}
     {# Dashboard Profesor #}
-    <div class="card">
-        <div class="card-header">
-            <h1>Panel de Profesor</h1>
+    <h1 style="margin-bottom: 2rem; color: var(--color-primary);">Panel de Profesor</h1>
+
+    {# Estadísticas Generales #}
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="card" style="border-left: 4px solid #2196F3; background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%);">
+            <div class="card-body" style="text-align: center;">
+                <div style="font-size: 2.5rem; font-weight: bold; color: #2196F3; margin-bottom: 0.5rem;">👥</div>
+                <div style="font-size: 2rem; font-weight: bold; color: var(--color-primary); margin-bottom: 0.25rem;">{{ totalAlumnos }}</div>
+                <div style="font-size: 0.9rem; color: #666;">Alumnos Activos</div>
+            </div>
+        </div>
+
+        <div class="card" style="border-left: 4px solid #4CAF50; background: linear-gradient(135deg, #e8f5e9 0%, #ffffff 100%);">
+            <div class="card-body" style="text-align: center;">
+                <div style="font-size: 2.5rem; font-weight: bold; color: #4CAF50; margin-bottom: 0.5rem;">📝</div>
+                <div style="font-size: 2rem; font-weight: bold; color: var(--color-success); margin-bottom: 0.25rem;">{{ totalExamenes }}</div>
+                <div style="font-size: 0.9rem; color: #666;">Total Exámenes</div>
+            </div>
+        </div>
+
+        <div class="card" style="border-left: 4px solid #FF9800; background: linear-gradient(135deg, #fff3e0 0%, #ffffff 100%);">
+            <div class="card-body" style="text-align: center;">
+                <div style="font-size: 2.5rem; font-weight: bold; color: #FF9800; margin-bottom: 0.5rem;">⭐</div>
+                <div style="font-size: 2rem; font-weight: bold; color: #FF9800; margin-bottom: 0.25rem;">{{ promedioGeneral|number_format(2, ',', '.') }}</div>
+                <div style="font-size: 0.9rem; color: #666;">Promedio General</div>
+            </div>
+        </div>
+
+        <div class="card" style="border-left: 4px solid #9C27B0; background: linear-gradient(135deg, #f3e5f5 0%, #ffffff 100%);">
+            <div class="card-body" style="text-align: center;">
+                <div style="font-size: 2.5rem; font-weight: bold; color: #9C27B0; margin-bottom: 0.5rem;">📅</div>
+                <div style="font-size: 2rem; font-weight: bold; color: #9C27B0; margin-bottom: 0.25rem;">{{ examenesHoy }}</div>
+                <div style="font-size: 0.9rem; color: #666;">Exámenes Hoy</div>
+            </div>
+        </div>
+
+        <div class="card" style="border-left: 4px solid #00BCD4; background: linear-gradient(135deg, #e0f7fa 0%, #ffffff 100%);">
+            <div class="card-body" style="text-align: center;">
+                <div style="font-size: 2.5rem; font-weight: bold; color: #00BCD4; margin-bottom: 0.5rem;">📊</div>
+                <div style="font-size: 2rem; font-weight: bold; color: #00BCD4; margin-bottom: 0.25rem;">{{ examenesSemana }}</div>
+                <div style="font-size: 0.9rem; color: #666;">Esta Semana</div>
+            </div>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+        {# Actividad Reciente #}
+        <div class="card">
+            <div class="card-header" style="background-color: var(--color-primary); color: white;">
+                <h2 style="margin: 0; color: white; font-size: 1.2rem;">📋 Últimos Exámenes Realizados</h2>
+            </div>
+            <div class="card-body">
+                {% if ultimosExamenes|length > 0 %}
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table class="table" style="font-size: 0.9rem;">
+                            <thead>
+                                <tr>
+                                    <th>Alumno</th>
+                                    <th>Fecha</th>
+                                    <th>Dificultad</th>
+                                    <th>Nota</th>
+                                    <th>Tipo</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for examen in ultimosExamenes %}
+                                    <tr>
+                                        <td><strong>{{ examen.usuario.username }}</strong></td>
+                                        <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>
+                                        <td>
+                                            <span class="badge badge-{{ examen.dificultad }}">{{ examen.getDificultadLabel() }}</span>
+                                        </td>
+                                        <td><strong style="color: var(--color-primary); font-size: 1.1rem;">{{ examen.nota|number_format(2, ',', '.') }}</strong></td>
+                                        <td>
+                                            {% if examen.municipio %}
+                                                <span class="badge" style="background-color: #2196F3;">{{ examen.municipio.nombre }}</span>
+                                            {% else %}
+                                                <span class="badge badge-facil">General</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-sm btn-secondary">Ver</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <a href="{{ path('app_examen_profesor') }}" class="btn btn-primary">Ver Todos los Exámenes</a>
+                    </div>
+                {% else %}
+                    <p style="text-align: center; color: #666; padding: 2rem;">No hay exámenes realizados aún.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        {# Alumnos Más Activos #}
+        <div class="card">
+            <div class="card-header" style="background-color: var(--color-success); color: white;">
+                <h2 style="margin: 0; color: white; font-size: 1.2rem;">🏆 Alumnos Más Activos</h2>
+            </div>
+            <div class="card-body">
+                {% if alumnosActivos|length > 0 %}
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        {% for alumno in alumnosActivos %}
+                            <div style="padding: 1rem; margin-bottom: 0.75rem; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                    <strong style="color: var(--color-primary);">{{ alumno['username'] }}</strong>
+                                    <span class="badge" style="background-color: var(--color-primary);">{{ alumno['totalExamenes'] }} exámenes</span>
+                                </div>
+                                <div style="font-size: 0.85rem; color: #666;">
+                                    Promedio: <strong style="color: var(--color-success);">{{ alumno['promedio']|number_format(2, ',', '.') }}</strong>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p style="text-align: center; color: #666; padding: 2rem;">No hay datos disponibles.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# Estadísticas de Contenido #}
+    <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-header" style="background-color: var(--color-secondary); color: white;">
+            <h2 style="margin: 0; color: white; font-size: 1.2rem;">📚 Estadísticas de Contenido</h2>
         </div>
         <div class="card-body">
-            <p style="font-size: 1.1rem; margin-bottom: 2rem; color: var(--color-text-light);">
-                Sistema de gestión para opositores de Policía Local de las Illes Balears. Gestiona temas, leyes, artículos y preguntas de examen.
-            </p>
-
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
-                <div class="card">
-                    <div class="card-body">
-                        <h3 style="color: var(--color-primary); margin-bottom: 1rem;">📚 Temas</h3>
-                        <p>Gestiona los temas de la oposición.</p>
-                        <a href="{{ path('app_tema_index') }}" class="btn btn-primary" style="margin-top: 1rem;">Ver Temas</a>
-                    </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                <div style="text-align: center; padding: 1rem; background-color: #e3f2fd; border-radius: 4px;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📖</div>
+                    <div style="font-size: 1.8rem; font-weight: bold; color: var(--color-primary);">{{ totalTemas }}</div>
+                    <div style="font-size: 0.85rem; color: #666;">Temas Generales</div>
                 </div>
 
-                <div class="card">
-                    <div class="card-body">
-                        <h3 style="color: var(--color-primary); margin-bottom: 1rem;">⚖️ Leyes</h3>
-                        <p>Administra las leyes relacionadas con los temas.</p>
-                        <a href="{{ path('app_ley_index') }}" class="btn btn-primary" style="margin-top: 1rem;">Ver Leyes</a>
-                    </div>
+                <div style="text-align: center; padding: 1rem; background-color: #fff3e0; border-radius: 4px;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">❓</div>
+                    <div style="font-size: 1.8rem; font-weight: bold; color: #FF9800;">{{ totalPreguntas }}</div>
+                    <div style="font-size: 0.85rem; color: #666;">Total Preguntas</div>
                 </div>
 
-                <div class="card">
-                    <div class="card-body">
-                        <h3 style="color: var(--color-primary); margin-bottom: 1rem;">📄 Artículos</h3>
-                        <p>Gestiona los artículos de las leyes con sus explicaciones.</p>
-                        <a href="{{ path('app_articulo_index') }}" class="btn btn-primary" style="margin-top: 1rem;">Ver Artículos</a>
-                    </div>
+                <div style="text-align: center; padding: 1rem; background-color: #e8f5e9; border-radius: 4px;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📄</div>
+                    <div style="font-size: 1.8rem; font-weight: bold; color: var(--color-success);">{{ totalArticulos }}</div>
+                    <div style="font-size: 0.85rem; color: #666;">Artículos</div>
                 </div>
 
-                <div class="card">
-                    <div class="card-body">
-                        <h3 style="color: var(--color-primary); margin-bottom: 1rem;">❓ Preguntas</h3>
-                        <p>Crea y gestiona preguntas de examen con retroalimentación.</p>
-                        <a href="{{ path('app_pregunta_index') }}" class="btn btn-primary" style="margin-top: 1rem;">Ver Preguntas</a>
-                    </div>
+                <div style="text-align: center; padding: 1rem; background-color: #e1f5fe; border-radius: 4px;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🏛️</div>
+                    <div style="font-size: 1.8rem; font-weight: bold; color: #2196F3;">{{ totalMunicipios }}</div>
+                    <div style="font-size: 0.85rem; color: #666;">Municipios Activos</div>
                 </div>
+
+                <div style="text-align: center; padding: 1rem; background-color: #f3e5f5; border-radius: 4px;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📑</div>
+                    <div style="font-size: 1.8rem; font-weight: bold; color: #9C27B0;">{{ totalTemasMunicipales }}</div>
+                    <div style="font-size: 0.85rem; color: #666;">Temas Municipales</div>
+                </div>
+
+                <div style="text-align: center; padding: 1rem; background-color: #fff9c4; border-radius: 4px;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📅</div>
+                    <div style="font-size: 1.8rem; font-weight: bold; color: #F57F17;">{{ totalConvocatorias }}</div>
+                    <div style="font-size: 0.85rem; color: #666;">Convocatorias</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Accesos Rápidos #}
+    <div class="card">
+        <div class="card-header">
+            <h2 style="margin: 0; font-size: 1.2rem;">⚡ Accesos Rápidos</h2>
+        </div>
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <a href="{{ path('app_tema_index') }}" class="btn btn-primary" style="padding: 1rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 2rem;">📚</span>
+                    <span>Temas</span>
+                </a>
+
+                <a href="{{ path('app_pregunta_index') }}" class="btn btn-primary" style="padding: 1rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 2rem;">❓</span>
+                    <span>Preguntas</span>
+                </a>
+
+                <a href="{{ path('app_articulo_index') }}" class="btn btn-primary" style="padding: 1rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 2rem;">📄</span>
+                    <span>Artículos</span>
+                </a>
+
+                <a href="{{ path('app_user_index') }}" class="btn btn-primary" style="padding: 1rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 2rem;">👥</span>
+                    <span>Usuarios</span>
+                </a>
+
+                <a href="{{ path('app_examen_profesor') }}" class="btn btn-primary" style="padding: 1rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 2rem;">📝</span>
+                    <span>Exámenes</span>
+                </a>
+
+                <a href="{{ path('app_convocatoria_index') }}" class="btn btn-primary" style="padding: 1rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 2rem;">📅</span>
+                    <span>Convocatorias</span>
+                </a>
+
+                <a href="{{ path('app_municipio_index') }}" class="btn btn-primary" style="padding: 1rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 2rem;">🏛️</span>
+                    <span>Municipios</span>
+                </a>
+
+                <a href="{{ path('app_planificacion_semanal_index') }}" class="btn btn-primary" style="padding: 1rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 2rem;">📋</span>
+                    <span>Planificaciones</span>
+                </a>
             </div>
         </div>
     </div>

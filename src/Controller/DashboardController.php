@@ -7,6 +7,12 @@ use App\Repository\PlanificacionPersonalizadaRepository;
 use App\Repository\TareaAsignadaRepository;
 use App\Repository\MunicipioRepository;
 use App\Repository\ConvocatoriaRepository;
+use App\Repository\UserRepository;
+use App\Repository\TemaRepository;
+use App\Repository\PreguntaRepository;
+use App\Repository\PreguntaMunicipalRepository;
+use App\Repository\ArticuloRepository;
+use App\Repository\TemaMunicipalRepository;
 use App\Service\PlanificacionService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,7 +29,13 @@ class DashboardController extends AbstractController
         TareaAsignadaRepository $tareaAsignadaRepository,
         PlanificacionService $planificacionService,
         MunicipioRepository $municipioRepository,
-        ConvocatoriaRepository $convocatoriaRepository
+        ConvocatoriaRepository $convocatoriaRepository,
+        UserRepository $userRepository,
+        TemaRepository $temaRepository,
+        PreguntaRepository $preguntaRepository,
+        PreguntaMunicipalRepository $preguntaMunicipalRepository,
+        ArticuloRepository $articuloRepository,
+        TemaMunicipalRepository $temaMunicipalRepository
     ): Response {
         $user = $this->getUser();
         
@@ -33,8 +45,136 @@ class DashboardController extends AbstractController
 
         // Si es profesor, mostrar dashboard de profesor
         if ($this->isGranted('ROLE_PROFESOR') || $this->isGranted('ROLE_ADMIN')) {
+            // Estadísticas de alumnos
+            $totalAlumnos = $userRepository->createQueryBuilder('u')
+                ->select('COUNT(u.id)')
+                ->where('u.activo = :activo')
+                ->andWhere('u.roles NOT LIKE :roleProfesor')
+                ->andWhere('u.roles NOT LIKE :roleAdmin')
+                ->setParameter('activo', true)
+                ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+                ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
+                ->getQuery()
+                ->getSingleScalarResult();
+
+            // Estadísticas de exámenes
+            $totalExamenes = $examenRepository->createQueryBuilder('e')
+                ->select('COUNT(e.id)')
+                ->getQuery()
+                ->getSingleScalarResult();
+
+            $promedioGeneral = $examenRepository->createQueryBuilder('e')
+                ->select('AVG(e.nota)')
+                ->getQuery()
+                ->getSingleScalarResult();
+
+            $hoy = new \DateTime('today');
+            $examenesHoy = $examenRepository->createQueryBuilder('e')
+                ->select('COUNT(e.id)')
+                ->where('e.fecha >= :hoy')
+                ->setParameter('hoy', $hoy)
+                ->getQuery()
+                ->getSingleScalarResult();
+
+            $semanaPasada = new \DateTime('-7 days');
+            $examenesSemana = $examenRepository->createQueryBuilder('e')
+                ->select('COUNT(e.id)')
+                ->where('e.fecha >= :semanaPasada')
+                ->setParameter('semanaPasada', $semanaPasada)
+                ->getQuery()
+                ->getSingleScalarResult();
+
+            // Estadísticas de contenido
+            $totalTemas = $temaRepository->createQueryBuilder('t')
+                ->select('COUNT(t.id)')
+                ->where('t.activo = :activo')
+                ->setParameter('activo', true)
+                ->getQuery()
+                ->getSingleScalarResult();
+
+            $totalPreguntas = $preguntaRepository->createQueryBuilder('p')
+                ->select('COUNT(p.id)')
+                ->where('p.activo = :activo')
+                ->setParameter('activo', true)
+                ->getQuery()
+                ->getSingleScalarResult();
+
+            $totalPreguntasMunicipales = $preguntaMunicipalRepository->createQueryBuilder('p')
+                ->select('COUNT(p.id)')
+                ->where('p.activo = :activo')
+                ->setParameter('activo', true)
+                ->getQuery()
+                ->getSingleScalarResult();
+
+            $totalArticulos = $articuloRepository->createQueryBuilder('a')
+                ->select('COUNT(a.id)')
+                ->getQuery()
+                ->getSingleScalarResult();
+
+            $totalMunicipios = $municipioRepository->createQueryBuilder('m')
+                ->select('COUNT(m.id)')
+                ->where('m.activo = :activo')
+                ->setParameter('activo', true)
+                ->getQuery()
+                ->getSingleScalarResult();
+
+            $totalTemasMunicipales = $temaMunicipalRepository->createQueryBuilder('t')
+                ->select('COUNT(t.id)')
+                ->where('t.activo = :activo')
+                ->setParameter('activo', true)
+                ->getQuery()
+                ->getSingleScalarResult();
+
+            $totalConvocatorias = $convocatoriaRepository->createQueryBuilder('c')
+                ->select('COUNT(c.id)')
+                ->where('c.activo = :activo')
+                ->setParameter('activo', true)
+                ->getQuery()
+                ->getSingleScalarResult();
+
+            // Últimos exámenes realizados
+            $ultimosExamenes = $examenRepository->createQueryBuilder('e')
+                ->join('e.usuario', 'u')
+                ->where('u.roles NOT LIKE :roleProfesor')
+                ->andWhere('u.roles NOT LIKE :roleAdmin')
+                ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+                ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
+                ->orderBy('e.fecha', 'DESC')
+                ->setMaxResults(10)
+                ->getQuery()
+                ->getResult();
+
+            // Alumnos más activos (top 5 por cantidad de exámenes)
+            $alumnosActivos = $examenRepository->createQueryBuilder('e')
+                ->select('u.id, u.username, COUNT(e.id) as totalExamenes, AVG(e.nota) as promedio')
+                ->join('e.usuario', 'u')
+                ->where('u.activo = :activo')
+                ->andWhere('u.roles NOT LIKE :roleProfesor')
+                ->andWhere('u.roles NOT LIKE :roleAdmin')
+                ->setParameter('activo', true)
+                ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+                ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
+                ->groupBy('u.id', 'u.username')
+                ->orderBy('totalExamenes', 'DESC')
+                ->setMaxResults(5)
+                ->getQuery()
+                ->getResult();
+
             return $this->render('dashboard/index.html.twig', [
                 'isProfesor' => true,
+                'totalAlumnos' => $totalAlumnos,
+                'totalExamenes' => $totalExamenes,
+                'promedioGeneral' => $promedioGeneral ? round((float) $promedioGeneral, 2) : 0,
+                'examenesHoy' => $examenesHoy,
+                'examenesSemana' => $examenesSemana,
+                'totalTemas' => $totalTemas,
+                'totalPreguntas' => $totalPreguntas + $totalPreguntasMunicipales,
+                'totalArticulos' => $totalArticulos,
+                'totalMunicipios' => $totalMunicipios,
+                'totalTemasMunicipales' => $totalTemasMunicipales,
+                'totalConvocatorias' => $totalConvocatorias,
+                'ultimosExamenes' => $ultimosExamenes,
+                'alumnosActivos' => $alumnosActivos,
             ]);
         }
 
