@@ -79,46 +79,37 @@
         {% endblock %}
     </head>
     <body>
-        {# Barra de información del usuario #}
-        {% if app.user %}
-            <div style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 0.5rem 0;">
-                <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-                        <span style="font-size: 0.9rem; color: #495057;">
-                            <strong>Usuario:</strong> {{ app.user.userIdentifier }}
-                        </span>
-                        <span style="font-size: 0.9rem; color: #495057;">
-                            <strong>Rol:</strong> 
-                            {% if is_granted('ROLE_ADMIN') %}
-                                <span class="badge" style="background-color: #dc3545; color: white; padding: 0.25rem 0.5rem; border-radius: 3px;">Administrador</span>
-                            {% elseif is_granted('ROLE_PROFESOR') %}
-                                <span class="badge" style="background-color: #007bff; color: white; padding: 0.25rem 0.5rem; border-radius: 3px;">Profesor</span>
-                            {% else %}
-                                <span class="badge" style="background-color: #28a745; color: white; padding: 0.25rem 0.5rem; border-radius: 3px;">Alumno</span>
-                            {% endif %}
-                        </span>
-                    </div>
-                    <div style="font-size: 0.85rem; color: #6c757d;">
-                        Sesión activa
-                    </div>
-                </div>
-            </div>
-        {% endif %}
-        
         <nav class="navbar">
             <div class="container">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 1rem;">
-                    <a href="{% if app.user %}{{ path('app_dashboard') }}{% else %}{{ path('app_home') }}{% endif %}" class="navbar-brand">
-                        <div class="logo-container">
-                            <div class="logo-badge">
-                                <img src="https://usuaris.tinet.cat/polis/images/3245.gif" alt="Logo Policía Local Illes Balears" class="logo-img">
+                    <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                        <a href="{% if app.user %}{{ path('app_dashboard') }}{% else %}{{ path('app_home') }}{% endif %}" class="navbar-brand">
+                            <div class="logo-container">
+                                <div class="logo-badge">
+                                    <img src="https://usuaris.tinet.cat/polis/images/3245.gif" alt="Logo Policía Local Illes Balears" class="logo-img">
+                                </div>
+                                <div class="logo-text">
+                                    <span class="logo-text-main">POLICÍA LOCAL</span>
+                                    <span class="logo-text-sub">Illes Balears - Sistema de Oposiciones</span>
+                                </div>
                             </div>
-                            <div class="logo-text">
-                                <span class="logo-text-main">POLICÍA LOCAL</span>
-                                <span class="logo-text-sub">Illes Balears - Sistema de Oposiciones</span>
+                        </a>
+                        {% if app.user %}
+                            <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; border-left: 2px solid rgba(255,255,255,0.3); padding-left: 1.5rem; flex-wrap: wrap;">
+                                <span style="font-size: 0.9rem; color: white; font-weight: 500;">
+                                    {{ app.user.userIdentifier }}
+                                </span>
+                                {% if is_granted('ROLE_ADMIN') %}
+                                    <span class="badge" style="background-color: #dc3545; color: white; padding: 0.25rem 0.5rem; border-radius: 3px; font-size: 0.75rem;">Admin</span>
+                                {% elseif is_granted('ROLE_PROFESOR') %}
+                                    <span class="badge" style="background-color: #007bff; color: white; padding: 0.25rem 0.5rem; border-radius: 3px; font-size: 0.75rem;">Profesor</span>
+                                {% else %}
+                                    <span class="badge" style="background-color: #28a745; color: white; padding: 0.25rem 0.5rem; border-radius: 3px; font-size: 0.75rem;">Alumno</span>
+                                {% endif %}
+                                <a href="{{ path('app_logout') }}" style="border: 1px solid rgba(255,255,255,0.5); padding: 0.4rem 0.8rem; border-radius: 4px; color: white; text-decoration: none; font-size: 0.85rem; background-color: rgba(255,255,255,0.1); transition: background-color 0.2s; white-space: nowrap;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.1)'">Cerrar Sesión</a>
                             </div>
-                        </div>
-                    </a>
+                        {% endif %}
+                    </div>
                     <ul class="navbar-nav">
                         {% if app.user %}
                             {# Menú para usuarios autenticados #}
@@ -204,8 +195,6 @@
                                     </ul>
                                 </li>
                             {% endif %}
-                            
-                            <li><a href="{{ path('app_logout') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Cerrar Sesión</a></li>
                         {% else %}
                             {# Menú para usuarios no autenticados #}
                             <li><a href="{{ path('app_home') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Inicio</a></li>
