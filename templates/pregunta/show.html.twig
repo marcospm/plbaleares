@@ -17,24 +17,30 @@
 
         <div class="form-group">
             <label class="form-label"><strong>Opciones de Respuesta:</strong></label>
+            {% set respuestaCorrectaNormalizada = pregunta.respuestaCorrecta ? (pregunta.respuestaCorrecta|trim|upper) : '' %}
             <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                <div style="padding: 0.75rem; background: #f5f5f5; border-radius: 4px; {% if pregunta.respuestaCorrecta == 'A' %}border-left: 4px solid var(--color-success);{% endif %}">
+                <div style="padding: 0.75rem; background: #f5f5f5; border-radius: 4px; {% if respuestaCorrectaNormalizada == 'A' %}border-left: 4px solid var(--color-success);{% endif %}">
                     <strong style="color: var(--color-primary);">A)</strong> {{ pregunta.opcionA }}
-                    {% if pregunta.respuestaCorrecta == 'A' %}<span class="badge badge-facil" style="margin-left: 1rem;">Correcta</span>{% endif %}
+                    {% if respuestaCorrectaNormalizada == 'A' %}<span class="badge badge-facil" style="margin-left: 1rem; background-color: var(--color-success); color: white;">Correcta</span>{% endif %}
                 </div>
-                <div style="padding: 0.75rem; background: #f5f5f5; border-radius: 4px; {% if pregunta.respuestaCorrecta == 'B' %}border-left: 4px solid var(--color-success);{% endif %}">
+                <div style="padding: 0.75rem; background: #f5f5f5; border-radius: 4px; {% if respuestaCorrectaNormalizada == 'B' %}border-left: 4px solid var(--color-success);{% endif %}">
                     <strong style="color: var(--color-primary);">B)</strong> {{ pregunta.opcionB }}
-                    {% if pregunta.respuestaCorrecta == 'B' %}<span class="badge badge-facil" style="margin-left: 1rem;">Correcta</span>{% endif %}
+                    {% if respuestaCorrectaNormalizada == 'B' %}<span class="badge badge-facil" style="margin-left: 1rem; background-color: var(--color-success); color: white;">Correcta</span>{% endif %}
                 </div>
-                <div style="padding: 0.75rem; background: #f5f5f5; border-radius: 4px; {% if pregunta.respuestaCorrecta == 'C' %}border-left: 4px solid var(--color-success);{% endif %}">
+                <div style="padding: 0.75rem; background: #f5f5f5; border-radius: 4px; {% if respuestaCorrectaNormalizada == 'C' %}border-left: 4px solid var(--color-success);{% endif %}">
                     <strong style="color: var(--color-primary);">C)</strong> {{ pregunta.opcionC }}
-                    {% if pregunta.respuestaCorrecta == 'C' %}<span class="badge badge-facil" style="margin-left: 1rem;">Correcta</span>{% endif %}
+                    {% if respuestaCorrectaNormalizada == 'C' %}<span class="badge badge-facil" style="margin-left: 1rem; background-color: var(--color-success); color: white;">Correcta</span>{% endif %}
                 </div>
-                <div style="padding: 0.75rem; background: #f5f5f5; border-radius: 4px; {% if pregunta.respuestaCorrecta == 'D' %}border-left: 4px solid var(--color-success);{% endif %}">
+                <div style="padding: 0.75rem; background: #f5f5f5; border-radius: 4px; {% if respuestaCorrectaNormalizada == 'D' %}border-left: 4px solid var(--color-success);{% endif %}">
                     <strong style="color: var(--color-primary);">D)</strong> {{ pregunta.opcionD }}
-                    {% if pregunta.respuestaCorrecta == 'D' %}<span class="badge badge-facil" style="margin-left: 1rem;">Correcta</span>{% endif %}
+                    {% if respuestaCorrectaNormalizada == 'D' %}<span class="badge badge-facil" style="margin-left: 1rem; background-color: var(--color-success); color: white;">Correcta</span>{% endif %}
                 </div>
             </div>
+            {% if not respuestaCorrectaNormalizada %}
+                <div style="margin-top: 0.5rem; padding: 0.5rem; background-color: #fff3e0; border-radius: 4px; font-size: 0.9rem; color: #ff9800; border-left: 4px solid #ff9800;">
+                    <strong>⚠️ Advertencia:</strong> Esta pregunta no tiene una respuesta correcta definida.
+                </div>
+            {% endif %}
         </div>
 
         <div class="form-group">
@@ -67,8 +73,8 @@
         {% endif %}
 
         <div class="d-flex gap-2 mt-4">
-            <a href="{{ path('app_pregunta_edit', {'id': pregunta.id}) }}" class="btn btn-primary">Editar</a>
-            <a href="{{ path('app_pregunta_index') }}" class="btn btn-secondary">Volver</a>
+            <a href="{{ path('app_pregunta_edit', {'id': pregunta.id}|merge(filtros|default({}))) }}" class="btn btn-primary">Editar</a>
+            <a href="{{ path('app_pregunta_index', filtros|default({})) }}" class="btn btn-secondary">Volver</a>
             <form method="post" action="{{ path('app_pregunta_delete', {'id': pregunta.id}) }}" onsubmit="return confirm('¿Estás seguro de eliminar esta pregunta?');" style="display: inline;">
                 <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ pregunta.id) }}">
                 <button type="submit" class="btn btn-danger">Eliminar</button>
@@ -77,4 +83,5 @@
     </div>
 </div>
 {% endblock %}
+
 

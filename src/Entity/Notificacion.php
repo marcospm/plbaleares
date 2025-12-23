@@ -12,6 +12,13 @@ class Notificacion
     public const TIPO_EXAMEN = 'examen';
     public const TIPO_TAREA = 'tarea';
     public const TIPO_ERROR_ARTICULO = 'error_articulo';
+    public const TIPO_MENSAJE_ALUMNO = 'mensaje_alumno';
+    public const TIPO_PLANIFICACION_CREADA = 'planificacion_creada';
+    public const TIPO_PLANIFICACION_EDITADA = 'planificacion_editada';
+    public const TIPO_PLANIFICACION_ELIMINADA = 'planificacion_eliminada';
+    public const TIPO_TAREA_CREADA = 'tarea_creada';
+    public const TIPO_TAREA_EDITADA = 'tarea_editada';
+    public const TIPO_TAREA_ELIMINADA = 'tarea_eliminada';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -28,11 +35,11 @@ class Notificacion
     private ?string $mensaje = null;
 
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?User $profesor = null;
 
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?User $alumno = null;
 
     #[ORM\ManyToOne]
@@ -46,6 +53,14 @@ class Notificacion
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Articulo $articulo = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?PlanificacionSemanal $planificacionSemanal = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Tarea $tarea = null;
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $leida = false;
@@ -156,6 +171,30 @@ class Notificacion
     public function setArticulo(?Articulo $articulo): static
     {
         $this->articulo = $articulo;
+
+        return $this;
+    }
+
+    public function getPlanificacionSemanal(): ?\App\Entity\PlanificacionSemanal
+    {
+        return $this->planificacionSemanal;
+    }
+
+    public function setPlanificacionSemanal(?\App\Entity\PlanificacionSemanal $planificacionSemanal): static
+    {
+        $this->planificacionSemanal = $planificacionSemanal;
+
+        return $this;
+    }
+
+    public function getTarea(): ?\App\Entity\Tarea
+    {
+        return $this->tarea;
+    }
+
+    public function setTarea(?\App\Entity\Tarea $tarea): static
+    {
+        $this->tarea = $tarea;
 
         return $this;
     }

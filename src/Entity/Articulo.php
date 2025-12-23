@@ -15,8 +15,8 @@ class Articulo
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 50)]
-    private ?string $numero = null;
+    #[ORM\Column(type: 'integer')]
+    private ?int $numero = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $nombre = null;
@@ -47,12 +47,12 @@ class Articulo
         return $this->id;
     }
 
-    public function getNumero(): ?string
+    public function getNumero(): ?int
     {
         return $this->numero;
     }
 
-    public function setNumero(string $numero): static
+    public function setNumero(int $numero): static
     {
         $this->numero = $numero;
 

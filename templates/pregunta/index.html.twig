@@ -11,7 +11,7 @@
 <form method="get" action="{{ path('app_pregunta_index') }}" style="margin-bottom: 2rem;">
     <div class="card">
         <div class="card-body">
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
                 <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">Buscar:</label>
                     <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Buscar...">
@@ -37,6 +37,10 @@
                             </option>
                         {% endfor %}
                     </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Número Artículo:</label>
+                    <input type="number" name="articulo" value="{% if numeroArticuloSeleccionado > 0 %}{{ numeroArticuloSeleccionado }}{% endif %}" class="form-control" placeholder="Número" min="1">
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">Dificultad:</label>
@@ -91,9 +95,9 @@
                         </td>
                         <td>
                             <div class="d-flex gap-2">
-                                <a href="{{ path('app_pregunta_show', {'id': pregunta.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
-                                <a href="{{ path('app_pregunta_edit', {'id': pregunta.id}) }}" class="btn btn-primary btn-sm">Editar</a>
-                                <form method="post" action="{{ path('app_pregunta_toggle_activo', {'id': pregunta.id}) }}" style="display: inline;">
+                                <a href="{{ path('app_pregunta_show', {'id': pregunta.id, 'search': search, 'tema': temaSeleccionado > 0 ? temaSeleccionado : 0, 'ley': leySeleccionada > 0 ? leySeleccionada : 0, 'dificultad': dificultadSeleccionada, 'articulo': numeroArticuloSeleccionado > 0 ? numeroArticuloSeleccionado : 0}) }}" class="btn btn-secondary btn-sm">Ver</a>
+                                <a href="{{ path('app_pregunta_edit', {'id': pregunta.id, 'search': search, 'tema': temaSeleccionado > 0 ? temaSeleccionado : 0, 'ley': leySeleccionada > 0 ? leySeleccionada : 0, 'dificultad': dificultadSeleccionada, 'articulo': numeroArticuloSeleccionado > 0 ? numeroArticuloSeleccionado : 0}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                <form method="post" action="{{ path('app_pregunta_toggle_activo', {'id': pregunta.id, 'search': search, 'tema': temaSeleccionado > 0 ? temaSeleccionado : 0, 'ley': leySeleccionada > 0 ? leySeleccionada : 0, 'dificultad': dificultadSeleccionada, 'articulo': numeroArticuloSeleccionado > 0 ? numeroArticuloSeleccionado : 0}) }}" style="display: inline;">
                                     <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ pregunta.id) }}">
                                     <button type="submit" class="btn btn-sm {% if pregunta.isActivo %}btn-warning{% else %}btn-success{% endif %}">
                                         {% if pregunta.isActivo %}Desactivar{% else %}Activar{% endif %}

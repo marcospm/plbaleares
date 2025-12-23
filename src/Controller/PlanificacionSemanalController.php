@@ -12,6 +12,7 @@ use App\Repository\PlanificacionPersonalizadaRepository;
 use App\Repository\FranjaHorariaRepository;
 use App\Repository\UserRepository;
 use App\Service\PlanificacionService;
+use App\Service\NotificacionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -238,6 +239,7 @@ class PlanificacionSemanalController extends AbstractController
     public function edit(
         Request $request,
         PlanificacionSemanal $planificacion,
+        NotificacionService $notificacionService,
         EntityManagerInterface $entityManager
     ): Response {
         $form = $this->createForm(PlanificacionSemanalType::class, $planificacion);
@@ -245,6 +247,13 @@ class PlanificacionSemanalController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->flush();
+
+            // Crear notificaciones para alumnos que tienen esta planificación asignada
+            try {
+                $notificacionService->crearNotificacionPlanificacionEditada($planificacion, $this->getUser());
+            } catch (\Exception $e) {
+                error_log('Error al crear notificación de planificación editada: ' . $e->getMessage());
+            }
 
             $this->addFlash('success', 'Planificación semanal actualizada correctamente.');
             return $this->redirectToRoute('app_planificacion_semanal_show', ['id' => $planificacion->getId()], Response::HTTP_SEE_OTHER);
@@ -263,6 +272,7 @@ class PlanificacionSemanalController extends AbstractController
         UserRepository $userRepository,
         PlanificacionPersonalizadaRepository $personalizadaRepository,
         PlanificacionService $planificacionService,
+        NotificacionService $notificacionService,
         EntityManagerInterface $entityManager
     ): Response {
         if ($request->isMethod('POST')) {
@@ -273,6 +283,8 @@ class PlanificacionSemanalController extends AbstractController
             } else {
                 $asignados = 0;
                 $errores = 0;
+                $profesor = $this->getUser();
+                
                 foreach ($usuarioIds as $usuarioId) {
                     $usuario = $userRepository->find($usuarioId);
                     if ($usuario) {
@@ -293,6 +305,15 @@ class PlanificacionSemanalController extends AbstractController
                         try {
                             $planificacionService->crearDesdePlantilla($planificacion, $usuario);
                             $entityManager->flush(); // Flush después de cada creación para evitar conflictos
+                            
+                            // Crear notificación para el alumno
+                            try {
+                                $notificacionService->crearNotificacionPlanificacionCreada($planificacion, $usuario, $profesor);
+                                $entityManager->flush();
+                            } catch (\Exception $e) {
+                                error_log('Error al crear notificación de planificación: ' . $e->getMessage());
+                            }
+                            
                             $asignados++;
                         } catch (\Exception $e) {
                             $errores++;
@@ -334,6 +355,7 @@ class PlanificacionSemanalController extends AbstractController
         int $usuarioId,
         UserRepository $userRepository,
         PlanificacionPersonalizadaRepository $personalizadaRepository,
+        NotificacionService $notificacionService,
         EntityManagerInterface $entityManager
     ): Response {
         if ($this->isCsrfTokenValid('desasignar'.$planificacion->getId().$usuarioId, $request->getPayload()->getString('_token'))) {
@@ -352,6 +374,17 @@ class PlanificacionSemanalController extends AbstractController
                 ->getOneOrNullResult();
             
             if ($planificacionPersonalizada) {
+                // Crear notificación antes de desasignar
+                try {
+                    $notificacionService->crearNotificacionPlanificacionEliminada(
+                        $planificacion->getNombre(),
+                        [$usuario],
+                        $this->getUser()
+                    );
+                } catch (\Exception $e) {
+                    error_log('Error al crear notificación de planificación desasignada: ' . $e->getMessage());
+                }
+                
                 $entityManager->remove($planificacionPersonalizada);
                 $entityManager->flush();
                 $this->addFlash('success', 'Usuario desasignado correctamente.');
@@ -364,12 +397,33 @@ class PlanificacionSemanalController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_planificacion_semanal_delete', methods: ['POST'])]
-    public function delete(Request $request, PlanificacionSemanal $planificacion, EntityManagerInterface $entityManager): Response
-    {
+    public function delete(
+        Request $request, 
+        PlanificacionSemanal $planificacion, 
+        NotificacionService $notificacionService,
+        EntityManagerInterface $entityManager
+    ): Response {
         if ($this->isCsrfTokenValid('delete'.$planificacion->getId(), $request->getPayload()->getString('_token'))) {
             // Verificar si está en uso
             if ($planificacion->getPlanificacionesPersonalizadas()->count() > 0) {
-                $this->addFlash('error', 'No se puede eliminar una planificación que tiene usuarios asignados. Desasigna primero a los usuarios.');
+                // Obtener alumnos antes de eliminar
+                $alumnos = [];
+                foreach ($planificacion->getPlanificacionesPersonalizadas() as $planificacionPersonalizada) {
+                    $alumnos[] = $planificacionPersonalizada->getUsuario();
+                }
+                $nombrePlanificacion = $planificacion->getNombre();
+                $profesor = $this->getUser();
+                
+                // Crear notificaciones antes de eliminar
+                try {
+                    $notificacionService->crearNotificacionPlanificacionEliminada($nombrePlanificacion, $alumnos, $profesor);
+                } catch (\Exception $e) {
+                    error_log('Error al crear notificación de planificación eliminada: ' . $e->getMessage());
+                }
+                
+                $entityManager->remove($planificacion);
+                $entityManager->flush();
+                $this->addFlash('success', 'Planificación eliminada correctamente.');
             } else {
                 $entityManager->remove($planificacion);
                 $entityManager->flush();

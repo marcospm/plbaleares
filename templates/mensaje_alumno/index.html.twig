@@ -1,0 +1,52 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mensajes a Profesores{% endblock %}
+
+{% block body %}
+<div class="container" style="max-width: 900px; margin: 2rem auto; padding: 0 1rem;">
+    <div class="card" style="box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-radius: 8px;">
+        <div class="card-header" style="background-color: var(--color-primary); color: white; padding: 1.5rem; border-radius: 8px 8px 0 0;">
+            <h1 style="margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                💬 Mensajes a Profesores
+            </h1>
+        </div>
+        <div class="card-body" style="padding: 1.5rem;">
+            {% if profesores|length > 0 %}
+                <p style="color: #666; margin-bottom: 1.5rem;">
+                    Selecciona un profesor para enviarle un mensaje. El mensaje llegará como notificación a tu profesor asignado.
+                </p>
+                
+                <div style="display: grid; gap: 1rem;">
+                    {% for profesor in profesores %}
+                        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 1.5rem; background-color: #f9f9f9; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <div style="font-size: 2rem;">👨‍🏫</div>
+                                    <div>
+                                        <h3 style="margin: 0; color: var(--color-primary); font-size: 1.1rem;">{{ profesor.username }}</h3>
+                                        <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.9rem;">
+                                            Profesor asignado
+                                        </p>
+                                    </div>
+                                </div>
+                                <a href="{{ path('app_mensaje_alumno_enviar', {'id': profesor.id}) }}" 
+                                   class="btn btn-primary" 
+                                   style="background-color: var(--color-primary); color: white; padding: 0.5rem 1.5rem; border-radius: 4px; text-decoration: none; border: none; cursor: pointer; font-size: 0.9rem;">
+                                    Enviar Mensaje
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div style="text-align: center; padding: 3rem 1rem; color: #666;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                    <h3 style="color: #ff9800; margin-bottom: 0.5rem;">No tienes profesores asignados</h3>
+                    <p style="margin: 0;">Contacta con el administrador para que te asigne un profesor.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -77,9 +77,9 @@
                 });
 
                 // Sistema de notificaciones
-                {% if is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN') %}
-                function toggleNotificacionesDropdown() {
-                    const dropdown = document.getElementById('notificaciones-dropdown');
+                function toggleNotificacionesDropdown(tipo) {
+                    const suffix = tipo === 'alumno' ? '-alumno' : '-profesor';
+                    const dropdown = document.getElementById('notificaciones-dropdown' + suffix);
                     const isOpen = dropdown.classList.contains('show');
                     
                     // Cerrar otros dropdowns
@@ -91,19 +91,21 @@
                     
                     if (!isOpen) {
                         dropdown.classList.add('show');
-                        cargarNotificacionesDropdown();
+                        cargarNotificacionesDropdown(tipo);
                     } else {
                         dropdown.classList.remove('show');
                     }
                 }
 
-                function cargarNotificacionesDropdown() {
-                    fetch('{{ path('app_notificacion_no_leidas') }}')
+                function cargarNotificacionesDropdown(tipo) {
+                    const suffix = tipo === 'alumno' ? '-alumno' : '-profesor';
+                    const url = tipo === 'alumno' ? '{{ path('app_notificacion_alumno_no_leidas') }}' : '{{ path('app_notificacion_no_leidas') }}';
+                    const lista = document.getElementById('notificaciones-lista' + suffix);
+                    const contador = document.getElementById('notificaciones-contador' + suffix);
+                    
+                    fetch(url)
                         .then(response => response.json())
                         .then(data => {
-                            const lista = document.getElementById('notificaciones-lista');
-                            const contador = document.getElementById('notificaciones-contador');
-                            
                             if (data.total === 0) {
                                 lista.innerHTML = '<div style="text-align: center; padding: 1rem; color: #666;">No tienes notificaciones nuevas.</div>';
                                 if (contador) {
@@ -119,8 +121,22 @@
                             
                             let html = '<div style="display: grid; gap: 0.5rem;">';
                             data.notificaciones.slice(0, 5).forEach(notif => {
-                                const icono = notif.tipo === 'examen' ? '📝' : (notif.tipo === 'tarea' ? '✅' : '⚠️');
-                                const color = notif.tipo === 'examen' ? '#2196F3' : (notif.tipo === 'tarea' ? '#4CAF50' : '#FF9800');
+                                let icono = '📋';
+                                let color = '#2196F3';
+                                
+                                if (tipo === 'profesor') {
+                                    icono = notif.tipo === 'examen' ? '📝' : (notif.tipo === 'tarea' ? '✅' : (notif.tipo === 'mensaje_alumno' ? '💬' : '⚠️'));
+                                    color = notif.tipo === 'examen' ? '#2196F3' : (notif.tipo === 'tarea' ? '#4CAF50' : (notif.tipo === 'mensaje_alumno' ? '#9C27B0' : '#FF9800'));
+                                } else {
+                                    // Para alumnos
+                                    icono = notif.tipo === 'planificacion_creada' ? '📅' : 
+                                            (notif.tipo === 'planificacion_editada' ? '✏️' : 
+                                            (notif.tipo === 'planificacion_eliminada' ? '🗑️' : 
+                                            (notif.tipo === 'tarea_creada' ? '📝' : 
+                                            (notif.tipo === 'tarea_editada' ? '✏️' : '🗑️'))));
+                                    color = notif.tipo.indexOf('planificacion') !== -1 ? '#2196F3' : '#4CAF50';
+                                }
+                                
                                 html += `
                                     <div style="padding: 0.75rem; border: 1px solid #ddd; border-left: 3px solid ${color}; border-radius: 4px; background-color: #fff;">
                                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
@@ -140,16 +156,17 @@
                         })
                         .catch(error => {
                             console.error('Error al cargar notificaciones:', error);
-                            document.getElementById('notificaciones-lista').innerHTML = '<div style="text-align: center; padding: 1rem; color: #dc3545;">Error al cargar las notificaciones.</div>';
+                            lista.innerHTML = '<div style="text-align: center; padding: 1rem; color: #dc3545;">Error al cargar las notificaciones.</div>';
                         });
                 }
 
                 // Cargar contador al iniciar
                 document.addEventListener('DOMContentLoaded', function() {
+                    {% if is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN') %}
                     fetch('{{ path('app_notificacion_contador') }}')
                         .then(response => response.json())
                         .then(data => {
-                            const contador = document.getElementById('notificaciones-contador');
+                            const contador = document.getElementById('notificaciones-contador-profesor');
                             if (contador) {
                                 if (data.contador > 0) {
                                     contador.textContent = data.contador;
@@ -162,8 +179,25 @@
                         .catch(error => {
                             console.error('Error al cargar contador:', error);
                         });
+                    {% elseif not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
+                    fetch('{{ path('app_notificacion_alumno_contador') }}')
+                        .then(response => response.json())
+                        .then(data => {
+                            const contador = document.getElementById('notificaciones-contador-alumno');
+                            if (contador) {
+                                if (data.contador > 0) {
+                                    contador.textContent = data.contador;
+                                    contador.style.display = 'inline-block';
+                                } else {
+                                    contador.style.display = 'none';
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error al cargar contador:', error);
+                        });
+                    {% endif %}
                 });
-                {% endif %}
             </script>
         {% endblock %}
     </head>
@@ -197,16 +231,32 @@
                                 {% endif %}
                                 {% if is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN') %}
                                     <div class="nav-dropdown" style="position: relative;">
-                                        <a href="#" onclick="event.preventDefault(); toggleNotificacionesDropdown();" style="position: relative; border: 1px solid rgba(255,255,255,0.5); padding: 0.4rem 0.8rem; border-radius: 4px; color: white; text-decoration: none; font-size: 0.85rem; background-color: rgba(255,255,255,0.1); transition: background-color 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.1)'">
+                                        <a href="#" onclick="event.preventDefault(); toggleNotificacionesDropdown('profesor');" style="position: relative; border: 1px solid rgba(255,255,255,0.5); padding: 0.4rem 0.8rem; border-radius: 4px; color: white; text-decoration: none; font-size: 0.85rem; background-color: rgba(255,255,255,0.1); transition: background-color 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.1)'">
                                             🔔 Notificaciones
-                                            <span id="notificaciones-contador" style="background-color: #dc3545; color: white; border-radius: 50%; padding: 0.1rem 0.4rem; font-size: 0.7rem; min-width: 1.2rem; text-align: center; display: none;">0</span>
+                                            <span id="notificaciones-contador-profesor" style="background-color: #dc3545; color: white; border-radius: 50%; padding: 0.1rem 0.4rem; font-size: 0.7rem; min-width: 1.2rem; text-align: center; display: none;">0</span>
                                         </a>
-                                        <div id="notificaciones-dropdown" class="dropdown-menu" style="position: absolute; top: 100%; right: 0; margin-top: 0.5rem; min-width: 350px; max-width: 500px; max-height: 500px; overflow-y: auto; z-index: 1000;">
+                                        <div id="notificaciones-dropdown-profesor" class="dropdown-menu" style="position: absolute; top: 100%; right: 0; margin-top: 0.5rem; min-width: 350px; max-width: 500px; max-height: 500px; overflow-y: auto; z-index: 1000;">
                                             <div style="padding: 1rem; border-bottom: 1px solid #ddd;">
                                                 <strong>Notificaciones</strong>
                                                 <a href="{{ path('app_notificacion_todas') }}" style="float: right; font-size: 0.85rem; color: var(--color-primary);">Ver todas</a>
                                             </div>
-                                            <div id="notificaciones-lista" style="padding: 0.5rem;">
+                                            <div id="notificaciones-lista-profesor" style="padding: 0.5rem;">
+                                                <div style="text-align: center; padding: 1rem; color: #666;">Cargando...</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% elseif not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
+                                    <div class="nav-dropdown" style="position: relative;">
+                                        <a href="#" onclick="event.preventDefault(); toggleNotificacionesDropdown('alumno');" style="position: relative; border: 1px solid rgba(255,255,255,0.5); padding: 0.4rem 0.8rem; border-radius: 4px; color: white; text-decoration: none; font-size: 0.85rem; background-color: rgba(255,255,255,0.1); transition: background-color 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.1)'">
+                                            🔔 Notificaciones
+                                            <span id="notificaciones-contador-alumno" style="background-color: #dc3545; color: white; border-radius: 50%; padding: 0.1rem 0.4rem; font-size: 0.7rem; min-width: 1.2rem; text-align: center; display: none;">0</span>
+                                        </a>
+                                        <div id="notificaciones-dropdown-alumno" class="dropdown-menu" style="position: absolute; top: 100%; right: 0; margin-top: 0.5rem; min-width: 350px; max-width: 500px; max-height: 500px; overflow-y: auto; z-index: 1000;">
+                                            <div style="padding: 1rem; border-bottom: 1px solid #ddd;">
+                                                <strong>Notificaciones</strong>
+                                                <a href="{{ path('app_notificacion_alumno_todas') }}" style="float: right; font-size: 0.85rem; color: var(--color-primary);">Ver todas</a>
+                                            </div>
+                                            <div id="notificaciones-lista-alumno" style="padding: 0.5rem;">
                                                 <div style="text-align: center; padding: 1rem; color: #666;">Cargando...</div>
                                             </div>
                                         </div>
@@ -218,23 +268,25 @@
                     </div>
                     <ul class="navbar-nav">
                         {% if app.user %}
-                            {# Menú para usuarios autenticados #}
+                            {# Menú común: Inicio #}
                             <li><a href="{{ path('app_dashboard') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Inicio</a></li>
                             
-                            {# Menú para alumnos (ROLE_USER sin ROLE_PROFESOR ni ROLE_ADMIN) #}
+                            {# Menú para ALUMNOS (ROLE_USER sin ROLE_PROFESOR ni ROLE_ADMIN) #}
                             {% if not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
                                 <li><a href="{{ path('app_planificacion_alumno_index') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Mi Planificación</a></li>
+                                <li><a href="{{ path('app_examen_iniciar') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Nuevo Examen</a></li>
+                                <li><a href="{{ path('app_examen_historial') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Historial</a></li>
+                                <li><a href="{{ path('app_articulo_publico_index') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Artículos</a></li>
+                                <li><a href="{{ path('app_recurso_publico_index') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Recursos</a></li>
+                                {% if app.user.profesores|length > 0 %}
+                                    <li><a href="{{ path('app_mensaje_alumno_index') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">💬 Mensajes</a></li>
+                                {% endif %}
+                                <li><a href="{{ path('app_contacto') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Contacto</a></li>
                             {% endif %}
                             
-                            {# Menú común para todos los usuarios autenticados #}
-                            <li><a href="{{ path('app_examen_iniciar') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Nuevo Examen</a></li>
-                            <li><a href="{{ path('app_examen_historial') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Historial</a></li>
-                            <li><a href="{{ path('app_articulo_publico_index') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Artículos</a></li>
-                            <li><a href="{{ path('app_recurso_publico_index') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Recursos</a></li>
-                            <li><a href="{{ path('app_contacto') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Contacto</a></li>
-                            
-                            {# Menú para profesores y administradores #}
+                            {# Menú para PROFESORES y ADMINISTRADORES #}
                             {% if is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN') %}
+                                {# Menú Profesor #}
                                 <li class="nav-dropdown">
                                     <a href="#" class="nav-link dropdown-toggle" onclick="event.preventDefault(); toggleDropdown(this);" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">
                                         Profesor ▼
@@ -242,7 +294,7 @@
                                     <ul class="dropdown-menu">
                                         <li class="dropdown-item-with-submenu">
                                             <a href="#" class="dropdown-item" onclick="toggleSubmenu(this); return false;">
-                                                <span>Contenido</span>
+                                                <span>📚 Contenido</span>
                                                 <span style="margin-left: 1rem;">▶</span>
                                             </a>
                                             <ul class="submenu">
@@ -256,7 +308,7 @@
                                         </li>
                                         <li class="dropdown-item-with-submenu">
                                             <a href="#" class="dropdown-item" onclick="toggleSubmenu(this); return false;">
-                                                <span>Municipios</span>
+                                                <span>🏛️ Municipios</span>
                                                 <span style="margin-left: 1rem;">▶</span>
                                             </a>
                                             <ul class="submenu">
@@ -267,7 +319,7 @@
                                         </li>
                                         <li class="dropdown-item-with-submenu">
                                             <a href="#" class="dropdown-item" onclick="toggleSubmenu(this); return false;">
-                                                <span>Planificación</span>
+                                                <span>📅 Planificación</span>
                                                 <span style="margin-left: 1rem;">▶</span>
                                             </a>
                                             <ul class="submenu">
@@ -277,12 +329,10 @@
                                         </li>
                                         <li class="dropdown-item-with-submenu">
                                             <a href="#" class="dropdown-item" onclick="toggleSubmenu(this); return false;">
-                                                <span>Gestión</span>
+                                                <span>👥 Gestión</span>
                                                 <span style="margin-left: 1rem;">▶</span>
                                             </a>
                                             <ul class="submenu">
-                                                <li><a href="{{ path('app_user_index') }}" class="dropdown-item">Usuarios</a></li>
-                                                <li><a href="{{ path('app_convocatoria_index') }}" class="dropdown-item">Convocatorias</a></li>
                                                 <li><a href="{{ path('app_examen_profesor') }}" class="dropdown-item">Exámenes de Alumnos</a></li>
                                                 <li><a href="{{ path('app_recurso_especifico_index') }}" class="dropdown-item">Recursos Específicos</a></li>
                                             </ul>
@@ -291,14 +341,16 @@
                                 </li>
                             {% endif %}
                             
-                            {# Menú para administradores #}
+                            {# Menú para ADMINISTRADORES únicamente #}
                             {% if is_granted('ROLE_ADMIN') %}
                                 <li class="nav-dropdown">
-                                    <a href="#" class="nav-link dropdown-toggle" onclick="event.preventDefault(); toggleDropdown(this);" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">
+                                    <a href="#" class="nav-link dropdown-toggle" onclick="event.preventDefault(); toggleDropdown(this);" style="border: 1px solid #dc3545; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem; background-color: rgba(220, 53, 69, 0.1);">
                                         Administración ▼
                                     </a>
                                     <ul class="dropdown-menu">
-                                        <li><a href="{{ path('app_contacto_mensajes') }}" class="dropdown-item">Mensajes de Contacto</a></li>
+                                        <li><a href="{{ path('app_user_index') }}" class="dropdown-item">👤 Usuarios</a></li>
+                                        <li><a href="{{ path('app_convocatoria_index') }}" class="dropdown-item">📋 Convocatorias</a></li>
+                                        <li><a href="{{ path('app_contacto_mensajes') }}" class="dropdown-item">📧 Mensajes de Contacto</a></li>
                                     </ul>
                                 </li>
                             {% endif %}

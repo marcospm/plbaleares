@@ -29,6 +29,7 @@ class PreguntaController extends AbstractController
         $temaId = $request->query->getInt('tema');
         $leyId = $request->query->getInt('ley');
         $dificultad = $request->query->get('dificultad', '');
+        $numeroArticulo = $request->query->getInt('articulo', 0);
 
         $preguntas = $preguntaRepository->findAll();
 
@@ -53,6 +54,13 @@ class PreguntaController extends AbstractController
             });
         }
 
+        // Filtrar por número de artículo
+        if ($numeroArticulo > 0) {
+            $preguntas = array_filter($preguntas, function($pregunta) use ($numeroArticulo) {
+                return $pregunta->getArticulo() && $pregunta->getArticulo()->getNumero() === $numeroArticulo;
+            });
+        }
+
         // Filtrar por búsqueda
         if (!empty($search)) {
             $preguntas = array_filter($preguntas, function($pregunta) use ($search) {
@@ -73,6 +81,7 @@ class PreguntaController extends AbstractController
             'temaSeleccionado' => $temaId,
             'leySeleccionada' => $leyId,
             'dificultadSeleccionada' => $dificultad,
+            'numeroArticuloSeleccionado' => $numeroArticulo,
         ]);
     }
 
@@ -98,10 +107,29 @@ class PreguntaController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_pregunta_show', methods: ['GET'])]
-    public function show(Pregunta $pregunta): Response
+    public function show(Pregunta $pregunta, Request $request): Response
     {
+        // Obtener parámetros de filtro de la query string
+        $filtros = [];
+        if ($request->query->get('search')) {
+            $filtros['search'] = $request->query->get('search');
+        }
+        if ($request->query->getInt('tema') > 0) {
+            $filtros['tema'] = $request->query->getInt('tema');
+        }
+        if ($request->query->getInt('ley') > 0) {
+            $filtros['ley'] = $request->query->getInt('ley');
+        }
+        if ($request->query->get('dificultad')) {
+            $filtros['dificultad'] = $request->query->get('dificultad');
+        }
+        if ($request->query->getInt('articulo') > 0) {
+            $filtros['articulo'] = $request->query->getInt('articulo');
+        }
+
         return $this->render('pregunta/show.html.twig', [
             'pregunta' => $pregunta,
+            'filtros' => $filtros,
         ]);
     }
 
@@ -111,22 +139,65 @@ class PreguntaController extends AbstractController
         $form = $this->createForm(PreguntaType::class, $pregunta);
         $form->handleRequest($request);
 
+        // Obtener parámetros de filtro de la query string o del request anterior
+        $filtros = [];
+        $search = $request->query->get('search') ?? $request->request->get('filtro_search');
+        $tema = $request->query->getInt('tema') ?: $request->request->getInt('filtro_tema', 0);
+        $ley = $request->query->getInt('ley') ?: $request->request->getInt('filtro_ley', 0);
+        $dificultad = $request->query->get('dificultad') ?? $request->request->get('filtro_dificultad');
+        $articulo = $request->query->getInt('articulo') ?: $request->request->getInt('filtro_articulo', 0);
+        
+        if ($search) {
+            $filtros['search'] = $search;
+        }
+        if ($tema > 0) {
+            $filtros['tema'] = $tema;
+        }
+        if ($ley > 0) {
+            $filtros['ley'] = $ley;
+        }
+        if ($dificultad) {
+            $filtros['dificultad'] = $dificultad;
+        }
+        if ($articulo > 0) {
+            $filtros['articulo'] = $articulo;
+        }
+
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->flush();
 
             $this->addFlash('success', 'Pregunta actualizada correctamente.');
-            return $this->redirectToRoute('app_pregunta_index', [], Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute('app_pregunta_index', $filtros, Response::HTTP_SEE_OTHER);
         }
 
         return $this->render('pregunta/edit.html.twig', [
             'pregunta' => $pregunta,
             'form' => $form,
+            'filtros' => $filtros,
         ]);
     }
 
     #[Route('/{id}/toggle-activo', name: 'app_pregunta_toggle_activo', methods: ['POST'])]
     public function toggleActivo(Pregunta $pregunta, EntityManagerInterface $entityManager, Request $request): Response
     {
+        // Obtener parámetros de filtro de la query string
+        $filtros = [];
+        if ($request->query->get('search')) {
+            $filtros['search'] = $request->query->get('search');
+        }
+        if ($request->query->getInt('tema') > 0) {
+            $filtros['tema'] = $request->query->getInt('tema');
+        }
+        if ($request->query->getInt('ley') > 0) {
+            $filtros['ley'] = $request->query->getInt('ley');
+        }
+        if ($request->query->get('dificultad')) {
+            $filtros['dificultad'] = $request->query->get('dificultad');
+        }
+        if ($request->query->getInt('articulo') > 0) {
+            $filtros['articulo'] = $request->query->getInt('articulo');
+        }
+
         if ($this->isCsrfTokenValid('toggle'.$pregunta->getId(), $request->getPayload()->getString('_token'))) {
             $pregunta->setActivo(!$pregunta->isActivo());
             $entityManager->flush();
@@ -135,19 +206,37 @@ class PreguntaController extends AbstractController
             $this->addFlash('success', "La pregunta ha sido {$estado} correctamente.");
         }
 
-        return $this->redirectToRoute('app_pregunta_index', [], Response::HTTP_SEE_OTHER);
+        return $this->redirectToRoute('app_pregunta_index', $filtros, Response::HTTP_SEE_OTHER);
     }
 
     #[Route('/{id}', name: 'app_pregunta_delete', methods: ['POST'])]
     public function delete(Request $request, Pregunta $pregunta, EntityManagerInterface $entityManager): Response
     {
+        // Obtener parámetros de filtro de la query string
+        $filtros = [];
+        if ($request->query->get('search')) {
+            $filtros['search'] = $request->query->get('search');
+        }
+        if ($request->query->getInt('tema') > 0) {
+            $filtros['tema'] = $request->query->getInt('tema');
+        }
+        if ($request->query->getInt('ley') > 0) {
+            $filtros['ley'] = $request->query->getInt('ley');
+        }
+        if ($request->query->get('dificultad')) {
+            $filtros['dificultad'] = $request->query->get('dificultad');
+        }
+        if ($request->query->getInt('articulo') > 0) {
+            $filtros['articulo'] = $request->query->getInt('articulo');
+        }
+
         if ($this->isCsrfTokenValid('delete'.$pregunta->getId(), $request->getPayload()->get('_token'))) {
             $entityManager->remove($pregunta);
             $entityManager->flush();
             $this->addFlash('success', 'Pregunta eliminada correctamente.');
         }
 
-        return $this->redirectToRoute('app_pregunta_index', [], Response::HTTP_SEE_OTHER);
+        return $this->redirectToRoute('app_pregunta_index', $filtros, Response::HTTP_SEE_OTHER);
     }
 }
 

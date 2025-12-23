@@ -38,6 +38,9 @@ class Examen
     #[ORM\Column]
     private ?int $errores = null;
 
+    #[ORM\Column(options: ['default' => 0])]
+    private int $enBlanco = 0;
+
     #[ORM\Column(type: Types::JSON)]
     private array $respuestas = [];
 
@@ -148,6 +151,18 @@ class Examen
     public function setErrores(int $errores): static
     {
         $this->errores = $errores;
+
+        return $this;
+    }
+
+    public function getEnBlanco(): int
+    {
+        return $this->enBlanco;
+    }
+
+    public function setEnBlanco(int $enBlanco): static
+    {
+        $this->enBlanco = $enBlanco;
 
         return $this;
     }

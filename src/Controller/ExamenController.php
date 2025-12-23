@@ -364,6 +364,7 @@ class ExamenController extends AbstractController
         $preguntas = [];
         $aciertos = 0;
         $errores = 0;
+        $enBlanco = 0;
         $esMunicipal = $config['es_municipal'] ?? false;
 
         foreach ($preguntasIds as $preguntaId) {
@@ -377,6 +378,19 @@ class ExamenController extends AbstractController
             }
 
             $respuestaAlumno = $respuestas[$preguntaId] ?? null;
+            
+            // Si la pregunta está en blanco (null o vacío), no cuenta ni suma ni resta
+            if ($respuestaAlumno === null || $respuestaAlumno === '') {
+                $enBlanco++;
+                $preguntas[] = [
+                    'pregunta' => $pregunta,
+                    'respuestaAlumno' => null,
+                    'esCorrecta' => null, // null indica que está en blanco
+                ];
+                continue;
+            }
+
+            // Solo evaluar si hay respuesta
             $esCorrecta = ($respuestaAlumno === $pregunta->getRespuestaCorrecta());
 
             if ($esCorrecta) {
@@ -392,10 +406,19 @@ class ExamenController extends AbstractController
             ];
         }
 
-        // Calcular nota: (aciertos × (20/total)) - (errores/4)
+        // Calcular nota solo con las preguntas respondidas
+        // (aciertos × (20/total)) - (errores/4)
         $total = count($preguntasIds);
-        $puntosPorAcierto = 20 / $total;
-        $nota = ($aciertos * $puntosPorAcierto) - ($errores / 4);
+        $preguntasRespondidas = $aciertos + $errores; // Solo las que tienen respuesta
+        
+        if ($preguntasRespondidas > 0) {
+            $puntosPorAcierto = 20 / $total;
+            $nota = ($aciertos * $puntosPorAcierto) - ($errores / 4);
+        } else {
+            // Si no hay preguntas respondidas, la nota es 0
+            $nota = 0;
+        }
+        
         $nota = max(0, min(20, round($nota, 2)));
 
         // Guardar examen en BD
@@ -407,6 +430,7 @@ class ExamenController extends AbstractController
         $examen->setNota((string) $nota);
         $examen->setAciertos($aciertos);
         $examen->setErrores($errores);
+        $examen->setEnBlanco($enBlanco);
         $examen->setRespuestas($respuestas);
         $examen->setPreguntasIds($preguntasIds);
 
@@ -452,6 +476,7 @@ class ExamenController extends AbstractController
             'nota' => $nota,
             'aciertos' => $aciertos,
             'errores' => $errores,
+            'enBlanco' => $enBlanco,
             'total' => $total,
             'esMunicipal' => $esMunicipal,
         ]);
@@ -735,7 +760,14 @@ class ExamenController extends AbstractController
             
             if ($pregunta) {
                 $respuestaAlumno = $respuestas[$preguntaId] ?? null;
-                $esCorrecta = ($respuestaAlumno === $pregunta->getRespuestaCorrecta());
+                
+                // Si la pregunta está en blanco (null o vacío), esCorrecta será null
+                if ($respuestaAlumno === null || $respuestaAlumno === '') {
+                    $esCorrecta = null;
+                } else {
+                    $esCorrecta = ($respuestaAlumno === $pregunta->getRespuestaCorrecta());
+                }
+                
                 $preguntas[] = [
                     'pregunta' => $pregunta,
                     'respuestaAlumno' => $respuestaAlumno,

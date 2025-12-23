@@ -82,6 +82,7 @@
                                 <th>Nota</th>
                                 <th>Aciertos</th>
                                 <th>Errores</th>
+                                <th>En blanco</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -106,6 +107,7 @@
                                     </td>
                                     <td style="color: var(--color-success);"><strong>{{ examen.aciertos }}</strong></td>
                                     <td style="color: var(--color-danger);"><strong>{{ examen.errores }}</strong></td>
+                                    <td style="color: #999;"><strong>{{ examen.enBlanco }}</strong></td>
                                     <td>
                                         <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-sm btn-primary">Ver Detalle</a>
                                     </td>
@@ -140,6 +142,7 @@
                                 <th>Nota</th>
                                 <th>Aciertos</th>
                                 <th>Errores</th>
+                                <th>En blanco</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -167,6 +170,7 @@
                                     </td>
                                     <td style="color: var(--color-success);"><strong>{{ examen.aciertos }}</strong></td>
                                     <td style="color: var(--color-danger);"><strong>{{ examen.errores }}</strong></td>
+                                    <td style="color: #999;"><strong>{{ examen.enBlanco }}</strong></td>
                                     <td>
                                         <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-sm btn-primary">Ver Detalle</a>
                                     </td>

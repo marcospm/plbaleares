@@ -1,0 +1,82 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Enviar Mensaje{% endblock %}
+
+{% block body %}
+<div class="container" style="max-width: 700px; margin: 2rem auto; padding: 0 1rem;">
+    <div class="card" style="box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-radius: 8px;">
+        <div class="card-header" style="background-color: var(--color-primary); color: white; padding: 1.5rem; border-radius: 8px 8px 0 0;">
+            <h1 style="margin: 0; font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                💬 Enviar Mensaje a {{ profesor.username }}
+            </h1>
+        </div>
+        <div class="card-body" style="padding: 1.5rem;">
+            <div style="background-color: #e3f2fd; border-left: 4px solid var(--color-primary); padding: 1rem; margin-bottom: 1.5rem; border-radius: 4px;">
+                <p style="margin: 0; color: #666; font-size: 0.9rem;">
+                    <strong>📌 Nota:</strong> Tu mensaje llegará como notificación a tu profesor asignado. 
+                    Sé claro y conciso en tu mensaje.
+                </p>
+            </div>
+
+            <form method="post" action="{{ path('app_mensaje_alumno_enviar', {'id': profesor.id}) }}">
+                <input type="hidden" name="token" value="{{ csrf_token('enviar_mensaje_' ~ profesor.id) }}">
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <label for="mensaje" style="display: block; margin-bottom: 0.5rem; font-weight: bold; color: #333;">
+                        Mensaje <span style="color: #dc3545;">*</span>
+                    </label>
+                    <textarea 
+                        id="mensaje" 
+                        name="mensaje" 
+                        rows="6" 
+                        required 
+                        maxlength="1000"
+                        placeholder="Escribe tu mensaje aquí..."
+                        style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; font-family: inherit; resize: vertical;"
+                    ></textarea>
+                    <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 0.25rem;">
+                        Máximo 1000 caracteres. <span id="contador">0</span>/1000
+                    </small>
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <a href="{{ path('app_mensaje_alumno_index') }}" 
+                       class="btn btn-secondary" 
+                       style="background-color: #6c757d; color: white; padding: 0.5rem 1.5rem; border-radius: 4px; text-decoration: none; border: none; cursor: pointer; font-size: 0.9rem;">
+                        Cancelar
+                    </a>
+                    <button type="submit" 
+                            class="btn btn-primary" 
+                            style="background-color: var(--color-primary); color: white; padding: 0.5rem 1.5rem; border-radius: 4px; text-decoration: none; border: none; cursor: pointer; font-size: 0.9rem;">
+                        Enviar Mensaje
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('mensaje');
+    const contador = document.getElementById('contador');
+    
+    function actualizarContador() {
+        const longitud = textarea.value.length;
+        contador.textContent = longitud;
+        
+        if (longitud > 1000) {
+            contador.style.color = '#dc3545';
+        } else if (longitud > 900) {
+            contador.style.color = '#ff9800';
+        } else {
+            contador.style.color = '#666';
+        }
+    }
+    
+    textarea.addEventListener('input', actualizarContador);
+    actualizarContador();
+});
+</script>
+{% endblock %}
+

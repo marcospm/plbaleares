@@ -60,7 +60,7 @@ class ExamenIniciarType extends AbstractType
                     return $er->createQueryBuilder('t')
                         ->where('t.activo = :activo')
                         ->setParameter('activo', true)
-                        ->orderBy('t.nombre', 'ASC');
+                        ->orderBy('t.id', 'ASC');
                 },
                 'constraints' => [
                     new Count(min: 1, minMessage: 'Debes seleccionar al menos un tema')
@@ -84,7 +84,7 @@ class ExamenIniciarType extends AbstractType
                         $qb->andWhere('t.municipio = :municipio')
                            ->setParameter('municipio', $municipioId);
                     }
-                    return $qb->orderBy('t.nombre', 'ASC');
+                    return $qb->orderBy('t.id', 'ASC');
                 },
                 'attr' => ['class' => 'form-check', 'id' => 'temas_municipales', 'style' => 'display: none;'],
                 'placeholder' => false,

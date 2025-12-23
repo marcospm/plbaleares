@@ -28,35 +28,20 @@ class ArticuloController extends AbstractController
     #[Route('/', name: 'app_articulo_index', methods: ['GET'])]
     public function index(ArticuloRepository $articuloRepository, LeyRepository $leyRepository, Request $request): Response
     {
-        $search = $request->query->get('search', '');
-        $leyId = $request->query->getInt('ley');
-        $numero = $request->query->get('numero', '');
+        $search = trim($request->query->get('search', ''));
+        $leyId = $request->query->getInt('ley', 0);
+        $numero = trim($request->query->get('numero', ''));
 
-        $leyes = $leyRepository->findAll();
-        $articulos = $articuloRepository->findAll();
+        // Obtener todas las leyes ordenadas por nombre
+        $leyes = $leyRepository->findBy([], ['nombre' => 'ASC']);
 
-        // Filtrar por ley
-        if ($leyId > 0) {
-            $articulos = array_filter($articulos, function($articulo) use ($leyId) {
-                return $articulo->getLey() && $articulo->getLey()->getId() === $leyId;
-            });
-        }
-
-        // Filtrar por número
-        if (!empty($numero)) {
-            $articulos = array_filter($articulos, function($articulo) use ($numero) {
-                return stripos($articulo->getNumero(), $numero) !== false;
-            });
-        }
-
-        // Filtrar por búsqueda
-        if (!empty($search)) {
-            $articulos = array_filter($articulos, function($articulo) use ($search) {
-                return stripos($articulo->getNumero(), $search) !== false ||
-                       stripos($articulo->getExplicacion() ?? '', $search) !== false ||
-                       ($articulo->getLey() && stripos($articulo->getLey()->getNombre(), $search) !== false);
-            });
-        }
+        // Usar el método del repositorio para obtener artículos filtrados eficientemente
+        $articulos = $articuloRepository->buscarConFiltros(
+            $leyId > 0 ? $leyId : null,
+            !empty($search) ? $search : null,
+            !empty($numero) ? $numero : null,
+            null // null = todos los estados (activos e inactivos)
+        );
 
         return $this->render('articulo/index.html.twig', [
             'articulos' => $articulos,

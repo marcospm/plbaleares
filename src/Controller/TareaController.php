@@ -11,6 +11,7 @@ use App\Repository\TareaRepository;
 use App\Repository\TareaAsignadaRepository;
 use App\Repository\FranjaHorariaPersonalizadaRepository;
 use App\Repository\UserRepository;
+use App\Service\NotificacionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -79,14 +80,19 @@ class TareaController extends AbstractController
     }
 
     #[Route('/new', name: 'app_tarea_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager, UserRepository $userRepository): Response
-    {
+    public function new(
+        Request $request, 
+        EntityManagerInterface $entityManager, 
+        UserRepository $userRepository,
+        NotificacionService $notificacionService
+    ): Response {
         $tarea = new Tarea();
         $form = $this->createForm(TareaType::class, $tarea);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $tarea->setCreadoPor($this->getUser());
+            $profesor = $this->getUser();
             
             // Crear TareaAsignada para cada usuario seleccionado
             $usuarios = $form->get('usuarios')->getData();
@@ -99,6 +105,16 @@ class TareaController extends AbstractController
 
             $entityManager->persist($tarea);
             $entityManager->flush();
+
+            // Crear notificaciones para los alumnos asignados
+            try {
+                foreach ($usuarios as $usuario) {
+                    $notificacionService->crearNotificacionTareaCreada($tarea, $usuario, $profesor);
+                }
+                $entityManager->flush();
+            } catch (\Exception $e) {
+                error_log('Error al crear notificaciones de tarea creada: ' . $e->getMessage());
+            }
 
             $this->addFlash('success', 'Tarea creada correctamente.');
             return $this->redirectToRoute('app_tarea_show', ['id' => $tarea->getId()], Response::HTTP_SEE_OTHER);
@@ -119,8 +135,13 @@ class TareaController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'app_tarea_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Tarea $tarea, EntityManagerInterface $entityManager, UserRepository $userRepository): Response
-    {
+    public function edit(
+        Request $request, 
+        Tarea $tarea, 
+        EntityManagerInterface $entityManager, 
+        UserRepository $userRepository,
+        NotificacionService $notificacionService
+    ): Response {
         // Pre-cargar usuarios actuales en el formulario
         $usuariosActuales = [];
         foreach ($tarea->getAsignaciones() as $asignacion) {
@@ -145,16 +166,30 @@ class TareaController extends AbstractController
             
             // Agregar asignaciones para usuarios nuevos
             $usuariosActualesIds = array_map(function($u) { return $u->getId(); }, $usuariosActuales);
+            $usuariosNuevos = [];
             foreach ($usuariosSeleccionados as $usuario) {
                 if (!in_array($usuario->getId(), $usuariosActualesIds)) {
                     $tareaAsignada = new TareaAsignada();
                     $tareaAsignada->setTarea($tarea);
                     $tareaAsignada->setUsuario($usuario);
                     $entityManager->persist($tareaAsignada);
+                    $usuariosNuevos[] = $usuario;
                 }
             }
 
             $entityManager->flush();
+
+            // Crear notificaciones para alumnos que tienen esta tarea asignada (todos, incluidos los nuevos)
+            try {
+                $notificacionService->crearNotificacionTareaEditada($tarea, $this->getUser());
+                // Notificar también a los nuevos usuarios asignados
+                foreach ($usuariosNuevos as $usuarioNuevo) {
+                    $notificacionService->crearNotificacionTareaCreada($tarea, $usuarioNuevo, $this->getUser());
+                }
+                $entityManager->flush();
+            } catch (\Exception $e) {
+                error_log('Error al crear notificaciones de tarea editada: ' . $e->getMessage());
+            }
 
             $this->addFlash('success', 'Tarea actualizada correctamente.');
             return $this->redirectToRoute('app_tarea_show', ['id' => $tarea->getId()], Response::HTTP_SEE_OTHER);
@@ -167,9 +202,30 @@ class TareaController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_tarea_delete', methods: ['POST'])]
-    public function delete(Request $request, Tarea $tarea, EntityManagerInterface $entityManager): Response
-    {
+    public function delete(
+        Request $request, 
+        Tarea $tarea, 
+        NotificacionService $notificacionService,
+        EntityManagerInterface $entityManager
+    ): Response {
         if ($this->isCsrfTokenValid('delete'.$tarea->getId(), $request->getPayload()->getString('_token'))) {
+            // Obtener alumnos antes de eliminar
+            $alumnos = [];
+            foreach ($tarea->getAsignaciones() as $asignacion) {
+                $alumnos[] = $asignacion->getUsuario();
+            }
+            $nombreTarea = $tarea->getNombre();
+            $profesor = $this->getUser();
+            
+            // Crear notificaciones antes de eliminar
+            try {
+                if (!empty($alumnos)) {
+                    $notificacionService->crearNotificacionTareaEliminada($nombreTarea, $alumnos, $profesor);
+                }
+            } catch (\Exception $e) {
+                error_log('Error al crear notificaciones de tarea eliminada: ' . $e->getMessage());
+            }
+            
             $entityManager->remove($tarea);
             $entityManager->flush();
             $this->addFlash('success', 'Tarea eliminada correctamente.');

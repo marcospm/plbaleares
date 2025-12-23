@@ -8,18 +8,27 @@
     <a href="{{ path('app_articulo_new') }}" class="btn btn-primary">Nuevo Artículo</a>
 </div>
 
-<form method="get" action="{{ path('app_articulo_index') }}" style="margin-bottom: 2rem;">
-    <div class="card">
+<form method="get" action="{{ path('app_articulo_index') }}" style="margin-bottom: 2rem;" id="filtro-form">
+    <div class="card" style="border-left: 4px solid var(--color-primary);">
+        <div class="card-header" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+            <h3 style="margin: 0; color: var(--color-primary); font-size: 1.1rem;">
+                🔍 Filtros de Búsqueda
+            </h3>
+        </div>
         <div class="card-body">
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label">Buscar:</label>
-                    <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Buscar...">
+                    <label class="form-label" style="font-weight: 600; margin-bottom: 0.5rem;">
+                        <span style="color: var(--color-primary);">📝</span> Buscar en contenido:
+                    </label>
+                    <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Buscar en número, nombre, explicación..." style="border: 1px solid #ddd; border-radius: 4px; padding: 0.5rem;">
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label">Filtrar por Ley:</label>
-                    <select name="ley" class="form-control">
-                        <option value="0">Todas las leyes</option>
+                    <label class="form-label" style="font-weight: 600; margin-bottom: 0.5rem;">
+                        <span style="color: var(--color-primary);">⚖️</span> Filtrar por Ley:
+                    </label>
+                    <select name="ley" class="form-control" style="border: 1px solid #ddd; border-radius: 4px; padding: 0.5rem; cursor: pointer;">
+                        <option value="0">📋 Todas las leyes</option>
                         {% for ley in leyes %}
                             <option value="{{ ley.id }}" {% if leySeleccionada == ley.id %}selected{% endif %}>
                                 {{ ley.nombre }}
@@ -28,20 +37,63 @@
                     </select>
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label">Número:</label>
-                    <input type="text" name="numero" value="{{ numero }}" class="form-control" placeholder="Número de artículo...">
+                    <label class="form-label" style="font-weight: 600; margin-bottom: 0.5rem;">
+                        <span style="color: var(--color-primary);">🔢</span> Número de Artículo:
+                    </label>
+                    <input type="text" name="numero" value="{{ numero }}" class="form-control" placeholder="Ej: 1, 2, 1.1, etc." style="border: 1px solid #ddd; border-radius: 4px; padding: 0.5rem;">
+                    <small style="color: #666; font-size: 0.8rem; margin-top: 0.25rem; display: block;">Busca por número específico</small>
                 </div>
-                <div>
-                    <button type="submit" class="btn btn-primary">Filtrar</button>
-                    <a href="{{ path('app_articulo_index') }}" class="btn btn-secondary">Limpiar</a>
+                <div style="display: flex; gap: 0.5rem; align-items: end;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1; padding: 0.5rem 1rem;">
+                        <span>🔍</span> Filtrar
+                    </button>
+                    <a href="{{ path('app_articulo_index') }}" class="btn btn-secondary" style="padding: 0.5rem 1rem; white-space: nowrap;">
+                        <span>🔄</span> Limpiar
+                    </a>
                 </div>
             </div>
+            {% if search or leySeleccionada > 0 or numero %}
+                <div style="margin-top: 1rem; padding: 0.75rem; background-color: #e7f3ff; border-radius: 4px; border-left: 3px solid var(--color-primary);">
+                    <strong style="color: var(--color-primary);">Filtros activos:</strong>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                        {% if leySeleccionada > 0 %}
+                            {% for ley in leyes %}
+                                {% if ley.id == leySeleccionada %}
+                                    {% set paramsSinLey = app.request.query.all|merge({'ley': 0}) %}
+                                    <span class="badge" style="background-color: var(--color-primary); color: white; padding: 0.25rem 0.5rem; border-radius: 3px;">
+                                        Ley: {{ ley.nombre }} <a href="{{ path('app_articulo_index', paramsSinLey) }}" style="color: white; margin-left: 0.5rem; text-decoration: none; font-weight: bold;">×</a>
+                                    </span>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                        {% if numero %}
+                            {% set paramsSinNumero = app.request.query.all|merge({'numero': ''}) %}
+                            <span class="badge" style="background-color: #28a745; color: white; padding: 0.25rem 0.5rem; border-radius: 3px;">
+                                Número: {{ numero }} <a href="{{ path('app_articulo_index', paramsSinNumero) }}" style="color: white; margin-left: 0.5rem; text-decoration: none; font-weight: bold;">×</a>
+                            </span>
+                        {% endif %}
+                        {% if search %}
+                            {% set paramsSinSearch = app.request.query.all|merge({'search': ''}) %}
+                            <span class="badge" style="background-color: #ffc107; color: #000; padding: 0.25rem 0.5rem; border-radius: 3px;">
+                                Búsqueda: "{{ search }}" <a href="{{ path('app_articulo_index', paramsSinSearch) }}" style="color: #000; margin-left: 0.5rem; text-decoration: none; font-weight: bold;">×</a>
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
 </form>
 
 {% if articulos|length > 0 %}
     <div class="card">
+        <div class="card-header" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; color: var(--color-primary); font-size: 1.1rem;">
+                    📚 Artículos encontrados: <strong>{{ articulos|length }}</strong>
+                </h3>
+            </div>
+        </div>
         <table class="table">
             <thead>
                 <tr>

@@ -6,7 +6,7 @@
 <div class="card">
     <div class="card-header">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>Notificaciones</h1>
+            <h1>Mis Notificaciones</h1>
             {% if noLeidas > 0 %}
                 <span class="badge" style="background-color: #dc3545; color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 1rem;">
                     {{ noLeidas }} sin leer
@@ -17,26 +17,27 @@
     <div class="card-body">
         {% if notificaciones|length > 0 %}
             <div style="margin-bottom: 1rem;">
-                <form method="post" action="{{ path('app_notificacion_marcar_todas_leidas') }}" style="display: inline;">
-                    <input type="hidden" name="_token" value="{{ csrf_token('marcar_todas_leidas') }}">
+                <form method="post" action="{{ path('app_notificacion_alumno_marcar_todas_leidas') }}" style="display: inline;">
+                    <input type="hidden" name="_token" value="{{ csrf_token('marcar_todas_leidas_alumno') }}">
                     <button type="submit" class="btn btn-secondary">Marcar todas como leídas</button>
                 </form>
             </div>
 
             <div style="display: grid; gap: 1rem;">
                 {% for notificacion in notificaciones %}
-                    <div style="padding: 1rem; border: 1px solid #ddd; border-left: 4px solid {% if notificacion.tipo == 'examen' %}#2196F3{% elseif notificacion.tipo == 'tarea' %}#4CAF50{% elseif notificacion.tipo == 'mensaje_alumno' %}#9C27B0{% elseif notificacion.tipo == 'error_articulo' %}#FF9800{% else %}#2196F3{% endif %}; border-radius: 4px; background-color: {% if notificacion.leida %}#f8f9fa{% else %}#fff{% endif %};">
+                    {% set icono = notificacion.tipo == 'planificacion_creada' ? '📅' : 
+                                    (notificacion.tipo == 'planificacion_editada' ? '✏️' : 
+                                    (notificacion.tipo == 'planificacion_eliminada' ? '🗑️' : 
+                                    (notificacion.tipo == 'tarea_creada' ? '📝' : 
+                                    (notificacion.tipo == 'tarea_editada' ? '✏️' : '🗑️')))) %}
+                    {% set color = 'planificacion' in notificacion.tipo ? '#2196F3' : '#4CAF50' %}
+                    
+                    <div style="padding: 1rem; border: 1px solid #ddd; border-left: 4px solid {{ color }}; border-radius: 4px; background-color: {% if notificacion.leida %}#f8f9fa{% else %}#fff{% endif %};">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div style="flex: 1;">
                                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                    <span style="font-size: 1.2rem;">
-                                        {% if notificacion.tipo == 'examen' %}📝
-                                        {% elseif notificacion.tipo == 'tarea' %}✅
-                                        {% elseif notificacion.tipo == 'mensaje_alumno' %}💬
-                                        {% elseif notificacion.tipo == 'error_articulo' %}⚠️
-                                        {% else %}📋{% endif %}
-                                    </span>
-                                    <strong style="color: {% if notificacion.tipo == 'examen' %}#2196F3{% elseif notificacion.tipo == 'tarea' %}#4CAF50{% elseif notificacion.tipo == 'mensaje_alumno' %}#9C27B0{% elseif notificacion.tipo == 'error_articulo' %}#FF9800{% else %}#2196F3{% endif %};">
+                                    <span style="font-size: 1.2rem;">{{ icono }}</span>
+                                    <strong style="color: {{ color }};">
                                         {{ notificacion.titulo }}
                                     </strong>
                                     {% if not notificacion.leida %}
@@ -45,19 +46,26 @@
                                 </div>
                                 <p style="margin: 0.5rem 0; color: #666;">{{ notificacion.mensaje }}</p>
                                 <small style="color: #999;">
-                                    {{ notificacion.fechaCreacion|date('d/m/Y H:i') }} - Alumno: {{ notificacion.alumno.username }}
+                                    {{ notificacion.fechaCreacion|date('d/m/Y H:i') }}
                                 </small>
-                                {% if notificacion.articulo %}
+                                {% if notificacion.planificacionSemanal %}
                                     <div style="margin-top: 0.5rem;">
-                                        <a href="{{ path('app_articulo_show', {'id': notificacion.articulo.id}) }}" class="btn btn-sm btn-primary">
-                                            Ver Artículo
+                                        <a href="{{ path('app_planificacion_alumno_index') }}" class="btn btn-sm btn-primary">
+                                            Ver Planificación
+                                        </a>
+                                    </div>
+                                {% endif %}
+                                {% if notificacion.tarea %}
+                                    <div style="margin-top: 0.5rem;">
+                                        <a href="{{ path('app_planificacion_alumno_index') }}" class="btn btn-sm btn-primary">
+                                            Ver Tarea
                                         </a>
                                     </div>
                                 {% endif %}
                             </div>
                             {% if not notificacion.leida %}
                                 <div style="margin-left: 1rem;">
-                                    <a href="{{ path('app_notificacion_marcar_leida_get', {'id': notificacion.id, '_token': csrf_token('marcar_leida' ~ notificacion.id)}) }}" class="btn btn-sm btn-secondary">
+                                    <a href="{{ path('app_notificacion_alumno_marcar_leida_get', {'id': notificacion.id, '_token': csrf_token('marcar_leida_alumno' ~ notificacion.id)}) }}" class="btn btn-sm btn-secondary">
                                         Marcar como leída
                                     </a>
                                 </div>
