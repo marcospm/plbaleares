@@ -75,6 +75,95 @@
                         });
                     }
                 });
+
+                // Sistema de notificaciones
+                {% if is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN') %}
+                function toggleNotificacionesDropdown() {
+                    const dropdown = document.getElementById('notificaciones-dropdown');
+                    const isOpen = dropdown.classList.contains('show');
+                    
+                    // Cerrar otros dropdowns
+                    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                        if (menu !== dropdown) {
+                            menu.classList.remove('show');
+                        }
+                    });
+                    
+                    if (!isOpen) {
+                        dropdown.classList.add('show');
+                        cargarNotificacionesDropdown();
+                    } else {
+                        dropdown.classList.remove('show');
+                    }
+                }
+
+                function cargarNotificacionesDropdown() {
+                    fetch('{{ path('app_notificacion_no_leidas') }}')
+                        .then(response => response.json())
+                        .then(data => {
+                            const lista = document.getElementById('notificaciones-lista');
+                            const contador = document.getElementById('notificaciones-contador');
+                            
+                            if (data.total === 0) {
+                                lista.innerHTML = '<div style="text-align: center; padding: 1rem; color: #666;">No tienes notificaciones nuevas.</div>';
+                                if (contador) {
+                                    contador.style.display = 'none';
+                                }
+                                return;
+                            }
+                            
+                            if (contador) {
+                                contador.textContent = data.total;
+                                contador.style.display = 'inline-block';
+                            }
+                            
+                            let html = '<div style="display: grid; gap: 0.5rem;">';
+                            data.notificaciones.slice(0, 5).forEach(notif => {
+                                const icono = notif.tipo === 'examen' ? '📝' : (notif.tipo === 'tarea' ? '✅' : '⚠️');
+                                const color = notif.tipo === 'examen' ? '#2196F3' : (notif.tipo === 'tarea' ? '#4CAF50' : '#FF9800');
+                                html += `
+                                    <div style="padding: 0.75rem; border: 1px solid #ddd; border-left: 3px solid ${color}; border-radius: 4px; background-color: #fff;">
+                                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                            <span style="font-size: 1rem;">${icono}</span>
+                                            <strong style="color: ${color}; font-size: 0.9rem;">${notif.titulo}</strong>
+                                        </div>
+                                        <p style="margin: 0.25rem 0; color: #666; font-size: 0.85rem; line-height: 1.3;">${notif.mensaje}</p>
+                                        <small style="color: #999; font-size: 0.75rem;">${notif.fechaCreacion}</small>
+                                    </div>
+                                `;
+                            });
+                            if (data.total > 5) {
+                                html += `<div style="text-align: center; padding: 0.5rem; color: var(--color-primary); font-size: 0.85rem;">Y ${data.total - 5} más...</div>`;
+                            }
+                            html += '</div>';
+                            lista.innerHTML = html;
+                        })
+                        .catch(error => {
+                            console.error('Error al cargar notificaciones:', error);
+                            document.getElementById('notificaciones-lista').innerHTML = '<div style="text-align: center; padding: 1rem; color: #dc3545;">Error al cargar las notificaciones.</div>';
+                        });
+                }
+
+                // Cargar contador al iniciar
+                document.addEventListener('DOMContentLoaded', function() {
+                    fetch('{{ path('app_notificacion_contador') }}')
+                        .then(response => response.json())
+                        .then(data => {
+                            const contador = document.getElementById('notificaciones-contador');
+                            if (contador) {
+                                if (data.contador > 0) {
+                                    contador.textContent = data.contador;
+                                    contador.style.display = 'inline-block';
+                                } else {
+                                    contador.style.display = 'none';
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error al cargar contador:', error);
+                        });
+                });
+                {% endif %}
             </script>
         {% endblock %}
     </head>
@@ -105,6 +194,23 @@
                                     <span class="badge" style="background-color: #007bff; color: white; padding: 0.25rem 0.5rem; border-radius: 3px; font-size: 0.75rem;">Profesor</span>
                                 {% else %}
                                     <span class="badge" style="background-color: #28a745; color: white; padding: 0.25rem 0.5rem; border-radius: 3px; font-size: 0.75rem;">Alumno</span>
+                                {% endif %}
+                                {% if is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN') %}
+                                    <div class="nav-dropdown" style="position: relative;">
+                                        <a href="#" onclick="event.preventDefault(); toggleNotificacionesDropdown();" style="position: relative; border: 1px solid rgba(255,255,255,0.5); padding: 0.4rem 0.8rem; border-radius: 4px; color: white; text-decoration: none; font-size: 0.85rem; background-color: rgba(255,255,255,0.1); transition: background-color 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.1)'">
+                                            🔔 Notificaciones
+                                            <span id="notificaciones-contador" style="background-color: #dc3545; color: white; border-radius: 50%; padding: 0.1rem 0.4rem; font-size: 0.7rem; min-width: 1.2rem; text-align: center; display: none;">0</span>
+                                        </a>
+                                        <div id="notificaciones-dropdown" class="dropdown-menu" style="position: absolute; top: 100%; right: 0; margin-top: 0.5rem; min-width: 350px; max-width: 500px; max-height: 500px; overflow-y: auto; z-index: 1000;">
+                                            <div style="padding: 1rem; border-bottom: 1px solid #ddd;">
+                                                <strong>Notificaciones</strong>
+                                                <a href="{{ path('app_notificacion_todas') }}" style="float: right; font-size: 0.85rem; color: var(--color-primary);">Ver todas</a>
+                                            </div>
+                                            <div id="notificaciones-lista" style="padding: 0.5rem;">
+                                                <div style="text-align: center; padding: 1rem; color: #666;">Cargando...</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 {% endif %}
                                 <a href="{{ path('app_logout') }}" style="border: 1px solid rgba(255,255,255,0.5); padding: 0.4rem 0.8rem; border-radius: 4px; color: white; text-decoration: none; font-size: 0.85rem; background-color: rgba(255,255,255,0.1); transition: background-color 0.2s; white-space: nowrap;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.1)'">Cerrar Sesión</a>
                             </div>

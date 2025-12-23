@@ -12,10 +12,10 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/notificacion')]
-#[IsGranted('ROLE_PROFESOR')]
 class NotificacionController extends AbstractController
 {
     #[Route('/no-leidas', name: 'app_notificacion_no_leidas', methods: ['GET'])]
+    #[IsGranted('ROLE_PROFESOR')]
     public function noLeidas(NotificacionRepository $notificacionRepository, Request $request): JsonResponse
     {
         $profesor = $this->getUser();
@@ -32,6 +32,8 @@ class NotificacionController extends AbstractController
                 'fechaCreacion' => $notificacion->getFechaCreacion()->format('d/m/Y H:i'),
                 'examenId' => $notificacion->getExamen()?->getId(),
                 'tareaId' => $notificacion->getTareaAsignada()?->getId(),
+                'articuloId' => $notificacion->getArticulo()?->getId(),
+                'leida' => $notificacion->isLeida(),
                 'token' => $this->container->get('security.csrf.token_manager')->getToken('marcar_leida' . $notificacion->getId())->getValue(),
             ];
         }
@@ -43,7 +45,34 @@ class NotificacionController extends AbstractController
         ]);
     }
 
+    #[Route('/todas', name: 'app_notificacion_todas', methods: ['GET'])]
+    #[IsGranted('ROLE_PROFESOR')]
+    public function todas(NotificacionRepository $notificacionRepository): Response
+    {
+        $profesor = $this->getUser();
+        $notificaciones = $notificacionRepository->findAllByProfesor($profesor);
+        $noLeidas = $notificacionRepository->countNoLeidasByProfesor($profesor);
+
+        return $this->render('notificacion/index.html.twig', [
+            'notificaciones' => $notificaciones,
+            'noLeidas' => $noLeidas,
+        ]);
+    }
+
+    #[Route('/contador', name: 'app_notificacion_contador', methods: ['GET'])]
+    #[IsGranted('ROLE_PROFESOR')]
+    public function contador(NotificacionRepository $notificacionRepository): JsonResponse
+    {
+        $profesor = $this->getUser();
+        $contador = $notificacionRepository->countNoLeidasByProfesor($profesor);
+
+        return new JsonResponse([
+            'contador' => $contador,
+        ]);
+    }
+
     #[Route('/{id}/marcar-leida', name: 'app_notificacion_marcar_leida', methods: ['POST'])]
+    #[IsGranted('ROLE_PROFESOR')]
     public function marcarLeida(int $id, NotificacionRepository $notificacionRepository, EntityManagerInterface $entityManager, Request $request): JsonResponse
     {
         $profesor = $this->getUser();
@@ -69,6 +98,7 @@ class NotificacionController extends AbstractController
     }
 
     #[Route('/marcar-todas-leidas', name: 'app_notificacion_marcar_todas_leidas', methods: ['POST'])]
+    #[IsGranted('ROLE_PROFESOR')]
     public function marcarTodasLeidas(NotificacionRepository $notificacionRepository, EntityManagerInterface $entityManager, Request $request): JsonResponse
     {
         $profesor = $this->getUser();
@@ -86,6 +116,35 @@ class NotificacionController extends AbstractController
         }
 
         return new JsonResponse(['success' => false, 'message' => 'Token inválido.'], 400);
+    }
+
+    #[Route('/{id}/marcar-leida-get', name: 'app_notificacion_marcar_leida_get', methods: ['GET'])]
+    #[IsGranted('ROLE_PROFESOR')]
+    public function marcarLeidaGet(int $id, NotificacionRepository $notificacionRepository, EntityManagerInterface $entityManager, Request $request): Response
+    {
+        $profesor = $this->getUser();
+        $notificacion = $notificacionRepository->find($id);
+
+        if (!$notificacion) {
+            $this->addFlash('error', 'Notificación no encontrada.');
+            return $this->redirectToRoute('app_notificacion_todas');
+        }
+
+        // Verificar que la notificación pertenece al profesor
+        if ($notificacion->getProfesor()->getId() !== $profesor->getId()) {
+            $this->addFlash('error', 'No tienes permiso para esta acción.');
+            return $this->redirectToRoute('app_notificacion_todas');
+        }
+
+        if ($this->isCsrfTokenValid('marcar_leida'.$notificacion->getId(), $request->query->get('_token'))) {
+            $notificacion->setLeida(true);
+            $entityManager->flush();
+            $this->addFlash('success', 'Notificación marcada como leída.');
+        } else {
+            $this->addFlash('error', 'Token inválido.');
+        }
+
+        return $this->redirectToRoute('app_notificacion_todas');
     }
 }
 

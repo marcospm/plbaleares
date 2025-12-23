@@ -40,6 +40,25 @@
         </div>
         {% endif %}
 
+        {% if is_granted('ROLE_USER') and not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
+        <div class="card" style="margin-top: 2rem; border-left: 4px solid #FF9800;">
+            <div class="card-header" style="background-color: #fff3cd;">
+                <h3 style="margin: 0; color: #856404;">⚠️ Reportar Error o Solicitar Corrección</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ path('app_articulo_reportar_error', {'id': articulo.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('reportar_error_' ~ articulo.id) }}">
+                    <div class="form-group">
+                        <label class="form-label"><strong>Mensaje:</strong></label>
+                        <textarea name="mensaje" class="form-control" rows="4" placeholder="Describe el error o la corrección que necesitas..." required style="width: 100%;"></textarea>
+                        <small style="color: #666; font-size: 0.85rem;">Los profesores y administradores serán notificados de tu solicitud.</small>
+                    </div>
+                    <button type="submit" class="btn btn-warning">Enviar Reporte</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="d-flex gap-2 mt-4">
             <a href="{{ path('app_articulo_publico_index', {'ley': leySeleccionada ?? 0, 'search': search ?? ''}) }}" class="btn btn-secondary">Volver a Artículos</a>
         </div>

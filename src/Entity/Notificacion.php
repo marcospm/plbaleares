@@ -11,6 +11,7 @@ class Notificacion
 {
     public const TIPO_EXAMEN = 'examen';
     public const TIPO_TAREA = 'tarea';
+    public const TIPO_ERROR_ARTICULO = 'error_articulo';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -41,6 +42,10 @@ class Notificacion
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?TareaAsignada $tareaAsignada = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Articulo $articulo = null;
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $leida = false;
@@ -143,6 +148,18 @@ class Notificacion
         return $this;
     }
 
+    public function getArticulo(): ?Articulo
+    {
+        return $this->articulo;
+    }
+
+    public function setArticulo(?Articulo $articulo): static
+    {
+        $this->articulo = $articulo;
+
+        return $this;
+    }
+
     public function isLeida(): bool
     {
         return $this->leida;
@@ -167,5 +184,6 @@ class Notificacion
         return $this;
     }
 }
+
 
 

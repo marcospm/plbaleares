@@ -46,6 +46,20 @@ class NotificacionRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleScalarResult();
     }
+
+    /**
+     * Obtiene todas las notificaciones de un profesor (leídas y no leídas)
+     */
+    public function findAllByProfesor(User $profesor): array
+    {
+        return $this->createQueryBuilder('n')
+            ->where('n.profesor = :profesor')
+            ->setParameter('profesor', $profesor)
+            ->orderBy('n.fechaCreacion', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
 }
+
 
 

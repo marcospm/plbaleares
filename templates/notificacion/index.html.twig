@@ -1,0 +1,75 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Notificaciones{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>Notificaciones</h1>
+            {% if noLeidas > 0 %}
+                <span class="badge" style="background-color: #dc3545; color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 1rem;">
+                    {{ noLeidas }} sin leer
+                </span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        {% if notificaciones|length > 0 %}
+            <div style="margin-bottom: 1rem;">
+                <form method="post" action="{{ path('app_notificacion_marcar_todas_leidas') }}" style="display: inline;">
+                    <input type="hidden" name="_token" value="{{ csrf_token('marcar_todas_leidas') }}">
+                    <button type="submit" class="btn btn-secondary">Marcar todas como leídas</button>
+                </form>
+            </div>
+
+            <div style="display: grid; gap: 1rem;">
+                {% for notificacion in notificaciones %}
+                    <div style="padding: 1rem; border: 1px solid #ddd; border-left: 4px solid {% if notificacion.tipo == 'examen' %}#2196F3{% elseif notificacion.tipo == 'tarea' %}#4CAF50{% else %}#FF9800{% endif %}; border-radius: 4px; background-color: {% if notificacion.leida %}#f8f9fa{% else %}#fff{% endif %};">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <span style="font-size: 1.2rem;">
+                                        {% if notificacion.tipo == 'examen' %}📝
+                                        {% elseif notificacion.tipo == 'tarea' %}✅
+                                        {% else %}⚠️{% endif %}
+                                    </span>
+                                    <strong style="color: {% if notificacion.tipo == 'examen' %}#2196F3{% elseif notificacion.tipo == 'tarea' %}#4CAF50{% else %}#FF9800{% endif %};">
+                                        {{ notificacion.titulo }}
+                                    </strong>
+                                    {% if not notificacion.leida %}
+                                        <span class="badge" style="background-color: #dc3545; color: white; padding: 0.25rem 0.5rem; border-radius: 3px; font-size: 0.75rem;">Nueva</span>
+                                    {% endif %}
+                                </div>
+                                <p style="margin: 0.5rem 0; color: #666;">{{ notificacion.mensaje }}</p>
+                                <small style="color: #999;">
+                                    {{ notificacion.fechaCreacion|date('d/m/Y H:i') }} - Alumno: {{ notificacion.alumno.username }}
+                                </small>
+                                {% if notificacion.articulo %}
+                                    <div style="margin-top: 0.5rem;">
+                                        <a href="{{ path('app_articulo_show', {'id': notificacion.articulo.id}) }}" class="btn btn-sm btn-primary">
+                                            Ver Artículo
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            {% if not notificacion.leida %}
+                                <div style="margin-left: 1rem;">
+                                    <a href="{{ path('app_notificacion_marcar_leida_get', {'id': notificacion.id, '_token': csrf_token('marcar_leida' ~ notificacion.id)}) }}" class="btn btn-sm btn-secondary">
+                                        Marcar como leída
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div style="text-align: center; padding: 3rem;">
+                <p style="color: #666; font-size: 1.1rem;">No tienes notificaciones.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
