@@ -19,6 +19,7 @@ class Notificacion
     public const TIPO_TAREA_CREADA = 'tarea_creada';
     public const TIPO_TAREA_EDITADA = 'tarea_editada';
     public const TIPO_TAREA_ELIMINADA = 'tarea_eliminada';
+    public const TIPO_EXAMEN_SEMANAL = 'examen_semanal';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -61,6 +62,10 @@ class Notificacion
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Tarea $tarea = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?ExamenSemanal $examenSemanal = null;
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $leida = false;
@@ -195,6 +200,18 @@ class Notificacion
     public function setTarea(?\App\Entity\Tarea $tarea): static
     {
         $this->tarea = $tarea;
+
+        return $this;
+    }
+
+    public function getExamenSemanal(): ?\App\Entity\ExamenSemanal
+    {
+        return $this->examenSemanal;
+    }
+
+    public function setExamenSemanal(?\App\Entity\ExamenSemanal $examenSemanal): static
+    {
+        $this->examenSemanal = $examenSemanal;
 
         return $this;
     }

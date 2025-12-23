@@ -59,6 +59,10 @@ class Examen
     #[ORM\JoinTable(name: 'examen_tema_municipal')]
     private Collection $temasMunicipales;
 
+    #[ORM\ManyToOne(inversedBy: 'examenes')]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?ExamenSemanal $examenSemanal = null;
+
     public function __construct()
     {
         $this->temas = new ArrayCollection();
@@ -259,6 +263,18 @@ class Examen
             'dificil' => 'Difícil',
             default => $this->dificultad ?? '',
         };
+    }
+
+    public function getExamenSemanal(): ?ExamenSemanal
+    {
+        return $this->examenSemanal;
+    }
+
+    public function setExamenSemanal(?ExamenSemanal $examenSemanal): static
+    {
+        $this->examenSemanal = $examenSemanal;
+
+        return $this;
     }
 }
 
