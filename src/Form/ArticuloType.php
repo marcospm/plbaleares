@@ -23,6 +23,11 @@ class ArticuloType extends AbstractType
                 'required' => true,
                 'attr' => ['class' => 'form-control', 'placeholder' => 'Ej: 1, 2, 3, 1.1, etc.']
             ])
+            ->add('nombre', TextType::class, [
+                'label' => 'Nombre del Artículo',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Ej: Protección del honor, intimidad, propia imagen...']
+            ])
             ->add('explicacion', TextareaType::class, [
                 'label' => 'Explicación para el Opositor',
                 'required' => false,

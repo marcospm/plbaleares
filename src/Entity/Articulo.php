@@ -18,6 +18,9 @@ class Articulo
     #[ORM\Column(length: 50)]
     private ?string $numero = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $nombre = null;
+
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $explicacion = null;
 
@@ -52,6 +55,18 @@ class Articulo
     public function setNumero(string $numero): static
     {
         $this->numero = $numero;
+
+        return $this;
+    }
+
+    public function getNombre(): ?string
+    {
+        return $this->nombre;
+    }
+
+    public function setNombre(?string $nombre): static
+    {
+        $this->nombre = $nombre;
 
         return $this;
     }
@@ -135,7 +150,14 @@ class Articulo
 
     public function __toString(): string
     {
-        return 'Art. ' . ($this->numero ?? '') . ($this->ley ? ' - ' . $this->ley->getNombre() : '');
+        $result = 'Art. ' . ($this->numero ?? '');
+        if ($this->nombre) {
+            $result .= ' - ' . $this->nombre;
+        }
+        if ($this->ley) {
+            $result .= ' (' . $this->ley->getNombre() . ')';
+        }
+        return $result;
     }
 }
 

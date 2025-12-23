@@ -47,6 +47,7 @@
                 <tr>
                     <th>ID</th>
                     <th>Número</th>
+                    <th>Nombre</th>
                     <th>Ley</th>
                     <th>Explicación</th>
                     <th>Preguntas</th>
@@ -59,6 +60,7 @@
                     <tr>
                         <td>{{ articulo.id }}</td>
                         <td><strong>Art. {{ articulo.numero }}</strong></td>
+                        <td>{{ articulo.nombre|default('-') }}</td>
                         <td>{{ articulo.ley.nombre }}</td>
                         <td>{{ articulo.explicacion|default('Sin explicación')|slice(0, 80) }}{% if articulo.explicacion|length > 80 %}...{% endif %}</td>
                         <td>

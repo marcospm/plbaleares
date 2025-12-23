@@ -4,6 +4,7 @@ namespace App\Twig;
 
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
+use Twig\TwigFilter;
 
 class AppExtension extends AbstractExtension
 {
@@ -11,6 +12,13 @@ class AppExtension extends AbstractExtension
     {
         return [
             new TwigFunction('ofuscar_nombre', [$this, 'ofuscarNombre']),
+        ];
+    }
+
+    public function getFilters(): array
+    {
+        return [
+            new TwigFilter('markdown', [$this, 'markdownToHtml'], ['is_safe' => ['html']]),
         ];
     }
 
@@ -29,7 +37,38 @@ class AppExtension extends AbstractExtension
         
         return 'Usuario #' . str_pad((string)$numero, 4, '0', STR_PAD_LEFT);
     }
+
+    /**
+     * Convierte markdown básico a HTML
+     * Soporta: **texto** (negritas), *texto* (cursiva), saltos de línea
+     */
+    public function markdownToHtml(?string $text): string
+    {
+        if (empty($text)) {
+            return '';
+        }
+
+        // Convertir **texto** a <strong>texto</strong>
+        $text = preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $text);
+        
+        // Convertir *texto* a <em>texto</em> (solo si no está dentro de **)
+        $text = preg_replace('/(?<!\*)\*([^*]+?)\*(?!\*)/', '<em>$1</em>', $text);
+        
+        // Convertir saltos de línea dobles a párrafos
+        $text = preg_replace('/\n\n+/', '</p><p>', $text);
+        $text = '<p>' . $text . '</p>';
+        
+        // Convertir saltos de línea simples a <br>
+        $text = preg_replace('/\n/', '<br>', $text);
+        
+        // Limpiar párrafos vacíos
+        $text = preg_replace('/<p>\s*<\/p>/', '', $text);
+        $text = preg_replace('/<p><br><\/p>/', '', $text);
+        
+        return trim($text);
+    }
 }
+
 
 
 

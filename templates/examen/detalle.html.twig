@@ -85,9 +85,9 @@
                     {% if not examen.municipio and item.pregunta.articulo and item.pregunta.articulo.explicacion %}
                         <details style="margin-top: 1rem;">
                             <summary style="cursor: pointer; font-weight: bold; color: var(--color-primary);">Ver Explicación del Artículo</summary>
-                            <div style="background: #e3f2fd; padding: 1rem; border-radius: 4px; margin-top: 0.5rem; border-left: 4px solid var(--color-secondary);">
+                            <div style="background: #e3f2fd; padding: 1rem; border-radius: 4px; margin-top: 0.5rem; border-left: 4px solid var(--color-secondary); line-height: 1.6;">
                                 <p><strong>Artículo {{ item.pregunta.articulo.numero }} - {{ item.pregunta.ley.nombre }}</strong></p>
-                                <p>{{ item.pregunta.articulo.explicacion|raw }}</p>
+                                <div>{{ item.pregunta.articulo.explicacion|markdown|raw }}</div>
                             </div>
                         </details>
                     {% endif %}

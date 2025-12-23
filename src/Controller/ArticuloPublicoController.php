@@ -26,26 +26,11 @@ class ArticuloPublicoController extends AbstractController
             return $ley->isActivo();
         });
         
-        // Solo artículos activos
-        $articulos = array_filter($articuloRepository->findAll(), function($articulo) {
-            return $articulo->isActivo() && $articulo->getLey() && $articulo->getLey()->isActivo();
-        });
-
-        // Filtrar por ley si se selecciona
-        if ($leyId > 0) {
-            $articulos = array_filter($articulos, function($articulo) use ($leyId) {
-                return $articulo->getLey() && $articulo->getLey()->getId() === $leyId;
-            });
-        }
-
-        // Filtrar por búsqueda
-        if (!empty($search)) {
-            $articulos = array_filter($articulos, function($articulo) use ($search) {
-                return stripos($articulo->getNumero(), $search) !== false ||
-                       stripos($articulo->getExplicacion() ?? '', $search) !== false ||
-                       ($articulo->getLey() && stripos($articulo->getLey()->getNombre(), $search) !== false);
-            });
-        }
+        // Obtener artículos activos ordenados por número, con filtros aplicados
+        $articulos = $articuloRepository->findActivosOrdenadosPorNumero(
+            $leyId > 0 ? $leyId : null,
+            !empty($search) ? $search : null
+        );
 
         return $this->render('articulo/publico_index.html.twig', [
             'articulos' => $articulos,
@@ -56,7 +41,7 @@ class ArticuloPublicoController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_articulo_publico_show', methods: ['GET'])]
-    public function show(int $id, ArticuloRepository $articuloRepository): Response
+    public function show(int $id, ArticuloRepository $articuloRepository, Request $request): Response
     {
         $articulo = $articuloRepository->find($id);
 
@@ -64,8 +49,14 @@ class ArticuloPublicoController extends AbstractController
             throw $this->createNotFoundException('Artículo no encontrado o no disponible');
         }
 
+        // Obtener parámetros de filtro de la query string para mantenerlos al volver
+        $leyId = $request->query->getInt('ley');
+        $search = $request->query->get('search', '');
+
         return $this->render('articulo/publico_show.html.twig', [
             'articulo' => $articulo,
+            'leySeleccionada' => $leyId,
+            'search' => $search,
         ]);
     }
 }

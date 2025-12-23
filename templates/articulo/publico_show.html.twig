@@ -5,9 +5,15 @@
 {% block body %}
 <div class="card">
     <div class="card-header">
-        <h1>Artículo {{ articulo.numero }}</h1>
+        <h1>Artículo {{ articulo.numero }}{% if articulo.nombre %} - {{ articulo.nombre }}{% endif %}</h1>
     </div>
     <div class="card-body">
+        {% if articulo.nombre %}
+        <div class="form-group">
+            <label class="form-label"><strong>Nombre:</strong></label>
+            <p style="font-size: 1.1rem; color: var(--color-primary);">{{ articulo.nombre }}</p>
+        </div>
+        {% endif %}
         <div class="form-group">
             <label class="form-label"><strong>Ley:</strong></label>
             <p style="font-size: 1.1rem; color: var(--color-primary);">{{ articulo.ley.nombre }}</p>
@@ -15,8 +21,8 @@
 
         <div class="form-group">
             <label class="form-label"><strong>Explicación para el Opositor:</strong></label>
-            <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--color-secondary); box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                {{ articulo.explicacion|default('Sin explicación disponible')|raw }}
+            <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--color-secondary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); line-height: 1.6;">
+                {{ articulo.explicacion|default('Sin explicación disponible')|markdown|raw }}
             </div>
         </div>
 
@@ -35,7 +41,7 @@
         {% endif %}
 
         <div class="d-flex gap-2 mt-4">
-            <a href="{{ path('app_articulo_publico_index') }}" class="btn btn-secondary">Volver a Artículos</a>
+            <a href="{{ path('app_articulo_publico_index', {'ley': leySeleccionada ?? 0, 'search': search ?? ''}) }}" class="btn btn-secondary">Volver a Artículos</a>
         </div>
     </div>
 </div>

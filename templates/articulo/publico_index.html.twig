@@ -42,17 +42,17 @@
                     <div class="card" style="margin-bottom: 0;">
                         <div class="card-body">
                             <h3 style="color: var(--color-primary); margin-bottom: 0.5rem;">
-                                <a href="{{ path('app_articulo_publico_show', {'id': articulo.id}) }}" style="text-decoration: none; color: inherit;">
-                                    Artículo {{ articulo.numero }}
+                                <a href="{{ path('app_articulo_publico_show', {'id': articulo.id, 'ley': leySeleccionada ?? 0, 'search': search ?? ''}) }}" style="text-decoration: none; color: inherit;">
+                                    Artículo {{ articulo.numero }}{% if articulo.nombre %} - {{ articulo.nombre }}{% endif %}
                                 </a>
                             </h3>
                             <p style="margin-bottom: 0.5rem; color: var(--color-text-light);">
                                 <strong>Ley:</strong> {{ articulo.ley.nombre }}
                             </p>
                             {% if articulo.explicacion %}
-                                <p style="margin-bottom: 0.5rem;">
-                                    {{ articulo.explicacion|slice(0, 150) }}{% if articulo.explicacion|length > 150 %}...{% endif %}
-                                </p>
+                                <div style="margin-bottom: 0.5rem; line-height: 1.5;">
+                                    {{ articulo.explicacion|slice(0, 150)|markdown|raw }}{% if articulo.explicacion|length > 150 %}...{% endif %}
+                                </div>
                             {% endif %}
                             {% if articulo.video %}
                                 <p style="margin-bottom: 0.5rem; color: var(--color-secondary);">
@@ -60,7 +60,7 @@
                                 </p>
                             {% endif %}
                             <div style="margin-top: 1rem;">
-                                <a href="{{ path('app_articulo_publico_show', {'id': articulo.id}) }}" class="btn btn-primary btn-sm">Ver Detalles</a>
+                                <a href="{{ path('app_articulo_publico_show', {'id': articulo.id, 'ley': leySeleccionada ?? 0, 'search': search ?? ''}) }}" class="btn btn-primary btn-sm">Ver Detalles</a>
                             </div>
                         </div>
                     </div>
