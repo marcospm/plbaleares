@@ -38,13 +38,22 @@ document.addEventListener('DOMContentLoaded', function() {
             const municipioId = this.value;
             // Recargar la página con el municipio seleccionado para actualizar los temas
             if (municipioId) {
-                window.location.href = '{{ path('app_pregunta_municipal_new') }}?municipio=' + municipioId;
+                const url = new URL(window.location.href);
+                url.searchParams.set('municipio', municipioId);
+                window.location.href = url.toString();
+            } else {
+                // Si se deselecciona el municipio, limpiar el parámetro
+                const url = new URL(window.location.href);
+                url.searchParams.delete('municipio');
+                window.location.href = url.toString();
             }
         });
     }
 });
 </script>
 {% endblock %}
+
+
 
 
 

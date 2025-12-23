@@ -250,11 +250,15 @@
                             {% if examen.municipio %}
                                 <span class="badge" style="background-color: #2196F3; margin-bottom: 0.25rem; display: block;">{{ examen.municipio.nombre }}</span>
                                 {% for temaMunicipal in examen.temasMunicipales %}
-                                    <span class="badge badge-facil">{{ temaMunicipal.nombre }}</span>
+                                    {% set nombreTema = temaMunicipal.nombre|trim %}
+                                    {% set nombreTruncado = nombreTema|length > 20 ? nombreTema|slice(0, 20) ~ '...' : nombreTema %}
+                                    <span class="badge badge-facil tema-tooltip" style="cursor: pointer;" data-tema-nombre="{{ nombreTema }}" onclick="mostrarTemaCompleto('{{ nombreTema|e('js') }}')">{{ nombreTruncado }}</span>
                                 {% endfor %}
                             {% else %}
                                 {% for tema in examen.temas %}
-                                    <span class="badge badge-facil">{{ tema.nombre }}</span>
+                                    {% set nombreTema = tema.nombre|trim %}
+                                    {% set nombreTruncado = nombreTema|length > 20 ? nombreTema|slice(0, 20) ~ '...' : nombreTema %}
+                                    <span class="badge badge-facil tema-tooltip" style="cursor: pointer;" data-tema-nombre="{{ nombreTema }}" onclick="mostrarTemaCompleto('{{ nombreTema|e('js') }}')">{{ nombreTruncado }}</span>
                                 {% endfor %}
                             {% endif %}
                         </td>

@@ -1,0 +1,124 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ examenSemanal.nombre }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>{{ examenSemanal.nombre }}</h1>
+            <div>
+                <a href="{{ path('app_examen_semanal_edit', {'id': examenSemanal.id}) }}" class="btn btn-primary">Editar</a>
+                <a href="{{ path('app_examen_semanal_index') }}" class="btn btn-secondary">Volver</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if examenSemanal.descripcion %}
+            <div class="mb-3">
+                <strong>Descripción:</strong>
+                <p>{{ examenSemanal.descripcion }}</p>
+            </div>
+        {% endif %}
+
+        <div class="mb-3">
+            <strong>Dificultad:</strong> 
+            <span class="badge badge-{{ examenSemanal.dificultad }}">{{ examenSemanal.getDificultadLabel() }}</span>
+        </div>
+
+        {% if examenSemanal.numeroPreguntas %}
+            <div class="mb-3">
+                <strong>Número de Preguntas:</strong> 
+                <span class="badge" style="background-color: #2196F3; padding: 0.5rem 1rem; font-size: 1rem;">{{ examenSemanal.numeroPreguntas }} preguntas</span>
+            </div>
+        {% else %}
+            <div class="mb-3">
+                <strong>Número de Preguntas:</strong> 
+                <span class="badge" style="background-color: #6c757d; padding: 0.5rem 1rem; font-size: 1rem;">Todas las disponibles</span>
+            </div>
+        {% endif %}
+
+        <div class="mb-3">
+            <strong>Fecha de Apertura:</strong> {{ examenSemanal.fechaApertura|date('d/m/Y H:i') }}
+        </div>
+
+        <div class="mb-3">
+            <strong>Fecha de Cierre:</strong> {{ examenSemanal.fechaCierre|date('d/m/Y H:i') }}
+        </div>
+
+        <div class="mb-3">
+            <strong>Estado:</strong>
+            {% if examenSemanal.estaDisponible() %}
+                <span class="badge" style="background-color: #28a745;">Disponible</span>
+            {% elseif examenSemanal.estaCerrado() %}
+                <span class="badge" style="background-color: #6c757d;">Cerrado</span>
+            {% elseif examenSemanal.estaPendiente() %}
+                <span class="badge" style="background-color: #ffc107;">Pendiente</span>
+            {% else %}
+                <span class="badge" style="background-color: #dc3545;">Inactivo</span>
+            {% endif %}
+        </div>
+
+        {% if examenSemanal.municipio %}
+            <div class="mb-3">
+                <strong>Municipio:</strong> 
+                <span class="badge" style="background-color: #2196F3;">{{ examenSemanal.municipio.nombre }}</span>
+            </div>
+            <div class="mb-3">
+                <strong>Temas Municipales:</strong>
+                {% for temaMunicipal in examenSemanal.temasMunicipales %}
+                    <span class="badge badge-facil">{{ temaMunicipal.nombre }}</span>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="mb-3">
+                <strong>Temas:</strong>
+                {% for tema in examenSemanal.temas %}
+                    <span class="badge badge-facil">{{ tema.nombre }}</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="mb-3">
+            <strong>Creado por:</strong> {{ examenSemanal.creadoPor.username }}
+        </div>
+
+        <div class="mb-3">
+            <strong>Fecha de creación:</strong> {{ examenSemanal.fechaCreacion|date('d/m/Y H:i') }}
+        </div>
+
+        <h3 style="margin-top: 2rem;">Exámenes Realizados: {{ examenSemanal.examenes|length }}</h3>
+        {% if examenSemanal.examenes|length > 0 %}
+            <div class="card mt-3">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Alumno</th>
+                            <th>Fecha</th>
+                            <th>Nota</th>
+                            <th>Aciertos</th>
+                            <th>Errores</th>
+                            <th>En blanco</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for examen in examenSemanal.examenes %}
+                            <tr>
+                                <td>{{ examen.usuario.username }}</td>
+                                <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>
+                                <td><strong style="font-size: 1.2rem; color: {% if examen.nota >= 10 %}var(--color-success){% else %}var(--color-danger){% endif %};">{{ examen.nota|number_format(2, ',', '.') }}</strong></td>
+                                <td style="color: var(--color-success);"><strong>{{ examen.aciertos }}</strong></td>
+                                <td style="color: var(--color-danger);"><strong>{{ examen.errores }}</strong></td>
+                                <td style="color: #999;"><strong>{{ examen.enBlanco }}</strong></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+
+

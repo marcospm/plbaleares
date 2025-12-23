@@ -15,53 +15,66 @@
             </div>
         {% endif %}
 
-        {{ form_start(form) }}
-            <div class="form-group">
-                {{ form_row(form.tipoExamen) }}
-            </div>
-
-            <div class="form-group" id="municipio_group" style="display: none;">
-                {{ form_row(form.municipio) }}
-            </div>
-
-            <div class="form-group" id="temas_general_group">
-                {{ form_label(form.temas) }}
-                <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--color-border); padding: 1rem; border-radius: 4px; background: #fafafa;">
-                    {% for tema in form.temas %}
-                        <div style="margin-bottom: 0.75rem; display: flex; align-items: flex-start; gap: 0.5rem;">
-                            {{ form_widget(tema, {'attr': {'style': 'margin-top: 0.25rem;'}}) }}
-                            {{ form_label(tema, null, {'label_attr': {'style': 'margin-bottom: 0; cursor: pointer;'}}) }}
-                        </div>
-                    {% endfor %}
+        {{ form_start(form, {'attr': {'id': 'examen_form', 'novalidate': 'novalidate'}}) }}
+            <div class="form-group mb-4">
+                <label for="tipo_examen_select" class="form-label fw-bold">Tipo de Examen</label>
+                {{ form_widget(form.tipoExamen, {'attr': {'class': 'form-select form-select-lg', 'id': 'tipo_examen_select'}}) }}
+                <div class="form-errors" style="display: none;">
+                    {{ form_errors(form.tipoExamen) }}
                 </div>
-                {{ form_errors(form.temas) }}
-                {% if form.temas.vars.errors|length > 0 %}
-                    <div class="alert alert-danger">
-                        {% for error in form.temas.vars.errors %}
-                            {{ error.message }}
+            </div>
+
+            <div class="form-group mb-4" id="municipio_group" style="display: none;">
+                <label for="municipio_select" class="form-label fw-bold">Selecciona el Municipio</label>
+                {{ form_widget(form.municipio, {'attr': {'class': 'form-select form-select-lg', 'id': 'municipio_select'}}) }}
+                {{ form_errors(form.municipio) }}
+            </div>
+
+            <div class="form-group mb-4" id="temas_general_group" style="display: none;">
+                <label class="form-label fw-bold">Selecciona los Temas del Temario General</label>
+                <div class="border rounded p-3 bg-light" style="max-height: 300px; overflow-y: auto;">
+                    {% if form.temas.vars.choices|length > 0 %}
+                        {% for tema in form.temas %}
+                            <div class="form-check mb-2">
+                                {{ form_widget(tema, {'attr': {'class': 'form-check-input'}}) }}
+                                {{ form_label(tema, null, {'label_attr': {'class': 'form-check-label'}}) }}
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted mb-0">No hay temas disponibles.</p>
+                    {% endif %}
+                </div>
+                <div class="form-errors" style="display: none;">
+                    {{ form_errors(form.temas) }}
+                </div>
+            </div>
+
+            <div class="form-group mb-4" id="temas_municipales_group" style="display: none;">
+                <label class="form-label fw-bold">Selecciona los Temas Municipales</label>
+                {% if form.temasMunicipales.vars.choices|length > 0 %}
+                    <div class="border rounded p-3 bg-light" style="max-height: 300px; overflow-y: auto;">
+                        {% for tema in form.temasMunicipales %}
+                            <div class="form-check mb-2">
+                                {{ form_widget(tema, {'attr': {'class': 'form-check-input'}}) }}
+                                {{ form_label(tema, null, {'label_attr': {'class': 'form-check-label'}}) }}
+                            </div>
                         {% endfor %}
                     </div>
+                {% else %}
+                    <div class="alert alert-warning mb-0">
+                        <strong>ℹ️ Información:</strong> Primero debes seleccionar un municipio arriba para ver los temas municipales disponibles.
+                    </div>
                 {% endif %}
-            </div>
-
-            <div class="form-group" id="temas_municipales_group" style="display: none;">
-                {{ form_label(form.temasMunicipales) }}
-                <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--color-border); padding: 1rem; border-radius: 4px; background: #fafafa;">
-                    {% for tema in form.temasMunicipales %}
-                        <div style="margin-bottom: 0.75rem; display: flex; align-items: flex-start; gap: 0.5rem;">
-                            {{ form_widget(tema, {'attr': {'style': 'margin-top: 0.25rem;'}}) }}
-                            {{ form_label(tema, null, {'label_attr': {'style': 'margin-bottom: 0; cursor: pointer;'}}) }}
-                        </div>
-                    {% endfor %}
+                <div class="form-errors" style="display: none;">
+                    {{ form_errors(form.temasMunicipales) }}
                 </div>
-                {{ form_errors(form.temasMunicipales) }}
             </div>
 
-            <div class="form-group">
+            <div class="form-group mb-3">
                 {{ form_row(form.dificultad) }}
             </div>
 
-            <div class="form-group">
+            <div class="form-group mb-3">
                 {{ form_row(form.numeroPreguntas) }}
             </div>
 
@@ -85,65 +98,279 @@
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const tipoExamenRadios = document.querySelectorAll('input[name="examen_iniciar[tipoExamen]"]');
-    const municipioGroup = document.getElementById('municipio_group');
-    const municipioSelect = document.querySelector('select[name="examen_iniciar[municipio]"]');
-    const temasGeneralGroup = document.getElementById('temas_general_group');
-    const temasMunicipalesGroup = document.getElementById('temas_municipales_group');
-    const temasMunicipalesInputs = document.querySelectorAll('#temas_municipales input[type="checkbox"]');
-    const temasGeneralInputs = document.querySelectorAll('#temas_general input[type="checkbox"]');
+<style>
+/* Estilos para ambos selectores - tipo de examen y municipio */
+#tipo_examen_select,
+#municipio_select,
+select[name="examen_iniciar[tipoExamen]"],
+select[name="examen_iniciar[municipio]"] {
+    min-height: 45px !important;
+    font-size: 1rem !important;
+    padding: 0.5rem 0.75rem !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 0.375rem !important;
+    width: 100% !important;
+    background-color: #fff !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.75rem center !important;
+    background-size: 16px 12px !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    line-height: 1.5 !important;
+}
 
-    function updateFormVisibility() {
-        let tipoExamen = 'general';
-        tipoExamenRadios.forEach(radio => {
-            if (radio.checked) {
-                tipoExamen = radio.value;
+#tipo_examen_select:focus,
+#municipio_select:focus,
+select[name="examen_iniciar[tipoExamen]"]:focus,
+select[name="examen_iniciar[municipio]"]:focus {
+    border-color: #86b7fe !important;
+    outline: 0 !important;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+}
+
+.form-select option {
+    padding: 0.5rem;
+}
+</style>
+
+<script>
+(function() {
+    'use strict';
+    
+    function inicializarFormulario() {
+        // Buscar elementos usando múltiples métodos
+        const tipoExamenSelect = document.getElementById('tipo_examen_select') || 
+                                 document.querySelector('select[name="examen_iniciar[tipoExamen]"]');
+        const municipioGroup = document.getElementById('municipio_group');
+        const municipioSelect = document.getElementById('municipio_select') || 
+                               document.querySelector('select[name="examen_iniciar[municipio]"]');
+        const temasGeneralGroup = document.getElementById('temas_general_group');
+        const temasMunicipalesGroup = document.getElementById('temas_municipales_group');
+        
+        if (!tipoExamenSelect) {
+            console.error('No se encontró el select de tipo de examen');
+            return;
+        }
+        
+        // Obtener municipio de la URL si existe
+        const urlParams = new URLSearchParams(window.location.search);
+        const municipioIdFromUrl = urlParams.get('municipio');
+        
+        function actualizarVista(limpiarSelecciones = false) {
+            const tipoSeleccionado = tipoExamenSelect ? tipoExamenSelect.value : '';
+            const municipioSeleccionado = municipioSelect ? municipioSelect.value : null;
+            const tieneMunicipio = municipioIdFromUrl || (municipioSeleccionado && municipioSeleccionado !== '' && municipioSeleccionado !== '0');
+            
+            // Ocultar todo primero
+            if (municipioGroup) municipioGroup.style.display = 'none';
+            if (temasGeneralGroup) temasGeneralGroup.style.display = 'none';
+            if (temasMunicipalesGroup) temasMunicipalesGroup.style.display = 'none';
+            
+            // Solo desmarcar checkboxes si se solicita explícitamente (al cambiar de tipo de examen)
+            if (limpiarSelecciones) {
+                const todosLosCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+                todosLosCheckboxes.forEach(input => {
+                    input.checked = false;
+                    input.required = false;
+                });
+            } else {
+                // Solo quitar el atributo required, no desmarcar
+                const todosLosCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+                todosLosCheckboxes.forEach(input => {
+                    input.required = false;
+                });
+            }
+            
+            // Quitar requerido del municipio
+            if (municipioSelect) municipioSelect.required = false;
+            
+            if (tipoSeleccionado === 'general') {
+                // Mostrar temas generales
+                if (temasGeneralGroup) {
+                    temasGeneralGroup.style.display = 'block';
+                }
+            } else if (tipoSeleccionado === 'municipal') {
+                // Mostrar selector de municipio
+                if (municipioGroup) {
+                    municipioGroup.style.display = 'block';
+                }
+                // Hacer requerido el municipio solo si no hay uno ya seleccionado
+                if (municipioSelect && !municipioSelect.value) {
+                    municipioSelect.required = true;
+                }
+                
+                // Mostrar temas municipales solo si hay municipio seleccionado
+                if (tieneMunicipio) {
+                    if (temasMunicipalesGroup) {
+                        temasMunicipalesGroup.style.display = 'block';
+                    }
+                }
+            }
+        }
+        
+        // Event listener para el tipo de examen
+        tipoExamenSelect.addEventListener('change', function() {
+            const tipoSeleccionado = this.value;
+            
+            if (tipoSeleccionado === 'general') {
+                // Limpiar municipio si estaba seleccionado
+                if (municipioSelect) {
+                    municipioSelect.value = '';
+                }
+                // Limpiar parámetro de municipio de la URL sin recargar
+                const url = new URL(window.location.href);
+                url.searchParams.delete('municipio');
+                window.history.replaceState({}, '', url.toString());
+                // Actualizar vista para mostrar temas generales, limpiando selecciones municipales
+                actualizarVista(true);
+            } else if (tipoSeleccionado === 'municipal') {
+                // Limpiar municipio si había uno seleccionado y actualizar vista inmediatamente
+                if (municipioSelect) {
+                    municipioSelect.value = '';
+                }
+                // Actualizar vista para mostrar el selector de municipio, limpiando selecciones generales
+                actualizarVista(true);
+            } else {
+                // Si vuelve al placeholder, ocultar todo y limpiar selecciones
+                actualizarVista(true);
             }
         });
         
-        if (tipoExamen === 'municipal') {
-            if (municipioGroup) municipioGroup.style.display = 'block';
-            if (temasGeneralGroup) temasGeneralGroup.style.display = 'none';
-            if (temasMunicipalesGroup) temasMunicipalesGroup.style.display = 'block';
-            // Desmarcar temas generales
-            temasGeneralInputs.forEach(input => input.checked = false);
-            // Hacer requerido municipio y temas municipales
-            if (municipioSelect) municipioSelect.required = true;
-            temasMunicipalesInputs.forEach(input => input.required = true);
-            temasGeneralInputs.forEach(input => input.required = false);
-        } else {
-            if (municipioGroup) municipioGroup.style.display = 'none';
-            if (temasGeneralGroup) temasGeneralGroup.style.display = 'block';
-            if (temasMunicipalesGroup) temasMunicipalesGroup.style.display = 'none';
-            // Desmarcar temas municipales
-            temasMunicipalesInputs.forEach(input => input.checked = false);
-            // Hacer requerido temas generales
-            temasGeneralInputs.forEach(input => input.required = true);
-            temasMunicipalesInputs.forEach(input => input.required = false);
-            if (municipioSelect) municipioSelect.required = false;
+        // Event listener para el municipio
+        if (municipioSelect) {
+            municipioSelect.addEventListener('change', function() {
+                const municipioId = this.value;
+                if (municipioId && municipioId !== '') {
+                    // Asegurar que el tipo municipal esté seleccionado
+                    if (tipoExamenSelect && tipoExamenSelect.value !== 'municipal') {
+                        tipoExamenSelect.value = 'municipal';
+                    }
+                    
+                    // Recargar la página con el municipio seleccionado para cargar los temas
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('municipio', municipioId);
+                    window.location.href = url.toString();
+                } else {
+                    // Si se deselecciona, limpiar la URL
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('municipio');
+                    window.location.href = url.toString();
+                }
+            });
         }
-    }
-
-    tipoExamenRadios.forEach(radio => {
-        radio.addEventListener('change', updateFormVisibility);
-    });
-    updateFormVisibility();
-
-    // Actualizar temas municipales cuando cambia el municipio
-    if (municipioSelect) {
-        municipioSelect.addEventListener('change', function() {
-            const municipioId = this.value;
-            if (municipioId) {
-                // Recargar la página con el municipio seleccionado para actualizar los temas
-                const url = new URL(window.location.href);
-                url.searchParams.set('municipio', municipioId);
-                window.location.href = url.toString();
+        
+        // Si hay municipio en la URL, establecer el tipo a municipal
+        if (municipioIdFromUrl && tipoExamenSelect) {
+            tipoExamenSelect.value = 'municipal';
+        }
+        
+        // Inicializar vista al cargar
+        actualizarVista();
+        
+        // Prevenir que los checkboxes disparen validación al hacer clic
+        // No remover el atributo required aquí, solo prevenir la propagación
+        document.addEventListener('click', function(e) {
+            if (e.target.type === 'checkbox') {
+                // Prevenir que el evento cause validación inmediata
+                e.stopPropagation();
+            }
+        }, true);
+        
+        // Validación personalizada al enviar el formulario
+        const form = document.getElementById('examen_form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const tipoSeleccionado = tipoExamenSelect ? tipoExamenSelect.value : '';
+                let isValid = true;
+                let errorMessage = '';
+                
+                // Asegurarse de que los campos ocultos se envíen correctamente
+                // Mostrar temporalmente los campos ocultos para que se envíen
+                const gruposOcultos = [];
+                if (tipoSeleccionado === 'general') {
+                    // Si es general, asegurar que temas municipales se envíen vacíos
+                    if (temasMunicipalesGroup && temasMunicipalesGroup.style.display === 'none') {
+                        // Desmarcar todos los temas municipales antes de enviar
+                        const temasMunicipalesInputs = temasMunicipalesGroup.querySelectorAll('input[type="checkbox"]');
+                        temasMunicipalesInputs.forEach(input => input.checked = false);
+                    }
+                } else if (tipoSeleccionado === 'municipal') {
+                    // Si es municipal, asegurar que temas generales se envíen vacíos
+                    if (temasGeneralGroup && temasGeneralGroup.style.display === 'none') {
+                        // Desmarcar todos los temas generales antes de enviar
+                        const temasGeneralInputs = temasGeneralGroup.querySelectorAll('input[type="checkbox"]');
+                        temasGeneralInputs.forEach(input => input.checked = false);
+                    }
+                }
+                
+                if (!tipoSeleccionado || tipoSeleccionado === '') {
+                    isValid = false;
+                    errorMessage = 'Debes seleccionar un tipo de examen.';
+                } else if (tipoSeleccionado === 'general') {
+                    // Verificar que haya al menos un tema general seleccionado
+                    const temasGeneralInputs = document.querySelectorAll('input[name^="examen_iniciar[temas]"][type="checkbox"]:checked');
+                    if (temasGeneralInputs.length === 0) {
+                        isValid = false;
+                        errorMessage = 'Debes seleccionar al menos un tema del temario general.';
+                    }
+                } else if (tipoSeleccionado === 'municipal') {
+                    // Verificar que haya un municipio seleccionado
+                    if (!municipioSelect || !municipioSelect.value) {
+                        isValid = false;
+                        errorMessage = 'Debes seleccionar un municipio.';
+                    } else {
+                        // Verificar que haya al menos un tema municipal seleccionado
+                        const temasMunicipalesInputs = document.querySelectorAll('input[name^="examen_iniciar[temasMunicipales]"][type="checkbox"]:checked');
+                        if (temasMunicipalesInputs.length === 0) {
+                            isValid = false;
+                            errorMessage = 'Debes seleccionar al menos un tema municipal.';
+                        }
+                    }
+                }
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Mostrar mensaje de error
+                    alert(errorMessage);
+                    // Mostrar errores de Symfony si existen
+                    const formErrors = form.querySelectorAll('.form-errors');
+                    formErrors.forEach(errorDiv => {
+                        if (errorDiv.innerHTML.trim() !== '') {
+                            errorDiv.style.display = 'block';
+                        }
+                    });
+                    return false;
+                } else {
+                    // Ocultar errores si la validación pasa
+                    const formErrors = form.querySelectorAll('.form-errors');
+                    formErrors.forEach(errorDiv => {
+                        errorDiv.style.display = 'none';
+                    });
+                }
+            }, true); // Usar capture phase para interceptar antes que otros listeners
+        }
+        
+        // Ocultar errores de validación al hacer clic en cualquier checkbox
+        document.addEventListener('change', function(e) {
+            if (e.target.type === 'checkbox') {
+                const formErrors = document.querySelectorAll('.form-errors');
+                formErrors.forEach(errorDiv => {
+                    errorDiv.style.display = 'none';
+                });
             }
         });
     }
-});
+    
+    // Ejecutar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', inicializarFormulario);
+    } else {
+        // DOM ya está listo
+        inicializarFormulario();
+    }
+})();
 </script>
 {% endblock %}
-

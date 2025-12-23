@@ -27,7 +27,33 @@
         {{ form_end(form) }}
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const municipioSelect = document.getElementById('pregunta_municipal_municipio');
+    const temaSelect = document.getElementById('pregunta_municipal_temaMunicipal');
+    
+    if (municipioSelect && temaSelect) {
+        municipioSelect.addEventListener('change', function() {
+            const municipioId = this.value;
+            // Recargar la página con el municipio seleccionado para actualizar los temas
+            if (municipioId) {
+                const url = new URL(window.location.href);
+                url.searchParams.set('municipio', municipioId);
+                window.location.href = url.toString();
+            } else {
+                // Si se deselecciona el municipio, limpiar el parámetro
+                const url = new URL(window.location.href);
+                url.searchParams.delete('municipio');
+                window.location.href = url.toString();
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
+
+
 
 
 

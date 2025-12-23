@@ -1,0 +1,153 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Exámenes Semanales{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Exámenes Semanales</h1>
+    </div>
+    <div class="card-body">
+        {% if examenGeneral or examenMunicipal %}
+            <div style="display: grid; grid-template-columns: {% if examenGeneral and examenMunicipal %}1fr 1fr{% else %}1fr{% endif %}; gap: 1.5rem; margin-bottom: 2rem;">
+                {% if examenGeneral %}
+                    <div class="card" style="border-left: 6px solid #4CAF50; background: linear-gradient(135deg, #f1f8f4 0%, #ffffff 100%); box-shadow: 0 4px 6px rgba(76, 175, 80, 0.1);">
+                        <div class="card-body">
+                            <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                                        <span class="badge" style="background-color: #4CAF50; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: bold;">📚 TEMARIO GENERAL</span>
+                                        {% if examenGeneral.numeroPreguntas %}
+                                            <span class="badge" style="background-color: #2196F3; padding: 0.4rem 0.8rem; font-size: 0.85rem;">{{ examenGeneral.numeroPreguntas }} preguntas</span>
+                                        {% endif %}
+                                    </div>
+                                    <h3 style="margin-top: 0; color: #2E7D32; font-weight: 600;">{{ examenGeneral.nombre }}</h3>
+                                    {% if examenGeneral.descripcion %}
+                                        <p style="color: #666; margin-bottom: 1rem;">{{ examenGeneral.descripcion }}</p>
+                                    {% endif %}
+                                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                                        <div>
+                                            <strong>Dificultad:</strong> 
+                                            <span class="badge badge-{{ examenGeneral.dificultad }}">{{ examenGeneral.getDificultadLabel() }}</span>
+                                        </div>
+                                        <div>
+                                            <strong>Apertura:</strong> {{ examenGeneral.fechaApertura|date('d/m/Y H:i') }}
+                                        </div>
+                                        <div>
+                                            <strong>Cierre:</strong> {{ examenGeneral.fechaCierre|date('d/m/Y H:i') }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    {% if yaRealizadoGeneral %}
+                                        <span class="badge" style="background-color: #6c757d; padding: 0.5rem 1rem; font-size: 1rem;">Ya Realizado</span>
+                                        <div style="margin-top: 0.5rem;">
+                                            <a href="{{ path('app_examen_semanal_alumno_ranking', {'id': examenGeneral.id}) }}" class="btn btn-primary btn-sm">Ver Ranking</a>
+                                        </div>
+                                    {% elseif examenGeneral.estaDisponible() %}
+                                        <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenGeneral.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;">Realizar Examen</a>
+                                    {% elseif examenGeneral.estaPendiente() %}
+                                        <span class="badge" style="background-color: #ffc107; padding: 0.5rem 1rem; font-size: 1rem;">Pendiente</span>
+                                    {% else %}
+                                        <span class="badge" style="background-color: #6c757d; padding: 0.5rem 1rem; font-size: 1rem;">Cerrado</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if examenMunicipal %}
+                    <div class="card" style="border-left: 6px solid #2196F3; background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%); box-shadow: 0 4px 6px rgba(33, 150, 243, 0.1);">
+                        <div class="card-body">
+                            <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                                        <span class="badge" style="background-color: #2196F3; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: bold;">🏛️ EXAMEN MUNICIPAL</span>
+                                        {% if examenMunicipal.numeroPreguntas %}
+                                            <span class="badge" style="background-color: #4CAF50; padding: 0.4rem 0.8rem; font-size: 0.85rem;">{{ examenMunicipal.numeroPreguntas }} preguntas</span>
+                                        {% endif %}
+                                    </div>
+                                    <h3 style="margin-top: 0; color: #1565C0; font-weight: 600;">{{ examenMunicipal.nombre }}</h3>
+                                    {% if examenMunicipal.descripcion %}
+                                        <p style="color: #666; margin-bottom: 1rem;">{{ examenMunicipal.descripcion }}</p>
+                                    {% endif %}
+                                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                                        <div>
+                                            <strong>Dificultad:</strong> 
+                                            <span class="badge badge-{{ examenMunicipal.dificultad }}">{{ examenMunicipal.getDificultadLabel() }}</span>
+                                        </div>
+                                        <div>
+                                            <strong>Apertura:</strong> {{ examenMunicipal.fechaApertura|date('d/m/Y H:i') }}
+                                        </div>
+                                        <div>
+                                            <strong>Cierre:</strong> {{ examenMunicipal.fechaCierre|date('d/m/Y H:i') }}
+                                        </div>
+                                    </div>
+                                    <div style="margin-bottom: 1rem;">
+                                        <span class="badge" style="background-color: #1976D2; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: bold;">📍 {{ examenMunicipal.municipio.nombre }}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    {% if yaRealizadoMunicipal %}
+                                        <span class="badge" style="background-color: #6c757d; padding: 0.5rem 1rem; font-size: 1rem;">Ya Realizado</span>
+                                        <div style="margin-top: 0.5rem;">
+                                            <a href="{{ path('app_examen_semanal_alumno_ranking', {'id': examenMunicipal.id}) }}" class="btn btn-primary btn-sm">Ver Ranking</a>
+                                        </div>
+                                    {% elseif examenMunicipal.estaDisponible() %}
+                                        <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenMunicipal.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;">Realizar Examen</a>
+                                    {% elseif examenMunicipal.estaPendiente() %}
+                                        <span class="badge" style="background-color: #ffc107; padding: 0.5rem 1rem; font-size: 1rem;">Pendiente</span>
+                                    {% else %}
+                                        <span class="badge" style="background-color: #6c757d; padding: 0.5rem 1rem; font-size: 1rem;">Cerrado</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="alert alert-info" style="text-align: center; padding: 2rem;">
+                <p style="font-size: 1.1rem; margin: 0;">No hay exámenes semanales disponibles en este momento.</p>
+            </div>
+        {% endif %}
+
+        {% if examenesRealizados|length > 0 %}
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Historial de Exámenes Semanales</h3>
+            <div class="card">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Examen</th>
+                            <th>Fecha</th>
+                            <th>Nota</th>
+                            <th>Aciertos</th>
+                            <th>Errores</th>
+                            <th>En blanco</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for examen in examenesRealizados %}
+                            <tr>
+                                <td><strong>{{ examen.examenSemanal.nombre }}</strong></td>
+                                <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>
+                                <td><strong style="font-size: 1.2rem; color: {% if examen.nota >= 10 %}var(--color-success){% else %}var(--color-danger){% endif %};">{{ examen.nota|number_format(2, ',', '.') }}</strong></td>
+                                <td style="color: var(--color-success);"><strong>{{ examen.aciertos }}</strong></td>
+                                <td style="color: var(--color-danger);"><strong>{{ examen.errores }}</strong></td>
+                                <td style="color: #999;"><strong>{{ examen.enBlanco }}</strong></td>
+                                <td>
+                                    <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-secondary btn-sm">Ver Detalle</a>
+                                    <a href="{{ path('app_examen_semanal_alumno_ranking', {'id': examen.examenSemanal.id}) }}" class="btn btn-primary btn-sm">Ver Ranking</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

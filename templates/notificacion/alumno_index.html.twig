@@ -29,8 +29,11 @@
                                     (notificacion.tipo == 'planificacion_editada' ? '✏️' : 
                                     (notificacion.tipo == 'planificacion_eliminada' ? '🗑️' : 
                                     (notificacion.tipo == 'tarea_creada' ? '📝' : 
-                                    (notificacion.tipo == 'tarea_editada' ? '✏️' : '🗑️')))) %}
-                    {% set color = 'planificacion' in notificacion.tipo ? '#2196F3' : '#4CAF50' %}
+                                    (notificacion.tipo == 'tarea_editada' ? '✏️' : 
+                                    (notificacion.tipo == 'tarea_eliminada' ? '🗑️' :
+                                    (notificacion.tipo == 'examen_semanal' ? '📋' : '📋')))))) %}
+                    {% set color = 'planificacion' in notificacion.tipo ? '#2196F3' : 
+                                    (notificacion.tipo == 'examen_semanal' ? '#9C27B0' : '#4CAF50') %}
                     
                     <div style="padding: 1rem; border: 1px solid #ddd; border-left: 4px solid {{ color }}; border-radius: 4px; background-color: {% if notificacion.leida %}#f8f9fa{% else %}#fff{% endif %};">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -59,6 +62,13 @@
                                     <div style="margin-top: 0.5rem;">
                                         <a href="{{ path('app_planificacion_alumno_index') }}" class="btn btn-sm btn-primary">
                                             Ver Tarea
+                                        </a>
+                                    </div>
+                                {% endif %}
+                                {% if notificacion.examenSemanal %}
+                                    <div style="margin-top: 0.5rem;">
+                                        <a href="{{ path('app_examen_semanal_alumno_index') }}" class="btn btn-sm btn-primary">
+                                            Ver Examen Semanal
                                         </a>
                                     </div>
                                 {% endif %}

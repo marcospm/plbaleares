@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\Articulo;
 use App\Entity\Examen;
+use App\Entity\ExamenSemanal;
 use App\Entity\Notificacion;
 use App\Entity\PlanificacionSemanal;
 use App\Entity\Tarea;
@@ -36,18 +37,40 @@ class NotificacionService
             return; // No hay profesores asignados
         }
 
+        // Verificar si es un examen semanal
+        $esExamenSemanal = $examen->getExamenSemanal() !== null;
+        $examenSemanal = $examen->getExamenSemanal();
+
         foreach ($profesores as $profesor) {
             $notificacion = new Notificacion();
             $notificacion->setTipo(Notificacion::TIPO_EXAMEN);
-            $notificacion->setTitulo('Nuevo Examen Completado');
-            $notificacion->setMensaje(
-                sprintf(
-                    '%s ha completado un examen de dificultad %s con una nota de %s.',
-                    $alumno->getUsername(),
-                    $examen->getDificultadLabel(),
-                    number_format((float)$examen->getNota(), 2, ',', '.')
-                )
-            );
+            
+            if ($esExamenSemanal && $examenSemanal) {
+                // Es un examen semanal
+                $notificacion->setTitulo('Examen Semanal Completado');
+                $notificacion->setMensaje(
+                    sprintf(
+                        '%s ha completado el examen semanal "%s" de dificultad %s con una nota de %s.',
+                        $alumno->getUsername(),
+                        $examenSemanal->getNombre(),
+                        $examen->getDificultadLabel(),
+                        number_format((float)$examen->getNota(), 2, ',', '.')
+                    )
+                );
+                $notificacion->setExamenSemanal($examenSemanal);
+            } else {
+                // Es un examen normal
+                $notificacion->setTitulo('Nuevo Examen Completado');
+                $notificacion->setMensaje(
+                    sprintf(
+                        '%s ha completado un examen de dificultad %s con una nota de %s.',
+                        $alumno->getUsername(),
+                        $examen->getDificultadLabel(),
+                        number_format((float)$examen->getNota(), 2, ',', '.')
+                    )
+                );
+            }
+            
             $notificacion->setProfesor($profesor);
             $notificacion->setAlumno($alumno);
             $notificacion->setExamen($examen);
@@ -308,6 +331,28 @@ class NotificacionService
         }
         
         $this->entityManager->flush();
+    }
+
+    /**
+     * Crea una notificación cuando se publica un nuevo examen semanal
+     */
+    public function crearNotificacionExamenSemanal(ExamenSemanal $examenSemanal, User $alumno, User $profesor): void
+    {
+        $notificacion = new Notificacion();
+        $notificacion->setTipo(Notificacion::TIPO_EXAMEN_SEMANAL);
+        $notificacion->setTitulo('Nuevo Examen Semanal');
+        $notificacion->setMensaje(
+            sprintf(
+                'Se ha publicado un nuevo examen semanal: "%s". Disponible hasta el %s.',
+                $examenSemanal->getNombre(),
+                $examenSemanal->getFechaCierre()->format('d/m/Y H:i')
+            )
+        );
+        $notificacion->setProfesor($profesor);
+        $notificacion->setAlumno($alumno);
+        $notificacion->setExamenSemanal($examenSemanal);
+        
+        $this->entityManager->persist($notificacion);
     }
 }
 

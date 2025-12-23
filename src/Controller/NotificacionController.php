@@ -22,14 +22,18 @@ class NotificacionController extends AbstractController
         $notificaciones = $notificacionRepository->findNoLeidasByProfesor($profesor);
 
         $data = [];
+        $timezone = new \DateTimeZone('Europe/Madrid');
         foreach ($notificaciones as $notificacion) {
+            $fechaCreacion = clone $notificacion->getFechaCreacion();
+            $fechaCreacion->setTimezone($timezone);
+            
             $data[] = [
                 'id' => $notificacion->getId(),
                 'tipo' => $notificacion->getTipo(),
                 'titulo' => $notificacion->getTitulo(),
                 'mensaje' => $notificacion->getMensaje(),
                 'alumno' => $notificacion->getAlumno()->getUsername(),
-                'fechaCreacion' => $notificacion->getFechaCreacion()->format('d/m/Y H:i'),
+                'fechaCreacion' => $fechaCreacion->format('d/m/Y H:i'),
                 'examenId' => $notificacion->getExamen()?->getId(),
                 'tareaId' => $notificacion->getTareaAsignada()?->getId(),
                 'articuloId' => $notificacion->getArticulo()?->getId(),
@@ -162,13 +166,17 @@ class NotificacionController extends AbstractController
         $notificaciones = $notificacionRepository->findNoLeidasByAlumno($alumno);
 
         $data = [];
+        $timezone = new \DateTimeZone('Europe/Madrid');
         foreach ($notificaciones as $notificacion) {
+            $fechaCreacion = clone $notificacion->getFechaCreacion();
+            $fechaCreacion->setTimezone($timezone);
+            
             $data[] = [
                 'id' => $notificacion->getId(),
                 'tipo' => $notificacion->getTipo(),
                 'titulo' => $notificacion->getTitulo(),
                 'mensaje' => $notificacion->getMensaje(),
-                'fechaCreacion' => $notificacion->getFechaCreacion()->format('d/m/Y H:i'),
+                'fechaCreacion' => $fechaCreacion->format('d/m/Y H:i'),
                 'planificacionId' => $notificacion->getPlanificacionSemanal()?->getId(),
                 'tareaId' => $notificacion->getTarea()?->getId(),
                 'leida' => $notificacion->isLeida(),

@@ -75,7 +75,7 @@ class PreguntaMunicipalType extends AbstractType
                 'choice_label' => 'nombre',
                 'required' => true,
                 'label' => 'Municipio',
-                'attr' => ['class' => 'form-control'],
+                'attr' => ['class' => 'form-control', 'id' => 'pregunta_municipal_municipio'],
                 'data' => $municipio,
             ])
             ->add('temaMunicipal', EntityType::class, [
@@ -83,15 +83,22 @@ class PreguntaMunicipalType extends AbstractType
                 'choice_label' => 'nombre',
                 'required' => true,
                 'label' => 'Tema Municipal',
-                'attr' => ['class' => 'form-control'],
+                'attr' => ['class' => 'form-control', 'id' => 'pregunta_municipal_temaMunicipal'],
                 'query_builder' => function ($er) use ($municipio) {
-                    $qb = $er->createQueryBuilder('t');
+                    $qb = $er->createQueryBuilder('t')
+                        ->where('t.activo = :activo')
+                        ->setParameter('activo', true);
                     if ($municipio) {
-                        $qb->where('t.municipio = :municipio')
+                        // Filtrar solo los temas del municipio seleccionado
+                        $qb->andWhere('t.municipio = :municipio')
                            ->setParameter('municipio', $municipio);
+                    } else {
+                        // Si no hay municipio seleccionado, no mostrar ningún tema
+                        $qb->andWhere('1 = 0');
                     }
                     return $qb->orderBy('t.nombre', 'ASC');
                 },
+                'placeholder' => $municipio ? 'Selecciona un tema' : 'Primero selecciona un municipio',
             ])
         ;
     }
@@ -104,6 +111,8 @@ class PreguntaMunicipalType extends AbstractType
         ]);
     }
 }
+
+
 
 
 

@@ -62,14 +62,25 @@ class NotificacionRepository extends ServiceEntityRepository
 
     /**
      * Obtiene notificaciones no leídas de un alumno
+     * Solo incluye notificaciones de acciones de profesores, no de las propias acciones del alumno
      */
     public function findNoLeidasByAlumno(User $alumno): array
     {
         return $this->createQueryBuilder('n')
             ->where('n.alumno = :alumno')
             ->andWhere('n.leida = :leida')
+            ->andWhere('n.tipo IN (:tiposPermitidos)')
             ->setParameter('alumno', $alumno)
             ->setParameter('leida', false)
+            ->setParameter('tiposPermitidos', [
+                Notificacion::TIPO_PLANIFICACION_CREADA,
+                Notificacion::TIPO_PLANIFICACION_EDITADA,
+                Notificacion::TIPO_PLANIFICACION_ELIMINADA,
+                Notificacion::TIPO_TAREA_CREADA,
+                Notificacion::TIPO_TAREA_EDITADA,
+                Notificacion::TIPO_TAREA_ELIMINADA,
+                Notificacion::TIPO_EXAMEN_SEMANAL,
+            ])
             ->orderBy('n.fechaCreacion', 'DESC')
             ->getQuery()
             ->getResult();
@@ -77,6 +88,7 @@ class NotificacionRepository extends ServiceEntityRepository
 
     /**
      * Cuenta notificaciones no leídas de un alumno
+     * Solo incluye notificaciones de acciones de profesores, no de las propias acciones del alumno
      */
     public function countNoLeidasByAlumno(User $alumno): int
     {
@@ -84,20 +96,41 @@ class NotificacionRepository extends ServiceEntityRepository
             ->select('COUNT(n.id)')
             ->where('n.alumno = :alumno')
             ->andWhere('n.leida = :leida')
+            ->andWhere('n.tipo IN (:tiposPermitidos)')
             ->setParameter('alumno', $alumno)
             ->setParameter('leida', false)
+            ->setParameter('tiposPermitidos', [
+                Notificacion::TIPO_PLANIFICACION_CREADA,
+                Notificacion::TIPO_PLANIFICACION_EDITADA,
+                Notificacion::TIPO_PLANIFICACION_ELIMINADA,
+                Notificacion::TIPO_TAREA_CREADA,
+                Notificacion::TIPO_TAREA_EDITADA,
+                Notificacion::TIPO_TAREA_ELIMINADA,
+                Notificacion::TIPO_EXAMEN_SEMANAL,
+            ])
             ->getQuery()
             ->getSingleScalarResult();
     }
 
     /**
      * Obtiene todas las notificaciones de un alumno (leídas y no leídas)
+     * Solo incluye notificaciones de acciones de profesores, no de las propias acciones del alumno
      */
     public function findAllByAlumno(User $alumno): array
     {
         return $this->createQueryBuilder('n')
             ->where('n.alumno = :alumno')
+            ->andWhere('n.tipo IN (:tiposPermitidos)')
             ->setParameter('alumno', $alumno)
+            ->setParameter('tiposPermitidos', [
+                Notificacion::TIPO_PLANIFICACION_CREADA,
+                Notificacion::TIPO_PLANIFICACION_EDITADA,
+                Notificacion::TIPO_PLANIFICACION_ELIMINADA,
+                Notificacion::TIPO_TAREA_CREADA,
+                Notificacion::TIPO_TAREA_EDITADA,
+                Notificacion::TIPO_TAREA_ELIMINADA,
+                Notificacion::TIPO_EXAMEN_SEMANAL,
+            ])
             ->orderBy('n.fechaCreacion', 'DESC')
             ->getQuery()
             ->getResult();

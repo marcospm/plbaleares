@@ -16,15 +16,27 @@
     </div>
     <div class="card-body">
         {% if esMunicipal is defined and esMunicipal %}
-            <div class="mb-3">
-                <strong>Tipo:</strong> <span class="badge" style="background-color: #2196F3;">Examen Municipal</span>
+            <div class="mb-3" style="padding: 1rem; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-left: 4px solid #2196F3; border-radius: 4px;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.2rem;">🏛️</span>
+                    <strong style="color: #1565C0;">Tipo de Examen:</strong> 
+                    <span class="badge" style="background-color: #2196F3; padding: 0.5rem 1rem; font-size: 0.95rem; font-weight: bold;">EXAMEN MUNICIPAL</span>
+                </div>
             </div>
-        {% elseif temas|length > 1 %}
-            <div class="mb-3">
-                <strong>Temas:</strong>
-                {% for tema in temas %}
-                    <span class="badge badge-facil">{{ tema.nombre }}</span>
-                {% endfor %}
+        {% else %}
+            <div class="mb-3" style="padding: 1rem; background: linear-gradient(135deg, #f1f8f4 0%, #c8e6c9 100%); border-left: 4px solid #4CAF50; border-radius: 4px;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                    <span style="font-size: 1.2rem;">📚</span>
+                    <strong style="color: #2E7D32;">Tipo de Examen:</strong> 
+                    <span class="badge" style="background-color: #4CAF50; padding: 0.5rem 1rem; font-size: 0.95rem; font-weight: bold;">TEMARIO GENERAL</span>
+                    {% if temas|length > 0 %}
+                        <span style="margin-left: 0.5rem;">|</span>
+                        <strong style="color: #2E7D32; margin-left: 0.5rem;">Temas:</strong>
+                        {% for tema in temas %}
+                            <span class="badge badge-facil" style="margin-left: 0.25rem;">{{ tema.nombre }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
             </div>
         {% endif %}
 

@@ -86,9 +86,13 @@ class PreguntaMunicipalController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'app_pregunta_municipal_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, PreguntaMunicipal $preguntaMunicipal, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, PreguntaMunicipal $preguntaMunicipal, EntityManagerInterface $entityManager, MunicipioRepository $municipioRepository): Response
     {
-        $form = $this->createForm(PreguntaMunicipalType::class, $preguntaMunicipal, ['municipio' => $preguntaMunicipal->getMunicipio()]);
+        // Si hay un municipio en la URL, usarlo; si no, usar el municipio de la pregunta
+        $municipioId = $request->query->getInt('municipio');
+        $municipio = $municipioId > 0 ? $municipioRepository->find($municipioId) : $preguntaMunicipal->getMunicipio();
+        
+        $form = $this->createForm(PreguntaMunicipalType::class, $preguntaMunicipal, ['municipio' => $municipio]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -118,6 +122,8 @@ class PreguntaMunicipalController extends AbstractController
         return $this->redirectToRoute('app_pregunta_municipal_index', [], Response::HTTP_SEE_OTHER);
     }
 }
+
+
 
 
 

@@ -47,11 +47,39 @@ class ExamenController extends AbstractController
         $session->remove('examen_pregunta_actual');
 
         $municipioId = $request->query->getInt('municipio');
-        $form = $this->createForm(ExamenIniciarType::class, null, [
-            'user' => $this->getUser(),
+        $user = $this->getUser();
+        
+        // Verificar si el usuario tiene municipios activos
+        $tieneMunicipiosActivos = false;
+        if ($user) {
+            $municipiosActivos = $user->getMunicipios()->filter(function($municipio) {
+                return $municipio->isActivo();
+            });
+            $tieneMunicipiosActivos = $municipiosActivos->count() > 0;
+        }
+        
+        // Si hay un municipio en la URL, establecer datos iniciales para tipo municipal
+        $formData = null;
+        if ($municipioId > 0 && $tieneMunicipiosActivos) {
+            $municipio = $this->municipioRepository->find($municipioId);
+            if ($municipio && $user->getMunicipios()->contains($municipio) && $municipio->isActivo()) {
+                $formData = [
+                    'tipoExamen' => 'municipal',
+                    'municipio' => $municipio,
+                ];
+            }
+        }
+        // Si no hay municipio en la URL, no establecer tipoExamen para que muestre el placeholder
+        
+        $form = $this->createForm(ExamenIniciarType::class, $formData, [
+            'user' => $user,
             'municipio_id' => $municipioId > 0 ? $municipioId : null,
+            'tiene_municipios_activos' => $tieneMunicipiosActivos,
         ]);
         $form->handleRequest($request);
+        
+        // Pasar variable a la vista para mostrar/ocultar opción municipal
+        $mostrarOpcionMunicipal = $tieneMunicipiosActivos;
 
         if ($form->isSubmitted()) {
             if (!$form->isValid()) {
@@ -87,6 +115,18 @@ class ExamenController extends AbstractController
                 $esMunicipal = false;
 
                 if ($tipoExamen === 'municipal' && $municipio) {
+                    // Verificar que el usuario tenga municipios activos
+                    if (!$tieneMunicipiosActivos) {
+                        $this->addFlash('error', 'No tienes municipios activos asignados. No puedes crear exámenes municipales.');
+                        return $this->redirectToRoute('app_examen_iniciar');
+                    }
+                    
+                    // Verificar que el municipio esté activo
+                    if (!$municipio->isActivo()) {
+                        $this->addFlash('error', 'El municipio seleccionado no está activo.');
+                        return $this->redirectToRoute('app_examen_iniciar');
+                    }
+                    
                     // Examen municipal
                     $esMunicipal = true;
                     
@@ -166,9 +206,9 @@ class ExamenController extends AbstractController
                     $this->addFlash('info', 'Solo hay ' . $preguntasDisponibles . ' preguntas disponibles. El examen se realizará con todas las preguntas disponibles.');
                 }
 
-                // Seleccionar aleatoriamente las preguntas
+                // Seleccionar preguntas aleatoriamente sin repetir artículos
                 shuffle($preguntas);
-                $preguntasSeleccionadas = array_slice($preguntas, 0, $preguntasAUsar);
+                $preguntasSeleccionadas = $this->seleccionarPreguntasSinRepetirArticulos($preguntas, $preguntasAUsar);
                 $preguntasIds = array_map(fn($p) => $p->getId(), $preguntasSeleccionadas);
 
                 // Guardar en sesión
@@ -277,6 +317,7 @@ class ExamenController extends AbstractController
         return $this->render('examen/iniciar.html.twig', [
             'form' => $form,
             'preguntasDisponibles' => $preguntasDisponibles,
+            'mostrarOpcionMunicipal' => $mostrarOpcionMunicipal,
         ]);
     }
 
@@ -449,6 +490,15 @@ class ExamenController extends AbstractController
             $temas = $this->temaRepository->findBy(['id' => $config['temas'] ?? []]);
             foreach ($temas as $tema) {
                 $examen->addTema($tema);
+            }
+        }
+
+        // Asociar con examen semanal si viene de uno
+        if (isset($config['examen_semanal_id'])) {
+            $examenSemanalRepository = $this->entityManager->getRepository(\App\Entity\ExamenSemanal::class);
+            $examenSemanal = $examenSemanalRepository->find($config['examen_semanal_id']);
+            if ($examenSemanal) {
+                $examen->setExamenSemanal($examenSemanal);
             }
         }
 
@@ -627,12 +677,16 @@ class ExamenController extends AbstractController
         // Query para exámenes generales (sin municipio)
         $qbGeneral = $this->examenRepository->createQueryBuilder('e')
             ->join('e.usuario', 'u')
+            ->leftJoin('e.examenSemanal', 'es')
+            ->addSelect('es')
             ->where('e.municipio IS NULL')
             ->orderBy('e.fecha', 'DESC');
         
         // Query para exámenes municipales
         $qbMunicipal = $this->examenRepository->createQueryBuilder('e')
             ->join('e.usuario', 'u')
+            ->leftJoin('e.examenSemanal', 'es')
+            ->addSelect('es')
             ->where('e.municipio IS NOT NULL')
             ->orderBy('e.fecha', 'DESC');
         
@@ -781,6 +835,49 @@ class ExamenController extends AbstractController
             'preguntas' => $preguntas,
             'esMunicipal' => $esMunicipal,
         ]);
+    }
+
+    /**
+     * Selecciona preguntas asegurándose de que no haya dos preguntas del mismo artículo
+     * 
+     * @param array $preguntas Array de preguntas disponibles
+     * @param int $cantidad Cantidad de preguntas a seleccionar
+     * @return array Array de preguntas seleccionadas sin repetir artículos
+     */
+    private function seleccionarPreguntasSinRepetirArticulos(array $preguntas, int $cantidad): array
+    {
+        $preguntasSeleccionadas = [];
+        $articulosUsados = [];
+        
+        foreach ($preguntas as $pregunta) {
+            // Si ya tenemos suficientes preguntas, parar
+            if (count($preguntasSeleccionadas) >= $cantidad) {
+                break;
+            }
+            
+            // Solo verificar artículos si la pregunta tiene el método getArticulo()
+            // (las preguntas municipales no tienen artículo)
+            $articuloId = null;
+            if (method_exists($pregunta, 'getArticulo')) {
+                $articulo = $pregunta->getArticulo();
+                $articuloId = $articulo ? $articulo->getId() : null;
+            }
+            
+            // Si el artículo ya fue usado, saltar esta pregunta
+            if ($articuloId !== null && in_array($articuloId, $articulosUsados)) {
+                continue;
+            }
+            
+            // Agregar la pregunta a las seleccionadas
+            $preguntasSeleccionadas[] = $pregunta;
+            
+            // Marcar el artículo como usado
+            if ($articuloId !== null) {
+                $articulosUsados[] = $articuloId;
+            }
+        }
+        
+        return $preguntasSeleccionadas;
     }
 }
 

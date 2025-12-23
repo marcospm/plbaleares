@@ -53,18 +53,16 @@ class AppCustomAuthenticator extends AbstractLoginFormAuthenticator
     }
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?RedirectResponse
-	{
-		// Si intentaba entrar a una página protegida, vuelve ahí
-		$targetPath = $this->getTargetPath($request->getSession(), $firewallName);
-		if ($targetPath) {
-			return new RedirectResponse($targetPath);
-		}
+    {
+        // Si intentaba entrar a una página protegida, vuelve ahí
+        $targetPath = $this->getTargetPath($request->getSession(), $firewallName);
+        if ($targetPath) {
+            return new RedirectResponse($targetPath);
+        }
 
-		// Si no, al dashboard
-		return new RedirectResponse($this->urlGenerator->generate('app_dashboard'));
-
-		// IMPORTANTE: borra el throw del TODO
-	}
+        // Si no, redirigir al dashboard
+        return new RedirectResponse($this->urlGenerator->generate('app_dashboard'));
+    }
 
     protected function getLoginUrl(Request $request): string
     {

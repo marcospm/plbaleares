@@ -13,30 +13,44 @@ use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Count;
+use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Form\FormError;
 
 class ExamenIniciarType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $user = $options['user'] ?? null;
+        $tieneMunicipiosActivos = $options['tiene_municipios_activos'] ?? false;
+        
+        // Construir las opciones de tipo de examen
+        $choicesTipoExamen = [
+            'Temario General' => 'general',
+        ];
+        
+        // Solo agregar la opción municipal si el usuario tiene municipios activos
+        if ($tieneMunicipiosActivos) {
+            $choicesTipoExamen['Municipio'] = 'municipal';
+        }
         
         $builder
             ->add('tipoExamen', ChoiceType::class, [
                 'label' => 'Tipo de Examen',
-                'choices' => [
-                    'Temario General' => 'general',
-                    'Municipio' => 'municipal',
-                ],
+                'choices' => $choicesTipoExamen,
                 'required' => true,
-                'attr' => ['class' => 'form-control', 'id' => 'tipo_examen'],
-                'data' => 'general',
+                'expanded' => false,
+                'multiple' => false,
+                'data' => null, // Sin valor por defecto para mostrar el placeholder
+                'placeholder' => 'Elige el tipo de examen',
+                'attr' => ['class' => 'form-select form-select-lg', 'id' => 'tipo_examen_select', 'style' => 'font-size: 1rem; padding: 0.5rem 0.75rem;'],
             ])
             ->add('municipio', EntityType::class, [
                 'class' => Municipio::class,
                 'choice_label' => 'nombre',
                 'required' => false,
-                'label' => 'Municipio (solo para exámenes municipales)',
-                'attr' => ['class' => 'form-control', 'id' => 'municipio_select', 'style' => 'display: none;'],
+                'label' => false,
+                'placeholder' => '-- Selecciona un municipio --',
+                'attr' => ['class' => 'form-select', 'id' => 'municipio_select'],
                 'query_builder' => function ($er) use ($user) {
                     $qb = $er->createQueryBuilder('m')
                         ->where('m.activo = :activo')
@@ -62,9 +76,6 @@ class ExamenIniciarType extends AbstractType
                         ->setParameter('activo', true)
                         ->orderBy('t.id', 'ASC');
                 },
-                'constraints' => [
-                    new Count(min: 1, minMessage: 'Debes seleccionar al menos un tema')
-                ],
                 'attr' => ['class' => 'form-check', 'id' => 'temas_general'],
                 'placeholder' => false,
             ])
@@ -81,10 +92,15 @@ class ExamenIniciarType extends AbstractType
                         ->where('t.activo = :activo')
                         ->setParameter('activo', true);
                     if ($municipioId) {
-                        $qb->andWhere('t.municipio = :municipio')
-                           ->setParameter('municipio', $municipioId);
+                        // Filtrar por el ID del municipio usando join - solo temas de ese municipio
+                        $qb->innerJoin('t.municipio', 'm')
+                           ->andWhere('m.id = :municipioId')
+                           ->setParameter('municipioId', $municipioId);
+                    } else {
+                        // Si no hay municipio seleccionado, no mostrar ningún tema
+                        $qb->andWhere('1 = 0');
                     }
-                    return $qb->orderBy('t.id', 'ASC');
+                    return $qb->orderBy('t.nombre', 'ASC');
                 },
                 'attr' => ['class' => 'form-check', 'id' => 'temas_municipales', 'style' => 'display: none;'],
                 'placeholder' => false,
@@ -116,6 +132,47 @@ class ExamenIniciarType extends AbstractType
                 'attr' => ['class' => 'form-control']
             ])
         ;
+
+        // Agregar validación condicional para municipio y temas municipales
+        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) {
+            $form = $event->getForm();
+            $data = $form->getData();
+            
+            $tipoExamen = $data['tipoExamen'] ?? 'general';
+            
+            if ($tipoExamen === 'municipal') {
+                $municipio = $data['municipio'] ?? null;
+                $temasMunicipales = $data['temasMunicipales'] ?? null;
+                
+                // Validar que haya un municipio seleccionado
+                if (!$municipio) {
+                    $form->get('municipio')->addError(new FormError('Debes seleccionar un municipio para realizar un examen municipal.'));
+                }
+                
+                // Validar que haya temas municipales seleccionados
+                if (!$temasMunicipales || (is_countable($temasMunicipales) && count($temasMunicipales) === 0)) {
+                    $form->get('temasMunicipales')->addError(new FormError('Debes seleccionar al menos un tema municipal.'));
+                } elseif ($municipio) {
+                    // Validar que los temas seleccionados pertenezcan al municipio
+                    $temasArray = $temasMunicipales instanceof \Doctrine\Common\Collections\Collection 
+                        ? $temasMunicipales->toArray() 
+                        : (is_array($temasMunicipales) ? $temasMunicipales : [$temasMunicipales]);
+                    
+                    foreach ($temasArray as $tema) {
+                        if ($tema->getMunicipio()->getId() !== $municipio->getId()) {
+                            $form->get('temasMunicipales')->addError(new FormError('Los temas seleccionados deben pertenecer al municipio seleccionado.'));
+                            break;
+                        }
+                    }
+                }
+            } else if ($tipoExamen === 'general') {
+                // Validar que haya temas generales seleccionados
+                $temas = $data['temas'] ?? null;
+                if (!$temas || (is_countable($temas) && count($temas) === 0)) {
+                    $form->get('temas')->addError(new FormError('Debes seleccionar al menos un tema del temario general.'));
+                }
+            }
+        });
     }
 
     public function configureOptions(OptionsResolver $resolver): void
@@ -123,6 +180,7 @@ class ExamenIniciarType extends AbstractType
         $resolver->setDefaults([
             'user' => null,
             'municipio_id' => null,
+            'tiene_municipios_activos' => false,
         ]);
     }
 }

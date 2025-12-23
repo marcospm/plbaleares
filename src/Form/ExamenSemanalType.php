@@ -1,0 +1,113 @@
+<?php
+
+namespace App\Form;
+
+use App\Entity\ExamenSemanal;
+use App\Entity\Tema;
+use App\Entity\TemaMunicipal;
+use App\Entity\Municipio;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
+use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
+
+class ExamenSemanalType extends AbstractType
+{
+    public function buildForm(FormBuilderInterface $builder, array $options): void
+    {
+        $builder
+            ->add('nombre', TextType::class, [
+                'label' => 'Nombre del Examen',
+                'required' => true,
+                'attr' => ['class' => 'form-control']
+            ])
+            ->add('descripcion', TextareaType::class, [
+                'label' => 'Descripción (opcional)',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'rows' => 4]
+            ])
+            ->add('fechaApertura', DateTimeType::class, [
+                'label' => 'Fecha y Hora de Apertura',
+                'required' => true,
+                'widget' => 'single_text',
+                'html5' => true,
+                'attr' => [
+                    'class' => 'form-control',
+                    'type' => 'datetime-local'
+                ]
+            ])
+            ->add('fechaCierre', DateTimeType::class, [
+                'label' => 'Fecha y Hora de Cierre',
+                'required' => true,
+                'widget' => 'single_text',
+                'html5' => true,
+                'attr' => [
+                    'class' => 'form-control',
+                    'type' => 'datetime-local'
+                ]
+            ])
+            ->add('dificultad', ChoiceType::class, [
+                'label' => 'Dificultad',
+                'choices' => [
+                    'Fácil' => 'facil',
+                    'Moderada' => 'moderada',
+                    'Difícil' => 'dificil',
+                ],
+                'required' => true,
+                'attr' => ['class' => 'form-control']
+            ])
+            ->add('numeroPreguntas', IntegerType::class, [
+                'label' => 'Número de Preguntas',
+                'required' => false,
+                'attr' => [
+                    'class' => 'form-control',
+                    'min' => 1,
+                    'placeholder' => 'Dejar vacío para usar todas las disponibles'
+                ],
+                'help' => 'Número de preguntas que tendrá el examen. Si se deja vacío, se usarán todas las preguntas disponibles de los temas seleccionados.'
+            ])
+            ->add('temas', EntityType::class, [
+                'class' => Tema::class,
+                'choice_label' => 'nombre',
+                'multiple' => true,
+                'expanded' => false,
+                'required' => false,
+                'label' => 'Temas del Temario General (opcional)',
+                'attr' => ['class' => 'form-control'],
+                'help' => 'Selecciona los temas para crear un examen del temario general'
+            ])
+            ->add('municipio', EntityType::class, [
+                'class' => Municipio::class,
+                'choice_label' => 'nombre',
+                'required' => false,
+                'label' => 'Municipio para Examen Municipal (opcional)',
+                'placeholder' => 'Ninguno',
+                'attr' => ['class' => 'form-control'],
+                'help' => 'Selecciona un municipio para crear también un examen municipal'
+            ])
+            ->add('temasMunicipales', EntityType::class, [
+                'class' => TemaMunicipal::class,
+                'choice_label' => 'nombre',
+                'multiple' => true,
+                'expanded' => false,
+                'required' => false,
+                'label' => 'Temas Municipales (si se selecciona municipio)',
+                'attr' => ['class' => 'form-control'],
+                'help' => 'Selecciona los temas municipales para el examen municipal'
+            ])
+        ;
+    }
+
+    public function configureOptions(OptionsResolver $resolver): void
+    {
+        $resolver->setDefaults([
+            'data_class' => ExamenSemanal::class,
+        ]);
+    }
+}
+
