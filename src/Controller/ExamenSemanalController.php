@@ -8,8 +8,12 @@ use App\Repository\ExamenSemanalRepository;
 use App\Repository\UserRepository;
 use App\Repository\MunicipioRepository;
 use App\Repository\TemaMunicipalRepository;
+use App\Repository\PreguntaRepository;
+use App\Repository\PreguntaMunicipalRepository;
 use App\Service\NotificacionService;
 use Doctrine\ORM\EntityManagerInterface;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -27,7 +31,9 @@ class ExamenSemanalController extends AbstractController
         private NotificacionService $notificacionService,
         private UserRepository $userRepository,
         private MunicipioRepository $municipioRepository,
-        private TemaMunicipalRepository $temaMunicipalRepository
+        private TemaMunicipalRepository $temaMunicipalRepository,
+        private PreguntaRepository $preguntaRepository,
+        private PreguntaMunicipalRepository $preguntaMunicipalRepository
     ) {
     }
 
@@ -319,6 +325,136 @@ class ExamenSemanalController extends AbstractController
         }
 
         return $this->redirectToRoute('app_examen_semanal_index', [], Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/{id}/pdf', name: 'app_examen_semanal_pdf', methods: ['GET'])]
+    public function generarPdf(ExamenSemanal $examenSemanal): Response
+    {
+        // Obtener preguntas del examen semanal
+        $preguntas = $this->obtenerPreguntasExamen($examenSemanal);
+        
+        if (empty($preguntas)) {
+            $this->addFlash('error', 'No hay preguntas disponibles para este examen semanal.');
+            return $this->redirectToRoute('app_examen_semanal_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        // Renderizar el template HTML
+        $html = $this->renderView('examen_semanal/pdf_examen.html.twig', [
+            'examenSemanal' => $examenSemanal,
+            'preguntas' => $preguntas,
+            'mostrarRespuestas' => false,
+        ]);
+
+        // Configurar opciones de dompdf
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'Arial');
+
+        // Crear instancia de dompdf
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        // Generar nombre del archivo
+        $nombreArchivo = 'examen_' . preg_replace('/[^a-z0-9]+/', '_', strtolower($examenSemanal->getNombre())) . '.pdf';
+
+        // Devolver el PDF
+        return new Response(
+            $dompdf->output(),
+            Response::HTTP_OK,
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $nombreArchivo . '"',
+            ]
+        );
+    }
+
+    #[Route('/{id}/pdf-respuestas', name: 'app_examen_semanal_pdf_respuestas', methods: ['GET'])]
+    public function generarPdfRespuestas(ExamenSemanal $examenSemanal): Response
+    {
+        // Obtener preguntas del examen semanal
+        $preguntas = $this->obtenerPreguntasExamen($examenSemanal);
+        
+        if (empty($preguntas)) {
+            $this->addFlash('error', 'No hay preguntas disponibles para este examen semanal.');
+            return $this->redirectToRoute('app_examen_semanal_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        // Renderizar el template HTML con respuestas
+        $html = $this->renderView('examen_semanal/pdf_examen.html.twig', [
+            'examenSemanal' => $examenSemanal,
+            'preguntas' => $preguntas,
+            'mostrarRespuestas' => true,
+        ]);
+
+        // Configurar opciones de dompdf
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'Arial');
+
+        // Crear instancia de dompdf
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        // Generar nombre del archivo
+        $nombreArchivo = 'respuestas_' . preg_replace('/[^a-z0-9]+/', '_', strtolower($examenSemanal->getNombre())) . '.pdf';
+
+        // Devolver el PDF
+        return new Response(
+            $dompdf->output(),
+            Response::HTTP_OK,
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $nombreArchivo . '"',
+            ]
+        );
+    }
+
+    /**
+     * Obtiene las preguntas de un examen semanal
+     */
+    private function obtenerPreguntasExamen(ExamenSemanal $examenSemanal): array
+    {
+        $preguntas = [];
+        $esMunicipal = $examenSemanal->getMunicipio() !== null;
+
+        if ($esMunicipal) {
+            // Obtener preguntas municipales
+            $temasMunicipales = $examenSemanal->getTemasMunicipales()->toArray();
+            if (!empty($temasMunicipales)) {
+                $preguntas = $this->preguntaMunicipalRepository->findByTemasMunicipales(
+                    $temasMunicipales,
+                    $examenSemanal->getDificultad()
+                );
+            }
+        } else {
+            // Obtener preguntas generales
+            $temas = $examenSemanal->getTemas()->toArray();
+            if (!empty($temas)) {
+                $preguntas = $this->preguntaRepository->createQueryBuilder('p')
+                    ->where('p.dificultad = :dificultad')
+                    ->andWhere('p.tema IN (:temas)')
+                    ->andWhere('p.activo = :activo')
+                    ->setParameter('dificultad', $examenSemanal->getDificultad())
+                    ->setParameter('temas', $temas)
+                    ->setParameter('activo', true)
+                    ->getQuery()
+                    ->getResult();
+            }
+        }
+
+        // Si hay un número limitado de preguntas, seleccionar aleatoriamente
+        if ($examenSemanal->getNumeroPreguntas() && count($preguntas) > $examenSemanal->getNumeroPreguntas()) {
+            shuffle($preguntas);
+            $preguntas = array_slice($preguntas, 0, $examenSemanal->getNumeroPreguntas());
+        }
+
+        return $preguntas;
     }
 }
 

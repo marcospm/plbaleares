@@ -49,13 +49,21 @@
                             {% endif %}
                         </td>
                         <td>{{ examen.examenes|length }}</td>
-                        <td>
-                            <a href="{{ path('app_examen_semanal_show', {'id': examen.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
-                            <a href="{{ path('app_examen_semanal_edit', {'id': examen.id}) }}" class="btn btn-primary btn-sm">Editar</a>
-                            <form method="post" action="{{ path('app_examen_semanal_delete', {'id': examen.id}) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de eliminar este examen semanal?');">
-                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ examen.id) }}">
-                                <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
-                            </form>
+                        <td style="white-space: nowrap;">
+                            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                                <a href="{{ path('app_examen_semanal_show', {'id': examen.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
+                                <a href="{{ path('app_examen_semanal_edit', {'id': examen.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                <a href="{{ path('app_examen_semanal_pdf', {'id': examen.id}) }}" class="btn btn-success btn-sm" target="_blank" title="Generar PDF del examen para imprimir">
+                                    📄 PDF
+                                </a>
+                                <a href="{{ path('app_examen_semanal_pdf_respuestas', {'id': examen.id}) }}" class="btn btn-info btn-sm" target="_blank" title="Generar PDF con plantilla de respuestas">
+                                    ✅ Respuestas
+                                </a>
+                                <form method="post" action="{{ path('app_examen_semanal_delete', {'id': examen.id}) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de eliminar este examen semanal?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ examen.id) }}">
+                                    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 {% endfor %}

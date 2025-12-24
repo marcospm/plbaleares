@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ examenSemanal.nombre }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11pt;
+            line-height: 1.4;
+            margin: 20px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 18pt;
+            font-weight: bold;
+        }
+        .header .subtitle {
+            margin-top: 5px;
+            font-size: 12pt;
+            color: #666;
+        }
+        .info {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        .info p {
+            margin: 5px 0;
+        }
+        .pregunta {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+        .pregunta-numero {
+            font-weight: bold;
+            font-size: 12pt;
+            margin-bottom: 8px;
+            color: #2196F3;
+        }
+        .pregunta-texto {
+            margin-bottom: 12px;
+            font-size: 11pt;
+            line-height: 1.5;
+        }
+        .opciones {
+            margin-left: 20px;
+        }
+        .opcion {
+            margin-bottom: 8px;
+            padding: 5px;
+        }
+        .opcion-label {
+            font-weight: bold;
+            display: inline-block;
+            width: 20px;
+        }
+        .respuesta-correcta {
+            background-color: #c8e6c9;
+            padding: 3px 5px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            font-size: 9pt;
+            color: #666;
+        }
+        .tabla-respuestas {
+            width: 100%;
+            margin-top: 30px;
+            border-collapse: collapse;
+        }
+        .tabla-respuestas th {
+            background-color: #2196F3;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-size: 12pt;
+        }
+        .tabla-respuestas td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .tabla-respuestas tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .respuesta-letra {
+            font-weight: bold;
+            font-size: 14pt;
+            color: #2196F3;
+        }
+        @media print {
+            body {
+                margin: 15mm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ examenSemanal.nombre }}</h1>
+        {% if examenSemanal.descripcion %}
+            <div class="subtitle">{{ examenSemanal.descripcion }}</div>
+        {% endif %}
+    </div>
+
+    <div class="info">
+        <p><strong>Dificultad:</strong> {{ examenSemanal.getDificultadLabel() }}</p>
+        {% if examenSemanal.municipio %}
+            <p><strong>Municipio:</strong> {{ examenSemanal.municipio.nombre }}</p>
+        {% endif %}
+        <p><strong>Fecha de apertura:</strong> {{ examenSemanal.fechaApertura|date('d/m/Y H:i') }}</p>
+        <p><strong>Fecha de cierre:</strong> {{ examenSemanal.fechaCierre|date('d/m/Y H:i') }}</p>
+        <p><strong>Total de preguntas:</strong> {{ preguntas|length }}</p>
+    </div>
+
+    {% if mostrarRespuestas %}
+        {# Plantilla de respuestas simplificada #}
+        <table class="tabla-respuestas">
+            <thead>
+                <tr>
+                    <th style="width: 50%;">Pregunta</th>
+                    <th style="width: 50%;">Respuesta</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pregunta in preguntas %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><span class="respuesta-letra">{{ pregunta.respuestaCorrecta }}</span></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        {# Examen completo con preguntas #}
+        {% for pregunta in preguntas %}
+            <div class="pregunta">
+                <div class="pregunta-numero">
+                    Pregunta {{ loop.index }}
+                </div>
+                <div class="pregunta-texto">
+                    {{ pregunta.texto|raw }}
+                </div>
+                <div class="opciones">
+                    <div class="opcion">
+                        <span class="opcion-label">A)</span>
+                        {{ pregunta.opcionA|raw }}
+                    </div>
+                    <div class="opcion">
+                        <span class="opcion-label">B)</span>
+                        {{ pregunta.opcionB|raw }}
+                    </div>
+                    <div class="opcion">
+                        <span class="opcion-label">C)</span>
+                        {{ pregunta.opcionC|raw }}
+                    </div>
+                    <div class="opcion">
+                        <span class="opcion-label">D)</span>
+                        {{ pregunta.opcionD|raw }}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="footer">
+        {% if mostrarRespuestas %}
+            <p><strong>PLANTILLA DE RESPUESTAS</strong></p>
+        {% endif %}
+        <p>Generado el {{ "now"|date('d/m/Y H:i') }}</p>
+    </div>
+</body>
+</html>
+
