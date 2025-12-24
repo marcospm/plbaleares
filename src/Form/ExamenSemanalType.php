@@ -22,54 +22,15 @@ class ExamenSemanalType extends AbstractType
     {
         $builder
             ->add('nombre', TextType::class, [
-                'label' => 'Nombre del Examen',
-                'required' => true,
-                'attr' => ['class' => 'form-control']
+                'label' => 'Nombre Base del Examen',
+                'required' => false,
+                'attr' => ['class' => 'form-control'],
+                'help' => 'Este nombre se usará como base. Puedes personalizar el nombre específico para cada tipo de examen más abajo.'
             ])
             ->add('descripcion', TextareaType::class, [
-                'label' => 'Descripción (opcional)',
+                'label' => 'Descripción General (opcional)',
                 'required' => false,
                 'attr' => ['class' => 'form-control', 'rows' => 4]
-            ])
-            ->add('fechaApertura', DateTimeType::class, [
-                'label' => 'Fecha y Hora de Apertura',
-                'required' => true,
-                'widget' => 'single_text',
-                'html5' => true,
-                'attr' => [
-                    'class' => 'form-control',
-                    'type' => 'datetime-local'
-                ]
-            ])
-            ->add('fechaCierre', DateTimeType::class, [
-                'label' => 'Fecha y Hora de Cierre',
-                'required' => true,
-                'widget' => 'single_text',
-                'html5' => true,
-                'attr' => [
-                    'class' => 'form-control',
-                    'type' => 'datetime-local'
-                ]
-            ])
-            ->add('dificultad', ChoiceType::class, [
-                'label' => 'Dificultad',
-                'choices' => [
-                    'Fácil' => 'facil',
-                    'Moderada' => 'moderada',
-                    'Difícil' => 'dificil',
-                ],
-                'required' => true,
-                'attr' => ['class' => 'form-control']
-            ])
-            ->add('numeroPreguntas', IntegerType::class, [
-                'label' => 'Número de Preguntas',
-                'required' => false,
-                'attr' => [
-                    'class' => 'form-control',
-                    'min' => 1,
-                    'placeholder' => 'Dejar vacío para usar todas las disponibles'
-                ],
-                'help' => 'Número de preguntas que tendrá el examen. Si se deja vacío, se usarán todas las preguntas disponibles de los temas seleccionados.'
             ])
             ->add('temas', EntityType::class, [
                 'class' => Tema::class,
@@ -99,6 +60,130 @@ class ExamenSemanalType extends AbstractType
                 'label' => 'Temas Municipales (si se selecciona municipio)',
                 'attr' => ['class' => 'form-control'],
                 'help' => 'Selecciona los temas municipales para el examen municipal'
+            ])
+        ;
+
+        // Campos para examen general
+        $builder
+            ->add('nombreGeneral', TextType::class, [
+                'label' => 'Nombre del Examen General',
+                'required' => false,
+                'mapped' => false,
+                'attr' => ['class' => 'form-control'],
+                'help' => 'Nombre específico para el examen del temario general'
+            ])
+            ->add('descripcionGeneral', TextareaType::class, [
+                'label' => 'Descripción del Examen General (opcional)',
+                'required' => false,
+                'mapped' => false,
+                'attr' => ['class' => 'form-control', 'rows' => 3]
+            ])
+            ->add('fechaAperturaGeneral', DateTimeType::class, [
+                'label' => 'Fecha y Hora de Apertura - General',
+                'required' => false,
+                'mapped' => false,
+                'widget' => 'single_text',
+                'html5' => true,
+                'attr' => [
+                    'class' => 'form-control',
+                    'type' => 'datetime-local'
+                ]
+            ])
+            ->add('fechaCierreGeneral', DateTimeType::class, [
+                'label' => 'Fecha y Hora de Cierre - General',
+                'required' => false,
+                'mapped' => false,
+                'widget' => 'single_text',
+                'html5' => true,
+                'attr' => [
+                    'class' => 'form-control',
+                    'type' => 'datetime-local'
+                ]
+            ])
+            ->add('dificultadGeneral', ChoiceType::class, [
+                'label' => 'Dificultad - General',
+                'choices' => [
+                    'Fácil' => 'facil',
+                    'Moderada' => 'moderada',
+                    'Difícil' => 'dificil',
+                ],
+                'required' => false,
+                'mapped' => false,
+                'placeholder' => 'Selecciona dificultad',
+                'attr' => ['class' => 'form-control']
+            ])
+            ->add('numeroPreguntasGeneral', IntegerType::class, [
+                'label' => 'Número de Preguntas - General',
+                'required' => false,
+                'mapped' => false,
+                'attr' => [
+                    'class' => 'form-control',
+                    'min' => 1,
+                    'placeholder' => 'Dejar vacío para usar todas las disponibles'
+                ],
+                'help' => 'Número de preguntas que tendrá el examen general. Si se deja vacío, se usarán todas las preguntas disponibles.'
+            ])
+        ;
+
+        // Campos para examen municipal
+        $builder
+            ->add('nombreMunicipal', TextType::class, [
+                'label' => 'Nombre del Examen Municipal',
+                'required' => false,
+                'mapped' => false,
+                'attr' => ['class' => 'form-control'],
+                'help' => 'Nombre específico para el examen municipal'
+            ])
+            ->add('descripcionMunicipal', TextareaType::class, [
+                'label' => 'Descripción del Examen Municipal (opcional)',
+                'required' => false,
+                'mapped' => false,
+                'attr' => ['class' => 'form-control', 'rows' => 3]
+            ])
+            ->add('fechaAperturaMunicipal', DateTimeType::class, [
+                'label' => 'Fecha y Hora de Apertura - Municipal',
+                'required' => false,
+                'mapped' => false,
+                'widget' => 'single_text',
+                'html5' => true,
+                'attr' => [
+                    'class' => 'form-control',
+                    'type' => 'datetime-local'
+                ]
+            ])
+            ->add('fechaCierreMunicipal', DateTimeType::class, [
+                'label' => 'Fecha y Hora de Cierre - Municipal',
+                'required' => false,
+                'mapped' => false,
+                'widget' => 'single_text',
+                'html5' => true,
+                'attr' => [
+                    'class' => 'form-control',
+                    'type' => 'datetime-local'
+                ]
+            ])
+            ->add('dificultadMunicipal', ChoiceType::class, [
+                'label' => 'Dificultad - Municipal',
+                'choices' => [
+                    'Fácil' => 'facil',
+                    'Moderada' => 'moderada',
+                    'Difícil' => 'dificil',
+                ],
+                'required' => false,
+                'mapped' => false,
+                'placeholder' => 'Selecciona dificultad',
+                'attr' => ['class' => 'form-control']
+            ])
+            ->add('numeroPreguntasMunicipal', IntegerType::class, [
+                'label' => 'Número de Preguntas - Municipal',
+                'required' => false,
+                'mapped' => false,
+                'attr' => [
+                    'class' => 'form-control',
+                    'min' => 1,
+                    'placeholder' => 'Dejar vacío para usar todas las disponibles'
+                ],
+                'help' => 'Número de preguntas que tendrá el examen municipal. Si se deja vacío, se usarán todas las preguntas disponibles.'
             ])
         ;
     }

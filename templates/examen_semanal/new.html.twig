@@ -10,28 +10,52 @@
     <div class="card-body">
         <div class="alert alert-info" style="margin-bottom: 2rem;">
             <strong>💡 Información:</strong> Puedes crear un examen del temario general, un examen municipal, o ambos a la vez. 
-            Si seleccionas temas del temario general Y un municipio con temas municipales, se crearán dos exámenes separados.
+            Cada tipo de examen puede tener su propio nombre, fechas de apertura y cierre, dificultad y cantidad de preguntas independientes.
+            Si seleccionas temas del temario general Y un municipio con temas municipales, se crearán dos exámenes completamente independientes.
         </div>
 
         {{ form_start(form) }}
             {{ form_row(form.nombre) }}
             {{ form_row(form.descripcion) }}
-            {{ form_row(form.fechaApertura) }}
-            {{ form_row(form.fechaCierre) }}
-            {{ form_row(form.dificultad) }}
             
-            <div class="card" style="background-color: #f8f9fa; margin-bottom: 1.5rem;">
+            <div class="card" style="background-color: #f1f8f4; border-left: 4px solid #4CAF50; margin-bottom: 1.5rem;">
                 <div class="card-body">
-                    <h4 style="margin-top: 0; color: #4CAF50;">📚 Examen del Temario General (Opcional)</h4>
+                    <h4 style="margin-top: 0; color: #2E7D32; font-weight: 600;">📚 Examen del Temario General (Opcional)</h4>
+                    <p style="color: #666; margin-bottom: 1.5rem; font-size: 0.9rem;">Configura los parámetros específicos para el examen del temario general.</p>
                     {{ form_row(form.temas) }}
+                    <hr style="margin: 1.5rem 0;">
+                    <h5 style="color: #2E7D32; margin-bottom: 1rem;">Configuración del Examen General</h5>
+                    {{ form_row(form.nombreGeneral) }}
+                    {{ form_row(form.descripcionGeneral) }}
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        {{ form_row(form.fechaAperturaGeneral) }}
+                        {{ form_row(form.fechaCierreGeneral) }}
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        {{ form_row(form.dificultadGeneral) }}
+                        {{ form_row(form.numeroPreguntasGeneral) }}
+                    </div>
                 </div>
             </div>
 
-            <div class="card" style="background-color: #e3f2fd; margin-bottom: 1.5rem;">
+            <div class="card" style="background-color: #e3f2fd; border-left: 4px solid #2196F3; margin-bottom: 1.5rem;">
                 <div class="card-body">
-                    <h4 style="margin-top: 0; color: #2196F3;">🏛️ Examen Municipal (Opcional)</h4>
+                    <h4 style="margin-top: 0; color: #1565C0; font-weight: 600;">🏛️ Examen Municipal (Opcional)</h4>
+                    <p style="color: #666; margin-bottom: 1.5rem; font-size: 0.9rem;">Configura los parámetros específicos para el examen municipal.</p>
                     {{ form_row(form.municipio) }}
                     {{ form_row(form.temasMunicipales) }}
+                    <hr style="margin: 1.5rem 0;">
+                    <h5 style="color: #1565C0; margin-bottom: 1rem;">Configuración del Examen Municipal</h5>
+                    {{ form_row(form.nombreMunicipal) }}
+                    {{ form_row(form.descripcionMunicipal) }}
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        {{ form_row(form.fechaAperturaMunicipal) }}
+                        {{ form_row(form.fechaCierreMunicipal) }}
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        {{ form_row(form.dificultadMunicipal) }}
+                        {{ form_row(form.numeroPreguntasMunicipal) }}
+                    </div>
                 </div>
             </div>
             

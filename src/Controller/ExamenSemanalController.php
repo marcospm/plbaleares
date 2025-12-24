@@ -46,15 +46,6 @@ class ExamenSemanalController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Validar que fechaCierre sea posterior a fechaApertura
-            if ($examenSemanal->getFechaCierre() <= $examenSemanal->getFechaApertura()) {
-                $this->addFlash('error', 'La fecha de cierre debe ser posterior a la fecha de apertura.');
-                return $this->render('examen_semanal/new.html.twig', [
-                    'examenSemanal' => $examenSemanal,
-                    'form' => $form,
-                ]);
-            }
-
             // Validar que haya al menos un tipo de examen seleccionado
             $tieneTemasGenerales = !$examenSemanal->getTemas()->isEmpty();
             $tieneTemasMunicipales = $examenSemanal->getMunicipio() !== null && !$examenSemanal->getTemasMunicipales()->isEmpty();
@@ -78,16 +69,62 @@ class ExamenSemanalController extends AbstractController
 
             $examenesCreados = [];
             $profesor = $this->getUser();
+            $formData = $form->getData();
 
             // Crear examen del temario general si hay temas seleccionados
             if ($tieneTemasGenerales) {
                 $examenGeneral = new ExamenSemanal();
-                $examenGeneral->setNombre($examenSemanal->getNombre() . ' - Temario General');
-                $examenGeneral->setDescripcion($examenSemanal->getDescripcion());
-                $examenGeneral->setFechaApertura($examenSemanal->getFechaApertura());
-                $examenGeneral->setFechaCierre($examenSemanal->getFechaCierre());
-                $examenGeneral->setDificultad($examenSemanal->getDificultad());
-                $examenGeneral->setNumeroPreguntas($examenSemanal->getNumeroPreguntas());
+                
+                // Usar nombre específico o nombre base + sufijo
+                $nombreGeneral = $form->get('nombreGeneral')->getData();
+                if (empty($nombreGeneral)) {
+                    $nombreBase = $examenSemanal->getNombre();
+                    $nombreGeneral = !empty($nombreBase) ? $nombreBase . ' - Temario General' : 'Examen Semanal - Temario General';
+                }
+                $examenGeneral->setNombre($nombreGeneral);
+                
+                // Usar descripción específica o general
+                $descripcionGeneral = $form->get('descripcionGeneral')->getData();
+                $examenGeneral->setDescripcion($descripcionGeneral ?: $examenSemanal->getDescripcion());
+                
+                // Usar fechas específicas o requerir que se completen
+                $fechaAperturaGeneral = $form->get('fechaAperturaGeneral')->getData();
+                $fechaCierreGeneral = $form->get('fechaCierreGeneral')->getData();
+                
+                if (!$fechaAperturaGeneral || !$fechaCierreGeneral) {
+                    $this->addFlash('error', 'Debes especificar fecha de apertura y cierre para el examen general.');
+                    return $this->render('examen_semanal/new.html.twig', [
+                        'examenSemanal' => $examenSemanal,
+                        'form' => $form,
+                    ]);
+                }
+                
+                if ($fechaCierreGeneral <= $fechaAperturaGeneral) {
+                    $this->addFlash('error', 'La fecha de cierre del examen general debe ser posterior a la fecha de apertura.');
+                    return $this->render('examen_semanal/new.html.twig', [
+                        'examenSemanal' => $examenSemanal,
+                        'form' => $form,
+                    ]);
+                }
+                
+                $examenGeneral->setFechaApertura($fechaAperturaGeneral);
+                $examenGeneral->setFechaCierre($fechaCierreGeneral);
+                
+                // Usar dificultad específica o requerir que se complete
+                $dificultadGeneral = $form->get('dificultadGeneral')->getData();
+                if (!$dificultadGeneral) {
+                    $this->addFlash('error', 'Debes especificar la dificultad para el examen general.');
+                    return $this->render('examen_semanal/new.html.twig', [
+                        'examenSemanal' => $examenSemanal,
+                        'form' => $form,
+                    ]);
+                }
+                $examenGeneral->setDificultad($dificultadGeneral);
+                
+                // Número de preguntas (opcional)
+                $numeroPreguntasGeneral = $form->get('numeroPreguntasGeneral')->getData();
+                $examenGeneral->setNumeroPreguntas($numeroPreguntasGeneral);
+                
                 $examenGeneral->setCreadoPor($profesor);
                 $examenGeneral->setActivo(true);
                 
@@ -102,12 +139,59 @@ class ExamenSemanalController extends AbstractController
             // Crear examen municipal si hay municipio y temas municipales seleccionados
             if ($tieneTemasMunicipales) {
                 $examenMunicipal = new ExamenSemanal();
-                $examenMunicipal->setNombre($examenSemanal->getNombre() . ' - ' . $examenSemanal->getMunicipio()->getNombre());
-                $examenMunicipal->setDescripcion($examenSemanal->getDescripcion());
-                $examenMunicipal->setFechaApertura($examenSemanal->getFechaApertura());
-                $examenMunicipal->setFechaCierre($examenSemanal->getFechaCierre());
-                $examenMunicipal->setDificultad($examenSemanal->getDificultad());
-                $examenMunicipal->setNumeroPreguntas($examenSemanal->getNumeroPreguntas());
+                
+                // Usar nombre específico o nombre base + municipio
+                $nombreMunicipal = $form->get('nombreMunicipal')->getData();
+                if (empty($nombreMunicipal)) {
+                    $nombreBase = $examenSemanal->getNombre();
+                    $nombreMunicipal = !empty($nombreBase) 
+                        ? $nombreBase . ' - ' . $examenSemanal->getMunicipio()->getNombre()
+                        : 'Examen Semanal - ' . $examenSemanal->getMunicipio()->getNombre();
+                }
+                $examenMunicipal->setNombre($nombreMunicipal);
+                
+                // Usar descripción específica o general
+                $descripcionMunicipal = $form->get('descripcionMunicipal')->getData();
+                $examenMunicipal->setDescripcion($descripcionMunicipal ?: $examenSemanal->getDescripcion());
+                
+                // Usar fechas específicas o requerir que se completen
+                $fechaAperturaMunicipal = $form->get('fechaAperturaMunicipal')->getData();
+                $fechaCierreMunicipal = $form->get('fechaCierreMunicipal')->getData();
+                
+                if (!$fechaAperturaMunicipal || !$fechaCierreMunicipal) {
+                    $this->addFlash('error', 'Debes especificar fecha de apertura y cierre para el examen municipal.');
+                    return $this->render('examen_semanal/new.html.twig', [
+                        'examenSemanal' => $examenSemanal,
+                        'form' => $form,
+                    ]);
+                }
+                
+                if ($fechaCierreMunicipal <= $fechaAperturaMunicipal) {
+                    $this->addFlash('error', 'La fecha de cierre del examen municipal debe ser posterior a la fecha de apertura.');
+                    return $this->render('examen_semanal/new.html.twig', [
+                        'examenSemanal' => $examenSemanal,
+                        'form' => $form,
+                    ]);
+                }
+                
+                $examenMunicipal->setFechaApertura($fechaAperturaMunicipal);
+                $examenMunicipal->setFechaCierre($fechaCierreMunicipal);
+                
+                // Usar dificultad específica o requerir que se complete
+                $dificultadMunicipal = $form->get('dificultadMunicipal')->getData();
+                if (!$dificultadMunicipal) {
+                    $this->addFlash('error', 'Debes especificar la dificultad para el examen municipal.');
+                    return $this->render('examen_semanal/new.html.twig', [
+                        'examenSemanal' => $examenSemanal,
+                        'form' => $form,
+                    ]);
+                }
+                $examenMunicipal->setDificultad($dificultadMunicipal);
+                
+                // Número de preguntas (opcional)
+                $numeroPreguntasMunicipal = $form->get('numeroPreguntasMunicipal')->getData();
+                $examenMunicipal->setNumeroPreguntas($numeroPreguntasMunicipal);
+                
                 $examenMunicipal->setCreadoPor($profesor);
                 $examenMunicipal->setActivo(true);
                 $examenMunicipal->setMunicipio($examenSemanal->getMunicipio());
