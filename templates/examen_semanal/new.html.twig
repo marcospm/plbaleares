@@ -15,7 +15,38 @@
             <strong>Nota:</strong> Los temas municipales se filtrarán automáticamente según el municipio seleccionado.
         </div>
 
+        <div class="card" style="background-color: #fff3cd; border-left: 4px solid #ffc107; margin-bottom: 2rem;">
+            <div class="card-body">
+                <h4 style="margin-top: 0; color: #856404; font-weight: 600;">⚙️ Método de Creación</h4>
+                <p style="color: #666; margin-bottom: 1rem;">Selecciona cómo quieres crear el examen:</p>
+                <div class="d-flex gap-3">
+                    <a href="{{ path('app_examen_semanal_new') }}" class="btn btn-primary">
+                        📚 Usar Preguntas Existentes (por Temas)
+                    </a>
+                    <a href="{{ path('app_examen_semanal_new_con_preguntas', {'tipo': 'general'}) }}" class="btn btn-success">
+                        ✏️ Crear Preguntas en Tiempo Real (General)
+                    </a>
+                    <a href="{{ path('app_examen_semanal_new_con_preguntas', {'tipo': 'municipal'}) }}" class="btn btn-info">
+                        🏛️ Crear Preguntas en Tiempo Real (Municipal)
+                    </a>
+                </div>
+                <p style="color: #856404; margin-top: 1rem; font-size: 0.9rem;">
+                    <strong>Método actual:</strong> Usar Preguntas Existentes - Selecciona temas y el sistema elegirá preguntas aleatoriamente.
+                </p>
+            </div>
+        </div>
+
         {{ form_start(form) }}
+            {# Ocultar campos básicos mapeados ya que se usan campos no mapeados para la creación #}
+            <div style="display: none;">
+                {{ form_row(form.nombre) }}
+                {{ form_row(form.descripcion) }}
+                {{ form_row(form.fechaApertura) }}
+                {{ form_row(form.fechaCierre) }}
+                {{ form_row(form.dificultad) }}
+                {{ form_row(form.numeroPreguntas) }}
+            </div>
+            
             <div class="card" style="background-color: #f1f8f4; border-left: 4px solid #4CAF50; margin-bottom: 1.5rem;">
                 <div class="card-body">
                     <h4 style="margin-top: 0; color: #2E7D32; font-weight: 600;">📚 Examen del Temario General (Opcional)</h4>

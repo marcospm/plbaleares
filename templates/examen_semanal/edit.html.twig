@@ -11,26 +11,14 @@
         {{ form_start(form) }}
             {{ form_row(form.nombre) }}
             {{ form_row(form.descripcion) }}
-            {{ form_row(form.fechaApertura) }}
-            {{ form_row(form.fechaCierre) }}
-            {{ form_row(form.dificultad) }}
-            
-            {% if examenSemanal.municipio %}
-                <div class="card" style="background-color: #e3f2fd; margin-bottom: 1.5rem;">
-                    <div class="card-body">
-                        <h4 style="margin-top: 0; color: #2196F3;">🏛️ Examen Municipal</h4>
-                        {{ form_row(form.municipio) }}
-                        {{ form_row(form.temasMunicipales) }}
-                    </div>
+            <div class="row">
+                <div class="col-md-6">
+                    {{ form_row(form.fechaApertura) }}
                 </div>
-            {% else %}
-                <div class="card" style="background-color: #f8f9fa; margin-bottom: 1.5rem;">
-                    <div class="card-body">
-                        <h4 style="margin-top: 0; color: #4CAF50;">📚 Examen del Temario General</h4>
-                        {{ form_row(form.temas) }}
-                    </div>
+                <div class="col-md-6">
+                    {{ form_row(form.fechaCierre) }}
                 </div>
-            {% endif %}
+            </div>
             
             <div class="d-flex gap-2 mt-4">
                 <button type="submit" class="btn btn-primary">Guardar Cambios</button>

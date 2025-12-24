@@ -59,11 +59,24 @@ class ExamenSemanal
     #[ORM\OneToMany(targetEntity: Examen::class, mappedBy: 'examenSemanal')]
     private Collection $examenes;
 
+    #[ORM\Column(length: 50, nullable: true, options: ['default' => 'temas'])]
+    private ?string $modoCreacion = 'temas';
+
+    #[ORM\ManyToMany(targetEntity: Pregunta::class)]
+    #[ORM\JoinTable(name: 'examen_semanal_pregunta')]
+    private Collection $preguntas;
+
+    #[ORM\ManyToMany(targetEntity: PreguntaMunicipal::class)]
+    #[ORM\JoinTable(name: 'examen_semanal_pregunta_municipal')]
+    private Collection $preguntasMunicipales;
+
     public function __construct()
     {
         $this->temas = new ArrayCollection();
         $this->temasMunicipales = new ArrayCollection();
         $this->examenes = new ArrayCollection();
+        $this->preguntas = new ArrayCollection();
+        $this->preguntasMunicipales = new ArrayCollection();
         $this->fechaCreacion = new \DateTimeImmutable();
     }
 
@@ -302,5 +315,65 @@ class ExamenSemanal
     public function __toString(): string
     {
         return $this->nombre ?? '';
+    }
+
+    public function getModoCreacion(): ?string
+    {
+        return $this->modoCreacion;
+    }
+
+    public function setModoCreacion(?string $modoCreacion): static
+    {
+        $this->modoCreacion = $modoCreacion;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Pregunta>
+     */
+    public function getPreguntas(): Collection
+    {
+        return $this->preguntas;
+    }
+
+    public function addPregunta(Pregunta $pregunta): static
+    {
+        if (!$this->preguntas->contains($pregunta)) {
+            $this->preguntas->add($pregunta);
+        }
+
+        return $this;
+    }
+
+    public function removePregunta(Pregunta $pregunta): static
+    {
+        $this->preguntas->removeElement($pregunta);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, PreguntaMunicipal>
+     */
+    public function getPreguntasMunicipales(): Collection
+    {
+        return $this->preguntasMunicipales;
+    }
+
+    public function addPreguntasMunicipale(PreguntaMunicipal $preguntasMunicipale): static
+    {
+        if (!$this->preguntasMunicipales->contains($preguntasMunicipale)) {
+            $this->preguntasMunicipales->add($preguntasMunicipale);
+        }
+
+        return $this;
+    }
+
+    public function removePreguntasMunicipale(PreguntaMunicipal $preguntasMunicipale): static
+    {
+        $this->preguntasMunicipales->removeElement($preguntasMunicipale);
+
+        return $this;
     }
 }

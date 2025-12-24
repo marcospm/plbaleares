@@ -49,9 +49,8 @@ class ExamenSemanalAlumnoController extends AbstractController
         $alumno = $this->getUser();
         $ahora = new \DateTime();
 
-        // Obtener exámenes semanales disponibles (pendientes o activos)
-        // Agrupar por nombre base (sin sufijo "- Temario General" o "- Municipio")
-        $examenesDisponibles = $this->examenSemanalRepository->createQueryBuilder('e')
+        // Obtener todos los exámenes semanales activos que aún no han cerrado
+        $todosExamenes = $this->examenSemanalRepository->createQueryBuilder('e')
             ->where('e.activo = :activo')
             ->andWhere('e.fechaCierre >= :ahora')
             ->setParameter('activo', true)
@@ -60,11 +59,29 @@ class ExamenSemanalAlumnoController extends AbstractController
             ->getQuery()
             ->getResult();
 
+        // Obtener IDs de exámenes semanales ya realizados por el alumno
+        $examenesCompletados = $this->examenRepository->createQueryBuilder('e')
+            ->where('e.usuario = :usuario')
+            ->andWhere('e.examenSemanal IS NOT NULL')
+            ->setParameter('usuario', $alumno)
+            ->getQuery()
+            ->getResult();
+        
+        $examenesRealizadosIds = [];
+        foreach ($examenesCompletados as $examen) {
+            if ($examen->getExamenSemanal()) {
+                $examenesRealizadosIds[] = $examen->getExamenSemanal()->getId();
+            }
+        }
+
+        // Filtrar solo exámenes pendientes (no realizados)
+        $examenesDisponibles = array_filter($todosExamenes, function($examen) use ($examenesRealizadosIds) {
+            return !in_array($examen->getId(), $examenesRealizadosIds);
+        });
+
         // Separar en examen general y municipal
         $examenGeneral = null;
         $examenMunicipal = null;
-        $yaRealizadoGeneral = false;
-        $yaRealizadoMunicipal = false;
 
         foreach ($examenesDisponibles as $examen) {
             if ($examen->getMunicipio() === null) {
@@ -80,31 +97,6 @@ class ExamenSemanalAlumnoController extends AbstractController
             }
         }
 
-        // Verificar si el alumno ya realizó los exámenes
-        if ($examenGeneral) {
-            $examenRealizado = $this->examenRepository->createQueryBuilder('e')
-                ->where('e.usuario = :usuario')
-                ->andWhere('e.examenSemanal = :examenSemanal')
-                ->setParameter('usuario', $alumno)
-                ->setParameter('examenSemanal', $examenGeneral)
-                ->getQuery()
-                ->getOneOrNullResult();
-            
-            $yaRealizadoGeneral = $examenRealizado !== null;
-        }
-
-        if ($examenMunicipal) {
-            $examenRealizado = $this->examenRepository->createQueryBuilder('e')
-                ->where('e.usuario = :usuario')
-                ->andWhere('e.examenSemanal = :examenSemanal')
-                ->setParameter('usuario', $alumno)
-                ->setParameter('examenSemanal', $examenMunicipal)
-                ->getQuery()
-                ->getOneOrNullResult();
-            
-            $yaRealizadoMunicipal = $examenRealizado !== null;
-        }
-
         // Obtener histórico de exámenes semanales realizados
         $examenesRealizados = $this->examenRepository->createQueryBuilder('e')
             ->where('e.usuario = :usuario')
@@ -117,8 +109,8 @@ class ExamenSemanalAlumnoController extends AbstractController
         return $this->render('examen_semanal_alumno/index.html.twig', [
             'examenGeneral' => $examenGeneral,
             'examenMunicipal' => $examenMunicipal,
-            'yaRealizadoGeneral' => $yaRealizadoGeneral,
-            'yaRealizadoMunicipal' => $yaRealizadoMunicipal,
+            'yaRealizadoGeneral' => false, // Ya no se muestran los realizados aquí
+            'yaRealizadoMunicipal' => false, // Ya no se muestran los realizados aquí
             'examenesRealizados' => $examenesRealizados,
         ]);
     }
@@ -159,29 +151,39 @@ class ExamenSemanalAlumnoController extends AbstractController
         $session->remove('examen_config');
         $session->remove('examen_pregunta_actual');
 
-        // Obtener preguntas según los temas del examen semanal
+        // Obtener preguntas según el modo de creación del examen
         $preguntas = [];
         $esMunicipal = $examenSemanal->getMunicipio() !== null;
 
-        if ($esMunicipal) {
-            $temasMunicipales = $examenSemanal->getTemasMunicipales();
-            foreach ($temasMunicipales as $temaMunicipal) {
-                $preguntasTema = $this->preguntaMunicipalRepository->findBy([
-                    'temaMunicipal' => $temaMunicipal,
-                    'dificultad' => $examenSemanal->getDificultad(),
-                    'activo' => true,
-                ]);
-                $preguntas = array_merge($preguntas, $preguntasTema);
+        if ($examenSemanal->getModoCreacion() === 'preguntas_especificas') {
+            // Examen con preguntas específicas (creadas al vuelo)
+            if ($esMunicipal) {
+                $preguntas = $examenSemanal->getPreguntasMunicipales()->toArray();
+            } else {
+                $preguntas = $examenSemanal->getPreguntas()->toArray();
             }
         } else {
-            $temas = $examenSemanal->getTemas();
-            foreach ($temas as $tema) {
-                $preguntasTema = $this->preguntaRepository->findBy([
-                    'tema' => $tema,
-                    'dificultad' => $examenSemanal->getDificultad(),
-                    'activo' => true,
-                ]);
-                $preguntas = array_merge($preguntas, $preguntasTema);
+            // Examen con preguntas por temas (método tradicional)
+            if ($esMunicipal) {
+                $temasMunicipales = $examenSemanal->getTemasMunicipales();
+                foreach ($temasMunicipales as $temaMunicipal) {
+                    $preguntasTema = $this->preguntaMunicipalRepository->findBy([
+                        'temaMunicipal' => $temaMunicipal,
+                        'dificultad' => $examenSemanal->getDificultad(),
+                        'activo' => true,
+                    ]);
+                    $preguntas = array_merge($preguntas, $preguntasTema);
+                }
+            } else {
+                $temas = $examenSemanal->getTemas();
+                foreach ($temas as $tema) {
+                    $preguntasTema = $this->preguntaRepository->findBy([
+                        'tema' => $tema,
+                        'dificultad' => $examenSemanal->getDificultad(),
+                        'activo' => true,
+                    ]);
+                    $preguntas = array_merge($preguntas, $preguntasTema);
+                }
             }
         }
 

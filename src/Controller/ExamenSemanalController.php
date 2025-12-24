@@ -11,6 +11,10 @@ use App\Repository\TemaMunicipalRepository;
 use App\Repository\PreguntaRepository;
 use App\Repository\PreguntaMunicipalRepository;
 use App\Service\NotificacionService;
+use App\Service\PreguntaService;
+use App\Repository\TemaRepository;
+use App\Repository\LeyRepository;
+use App\Repository\ArticuloRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -33,7 +37,11 @@ class ExamenSemanalController extends AbstractController
         private MunicipioRepository $municipioRepository,
         private TemaMunicipalRepository $temaMunicipalRepository,
         private PreguntaRepository $preguntaRepository,
-        private PreguntaMunicipalRepository $preguntaMunicipalRepository
+        private PreguntaMunicipalRepository $preguntaMunicipalRepository,
+        private PreguntaService $preguntaService,
+        private TemaRepository $temaRepository,
+        private LeyRepository $leyRepository,
+        private ArticuloRepository $articuloRepository
     ) {
     }
 
@@ -59,10 +67,107 @@ class ExamenSemanalController extends AbstractController
         return new JsonResponse($temasArray);
     }
 
+    #[Route('/articulos/{leyId}', name: 'app_examen_semanal_articulos', methods: ['GET'])]
+    public function getArticulos(int $leyId): JsonResponse
+    {
+        $ley = $this->leyRepository->find($leyId);
+        
+        if (!$ley) {
+            return new JsonResponse(['error' => 'Ley no encontrada'], 404);
+        }
+
+        $articulos = $this->articuloRepository->findBy(['ley' => $ley, 'activo' => true], ['numero' => 'ASC']);
+        
+        $articulosArray = [];
+        foreach ($articulos as $articulo) {
+            $articulosArray[] = [
+                'id' => $articulo->getId(),
+                'numero' => $articulo->getNumero(),
+                'nombre' => $articulo->getNombre(),
+            ];
+        }
+
+        return new JsonResponse($articulosArray);
+    }
+
+    #[Route('/new-con-preguntas', name: 'app_examen_semanal_new_con_preguntas', methods: ['GET', 'POST'], priority: 10)]
+    public function newConPreguntas(Request $request): Response
+    {
+        $tipoExamen = $request->query->get('tipo', 'general'); // 'general' o 'municipal'
+        
+        if ($request->isMethod('POST')) {
+            try {
+                $content = $request->getContent();
+                $datos = json_decode($content, true);
+                
+                if (json_last_error() !== JSON_ERROR_NONE || !$datos) {
+                    // Si falla el JSON, intentar con request->request
+                    $datos = $request->request->all();
+                }
+                
+                // Validar datos básicos del examen
+                if (empty($datos['nombre']) || empty($datos['fechaApertura']) || empty($datos['fechaCierre']) || empty($datos['dificultad'])) {
+                    return new JsonResponse(['error' => 'Faltan datos requeridos del examen'], 400);
+                }
+
+                // Crear examen semanal
+                $examenSemanal = new ExamenSemanal();
+                $examenSemanal->setNombre($datos['nombre']);
+                $examenSemanal->setDescripcion($datos['descripcion'] ?? null);
+                $examenSemanal->setFechaApertura(new \DateTime($datos['fechaApertura']));
+                $examenSemanal->setFechaCierre(new \DateTime($datos['fechaCierre']));
+                $examenSemanal->setDificultad($datos['dificultad']);
+                $examenSemanal->setCreadoPor($this->getUser());
+                $examenSemanal->setModoCreacion('preguntas_especificas');
+                $examenSemanal->setActivo(true);
+
+                if ($tipoExamen === 'municipal') {
+                    if (empty($datos['municipioId'])) {
+                        return new JsonResponse(['error' => 'Debes seleccionar un municipio'], 400);
+                    }
+                    $municipio = $this->municipioRepository->find($datos['municipioId']);
+                    if (!$municipio) {
+                        return new JsonResponse(['error' => 'Municipio no encontrado'], 404);
+                    }
+                    $examenSemanal->setMunicipio($municipio);
+                }
+
+                $this->entityManager->persist($examenSemanal);
+                $this->entityManager->flush();
+
+                return new JsonResponse([
+                    'success' => true,
+                    'examenId' => $examenSemanal->getId(),
+                    'message' => 'Examen creado correctamente'
+                ]);
+            } catch (\Exception $e) {
+                return new JsonResponse([
+                    'error' => 'Error al crear el examen: ' . $e->getMessage()
+                ], 500);
+            }
+        }
+
+        // GET: mostrar formulario
+        $temas = $this->temaRepository->findBy(['activo' => true], ['nombre' => 'ASC']);
+        $leyes = $this->leyRepository->findBy(['activo' => true], ['nombre' => 'ASC']);
+        $municipios = $this->municipioRepository->findBy(['activo' => true], ['nombre' => 'ASC']);
+
+        return $this->render('examen_semanal/new_con_preguntas.html.twig', [
+            'tipoExamen' => $tipoExamen,
+            'temas' => $temas,
+            'leyes' => $leyes,
+            'municipios' => $municipios,
+        ]);
+    }
+
     #[Route('/', name: 'app_examen_semanal_index', methods: ['GET'])]
     public function index(): Response
     {
-        $examenes = $this->examenSemanalRepository->findAll();
+        // Ordenar por fecha de creación descendente (más reciente primero)
+        $examenes = $this->examenSemanalRepository->findBy(
+            [],
+            ['fechaCreacion' => 'DESC']
+        );
 
         return $this->render('examen_semanal/index.html.twig', [
             'examenes' => $examenes,
@@ -279,18 +384,13 @@ class ExamenSemanalController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}', name: 'app_examen_semanal_show', methods: ['GET'])]
-    public function show(ExamenSemanal $examenSemanal): Response
-    {
-        return $this->render('examen_semanal/show.html.twig', [
-            'examenSemanal' => $examenSemanal,
-        ]);
-    }
-
     #[Route('/{id}/edit', name: 'app_examen_semanal_edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, ExamenSemanal $examenSemanal): Response
     {
-        $form = $this->createForm(ExamenSemanalType::class, $examenSemanal);
+        $form = $this->createForm(ExamenSemanalType::class, $examenSemanal, [
+            'is_edit_mode' => true,
+            'examen_semanal' => $examenSemanal,
+        ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -415,11 +515,151 @@ class ExamenSemanalController extends AbstractController
         );
     }
 
+    #[Route('/{id}/agregar-pregunta', name: 'app_examen_semanal_agregar_pregunta', methods: ['POST'])]
+    public function agregarPregunta(ExamenSemanal $examenSemanal, Request $request): JsonResponse
+    {
+        if ($examenSemanal->getModoCreacion() !== 'preguntas_especificas') {
+            return new JsonResponse(['error' => 'Este examen no permite agregar preguntas específicas'], 400);
+        }
+
+        $datos = json_decode($request->getContent(), true);
+        
+        if ($examenSemanal->getMunicipio()) {
+            // Pregunta municipal
+            $errores = $this->preguntaService->validarDatosPreguntaMunicipal($datos);
+            if (!empty($errores)) {
+                return new JsonResponse(['error' => implode(', ', $errores)], 400);
+            }
+
+            $municipio = $examenSemanal->getMunicipio();
+            $temaMunicipal = $this->temaMunicipalRepository->find($datos['temaMunicipalId']);
+            if (!$temaMunicipal || $temaMunicipal->getMunicipio()->getId() !== $municipio->getId()) {
+                return new JsonResponse(['error' => 'Tema municipal no válido'], 400);
+            }
+
+            $pregunta = $this->preguntaService->crearPreguntaMunicipal($datos, $temaMunicipal, $municipio);
+            $examenSemanal->addPreguntasMunicipale($pregunta);
+        } else {
+            // Pregunta general
+            $errores = $this->preguntaService->validarDatosPreguntaGeneral($datos);
+            if (!empty($errores)) {
+                return new JsonResponse(['error' => implode(', ', $errores)], 400);
+            }
+
+            $tema = $this->temaRepository->find($datos['temaId']);
+            $ley = $this->leyRepository->find($datos['leyId']);
+            $articulo = $this->articuloRepository->find($datos['articuloId']);
+
+            if (!$tema || !$ley || !$articulo) {
+                return new JsonResponse(['error' => 'Tema, ley o artículo no encontrado'], 404);
+            }
+
+            $pregunta = $this->preguntaService->crearPreguntaGeneral($datos, $tema, $ley, $articulo);
+            $examenSemanal->addPregunta($pregunta);
+        }
+
+        $this->entityManager->flush();
+
+        return new JsonResponse([
+            'success' => true,
+            'preguntaId' => $pregunta->getId(),
+            'message' => 'Pregunta agregada correctamente'
+        ]);
+    }
+
+    #[Route('/{id}/eliminar-pregunta/{preguntaId}', name: 'app_examen_semanal_eliminar_pregunta', methods: ['DELETE'])]
+    public function eliminarPregunta(ExamenSemanal $examenSemanal, int $preguntaId, Request $request): JsonResponse
+    {
+        if ($examenSemanal->getModoCreacion() !== 'preguntas_especificas') {
+            return new JsonResponse(['error' => 'Este examen no permite eliminar preguntas específicas'], 400);
+        }
+
+        if ($examenSemanal->getMunicipio()) {
+            $pregunta = $this->preguntaMunicipalRepository->find($preguntaId);
+            if (!$pregunta || !$examenSemanal->getPreguntasMunicipales()->contains($pregunta)) {
+                return new JsonResponse(['error' => 'Pregunta no encontrada en este examen'], 404);
+            }
+            $examenSemanal->removePreguntasMunicipale($pregunta);
+        } else {
+            $pregunta = $this->preguntaRepository->find($preguntaId);
+            if (!$pregunta || !$examenSemanal->getPreguntas()->contains($pregunta)) {
+                return new JsonResponse(['error' => 'Pregunta no encontrada en este examen'], 404);
+            }
+            $examenSemanal->removePregunta($pregunta);
+        }
+
+        $this->entityManager->flush();
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Pregunta eliminada del examen correctamente'
+        ]);
+    }
+
+    #[Route('/{id}/finalizar', name: 'app_examen_semanal_finalizar', methods: ['POST'])]
+    public function finalizarCreacion(ExamenSemanal $examenSemanal, Request $request): JsonResponse
+    {
+        if ($examenSemanal->getModoCreacion() !== 'preguntas_especificas') {
+            return new JsonResponse(['error' => 'Este examen no está en modo de preguntas específicas'], 400);
+        }
+
+        // Validar que tenga al menos una pregunta
+        $totalPreguntas = $examenSemanal->getMunicipio() 
+            ? $examenSemanal->getPreguntasMunicipales()->count()
+            : $examenSemanal->getPreguntas()->count();
+
+        if ($totalPreguntas === 0) {
+            return new JsonResponse(['error' => 'El examen debe tener al menos una pregunta'], 400);
+        }
+
+        // Actualizar número de preguntas
+        $examenSemanal->setNumeroPreguntas($totalPreguntas);
+        $this->entityManager->flush();
+
+        // Crear notificaciones para todos los alumnos
+        try {
+            $alumnos = $this->userRepository->createQueryBuilder('u')
+                ->where('u.roles LIKE :role')
+                ->andWhere('u.activo = :activo')
+                ->setParameter('role', '%ROLE_USER%')
+                ->setParameter('activo', true)
+                ->getQuery()
+                ->getResult();
+
+            $profesor = $this->getUser();
+            foreach ($alumnos as $alumno) {
+                if (!in_array('ROLE_PROFESOR', $alumno->getRoles()) && !in_array('ROLE_ADMIN', $alumno->getRoles())) {
+                    $this->notificacionService->crearNotificacionExamenSemanal($examenSemanal, $alumno, $profesor);
+                }
+            }
+            $this->entityManager->flush();
+        } catch (\Exception $e) {
+            error_log('Error al crear notificaciones de examen semanal: ' . $e->getMessage());
+        }
+
+        return new JsonResponse([
+            'success' => true,
+            'examenId' => $examenSemanal->getId(),
+            'message' => 'Examen finalizado correctamente',
+            'redirect' => $this->generateUrl('app_examen_semanal_index')
+        ]);
+    }
+
     /**
      * Obtiene las preguntas de un examen semanal
      */
     private function obtenerPreguntasExamen(ExamenSemanal $examenSemanal): array
     {
+        // Si el examen usa preguntas específicas, devolverlas directamente
+        if ($examenSemanal->getModoCreacion() === 'preguntas_especificas') {
+            if ($examenSemanal->getMunicipio()) {
+                return $examenSemanal->getPreguntasMunicipales()->toArray();
+            } else {
+                return $examenSemanal->getPreguntas()->toArray();
+            }
+        }
+
+        // Método original: obtener preguntas por temas
         $preguntas = [];
         $esMunicipal = $examenSemanal->getMunicipio() !== null;
 
@@ -455,6 +695,20 @@ class ExamenSemanalController extends AbstractController
         }
 
         return $preguntas;
+    }
+
+    #[Route('/{id}', name: 'app_examen_semanal_show', methods: ['GET'], requirements: ['id' => '\d+'], priority: -1)]
+    public function show(int $id): Response
+    {
+        $examenSemanal = $this->examenSemanalRepository->find($id);
+        
+        if (!$examenSemanal) {
+            throw $this->createNotFoundException('Examen semanal no encontrado');
+        }
+        
+        return $this->render('examen_semanal/show.html.twig', [
+            'examenSemanal' => $examenSemanal,
+        ]);
     }
 }
 
