@@ -10,14 +10,12 @@
     <div class="card-body">
         <div class="alert alert-info" style="margin-bottom: 2rem;">
             <strong>💡 Información:</strong> Puedes crear un examen del temario general, un examen municipal, o ambos a la vez. 
-            Cada tipo de examen puede tener su propio nombre, fechas de apertura y cierre, dificultad y cantidad de preguntas independientes.
+            Cada tipo de examen debe tener su propio nombre, fechas de apertura y cierre, dificultad y cantidad de preguntas independientes.
             Si seleccionas temas del temario general Y un municipio con temas municipales, se crearán dos exámenes completamente independientes.
+            <strong>Nota:</strong> Los temas municipales se filtrarán automáticamente según el municipio seleccionado.
         </div>
 
         {{ form_start(form) }}
-            {{ form_row(form.nombre) }}
-            {{ form_row(form.descripcion) }}
-            
             <div class="card" style="background-color: #f1f8f4; border-left: 4px solid #4CAF50; margin-bottom: 1.5rem;">
                 <div class="card-body">
                     <h4 style="margin-top: 0; color: #2E7D32; font-weight: 600;">📚 Examen del Temario General (Opcional)</h4>
@@ -64,6 +62,78 @@
                 <a href="{{ path('app_examen_semanal_index') }}" class="btn btn-secondary">Cancelar</a>
             </div>
         {{ form_end(form) }}
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const municipioSelect = document.getElementById('examen_semanal_municipio');
+            const temasMunicipalesSelect = document.getElementById('examen_semanal_temasMunicipales');
+            
+            if (municipioSelect && temasMunicipalesSelect) {
+                // Función para cargar temas municipales
+                function cargarTemasMunicipales(municipioId) {
+                    // Limpiar selección actual
+                    temasMunicipalesSelect.innerHTML = '<option value="">Cargando temas...</option>';
+                    temasMunicipalesSelect.disabled = true;
+                    
+                    if (!municipioId || municipioId === '') {
+                        temasMunicipalesSelect.innerHTML = '<option value="">Selecciona un municipio primero</option>';
+                        temasMunicipalesSelect.disabled = true;
+                        return;
+                    }
+                    
+                    // Obtener temas municipales del municipio seleccionado
+                    fetch('{{ path('app_examen_semanal_temas_municipales', {'municipioId': '__MUNICIPIO_ID__'}) }}'.replace('__MUNICIPIO_ID__', municipioId))
+                        .then(response => response.json())
+                        .then(data => {
+                            temasMunicipalesSelect.innerHTML = '';
+                            
+                            if (data.length === 0) {
+                                const option = document.createElement('option');
+                                option.value = '';
+                                option.textContent = 'No hay temas disponibles para este municipio';
+                                temasMunicipalesSelect.appendChild(option);
+                                temasMunicipalesSelect.disabled = true;
+                            } else {
+                                // Agregar placeholder
+                                const placeholderOption = document.createElement('option');
+                                placeholderOption.value = '';
+                                placeholderOption.textContent = '-- Selecciona los temas municipales --';
+                                temasMunicipalesSelect.appendChild(placeholderOption);
+                                
+                                // Agregar opciones de temas
+                                data.forEach(tema => {
+                                    const option = document.createElement('option');
+                                    option.value = tema.id;
+                                    option.textContent = tema.nombre;
+                                    temasMunicipalesSelect.appendChild(option);
+                                });
+                                
+                                temasMunicipalesSelect.disabled = false;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error al cargar temas municipales:', error);
+                            temasMunicipalesSelect.innerHTML = '<option value="">Error al cargar temas</option>';
+                            temasMunicipalesSelect.disabled = true;
+                        });
+                }
+                
+                // Event listener para cambios en el municipio
+                municipioSelect.addEventListener('change', function() {
+                    cargarTemasMunicipales(this.value);
+                });
+                
+                // Inicializar estado: si no hay municipio seleccionado, deshabilitar temas
+                if (!municipioSelect.value || municipioSelect.value === '') {
+                    temasMunicipalesSelect.innerHTML = '<option value="">Selecciona un municipio primero</option>';
+                    temasMunicipalesSelect.disabled = true;
+                } else {
+                    // Si ya hay un municipio seleccionado, cargar sus temas
+                    cargarTemasMunicipales(municipioSelect.value);
+                }
+            }
+        });
+        </script>
     </div>
 </div>
 {% endblock %}

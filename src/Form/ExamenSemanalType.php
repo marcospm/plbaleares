@@ -21,17 +21,6 @@ class ExamenSemanalType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('nombre', TextType::class, [
-                'label' => 'Nombre Base del Examen',
-                'required' => false,
-                'attr' => ['class' => 'form-control'],
-                'help' => 'Este nombre se usará como base. Puedes personalizar el nombre específico para cada tipo de examen más abajo.'
-            ])
-            ->add('descripcion', TextareaType::class, [
-                'label' => 'Descripción General (opcional)',
-                'required' => false,
-                'attr' => ['class' => 'form-control', 'rows' => 4]
-            ])
             ->add('temas', EntityType::class, [
                 'class' => Tema::class,
                 'choice_label' => 'nombre',
@@ -48,7 +37,7 @@ class ExamenSemanalType extends AbstractType
                 'required' => false,
                 'label' => 'Municipio para Examen Municipal (opcional)',
                 'placeholder' => 'Ninguno',
-                'attr' => ['class' => 'form-control'],
+                'attr' => ['class' => 'form-control', 'id' => 'examen_semanal_municipio'],
                 'help' => 'Selecciona un municipio para crear también un examen municipal'
             ])
             ->add('temasMunicipales', EntityType::class, [
@@ -58,8 +47,13 @@ class ExamenSemanalType extends AbstractType
                 'expanded' => false,
                 'required' => false,
                 'label' => 'Temas Municipales (si se selecciona municipio)',
-                'attr' => ['class' => 'form-control'],
-                'help' => 'Selecciona los temas municipales para el examen municipal'
+                'attr' => ['class' => 'form-control', 'id' => 'examen_semanal_temasMunicipales'],
+                'help' => 'Selecciona los temas municipales para el examen municipal. Los temas se filtrarán automáticamente según el municipio seleccionado.',
+                'query_builder' => function ($er) {
+                    // Por defecto, no mostrar temas hasta que se seleccione un municipio
+                    return $er->createQueryBuilder('t')
+                        ->where('1 = 0'); // No mostrar nada inicialmente
+                },
             ])
         ;
 
@@ -70,7 +64,7 @@ class ExamenSemanalType extends AbstractType
                 'required' => false,
                 'mapped' => false,
                 'attr' => ['class' => 'form-control'],
-                'help' => 'Nombre específico para el examen del temario general'
+                'help' => 'Nombre específico para el examen del temario general (requerido si seleccionas temas generales)'
             ])
             ->add('descripcionGeneral', TextareaType::class, [
                 'label' => 'Descripción del Examen General (opcional)',
@@ -132,7 +126,7 @@ class ExamenSemanalType extends AbstractType
                 'required' => false,
                 'mapped' => false,
                 'attr' => ['class' => 'form-control'],
-                'help' => 'Nombre específico para el examen municipal'
+                'help' => 'Nombre específico para el examen municipal (requerido si seleccionas municipio y temas municipales)'
             ])
             ->add('descripcionMunicipal', TextareaType::class, [
                 'label' => 'Descripción del Examen Municipal (opcional)',

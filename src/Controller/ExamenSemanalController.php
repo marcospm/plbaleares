@@ -6,9 +6,12 @@ use App\Entity\ExamenSemanal;
 use App\Form\ExamenSemanalType;
 use App\Repository\ExamenSemanalRepository;
 use App\Repository\UserRepository;
+use App\Repository\MunicipioRepository;
+use App\Repository\TemaMunicipalRepository;
 use App\Service\NotificacionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -22,8 +25,32 @@ class ExamenSemanalController extends AbstractController
         private ExamenSemanalRepository $examenSemanalRepository,
         private EntityManagerInterface $entityManager,
         private NotificacionService $notificacionService,
-        private UserRepository $userRepository
+        private UserRepository $userRepository,
+        private MunicipioRepository $municipioRepository,
+        private TemaMunicipalRepository $temaMunicipalRepository
     ) {
+    }
+
+    #[Route('/temas-municipales/{municipioId}', name: 'app_examen_semanal_temas_municipales', methods: ['GET'])]
+    public function getTemasMunicipales(int $municipioId): JsonResponse
+    {
+        $municipio = $this->municipioRepository->find($municipioId);
+        
+        if (!$municipio) {
+            return new JsonResponse(['error' => 'Municipio no encontrado'], 404);
+        }
+
+        $temas = $this->temaMunicipalRepository->findByMunicipio($municipio);
+        
+        $temasArray = [];
+        foreach ($temas as $tema) {
+            $temasArray[] = [
+                'id' => $tema->getId(),
+                'nombre' => $tema->getNombre(),
+            ];
+        }
+
+        return new JsonResponse($temasArray);
     }
 
     #[Route('/', name: 'app_examen_semanal_index', methods: ['GET'])]
@@ -75,17 +102,20 @@ class ExamenSemanalController extends AbstractController
             if ($tieneTemasGenerales) {
                 $examenGeneral = new ExamenSemanal();
                 
-                // Usar nombre específico o nombre base + sufijo
+                // Validar que el nombre sea requerido
                 $nombreGeneral = $form->get('nombreGeneral')->getData();
                 if (empty($nombreGeneral)) {
-                    $nombreBase = $examenSemanal->getNombre();
-                    $nombreGeneral = !empty($nombreBase) ? $nombreBase . ' - Temario General' : 'Examen Semanal - Temario General';
+                    $this->addFlash('error', 'Debes especificar el nombre para el examen general.');
+                    return $this->render('examen_semanal/new.html.twig', [
+                        'examenSemanal' => $examenSemanal,
+                        'form' => $form,
+                    ]);
                 }
                 $examenGeneral->setNombre($nombreGeneral);
                 
-                // Usar descripción específica o general
+                // Usar descripción específica
                 $descripcionGeneral = $form->get('descripcionGeneral')->getData();
-                $examenGeneral->setDescripcion($descripcionGeneral ?: $examenSemanal->getDescripcion());
+                $examenGeneral->setDescripcion($descripcionGeneral);
                 
                 // Usar fechas específicas o requerir que se completen
                 $fechaAperturaGeneral = $form->get('fechaAperturaGeneral')->getData();
@@ -140,19 +170,20 @@ class ExamenSemanalController extends AbstractController
             if ($tieneTemasMunicipales) {
                 $examenMunicipal = new ExamenSemanal();
                 
-                // Usar nombre específico o nombre base + municipio
+                // Validar que el nombre sea requerido
                 $nombreMunicipal = $form->get('nombreMunicipal')->getData();
                 if (empty($nombreMunicipal)) {
-                    $nombreBase = $examenSemanal->getNombre();
-                    $nombreMunicipal = !empty($nombreBase) 
-                        ? $nombreBase . ' - ' . $examenSemanal->getMunicipio()->getNombre()
-                        : 'Examen Semanal - ' . $examenSemanal->getMunicipio()->getNombre();
+                    $this->addFlash('error', 'Debes especificar el nombre para el examen municipal.');
+                    return $this->render('examen_semanal/new.html.twig', [
+                        'examenSemanal' => $examenSemanal,
+                        'form' => $form,
+                    ]);
                 }
                 $examenMunicipal->setNombre($nombreMunicipal);
                 
-                // Usar descripción específica o general
+                // Usar descripción específica
                 $descripcionMunicipal = $form->get('descripcionMunicipal')->getData();
-                $examenMunicipal->setDescripcion($descripcionMunicipal ?: $examenSemanal->getDescripcion());
+                $examenMunicipal->setDescripcion($descripcionMunicipal);
                 
                 // Usar fechas específicas o requerir que se completen
                 $fechaAperturaMunicipal = $form->get('fechaAperturaMunicipal')->getData();
