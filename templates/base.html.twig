@@ -448,9 +448,6 @@
                                     <li><a href="{{ path('app_examen_historial') }}" class="nav-link">Historial</a></li>
                                     <li><a href="{{ path('app_articulo_publico_index') }}" class="nav-link">Artículos</a></li>
                                     <li><a href="{{ path('app_recurso_publico_index') }}" class="nav-link">Recursos</a></li>
-                                    {% if app.user.profesores|length > 0 %}
-                                        <li><a href="{{ path('app_mensaje_alumno_index') }}" class="nav-link">💬 Mensajes</a></li>
-                                    {% endif %}
                                     <li><a href="{{ path('app_contacto') }}" class="nav-link">Contacto</a></li>
                                 {% endif %}
                             {% else %}
