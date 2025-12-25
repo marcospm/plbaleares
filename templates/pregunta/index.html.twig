@@ -8,7 +8,7 @@
     <a href="{{ path('app_pregunta_new') }}" class="btn btn-primary">Nueva Pregunta</a>
 </div>
 
-<form method="get" action="{{ path('app_pregunta_index') }}" style="margin-bottom: 2rem;">
+<form method="get" action="{{ path('app_pregunta_index') }}" id="filtro-form" style="margin-bottom: 2rem;">
     <div class="card">
         <div class="card-body">
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
@@ -19,7 +19,7 @@
                 <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">Tema:</label>
                     <select name="tema" class="form-control">
-                        <option value="0">Todos los temas</option>
+                        <option value="">Todos los temas</option>
                         {% for tema in temas %}
                             <option value="{{ tema.id }}" {% if temaSeleccionado == tema.id %}selected{% endif %}>
                                 {{ tema.nombre }}
@@ -30,7 +30,7 @@
                 <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">Ley:</label>
                     <select name="ley" class="form-control">
-                        <option value="0">Todas las leyes</option>
+                        <option value="">Todas las leyes</option>
                         {% for ley in leyes %}
                             <option value="{{ ley.id }}" {% if leySeleccionada == ley.id %}selected{% endif %}>
                                 {{ ley.nombre }}
@@ -59,6 +59,25 @@
         </div>
     </div>
 </form>
+
+<script>
+document.getElementById('filtro-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const params = new URLSearchParams();
+    
+    // Solo agregar parámetros que tengan valor
+    formData.forEach((value, key) => {
+        if (value !== '' && value !== '0') {
+            params.append(key, value);
+        }
+    });
+    
+    const url = this.action + (params.toString() ? '?' + params.toString() : '');
+    window.location.href = url;
+});
+</script>
 
 {% if preguntas|length > 0 %}
     <div class="card">

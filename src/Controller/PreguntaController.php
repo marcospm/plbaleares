@@ -26,48 +26,52 @@ class PreguntaController extends AbstractController
         LeyRepository $leyRepository,
         Request $request
     ): Response {
-        $search = $request->query->get('search', '');
-        $temaId = $request->query->getInt('tema');
-        $leyId = $request->query->getInt('ley');
-        $dificultad = $request->query->get('dificultad', '');
+        // Obtener parámetros de la query string
+        $search = trim($request->query->get('search', ''));
+        $temaId = $request->query->getInt('tema', 0);
+        $leyId = $request->query->getInt('ley', 0);
+        $dificultad = trim($request->query->get('dificultad', ''));
         $numeroArticulo = $request->query->getInt('articulo', 0);
 
+        // Obtener todas las preguntas
         $preguntas = $preguntaRepository->findAll();
+        
+        // Convertir a array indexado numéricamente
+        $preguntas = array_values($preguntas);
 
-        // Filtrar por tema
+        // Aplicar filtros secuencialmente
         if ($temaId > 0) {
-            $preguntas = array_filter($preguntas, function($pregunta) use ($temaId) {
-                return $pregunta->getTema() && $pregunta->getTema()->getId() === $temaId;
-            });
+            $preguntas = array_values(array_filter($preguntas, function($pregunta) use ($temaId) {
+                $tema = $pregunta->getTema();
+                return $tema !== null && (int)$tema->getId() === (int)$temaId;
+            }));
         }
 
-        // Filtrar por ley
         if ($leyId > 0) {
-            $preguntas = array_filter($preguntas, function($pregunta) use ($leyId) {
-                return $pregunta->getLey() && $pregunta->getLey()->getId() === $leyId;
-            });
+            $preguntas = array_values(array_filter($preguntas, function($pregunta) use ($leyId) {
+                $ley = $pregunta->getLey();
+                return $ley !== null && (int)$ley->getId() === (int)$leyId;
+            }));
         }
 
-        // Filtrar por dificultad
         if (!empty($dificultad)) {
-            $preguntas = array_filter($preguntas, function($pregunta) use ($dificultad) {
+            $preguntas = array_values(array_filter($preguntas, function($pregunta) use ($dificultad) {
                 return $pregunta->getDificultad() === $dificultad;
-            });
+            }));
         }
 
-        // Filtrar por número de artículo
         if ($numeroArticulo > 0) {
-            $preguntas = array_filter($preguntas, function($pregunta) use ($numeroArticulo) {
-                return $pregunta->getArticulo() && $pregunta->getArticulo()->getNumero() === $numeroArticulo;
-            });
+            $preguntas = array_values(array_filter($preguntas, function($pregunta) use ($numeroArticulo) {
+                return $pregunta->getArticulo() !== null && $pregunta->getArticulo()->getNumero() === $numeroArticulo;
+            }));
         }
 
-        // Filtrar por búsqueda
         if (!empty($search)) {
-            $preguntas = array_filter($preguntas, function($pregunta) use ($search) {
-                return stripos($pregunta->getTexto(), $search) !== false ||
-                       stripos($pregunta->getRetroalimentacion() ?? '', $search) !== false;
-            });
+            $preguntas = array_values(array_filter($preguntas, function($pregunta) use ($search) {
+                $textoMatch = stripos($pregunta->getTexto() ?? '', $search) !== false;
+                $retroMatch = stripos($pregunta->getRetroalimentacion() ?? '', $search) !== false;
+                return $textoMatch || $retroMatch;
+            }));
         }
 
         // Obtener listas para los filtros
@@ -107,7 +111,7 @@ class PreguntaController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}', name: 'app_pregunta_show', methods: ['GET'])]
+    #[Route('/{id}', name: 'app_pregunta_show', methods: ['GET'], requirements: ['id' => '\d+'], priority: -1)]
     public function show(
         Pregunta $pregunta, 
         Request $request,
@@ -143,7 +147,7 @@ class PreguntaController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}/edit', name: 'app_pregunta_edit', methods: ['GET', 'POST'])]
+    #[Route('/{id}/edit', name: 'app_pregunta_edit', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
     public function edit(Request $request, Pregunta $pregunta, EntityManagerInterface $entityManager): Response
     {
         $form = $this->createForm(PreguntaType::class, $pregunta);
@@ -187,7 +191,7 @@ class PreguntaController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}/toggle-activo', name: 'app_pregunta_toggle_activo', methods: ['POST'])]
+    #[Route('/{id}/toggle-activo', name: 'app_pregunta_toggle_activo', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function toggleActivo(Pregunta $pregunta, EntityManagerInterface $entityManager, Request $request): Response
     {
         // Obtener parámetros de filtro de la query string
@@ -219,7 +223,7 @@ class PreguntaController extends AbstractController
         return $this->redirectToRoute('app_pregunta_index', $filtros, Response::HTTP_SEE_OTHER);
     }
 
-    #[Route('/{id}', name: 'app_pregunta_delete', methods: ['POST'])]
+    #[Route('/{id}', name: 'app_pregunta_delete', methods: ['POST'], requirements: ['id' => '\d+'], priority: -1)]
     public function delete(Request $request, Pregunta $pregunta, EntityManagerInterface $entityManager): Response
     {
         // Obtener parámetros de filtro de la query string
