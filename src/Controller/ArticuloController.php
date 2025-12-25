@@ -6,6 +6,7 @@ use App\Entity\Articulo;
 use App\Form\ArticuloType;
 use App\Repository\ArticuloRepository;
 use App\Repository\LeyRepository;
+use App\Repository\MensajeArticuloRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
@@ -26,8 +27,12 @@ class ArticuloController extends AbstractController
     ) {
     }
     #[Route('/', name: 'app_articulo_index', methods: ['GET'])]
-    public function index(ArticuloRepository $articuloRepository, LeyRepository $leyRepository, Request $request): Response
-    {
+    public function index(
+        ArticuloRepository $articuloRepository, 
+        LeyRepository $leyRepository, 
+        MensajeArticuloRepository $mensajeArticuloRepository,
+        Request $request
+    ): Response {
         $search = trim($request->query->get('search', ''));
         $leyId = $request->query->getInt('ley', 0);
         $numero = trim($request->query->get('numero', ''));
@@ -43,12 +48,19 @@ class ArticuloController extends AbstractController
             null // null = todos los estados (activos e inactivos)
         );
 
+        // Obtener contadores de mensajes para cada artículo
+        $contadoresMensajes = [];
+        foreach ($articulos as $articulo) {
+            $contadoresMensajes[$articulo->getId()] = $mensajeArticuloRepository->countMensajesPrincipales($articulo);
+        }
+
         return $this->render('articulo/index.html.twig', [
             'articulos' => $articulos,
             'leyes' => $leyes,
             'search' => $search,
             'leySeleccionada' => $leyId,
             'numero' => $numero,
+            'contadoresMensajes' => $contadoresMensajes,
         ]);
     }
 
@@ -93,10 +105,17 @@ class ArticuloController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_articulo_show', methods: ['GET'])]
-    public function show(Articulo $articulo): Response
-    {
+    public function show(
+        Articulo $articulo,
+        MensajeArticuloRepository $mensajeArticuloRepository
+    ): Response {
+        $mensajes = $mensajeArticuloRepository->findMensajesPrincipales($articulo);
+        $totalMensajes = count($mensajes);
+        
         return $this->render('articulo/show.html.twig', [
             'articulo' => $articulo,
+            'mensajes' => $mensajes,
+            'totalMensajes' => $totalMensajes,
         ]);
     }
 

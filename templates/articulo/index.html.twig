@@ -94,17 +94,19 @@
                 </h3>
             </div>
         </div>
-        <table class="table">
+        <div style="overflow-x: auto;">
+        <table class="table" style="width: 100%; table-layout: fixed;">
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Número</th>
-                    <th>Nombre</th>
-                    <th>Ley</th>
-                    <th>Explicación</th>
-                    <th>Preguntas</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
+                    <th style="width: 5%;">ID</th>
+                    <th style="width: 8%;">Número</th>
+                    <th style="width: 15%;">Nombre</th>
+                    <th style="width: 10%;">Ley</th>
+                    <th style="width: 10%;">Explicación</th>
+                    <th style="width: 10%;">Preguntas</th>
+                    <th style="width: 8%;">Mensajes</th>
+                    <th style="width: 8%;">Estado</th>
+                    <th style="width: 26%;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -113,10 +115,22 @@
                         <td>{{ articulo.id }}</td>
                         <td><strong>Art. {{ articulo.numero }}</strong></td>
                         <td>{{ articulo.nombre|default('-') }}</td>
-                        <td>{{ articulo.ley.nombre }}</td>
-                        <td>{{ articulo.explicacion|default('Sin explicación')|slice(0, 80) }}{% if articulo.explicacion|length > 80 %}...{% endif %}</td>
+                        <td title="{{ articulo.ley.nombre }}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ articulo.ley.nombre|slice(0, 10) }}{% if articulo.ley.nombre|length > 10 %}...{% endif %}</td>
+                        <td title="{{ articulo.explicacion|default('Sin explicación') }}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ articulo.explicacion|default('Sin explicación')|slice(0, 10) }}{% if articulo.explicacion|default('')|length > 10 %}...{% endif %}</td>
                         <td>
                             <span class="badge badge-moderada">{{ articulo.preguntas|length }} pregunta(s)</span>
+                        </td>
+                        <td>
+                            {% set totalMensajes = contadoresMensajes[articulo.id] ?? 0 %}
+                            {% if totalMensajes > 0 %}
+                                <a href="{{ path('app_articulo_show', {'id': articulo.id}) }}" style="text-decoration: none;">
+                                    <span class="badge bg-warning text-dark" style="cursor: pointer;" title="Ver mensajes">
+                                        💬 {{ totalMensajes }}
+                                    </span>
+                                </a>
+                            {% else %}
+                                <span class="badge bg-secondary">0</span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if articulo.isActivo %}
@@ -141,6 +155,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     </div>
 {% else %}
     <div class="card">

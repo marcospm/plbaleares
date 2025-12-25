@@ -20,6 +20,9 @@ class Notificacion
     public const TIPO_TAREA_EDITADA = 'tarea_editada';
     public const TIPO_TAREA_ELIMINADA = 'tarea_eliminada';
     public const TIPO_EXAMEN_SEMANAL = 'examen_semanal';
+    public const TIPO_RESPUESTA_ARTICULO = 'respuesta_articulo';
+    public const TIPO_ERROR_PREGUNTA = 'error_pregunta';
+    public const TIPO_RESPUESTA_PREGUNTA = 'respuesta_pregunta';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -66,6 +69,10 @@ class Notificacion
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?ExamenSemanal $examenSemanal = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Pregunta $pregunta = null;
 
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $leida = false;
@@ -212,6 +219,18 @@ class Notificacion
     public function setExamenSemanal(?\App\Entity\ExamenSemanal $examenSemanal): static
     {
         $this->examenSemanal = $examenSemanal;
+
+        return $this;
+    }
+
+    public function getPregunta(): ?\App\Entity\Pregunta
+    {
+        return $this->pregunta;
+    }
+
+    public function setPregunta(?\App\Entity\Pregunta $pregunta): static
+    {
+        $this->pregunta = $pregunta;
 
         return $this;
     }

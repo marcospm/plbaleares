@@ -37,9 +37,13 @@ class Articulo
     #[ORM\OneToMany(targetEntity: Pregunta::class, mappedBy: 'articulo')]
     private Collection $preguntas;
 
+    #[ORM\OneToMany(targetEntity: \App\Entity\MensajeArticulo::class, mappedBy: 'articulo', cascade: ['remove'])]
+    private Collection $mensajes;
+
     public function __construct()
     {
         $this->preguntas = new ArrayCollection();
+        $this->mensajes = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -142,6 +146,35 @@ class Articulo
         if ($this->preguntas->removeElement($pregunta)) {
             if ($pregunta->getArticulo() === $this) {
                 $pregunta->setArticulo(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, \App\Entity\MensajeArticulo>
+     */
+    public function getMensajes(): Collection
+    {
+        return $this->mensajes;
+    }
+
+    public function addMensaje(\App\Entity\MensajeArticulo $mensaje): static
+    {
+        if (!$this->mensajes->contains($mensaje)) {
+            $this->mensajes->add($mensaje);
+            $mensaje->setArticulo($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMensaje(\App\Entity\MensajeArticulo $mensaje): static
+    {
+        if ($this->mensajes->removeElement($mensaje)) {
+            if ($mensaje->getArticulo() === $this) {
+                $mensaje->setArticulo(null);
             }
         }
 

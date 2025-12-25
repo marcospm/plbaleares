@@ -25,7 +25,7 @@
 
             <div style="display: grid; gap: 1rem;">
                 {% for notificacion in notificaciones %}
-                    <div style="padding: 1rem; border: 1px solid #ddd; border-left: 4px solid {% if notificacion.tipo == 'examen' %}#2196F3{% elseif notificacion.tipo == 'tarea' %}#4CAF50{% elseif notificacion.tipo == 'mensaje_alumno' %}#9C27B0{% elseif notificacion.tipo == 'error_articulo' %}#FF9800{% else %}#2196F3{% endif %}; border-radius: 4px; background-color: {% if notificacion.leida %}#f8f9fa{% else %}#fff{% endif %};">
+                                    <div style="padding: 1rem; border: 1px solid #ddd; border-left: 4px solid {% if notificacion.tipo == 'examen' %}#2196F3{% elseif notificacion.tipo == 'tarea' %}#4CAF50{% elseif notificacion.tipo == 'mensaje_alumno' %}#9C27B0{% elseif notificacion.tipo == 'error_articulo' or notificacion.tipo == 'error_pregunta' %}#FF9800{% else %}#2196F3{% endif %}; border-radius: 4px; background-color: {% if notificacion.leida %}#f8f9fa{% else %}#fff{% endif %};">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div style="flex: 1;">
                                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
@@ -34,9 +34,10 @@
                                         {% elseif notificacion.tipo == 'tarea' %}✅
                                         {% elseif notificacion.tipo == 'mensaje_alumno' %}💬
                                         {% elseif notificacion.tipo == 'error_articulo' %}⚠️
+                                        {% elseif notificacion.tipo == 'error_pregunta' %}⚠️
                                         {% else %}📋{% endif %}
                                     </span>
-                                    <strong style="color: {% if notificacion.tipo == 'examen' %}#2196F3{% elseif notificacion.tipo == 'tarea' %}#4CAF50{% elseif notificacion.tipo == 'mensaje_alumno' %}#9C27B0{% elseif notificacion.tipo == 'error_articulo' %}#FF9800{% else %}#2196F3{% endif %};">
+                                    <strong style="color: {% if notificacion.tipo == 'examen' %}#2196F3{% elseif notificacion.tipo == 'tarea' %}#4CAF50{% elseif notificacion.tipo == 'mensaje_alumno' %}#9C27B0{% elseif notificacion.tipo == 'error_articulo' or notificacion.tipo == 'error_pregunta' %}#FF9800{% else %}#2196F3{% endif %};">
                                         {{ notificacion.titulo }}
                                     </strong>
                                     {% if not notificacion.leida %}
@@ -45,12 +46,19 @@
                                 </div>
                                 <p style="margin: 0.5rem 0; color: #666;">{{ notificacion.mensaje }}</p>
                                 <small style="color: #999;">
-                                    {{ notificacion.fechaCreacion|date('d/m/Y H:i') }} - Alumno: {{ notificacion.alumno.username }}
+                                    {{ notificacion.fechaCreacion|date('d/m/Y H:i') }}{% if notificacion.alumno %} - Alumno: {{ notificacion.alumno.username }}{% endif %}
                                 </small>
                                 {% if notificacion.articulo %}
                                     <div style="margin-top: 0.5rem;">
                                         <a href="{{ path('app_articulo_show', {'id': notificacion.articulo.id}) }}" class="btn btn-sm btn-primary">
                                             Ver Artículo
+                                        </a>
+                                    </div>
+                                {% endif %}
+                                {% if notificacion.pregunta %}
+                                    <div style="margin-top: 0.5rem;">
+                                        <a href="{{ path('app_pregunta_show', {'id': notificacion.pregunta.id}) }}" class="btn btn-sm btn-primary">
+                                            Ver Pregunta
                                         </a>
                                     </div>
                                 {% endif %}

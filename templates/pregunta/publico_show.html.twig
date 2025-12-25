@@ -1,21 +1,21 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Pregunta #{{ pregunta.id }}{% endblock %}
+{% block title %}Pregunta del Artículo {{ pregunta.articulo.numero }}{% endblock %}
 
 {% block body %}
 <div class="card">
     <div class="card-header">
-        <h1>Pregunta #{{ pregunta.id }}</h1>
+        <h1>Pregunta del Artículo {{ pregunta.articulo.numero }}{% if pregunta.articulo.nombre %} - {{ pregunta.articulo.nombre }}{% endif %}</h1>
     </div>
     <div class="card-body">
-        <div class="form-group">
+        <div class="form-group mb-4">
             <label class="form-label"><strong>Texto de la Pregunta:</strong></label>
             <div style="background-color: #f5f5f5; padding: 1rem; border-radius: 4px; border-left: 4px solid var(--color-primary); font-size: 1.1rem;">
                 {{ pregunta.texto|nl2br }}
             </div>
         </div>
 
-        <div class="form-group">
+        <div class="form-group mb-4">
             <label class="form-label"><strong>Opciones de Respuesta:</strong></label>
             {% set respuestaCorrectaNormalizada = pregunta.respuestaCorrecta ? (pregunta.respuestaCorrecta|trim|upper) : '' %}
             <div style="display: flex; flex-direction: column; gap: 0.5rem;">
@@ -36,35 +36,15 @@
                     {% if respuestaCorrectaNormalizada == 'D' %}<span class="badge badge-facil" style="margin-left: 1rem; background-color: var(--color-success); color: white;">Correcta</span>{% endif %}
                 </div>
             </div>
-            {% if not respuestaCorrectaNormalizada %}
-                <div style="margin-top: 0.5rem; padding: 0.5rem; background-color: #fff3e0; border-radius: 4px; font-size: 0.9rem; color: #ff9800; border-left: 4px solid #ff9800;">
-                    <strong>⚠️ Advertencia:</strong> Esta pregunta no tiene una respuesta correcta definida.
-                </div>
-            {% endif %}
         </div>
 
-        <div class="form-group">
+        <div class="form-group mb-4">
             <label class="form-label"><strong>Dificultad:</strong></label>
             <p><span class="badge badge-{{ pregunta.dificultad }}">{{ pregunta.getDificultadLabel() }}</span></p>
         </div>
 
-        <div class="form-group">
-            <label class="form-label"><strong>Tema:</strong></label>
-            <p><a href="{{ path('app_tema_show', {'id': pregunta.tema.id}) }}">{{ pregunta.tema.nombre }}</a></p>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label"><strong>Ley:</strong></label>
-            <p><a href="{{ path('app_ley_show', {'id': pregunta.ley.id}) }}">{{ pregunta.ley.nombre }}</a></p>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label"><strong>Artículo:</strong></label>
-            <p><a href="{{ path('app_articulo_show', {'id': pregunta.articulo.id}) }}">Art. {{ pregunta.articulo.numero }}</a></p>
-        </div>
-
         {% if pregunta.retroalimentacion %}
-            <div class="form-group">
+            <div class="form-group mb-4">
                 <label class="form-label"><strong>Retroalimentación:</strong></label>
                 <div style="background-color: #e3f2fd; padding: 1rem; border-radius: 4px; border-left: 4px solid var(--color-secondary);">
                     {{ pregunta.retroalimentacion|nl2br }}
@@ -130,16 +110,6 @@
                                         {% endfor %}
                                     </div>
                                 {% endif %}
-
-                                {% if not esProfesorMensaje %}
-                                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
-                                        <form class="form-responder-mensaje" data-mensaje-id="{{ mensaje.id }}" style="display: flex; gap: 0.5rem; align-items: flex-start;">
-                                            <input type="hidden" name="_token" value="{{ csrf_token('responder_mensaje_pregunta_' ~ mensaje.id) }}">
-                                            <textarea name="respuesta" class="form-control" rows="2" placeholder="Escribe tu respuesta..." required style="flex: 1;"></textarea>
-                                            <button type="submit" class="btn btn-success btn-sm" style="white-space: nowrap;">Responder</button>
-                                        </form>
-                                    </div>
-                                {% endif %}
                             </div>
                         </div>
                     {% endfor %}
@@ -152,79 +122,9 @@
         </div>
 
         <div class="d-flex gap-2 mt-4">
-            <a href="{{ path('app_pregunta_edit', {'id': pregunta.id}|merge(filtros|default({}))) }}" class="btn btn-primary">Editar</a>
-            <a href="{{ path('app_pregunta_index', filtros|default({})) }}" class="btn btn-secondary">Volver</a>
-            <form method="post" action="{{ path('app_pregunta_delete', {'id': pregunta.id}) }}" onsubmit="return confirm('¿Estás seguro de eliminar esta pregunta?');" style="display: inline;">
-                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ pregunta.id) }}">
-                <button type="submit" class="btn btn-danger">Eliminar</button>
-            </form>
+            <a href="{{ path('app_articulo_publico_show', {'id': pregunta.articulo.id}) }}" class="btn btn-secondary">Volver al Artículo</a>
         </div>
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Manejar envío de respuestas
-    document.addEventListener('submit', function(e) {
-        if (e.target.classList.contains('form-responder-mensaje')) {
-            e.preventDefault();
-            
-            const form = e.target;
-            const mensajeId = form.dataset.mensajeId;
-            const textarea = form.querySelector('[name="respuesta"]');
-            const respuestaTexto = textarea ? textarea.value.trim() : '';
-            
-            if (!respuestaTexto) {
-                alert('Por favor, escribe una respuesta.');
-                return;
-            }
-            
-            const submitBtn = form.querySelector('button[type="submit"]');
-            const originalText = submitBtn ? submitBtn.textContent : 'Responder';
-            
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Enviando...';
-            }
-            
-            const formData = new FormData(form);
-            
-            fetch(`/pregunta/mensaje/${mensajeId}/responder`, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Error en la respuesta del servidor');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    // Limpiar formulario
-                    if (textarea) {
-                        textarea.value = '';
-                    }
-                    // Recargar la página para ver la nueva respuesta
-                    window.location.reload();
-                } else {
-                    alert(data.error || 'Error al enviar la respuesta.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error al enviar la respuesta. Por favor, inténtalo de nuevo.');
-            })
-            .finally(() => {
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalText;
-                }
-            });
-        }
-    });
-});
-</script>
 {% endblock %}
-
 

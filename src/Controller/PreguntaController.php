@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Pregunta;
 use App\Form\PreguntaType;
 use App\Repository\PreguntaRepository;
+use App\Repository\MensajePreguntaRepository;
 use App\Repository\TemaRepository;
 use App\Repository\LeyRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -107,8 +108,11 @@ class PreguntaController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_pregunta_show', methods: ['GET'])]
-    public function show(Pregunta $pregunta, Request $request): Response
-    {
+    public function show(
+        Pregunta $pregunta, 
+        Request $request,
+        MensajePreguntaRepository $mensajePreguntaRepository
+    ): Response {
         // Obtener parámetros de filtro de la query string
         $filtros = [];
         if ($request->query->get('search')) {
@@ -127,9 +131,15 @@ class PreguntaController extends AbstractController
             $filtros['articulo'] = $request->query->getInt('articulo');
         }
 
+        // Obtener mensajes de la pregunta
+        $mensajes = $mensajePreguntaRepository->findMensajesPrincipales($pregunta);
+        $totalMensajes = $mensajePreguntaRepository->countMensajesPrincipales($pregunta);
+
         return $this->render('pregunta/show.html.twig', [
             'pregunta' => $pregunta,
             'filtros' => $filtros,
+            'mensajes' => $mensajes,
+            'totalMensajes' => $totalMensajes,
         ]);
     }
 

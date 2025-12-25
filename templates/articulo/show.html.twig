@@ -58,6 +58,84 @@
             {% endif %}
         </div>
 
+        <!-- Sección de Mensajes y Comentarios -->
+        <div class="form-group mt-4" style="border-top: 2px solid #ddd; padding-top: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0; color: var(--color-primary);">
+                    💬 Mensajes y Comentarios
+                    {% if totalMensajes > 0 %}
+                        <span class="badge bg-primary" style="margin-left: 0.5rem;">{{ totalMensajes }}</span>
+                    {% endif %}
+                </h3>
+            </div>
+
+            {% if mensajes|length > 0 %}
+                <div style="display: grid; gap: 1rem;">
+                    {% for mensaje in mensajes %}
+                        {% set esProfesorMensaje = mensaje.autor.roles|filter(v => v in ['ROLE_PROFESOR', 'ROLE_ADMIN'])|length > 0 %}
+                        <div class="card" style="border-left: 4px solid {% if esProfesorMensaje %}#28a745{% else %}var(--color-primary){% endif %}; background-color: {% if esProfesorMensaje %}#f0f9f4{% else %}#fff{% endif %};">
+                            <div class="card-header" style="background-color: {% if esProfesorMensaje %}#f0f9f4{% else %}#fff{% endif %}; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong style="color: {% if esProfesorMensaje %}#28a745{% else %}var(--color-primary){% endif %};">
+                                        {{ mensaje.autor.username }}
+                                    </strong>
+                                    {% if esProfesorMensaje %}
+                                        <span class="badge bg-success" style="margin-left: 0.5rem;">Profesor</span>
+                                    {% else %}
+                                        <span class="badge bg-primary" style="margin-left: 0.5rem;">Alumno</span>
+                                    {% endif %}
+                                </div>
+                                <small style="color: #999;">{{ mensaje.fechaCreacion|date('d/m/Y H:i') }}</small>
+                            </div>
+                            <div class="card-body">
+                                <p style="margin: 0; white-space: pre-wrap; line-height: 1.6;">{{ mensaje.mensaje }}</p>
+                                
+                                {% if mensaje.respuestas|length > 0 %}
+                                    <div style="margin-top: 1rem; margin-left: 1rem; padding-left: 1rem; border-left: 3px solid #ddd;">
+                                        <strong style="color: #666; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">Respuestas:</strong>
+                                        {% for respuesta in mensaje.respuestas|sort((a, b) => a.fechaCreacion <=> b.fechaCreacion) %}
+                                            {% set esProfesorRespuesta = respuesta.autor.roles|filter(v => v in ['ROLE_PROFESOR', 'ROLE_ADMIN'])|length > 0 %}
+                                            <div class="card mb-2" style="border-left: 4px solid {% if esProfesorRespuesta %}#28a745{% else %}var(--color-primary){% endif %}; background-color: {% if esProfesorRespuesta %}#f0f9f4{% else %}#fff{% endif %};">
+                                                <div class="card-body" style="padding: 0.75rem;">
+                                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                                        <div>
+                                                            <strong style="color: {% if esProfesorRespuesta %}#28a745{% else %}var(--color-primary){% endif %}; font-size: 0.9rem;">
+                                                                {{ respuesta.autor.username }}
+                                                            </strong>
+                                                            {% if esProfesorRespuesta %}
+                                                                <span class="badge bg-success" style="font-size: 0.7rem; margin-left: 0.5rem;">Profesor</span>
+                                                            {% else %}
+                                                                <span class="badge bg-primary" style="font-size: 0.7rem; margin-left: 0.5rem;">Alumno</span>
+                                                            {% endif %}
+                                                        </div>
+                                                        <small style="color: #999; font-size: 0.85rem;">{{ respuesta.fechaCreacion|date('d/m/Y H:i') }}</small>
+                                                    </div>
+                                                    <p style="margin: 0; white-space: pre-wrap; line-height: 1.5; font-size: 0.9rem;">{{ respuesta.mensaje }}</p>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+
+                                {% if not esProfesorMensaje %}
+                                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+                                        <form class="form-responder-mensaje" data-mensaje-id="{{ mensaje.id }}" style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                                            <textarea name="respuesta" class="form-control" rows="2" placeholder="Escribe tu respuesta..." required style="flex: 1;"></textarea>
+                                            <button type="submit" class="btn btn-success btn-sm" style="white-space: nowrap;">Responder</button>
+                                        </form>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    No hay mensajes sobre este artículo aún.
+                </div>
+            {% endif %}
+        </div>
+
         <div class="d-flex gap-2 mt-4">
             <a href="{{ path('app_articulo_edit', {'id': articulo.id}) }}" class="btn btn-primary">Editar</a>
             <a href="{{ path('app_articulo_index') }}" class="btn btn-secondary">Volver</a>
@@ -68,5 +146,79 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Manejar envío de respuestas
+    document.addEventListener('submit', function(e) {
+        if (e.target.classList.contains('form-responder-mensaje')) {
+            e.preventDefault();
+            
+            const form = e.target;
+            const mensajeId = form.dataset.mensajeId;
+            const textarea = form.querySelector('[name="respuesta"]');
+            const respuesta = textarea.value.trim();
+            
+            if (!respuesta) {
+                alert('Por favor, escribe una respuesta.');
+                return;
+            }
+            
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Enviando...';
+            
+            const formData = new URLSearchParams();
+            formData.append('respuesta', respuesta);
+            
+            console.log('Enviando respuesta para mensaje ID:', mensajeId);
+            console.log('Texto de la respuesta:', respuesta);
+            
+            fetch(`/articulo/mensaje/${mensajeId}/responder`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData.toString()
+            })
+            .then(response => {
+                console.log('Respuesta recibida, status:', response.status);
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        console.error('Error en respuesta:', data);
+                        throw new Error(data.error || 'Error en la respuesta del servidor');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Datos recibidos:', data);
+                if (data.success) {
+                    console.log('Respuesta guardada exitosamente');
+                    // Limpiar el formulario
+                    textarea.value = '';
+                    // Recargar la página para mostrar la nueva respuesta
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 100);
+                } else {
+                    console.error('Error en respuesta:', data);
+                    alert(data.error || 'Error al enviar la respuesta.');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al enviar la respuesta: ' + error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            });
+        }
+    });
+});
+</script>
 {% endblock %}
 

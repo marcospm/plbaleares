@@ -7,6 +7,7 @@ use App\Entity\Examen;
 use App\Entity\ExamenSemanal;
 use App\Entity\Notificacion;
 use App\Entity\PlanificacionSemanal;
+use App\Entity\Pregunta;
 use App\Entity\Tarea;
 use App\Entity\TareaAsignada;
 use App\Entity\User;
@@ -119,17 +120,24 @@ class NotificacionService
 
     /**
      * Crea una notificación cuando un alumno reporta un error en un artículo
-     * Las notificaciones se envían a todos los profesores y administradores
+     * Las notificaciones se envían a todos los profesores y administradores (excepto si el alumno es profesor/admin)
      */
     public function crearNotificacionErrorArticulo(Articulo $articulo, User $alumno, string $mensaje): void
     {
+        // No notificar si el usuario que reporta es profesor o admin (no debería pasar, pero por seguridad)
+        if (in_array('ROLE_PROFESOR', $alumno->getRoles()) || in_array('ROLE_ADMIN', $alumno->getRoles())) {
+            return;
+        }
+        
         // Obtener todos los profesores y administradores
         $profesoresYAdmins = $this->userRepository->createQueryBuilder('u')
             ->where('u.roles LIKE :roleProfesor OR u.roles LIKE :roleAdmin')
             ->andWhere('u.activo = :activo')
+            ->andWhere('u.id != :alumnoId') // Excluir al alumno que reporta por si acaso es profesor/admin
             ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
             ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
             ->setParameter('activo', true)
+            ->setParameter('alumnoId', $alumno->getId())
             ->getQuery()
             ->getResult();
 
@@ -353,6 +361,116 @@ class NotificacionService
         $notificacion->setExamenSemanal($examenSemanal);
         
         $this->entityManager->persist($notificacion);
+    }
+
+    /**
+     * Crea una notificación cuando un profesor o admin responde a un mensaje de artículo de un alumno
+     */
+    public function crearNotificacionRespuestaArticulo(Articulo $articulo, User $alumno, User $profesor, string $respuestaTexto): void
+    {
+        // No notificar si el profesor y el alumno son la misma persona
+        if ($profesor->getId() === $alumno->getId()) {
+            return;
+        }
+        
+        // Solo notificar al alumno que escribió el mensaje original
+        $notificacion = new Notificacion();
+        $notificacion->setTipo(Notificacion::TIPO_RESPUESTA_ARTICULO);
+        $notificacion->setTitulo('Respuesta en Artículo');
+        // Incluir la respuesta completa sin truncar para que el alumno la vea directamente
+        $notificacion->setMensaje(
+            sprintf(
+                '%s ha respondido a tu mensaje en el Artículo %s%s: "%s"',
+                $profesor->getUsername(),
+                $articulo->getNumero(),
+                $articulo->getNombre() ? ' - ' . $articulo->getNombre() : '',
+                $respuestaTexto
+            )
+        );
+        $notificacion->setProfesor($profesor);
+        $notificacion->setAlumno($alumno);
+        $notificacion->setArticulo($articulo);
+        
+        $this->entityManager->persist($notificacion);
+        $this->entityManager->flush();
+    }
+
+    /**
+     * Crea una notificación cuando un alumno reporta un error en una pregunta
+     * Las notificaciones se envían a todos los profesores y administradores (excepto si el alumno es profesor/admin)
+     */
+    public function crearNotificacionErrorPregunta(Pregunta $pregunta, User $alumno, string $mensaje): void
+    {
+        // No notificar si el usuario que reporta es profesor o admin (no debería pasar, pero por seguridad)
+        if (in_array('ROLE_PROFESOR', $alumno->getRoles()) || in_array('ROLE_ADMIN', $alumno->getRoles())) {
+            return;
+        }
+        
+        // Obtener todos los profesores y administradores
+        $profesoresYAdmins = $this->userRepository->createQueryBuilder('u')
+            ->where('u.roles LIKE :roleProfesor OR u.roles LIKE :roleAdmin')
+            ->andWhere('u.activo = :activo')
+            ->andWhere('u.id != :alumnoId') // Excluir al alumno que reporta por si acaso es profesor/admin
+            ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+            ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
+            ->setParameter('activo', true)
+            ->setParameter('alumnoId', $alumno->getId())
+            ->getQuery()
+            ->getResult();
+
+        foreach ($profesoresYAdmins as $profesor) {
+            $notificacion = new Notificacion();
+            $notificacion->setTipo(Notificacion::TIPO_ERROR_PREGUNTA);
+            $notificacion->setTitulo('Error Reportado en Pregunta');
+            $notificacion->setMensaje(
+                sprintf(
+                    '%s ha reportado un error o solicita corrección en una pregunta del Artículo %s%s. Mensaje: %s',
+                    $alumno->getUsername(),
+                    $pregunta->getArticulo()->getNumero(),
+                    $pregunta->getArticulo()->getNombre() ? ' - ' . $pregunta->getArticulo()->getNombre() : '',
+                    substr($mensaje, 0, 200) . (strlen($mensaje) > 200 ? '...' : '')
+                )
+            );
+            $notificacion->setProfesor($profesor);
+            $notificacion->setAlumno($alumno);
+            $notificacion->setPregunta($pregunta);
+            
+            $this->entityManager->persist($notificacion);
+        }
+        
+        $this->entityManager->flush();
+    }
+
+    /**
+     * Crea una notificación cuando un profesor o admin responde a un mensaje de pregunta de un alumno
+     */
+    public function crearNotificacionRespuestaPregunta(Pregunta $pregunta, User $alumno, User $profesor, string $respuestaTexto): void
+    {
+        // No notificar si el profesor y el alumno son la misma persona
+        if ($profesor->getId() === $alumno->getId()) {
+            return;
+        }
+        
+        // Solo notificar al alumno que escribió el mensaje original
+        $notificacion = new Notificacion();
+        $notificacion->setTipo(Notificacion::TIPO_RESPUESTA_PREGUNTA);
+        $notificacion->setTitulo('Respuesta en Pregunta');
+        // Incluir la respuesta completa sin truncar para que el alumno la vea directamente
+        $notificacion->setMensaje(
+            sprintf(
+                '%s ha respondido a tu mensaje sobre una pregunta del Artículo %s%s: "%s"',
+                $profesor->getUsername(),
+                $pregunta->getArticulo()->getNumero(),
+                $pregunta->getArticulo()->getNombre() ? ' - ' . $pregunta->getArticulo()->getNombre() : '',
+                $respuestaTexto
+            )
+        );
+        $notificacion->setProfesor($profesor);
+        $notificacion->setAlumno($alumno);
+        $notificacion->setPregunta($pregunta);
+        
+        $this->entityManager->persist($notificacion);
+        $this->entityManager->flush();
     }
 }
 

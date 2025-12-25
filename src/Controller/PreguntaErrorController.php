@@ -2,12 +2,10 @@
 
 namespace App\Controller;
 
-use App\Entity\Articulo;
-use App\Entity\MensajeArticulo;
-use App\Entity\Notificacion;
-use App\Repository\ArticuloRepository;
-use App\Repository\MensajeArticuloRepository;
-use App\Repository\NotificacionRepository;
+use App\Entity\Pregunta;
+use App\Entity\MensajePregunta;
+use App\Repository\PreguntaRepository;
+use App\Repository\MensajePreguntaRepository;
 use App\Service\NotificacionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -17,54 +15,48 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[Route('/articulo')]
-class ArticuloErrorController extends AbstractController
+#[Route('/pregunta')]
+class PreguntaErrorController extends AbstractController
 {
-    #[Route('/{id}/reportar-error', name: 'app_articulo_reportar_error', methods: ['POST'])]
+    #[Route('/{id}/reportar-error', name: 'app_pregunta_reportar_error', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
     public function reportarError(
-        Articulo $articulo,
+        Pregunta $pregunta,
         Request $request,
         NotificacionService $notificacionService,
         EntityManagerInterface $entityManager
-    ): Response {
+    ): JsonResponse {
         // Validar token CSRF
         $token = $request->request->get('_token');
-        if (!$this->isCsrfTokenValid('reportar_error_' . $articulo->getId(), $token)) {
-            $this->addFlash('error', 'Token CSRF inválido. Por favor, recarga la página e inténtalo de nuevo.');
-            return $this->redirectToRoute('app_articulo_publico_show', [
-                'id' => $articulo->getId(),
-                'ley' => $request->query->get('ley', 0),
-                'search' => $request->query->get('search', '')
-            ]);
+        if (!$this->isCsrfTokenValid('reportar_error_pregunta_' . $pregunta->getId(), $token)) {
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Token CSRF inválido.'
+            ], Response::HTTP_FORBIDDEN);
         }
         
         $mensajeTexto = $request->request->get('mensaje');
         
         if (empty($mensajeTexto) || trim($mensajeTexto) === '') {
-            $this->addFlash('error', 'El mensaje no puede estar vacío.');
-            return $this->redirectToRoute('app_articulo_publico_show', [
-                'id' => $articulo->getId(),
-                'ley' => $request->query->get('ley', 0),
-                'search' => $request->query->get('search', '')
-            ]);
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'El mensaje no puede estar vacío.'
+            ], Response::HTTP_BAD_REQUEST);
         }
 
         $alumno = $this->getUser();
         
         if (!$alumno) {
-            $this->addFlash('error', 'Debes estar autenticado para reportar un error.');
-            return $this->redirectToRoute('app_articulo_publico_show', [
-                'id' => $articulo->getId(),
-                'ley' => $request->query->get('ley', 0),
-                'search' => $request->query->get('search', '')
-            ]);
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Debes estar autenticado para reportar un error.'
+            ], Response::HTTP_UNAUTHORIZED);
         }
         
         try {
-            // Crear mensaje en la nueva entidad
-            $mensaje = new MensajeArticulo();
-            $mensaje->setArticulo($articulo);
+            // Crear mensaje
+            $mensaje = new MensajePregunta();
+            $mensaje->setPregunta($pregunta);
             $mensaje->setAutor($alumno);
             $mensaje->setMensaje(trim($mensajeTexto));
             $mensaje->setEsRespuesta(false);
@@ -72,32 +64,31 @@ class ArticuloErrorController extends AbstractController
             $entityManager->persist($mensaje);
             $entityManager->flush();
             
-            // También crear notificación (mantener compatibilidad)
-            $notificacionService->crearNotificacionErrorArticulo($articulo, $alumno, trim($mensajeTexto));
+            // Crear notificación para todos los profesores y administradores
+            $notificacionService->crearNotificacionErrorPregunta($pregunta, $alumno, trim($mensajeTexto));
             
-            $this->addFlash('success', 'Error reportado correctamente. Los profesores y administradores han sido notificados.');
+            return new JsonResponse([
+                'success' => true,
+                'message' => 'Error reportado correctamente. Los profesores y administradores han sido notificados.'
+            ]);
         } catch (\Exception $e) {
-            // Log del error para debugging
-            error_log('Error al reportar mensaje: ' . $e->getMessage());
-            $this->addFlash('error', 'Error al reportar el problema: ' . $e->getMessage());
+            error_log('Error al reportar error en pregunta: ' . $e->getMessage());
+            return new JsonResponse([
+                'success' => false,
+                'error' => 'Error al reportar el problema: ' . $e->getMessage()
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
-
-        return $this->redirectToRoute('app_articulo_publico_show', [
-            'id' => $articulo->getId(),
-            'ley' => $request->query->get('ley', 0),
-            'search' => $request->query->get('search', '')
-        ]);
     }
 
-    #[Route('/{id}/mensajes', name: 'app_articulo_mensajes', methods: ['GET'])]
+    #[Route('/{id}/mensajes', name: 'app_pregunta_mensajes', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
     public function obtenerMensajes(
-        Articulo $articulo,
-        MensajeArticuloRepository $mensajeArticuloRepository
+        Pregunta $pregunta,
+        MensajePreguntaRepository $mensajePreguntaRepository
     ): JsonResponse {
         try {
             $timezone = new \DateTimeZone('Europe/Madrid');
-            $mensajesPrincipales = $mensajeArticuloRepository->findMensajesPrincipales($articulo);
+            $mensajesPrincipales = $mensajePreguntaRepository->findMensajesPrincipales($pregunta);
             
             $mensajesArray = [];
             
@@ -158,14 +149,14 @@ class ArticuloErrorController extends AbstractController
         }
     }
 
-    #[Route('/{id}/contador-mensajes', name: 'app_articulo_contador_mensajes', methods: ['GET'])]
+    #[Route('/{id}/contador-mensajes', name: 'app_pregunta_contador_mensajes', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
     public function contadorMensajes(
-        Articulo $articulo,
-        MensajeArticuloRepository $mensajeArticuloRepository
+        Pregunta $pregunta,
+        MensajePreguntaRepository $mensajePreguntaRepository
     ): JsonResponse {
         try {
-            $contador = $mensajeArticuloRepository->countMensajesPrincipales($articulo);
+            $contador = $mensajePreguntaRepository->countMensajesPrincipales($pregunta);
 
             return new JsonResponse([
                 'contador' => $contador,
@@ -178,15 +169,24 @@ class ArticuloErrorController extends AbstractController
         }
     }
 
-    #[Route('/mensaje/{id}/responder', name: 'app_articulo_responder_mensaje', methods: ['POST'])]
+    #[Route('/mensaje/{id}/responder', name: 'app_pregunta_responder_mensaje', methods: ['POST'])]
     #[IsGranted('ROLE_PROFESOR')]
     public function responderMensaje(
-        MensajeArticulo $mensaje,
+        MensajePregunta $mensaje,
         Request $request,
         EntityManagerInterface $entityManager,
         NotificacionService $notificacionService
     ): JsonResponse {
         try {
+            // Validar token CSRF
+            $token = $request->request->get('_token');
+            if (!$token || !$this->isCsrfTokenValid('responder_mensaje_pregunta_' . $mensaje->getId(), $token)) {
+                return new JsonResponse([
+                    'success' => false,
+                    'error' => 'Token CSRF inválido.'
+                ], Response::HTTP_FORBIDDEN);
+            }
+            
             $respuestaTexto = $request->request->get('respuesta');
             
             if (empty($respuestaTexto) || trim($respuestaTexto) === '') {
@@ -214,8 +214,8 @@ class ArticuloErrorController extends AbstractController
             }
             
             // Crear respuesta
-            $respuesta = new MensajeArticulo();
-            $respuesta->setArticulo($mensaje->getArticulo());
+            $respuesta = new MensajePregunta();
+            $respuesta->setPregunta($mensaje->getPregunta());
             $respuesta->setAutor($profesor);
             $respuesta->setMensaje(trim($respuestaTexto));
             $respuesta->setMensajePadre($mensaje);
@@ -225,14 +225,14 @@ class ArticuloErrorController extends AbstractController
             $mensaje->addRespuesta($respuesta);
             
             $entityManager->persist($respuesta);
-            $entityManager->persist($mensaje); // Asegurar que el mensaje padre también se actualice
+            $entityManager->persist($mensaje);
             $entityManager->flush();
             
             // Notificar al alumno que su mensaje ha sido respondido
             $autorOriginal = $mensaje->getAutor();
             if ($autorOriginal && $autorOriginal->getId() !== $profesor->getId() && !in_array('ROLE_PROFESOR', $autorOriginal->getRoles()) && !in_array('ROLE_ADMIN', $autorOriginal->getRoles())) {
-                $notificacionService->crearNotificacionRespuestaArticulo(
-                    $mensaje->getArticulo(),
+                $notificacionService->crearNotificacionRespuestaPregunta(
+                    $mensaje->getPregunta(),
                     $autorOriginal,
                     $profesor,
                     trim($respuestaTexto)
@@ -263,9 +263,4 @@ class ArticuloErrorController extends AbstractController
         }
     }
 }
-
-
-
-
-
 

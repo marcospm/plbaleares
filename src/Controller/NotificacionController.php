@@ -19,11 +19,20 @@ class NotificacionController extends AbstractController
     public function noLeidas(NotificacionRepository $notificacionRepository, Request $request): JsonResponse
     {
         $profesor = $this->getUser();
+        if (!$profesor) {
+            return new JsonResponse(['error' => 'Usuario no autenticado'], 401);
+        }
+        
         $notificaciones = $notificacionRepository->findNoLeidasByProfesor($profesor);
 
         $data = [];
         $timezone = new \DateTimeZone('Europe/Madrid');
         foreach ($notificaciones as $notificacion) {
+            // Verificar que la notificación pertenece al profesor
+            if ($notificacion->getProfesor() && $notificacion->getProfesor()->getId() !== $profesor->getId()) {
+                continue; // Saltar notificaciones que no pertenecen a este profesor
+            }
+            
             $fechaCreacion = clone $notificacion->getFechaCreacion();
             $fechaCreacion->setTimezone($timezone);
             
@@ -32,11 +41,12 @@ class NotificacionController extends AbstractController
                 'tipo' => $notificacion->getTipo(),
                 'titulo' => $notificacion->getTitulo(),
                 'mensaje' => $notificacion->getMensaje(),
-                'alumno' => $notificacion->getAlumno()->getUsername(),
+                'alumno' => $notificacion->getAlumno() ? $notificacion->getAlumno()->getUsername() : 'Usuario eliminado',
                 'fechaCreacion' => $fechaCreacion->format('d/m/Y H:i'),
                 'examenId' => $notificacion->getExamen()?->getId(),
                 'tareaId' => $notificacion->getTareaAsignada()?->getId(),
                 'articuloId' => $notificacion->getArticulo()?->getId(),
+                'preguntaId' => $notificacion->getPregunta()?->getId(),
                 'leida' => $notificacion->isLeida(),
                 'token' => $this->container->get('security.csrf.token_manager')->getToken('marcar_leida' . $notificacion->getId())->getValue(),
             ];
@@ -51,15 +61,23 @@ class NotificacionController extends AbstractController
 
     #[Route('/todas', name: 'app_notificacion_todas', methods: ['GET'])]
     #[IsGranted('ROLE_PROFESOR')]
-    public function todas(NotificacionRepository $notificacionRepository): Response
+    public function todas(NotificacionRepository $notificacionRepository, EntityManagerInterface $entityManager): Response
     {
         $profesor = $this->getUser();
+        if (!$profesor) {
+            throw $this->createAccessDeniedException('Usuario no autenticado');
+        }
+        
+        // Forzar refresh de las entidades para evitar problemas de caché
+        $entityManager->clear();
+        $profesor = $entityManager->getRepository(\App\Entity\User::class)->find($profesor->getId());
+        
         $notificaciones = $notificacionRepository->findAllByProfesor($profesor);
         $noLeidas = $notificacionRepository->countNoLeidasByProfesor($profesor);
 
         return $this->render('notificacion/index.html.twig', [
             'notificaciones' => $notificaciones,
-            'noLeidas' => $noLeidas,
+            'noLeidas' => (int) $noLeidas,
         ]);
     }
 
@@ -68,10 +86,14 @@ class NotificacionController extends AbstractController
     public function contador(NotificacionRepository $notificacionRepository): JsonResponse
     {
         $profesor = $this->getUser();
+        if (!$profesor) {
+            return new JsonResponse(['contador' => 0]);
+        }
+        
         $contador = $notificacionRepository->countNoLeidasByProfesor($profesor);
 
         return new JsonResponse([
-            'contador' => $contador,
+            'contador' => (int) $contador,
         ]);
     }
 
@@ -80,15 +102,21 @@ class NotificacionController extends AbstractController
     public function marcarLeida(int $id, NotificacionRepository $notificacionRepository, EntityManagerInterface $entityManager, Request $request): JsonResponse
     {
         $profesor = $this->getUser();
-        $notificacion = $notificacionRepository->find($id);
+        if (!$profesor) {
+            return new JsonResponse(['success' => false, 'message' => 'Usuario no autenticado.'], 401);
+        }
+        
+        // Buscar la notificación asegurándose de que pertenece al profesor
+        $notificacion = $notificacionRepository->createQueryBuilder('n')
+            ->where('n.id = :id')
+            ->andWhere('n.profesor = :profesor')
+            ->setParameter('id', $id)
+            ->setParameter('profesor', $profesor)
+            ->getQuery()
+            ->getOneOrNullResult();
 
         if (!$notificacion) {
-            return new JsonResponse(['success' => false, 'message' => 'Notificación no encontrada.'], 404);
-        }
-
-        // Verificar que la notificación pertenece al profesor
-        if ($notificacion->getProfesor()->getId() !== $profesor->getId()) {
-            return new JsonResponse(['success' => false, 'message' => 'No tienes permiso para esta acción.'], 403);
+            return new JsonResponse(['success' => false, 'message' => 'Notificación no encontrada o no tienes permiso.'], 404);
         }
 
         if ($this->isCsrfTokenValid('marcar_leida'.$notificacion->getId(), $request->getPayload()->getString('_token'))) {
@@ -106,17 +134,27 @@ class NotificacionController extends AbstractController
     public function marcarTodasLeidas(NotificacionRepository $notificacionRepository, EntityManagerInterface $entityManager, Request $request): JsonResponse
     {
         $profesor = $this->getUser();
+        if (!$profesor) {
+            return new JsonResponse(['success' => false, 'message' => 'Usuario no autenticado.'], 401);
+        }
         
         if ($this->isCsrfTokenValid('marcar_todas_leidas', $request->getPayload()->getString('_token'))) {
-            $notificaciones = $notificacionRepository->findNoLeidasByProfesor($profesor);
+            // Usar query directa para marcar todas como leídas (más eficiente y seguro)
+            $qb = $entityManager->createQueryBuilder();
+            $qb->update(\App\Entity\Notificacion::class, 'n')
+                ->set('n.leida', ':leida')
+                ->where('n.profesor = :profesor')
+                ->andWhere('n.leida = :noLeida')
+                ->setParameter('leida', true)
+                ->setParameter('profesor', $profesor)
+                ->setParameter('noLeida', false);
             
-            foreach ($notificaciones as $notificacion) {
-                $notificacion->setLeida(true);
-            }
-            
-            $entityManager->flush();
+            $result = $qb->getQuery()->execute();
 
-            return new JsonResponse(['success' => true, 'message' => 'Todas las notificaciones marcadas como leídas.']);
+            return new JsonResponse([
+                'success' => true, 
+                'message' => sprintf('%d notificación(es) marcada(s) como leída(s).', $result)
+            ]);
         }
 
         return new JsonResponse(['success' => false, 'message' => 'Token inválido.'], 400);
@@ -127,16 +165,22 @@ class NotificacionController extends AbstractController
     public function marcarLeidaGet(int $id, NotificacionRepository $notificacionRepository, EntityManagerInterface $entityManager, Request $request): Response
     {
         $profesor = $this->getUser();
-        $notificacion = $notificacionRepository->find($id);
-
-        if (!$notificacion) {
-            $this->addFlash('error', 'Notificación no encontrada.');
+        if (!$profesor) {
+            $this->addFlash('error', 'Usuario no autenticado.');
             return $this->redirectToRoute('app_notificacion_todas');
         }
+        
+        // Buscar la notificación asegurándose de que pertenece al profesor
+        $notificacion = $notificacionRepository->createQueryBuilder('n')
+            ->where('n.id = :id')
+            ->andWhere('n.profesor = :profesor')
+            ->setParameter('id', $id)
+            ->setParameter('profesor', $profesor)
+            ->getQuery()
+            ->getOneOrNullResult();
 
-        // Verificar que la notificación pertenece al profesor
-        if ($notificacion->getProfesor()->getId() !== $profesor->getId()) {
-            $this->addFlash('error', 'No tienes permiso para esta acción.');
+        if (!$notificacion) {
+            $this->addFlash('error', 'Notificación no encontrada o no tienes permiso.');
             return $this->redirectToRoute('app_notificacion_todas');
         }
 
@@ -163,11 +207,20 @@ class NotificacionController extends AbstractController
         }
 
         $alumno = $this->getUser();
+        if (!$alumno) {
+            return new JsonResponse(['error' => 'Usuario no autenticado'], 401);
+        }
+        
         $notificaciones = $notificacionRepository->findNoLeidasByAlumno($alumno);
 
         $data = [];
         $timezone = new \DateTimeZone('Europe/Madrid');
         foreach ($notificaciones as $notificacion) {
+            // Verificar que la notificación pertenece al alumno
+            if ($notificacion->getAlumno() && $notificacion->getAlumno()->getId() !== $alumno->getId()) {
+                continue; // Saltar notificaciones que no pertenecen a este alumno
+            }
+            
             $fechaCreacion = clone $notificacion->getFechaCreacion();
             $fechaCreacion->setTimezone($timezone);
             
@@ -193,7 +246,7 @@ class NotificacionController extends AbstractController
 
     #[Route('/alumno/todas', name: 'app_notificacion_alumno_todas', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
-    public function todasAlumno(NotificacionRepository $notificacionRepository): Response
+    public function todasAlumno(NotificacionRepository $notificacionRepository, EntityManagerInterface $entityManager): Response
     {
         // Verificar que no sea profesor ni admin
         if ($this->isGranted('ROLE_PROFESOR') || $this->isGranted('ROLE_ADMIN')) {
@@ -201,12 +254,20 @@ class NotificacionController extends AbstractController
         }
 
         $alumno = $this->getUser();
+        if (!$alumno) {
+            throw $this->createAccessDeniedException('Usuario no autenticado');
+        }
+        
+        // Forzar refresh de las entidades para evitar problemas de caché
+        $entityManager->clear();
+        $alumno = $entityManager->getRepository(\App\Entity\User::class)->find($alumno->getId());
+        
         $notificaciones = $notificacionRepository->findAllByAlumno($alumno);
         $noLeidas = $notificacionRepository->countNoLeidasByAlumno($alumno);
 
         return $this->render('notificacion/alumno_index.html.twig', [
             'notificaciones' => $notificaciones,
-            'noLeidas' => $noLeidas,
+            'noLeidas' => (int) $noLeidas,
         ]);
     }
 
@@ -220,10 +281,14 @@ class NotificacionController extends AbstractController
         }
 
         $alumno = $this->getUser();
+        if (!$alumno) {
+            return new JsonResponse(['contador' => 0]);
+        }
+        
         $contador = $notificacionRepository->countNoLeidasByAlumno($alumno);
 
         return new JsonResponse([
-            'contador' => $contador,
+            'contador' => (int) $contador,
         ]);
     }
 
@@ -237,15 +302,21 @@ class NotificacionController extends AbstractController
         }
 
         $alumno = $this->getUser();
-        $notificacion = $notificacionRepository->find($id);
+        if (!$alumno) {
+            return new JsonResponse(['success' => false, 'message' => 'Usuario no autenticado.'], 401);
+        }
+        
+        // Buscar la notificación asegurándose de que pertenece al alumno
+        $notificacion = $notificacionRepository->createQueryBuilder('n')
+            ->where('n.id = :id')
+            ->andWhere('n.alumno = :alumno')
+            ->setParameter('id', $id)
+            ->setParameter('alumno', $alumno)
+            ->getQuery()
+            ->getOneOrNullResult();
 
         if (!$notificacion) {
-            return new JsonResponse(['success' => false, 'message' => 'Notificación no encontrada.'], 404);
-        }
-
-        // Verificar que la notificación pertenece al alumno
-        if ($notificacion->getAlumno()->getId() !== $alumno->getId()) {
-            return new JsonResponse(['success' => false, 'message' => 'No tienes permiso para esta acción.'], 403);
+            return new JsonResponse(['success' => false, 'message' => 'Notificación no encontrada o no tienes permiso.'], 404);
         }
 
         if ($this->isCsrfTokenValid('marcar_leida_alumno'.$notificacion->getId(), $request->getPayload()->getString('_token'))) {
@@ -268,17 +339,38 @@ class NotificacionController extends AbstractController
         }
 
         $alumno = $this->getUser();
+        if (!$alumno) {
+            return new JsonResponse(['success' => false, 'message' => 'Usuario no autenticado.'], 401);
+        }
         
         if ($this->isCsrfTokenValid('marcar_todas_leidas_alumno', $request->getPayload()->getString('_token'))) {
-            $notificaciones = $notificacionRepository->findNoLeidasByAlumno($alumno);
+            // Usar query directa para marcar todas como leídas (más eficiente y seguro)
+            $qb = $entityManager->createQueryBuilder();
+            $qb->update(\App\Entity\Notificacion::class, 'n')
+                ->set('n.leida', ':leida')
+                ->where('n.alumno = :alumno')
+                ->andWhere('n.leida = :noLeida')
+                ->andWhere('n.tipo IN (:tiposPermitidos)')
+                ->setParameter('leida', true)
+                ->setParameter('alumno', $alumno)
+                ->setParameter('noLeida', false)
+                ->setParameter('tiposPermitidos', [
+                    \App\Entity\Notificacion::TIPO_PLANIFICACION_CREADA,
+                    \App\Entity\Notificacion::TIPO_PLANIFICACION_EDITADA,
+                    \App\Entity\Notificacion::TIPO_PLANIFICACION_ELIMINADA,
+                    \App\Entity\Notificacion::TIPO_TAREA_CREADA,
+                    \App\Entity\Notificacion::TIPO_TAREA_EDITADA,
+                    \App\Entity\Notificacion::TIPO_TAREA_ELIMINADA,
+                    \App\Entity\Notificacion::TIPO_EXAMEN_SEMANAL,
+                    \App\Entity\Notificacion::TIPO_RESPUESTA_ARTICULO,
+                ]);
             
-            foreach ($notificaciones as $notificacion) {
-                $notificacion->setLeida(true);
-            }
-            
-            $entityManager->flush();
+            $result = $qb->getQuery()->execute();
 
-            return new JsonResponse(['success' => true, 'message' => 'Todas las notificaciones marcadas como leídas.']);
+            return new JsonResponse([
+                'success' => true, 
+                'message' => sprintf('%d notificación(es) marcada(s) como leída(s).', $result)
+            ]);
         }
 
         return new JsonResponse(['success' => false, 'message' => 'Token inválido.'], 400);
@@ -294,16 +386,22 @@ class NotificacionController extends AbstractController
         }
 
         $alumno = $this->getUser();
-        $notificacion = $notificacionRepository->find($id);
-
-        if (!$notificacion) {
-            $this->addFlash('error', 'Notificación no encontrada.');
+        if (!$alumno) {
+            $this->addFlash('error', 'Usuario no autenticado.');
             return $this->redirectToRoute('app_notificacion_alumno_todas');
         }
+        
+        // Buscar la notificación asegurándose de que pertenece al alumno
+        $notificacion = $notificacionRepository->createQueryBuilder('n')
+            ->where('n.id = :id')
+            ->andWhere('n.alumno = :alumno')
+            ->setParameter('id', $id)
+            ->setParameter('alumno', $alumno)
+            ->getQuery()
+            ->getOneOrNullResult();
 
-        // Verificar que la notificación pertenece al alumno
-        if ($notificacion->getAlumno()->getId() !== $alumno->getId()) {
-            $this->addFlash('error', 'No tienes permiso para esta acción.');
+        if (!$notificacion) {
+            $this->addFlash('error', 'Notificación no encontrada o no tienes permiso.');
             return $this->redirectToRoute('app_notificacion_alumno_todas');
         }
 

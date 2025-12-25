@@ -122,17 +122,69 @@
                     } else if (data.mensajes) {
                         let html = '<div style="display: grid; gap: 1rem;">';
                         data.mensajes.forEach(function(mensaje) {
-                            const alumno = mensaje.alumno || 'Usuario eliminado';
+                            const autor = mensaje.autor || 'Usuario eliminado';
                             const fecha = mensaje.fechaCreacion || '';
                             const mensajeTexto = mensaje.mensaje || '';
+                            const esProfesor = mensaje.esProfesor || false;
+                            const mensajeId = mensaje.id;
+                            const respuestas = mensaje.respuestas || [];
+                            const tieneRespuestas = mensaje.tieneRespuestas || false;
+                            const puedeResponder = {{ (is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN')) ? 'true' : 'false' }};
+                            
+                            // Estilo según si es de profesor o alumno
+                            const borderColor = esProfesor ? '#28a745' : 'var(--color-primary)';
+                            const bgColor = esProfesor ? '#f0f9f4' : '#fff';
+                            const badgeColor = esProfesor ? '#28a745' : 'var(--color-primary)';
                             
                             html += `
-                                <div style="padding: 1rem; border: 1px solid #ddd; border-left: 4px solid var(--color-primary); border-radius: 4px; background-color: #fff;">
+                                <div style="padding: 1rem; border: 1px solid #ddd; border-left: 4px solid ${borderColor}; border-radius: 4px; background-color: ${bgColor}; margin-bottom: 1rem;">
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                                        <strong style="color: var(--color-primary);">${alumno}</strong>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <strong style="color: ${badgeColor};">
+                                                ${autor}
+                                                ${esProfesor ? '<span style="background-color: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; margin-left: 0.5rem;">Profesor</span>' : '<span style="background-color: var(--color-primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; margin-left: 0.5rem;">Alumno</span>'}
+                                            </strong>
+                                        </div>
                                         <small style="color: #999;">${fecha}</small>
                                     </div>
-                                    <p style="margin: 0; color: #333; white-space: pre-wrap; line-height: 1.5;">${mensajeTexto}</p>
+                                    <p style="margin: 0 0 1rem 0; color: #333; white-space: pre-wrap; line-height: 1.5;">${mensajeTexto}</p>
+                                    
+                                    ${tieneRespuestas ? `
+                                        <div style="margin-left: 1rem; margin-top: 1rem; padding-left: 1rem; border-left: 3px solid #ddd;">
+                                            <strong style="color: #666; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">Respuestas:</strong>
+                                    ` : ''}
+                                    
+                                    ${respuestas.map(function(respuesta) {
+                                        const respuestaEsProfesor = respuesta.esProfesor || false;
+                                        const respuestaBorderColor = respuestaEsProfesor ? '#28a745' : 'var(--color-primary)';
+                                        const respuestaBgColor = respuestaEsProfesor ? '#f0f9f4' : '#fff';
+                                        const respuestaBadgeColor = respuestaEsProfesor ? '#28a745' : 'var(--color-primary)';
+                                        return `
+                                            <div style="padding: 0.75rem; border: 1px solid #ddd; border-left: 4px solid ${respuestaBorderColor}; border-radius: 4px; background-color: ${respuestaBgColor}; margin-bottom: 0.75rem;">
+                                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                        <strong style="color: ${respuestaBadgeColor}; font-size: 0.9rem;">
+                                                            ${respuesta.autor}
+                                                            ${respuestaEsProfesor ? '<span style="background-color: #28a745; color: white; padding: 2px 6px; border-radius: 12px; font-size: 0.7rem; margin-left: 0.5rem;">Profesor</span>' : '<span style="background-color: var(--color-primary); color: white; padding: 2px 6px; border-radius: 12px; font-size: 0.7rem; margin-left: 0.5rem;">Alumno</span>'}
+                                                        </strong>
+                                                    </div>
+                                                    <small style="color: #999; font-size: 0.85rem;">${respuesta.fechaCreacion}</small>
+                                                </div>
+                                                <p style="margin: 0; color: #333; white-space: pre-wrap; line-height: 1.5; font-size: 0.9rem;">${respuesta.mensaje}</p>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                    
+                                    ${tieneRespuestas ? '</div>' : ''}
+                                    
+                                    ${puedeResponder && !esProfesor ? `
+                                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+                                            <form class="form-responder-mensaje" data-mensaje-id="${mensajeId}" style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                                                <textarea name="respuesta" class="form-control" rows="2" placeholder="Escribe tu respuesta..." required style="flex: 1; font-size: 0.9rem;"></textarea>
+                                                <button type="submit" class="btn btn-success btn-sm" style="white-space: nowrap;">Responder</button>
+                                            </form>
+                                        </div>
+                                    ` : ''}
                                 </div>
                             `;
                         });
@@ -220,6 +272,55 @@
 
             // Cargar contador inicial
             cargarContador();
+            
+            // Manejar envío de respuestas
+            document.addEventListener('submit', function(e) {
+                if (e.target.classList.contains('form-responder-mensaje')) {
+                    e.preventDefault();
+                    
+                    const form = e.target;
+                    const mensajeId = form.dataset.mensajeId;
+                    const respuesta = form.querySelector('[name="respuesta"]').value.trim();
+                    
+                    if (!respuesta) {
+                        alert('Por favor, escribe una respuesta.');
+                        return;
+                    }
+                    
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.textContent;
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Enviando...';
+                    
+                    fetch(`/articulo/mensaje/${mensajeId}/responder`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: `respuesta=${encodeURIComponent(respuesta)}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Limpiar formulario
+                            form.querySelector('[name="respuesta"]').value = '';
+                            // Recargar mensajes
+                            cargarMensajes();
+                        } else {
+                            alert(data.error || 'Error al enviar la respuesta.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error al enviar la respuesta. Por favor, inténtalo de nuevo.');
+                    })
+                    .finally(() => {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalText;
+                    });
+                }
+            });
         });
         </script>
         {% endif %}

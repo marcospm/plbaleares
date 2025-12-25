@@ -29,6 +29,29 @@
                 {{ form_errors(form.alumnos) }}
                 <small class="form-text text-muted">Selecciona los alumnos a los que quieres asignar este recurso.</small>
             </div>
+            
+            <style>
+                /* Asegurar que cada checkbox de alumno se muestre en su propia línea */
+                #{{ form.alumnos.vars.id }} > div {
+                    display: block !important;
+                    margin-bottom: 0.5rem !important;
+                    padding: 0.25rem 0 !important;
+                }
+                
+                #{{ form.alumnos.vars.id }} label {
+                    display: inline-block !important;
+                    margin-left: 0.5rem !important;
+                    margin-bottom: 0 !important;
+                    font-weight: normal !important;
+                    cursor: pointer;
+                }
+                
+                #{{ form.alumnos.vars.id }} input[type="checkbox"] {
+                    margin-right: 0 !important;
+                    vertical-align: middle;
+                    cursor: pointer;
+                }
+            </style>
 
             <div class="form-group">
                 {{ form_label(form.archivo) }}

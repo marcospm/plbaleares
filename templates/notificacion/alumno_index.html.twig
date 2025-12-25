@@ -31,9 +31,12 @@
                                     (notificacion.tipo == 'tarea_creada' ? '📝' : 
                                     (notificacion.tipo == 'tarea_editada' ? '✏️' : 
                                     (notificacion.tipo == 'tarea_eliminada' ? '🗑️' :
-                                    (notificacion.tipo == 'examen_semanal' ? '📋' : '📋')))))) %}
+                                    (notificacion.tipo == 'examen_semanal' ? '📋' : 
+                                    (notificacion.tipo == 'respuesta_articulo' ? '💬' : 
+                                    (notificacion.tipo == 'respuesta_pregunta' ? '💬' : '📋')))))))) %}
                     {% set color = 'planificacion' in notificacion.tipo ? '#2196F3' : 
-                                    (notificacion.tipo == 'examen_semanal' ? '#9C27B0' : '#4CAF50') %}
+                                    (notificacion.tipo == 'examen_semanal' ? '#9C27B0' : 
+                                    (notificacion.tipo == 'respuesta_articulo' or notificacion.tipo == 'respuesta_pregunta' ? '#9C27B0' : '#4CAF50')) %}
                     
                     <div style="padding: 1rem; border: 1px solid #ddd; border-left: 4px solid {{ color }}; border-radius: 4px; background-color: {% if notificacion.leida %}#f8f9fa{% else %}#fff{% endif %};">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -70,6 +73,40 @@
                                         <a href="{{ path('app_examen_semanal_alumno_index') }}" class="btn btn-sm btn-primary">
                                             Ver Examen Semanal
                                         </a>
+                                    </div>
+                                {% endif %}
+                                {% if notificacion.articulo %}
+                                    <div style="margin-top: 0.5rem;">
+                                        <a href="{{ path('app_articulo_publico_show', {'id': notificacion.articulo.id}) }}" class="btn btn-sm btn-primary">
+                                            Ver Artículo
+                                        </a>
+                                    </div>
+                                {% endif %}
+                                {% if notificacion.tipo == 'respuesta_pregunta' or notificacion.tipo == 'respuesta_articulo' %}
+                                    <div style="margin-top: 0.75rem; padding: 0.75rem; background-color: #f0f7ff; border-left: 3px solid #9C27B0; border-radius: 4px;">
+                                        <small style="color: #666; font-weight: bold; display: block; margin-bottom: 0.5rem;">💬 Respuesta del profesor:</small>
+                                        {% set mensajeCompleto = notificacion.mensaje %}
+                                        {% set inicioRespuesta = mensajeCompleto|split(': "') %}
+                                        {% if inicioRespuesta|length > 1 %}
+                                            {% set respuesta = inicioRespuesta[1]|trim %}
+                                            {% if respuesta|slice(-1) == '"' %}
+                                                {% set respuesta = respuesta|slice(0, -1) %}
+                                            {% endif %}
+                                            <div style="background-color: white; padding: 0.75rem; border-radius: 4px; border: 1px solid #ddd;">
+                                                <p style="margin: 0; color: #333; white-space: pre-wrap; line-height: 1.6; font-size: 0.95rem;">{{ respuesta }}</p>
+                                            </div>
+                                        {% else %}
+                                            <div style="background-color: white; padding: 0.75rem; border-radius: 4px; border: 1px solid #ddd;">
+                                                <p style="margin: 0; color: #333; white-space: pre-wrap; line-height: 1.6; font-size: 0.95rem;">{{ mensajeCompleto }}</p>
+                                            </div>
+                                        {% endif %}
+                                        {% if notificacion.tipo == 'respuesta_pregunta' and notificacion.pregunta %}
+                                            <div style="margin-top: 0.75rem;">
+                                                <a href="{{ path('app_pregunta_publica_show', {'id': notificacion.pregunta.id}) }}" class="btn btn-sm btn-primary">
+                                                    📋 Ver Pregunta y Mensajes
+                                                </a>
+                                            </div>
+                                        {% endif %}
                                     </div>
                                 {% endif %}
                             </div>

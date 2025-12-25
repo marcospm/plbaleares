@@ -37,7 +37,7 @@ class NotificacionRepository extends ServiceEntityRepository
      */
     public function countNoLeidasByProfesor(User $profesor): int
     {
-        return $this->createQueryBuilder('n')
+        $result = $this->createQueryBuilder('n')
             ->select('COUNT(n.id)')
             ->where('n.profesor = :profesor')
             ->andWhere('n.leida = :leida')
@@ -45,6 +45,8 @@ class NotificacionRepository extends ServiceEntityRepository
             ->setParameter('leida', false)
             ->getQuery()
             ->getSingleScalarResult();
+        
+        return (int) $result;
     }
 
     /**
@@ -80,6 +82,8 @@ class NotificacionRepository extends ServiceEntityRepository
                 Notificacion::TIPO_TAREA_EDITADA,
                 Notificacion::TIPO_TAREA_ELIMINADA,
                 Notificacion::TIPO_EXAMEN_SEMANAL,
+                Notificacion::TIPO_RESPUESTA_ARTICULO,
+                Notificacion::TIPO_RESPUESTA_PREGUNTA,
             ])
             ->orderBy('n.fechaCreacion', 'DESC')
             ->getQuery()
@@ -92,7 +96,7 @@ class NotificacionRepository extends ServiceEntityRepository
      */
     public function countNoLeidasByAlumno(User $alumno): int
     {
-        return $this->createQueryBuilder('n')
+        $result = $this->createQueryBuilder('n')
             ->select('COUNT(n.id)')
             ->where('n.alumno = :alumno')
             ->andWhere('n.leida = :leida')
@@ -107,9 +111,13 @@ class NotificacionRepository extends ServiceEntityRepository
                 Notificacion::TIPO_TAREA_EDITADA,
                 Notificacion::TIPO_TAREA_ELIMINADA,
                 Notificacion::TIPO_EXAMEN_SEMANAL,
+                Notificacion::TIPO_RESPUESTA_ARTICULO,
+                Notificacion::TIPO_RESPUESTA_PREGUNTA,
             ])
             ->getQuery()
             ->getSingleScalarResult();
+        
+        return (int) $result;
     }
 
     /**
@@ -130,6 +138,8 @@ class NotificacionRepository extends ServiceEntityRepository
                 Notificacion::TIPO_TAREA_EDITADA,
                 Notificacion::TIPO_TAREA_ELIMINADA,
                 Notificacion::TIPO_EXAMEN_SEMANAL,
+                Notificacion::TIPO_RESPUESTA_ARTICULO,
+                Notificacion::TIPO_RESPUESTA_PREGUNTA,
             ])
             ->orderBy('n.fechaCreacion', 'DESC')
             ->getQuery()

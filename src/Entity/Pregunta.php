@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\PreguntaRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -52,6 +54,14 @@ class Pregunta
     #[ORM\ManyToOne(inversedBy: 'preguntas')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Articulo $articulo = null;
+
+    #[ORM\OneToMany(targetEntity: \App\Entity\MensajePregunta::class, mappedBy: 'pregunta', orphanRemoval: true)]
+    private Collection $mensajes;
+
+    public function __construct()
+    {
+        $this->mensajes = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -208,6 +218,36 @@ class Pregunta
     public function setActivo(bool $activo): static
     {
         $this->activo = $activo;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, \App\Entity\MensajePregunta>
+     */
+    public function getMensajes(): Collection
+    {
+        return $this->mensajes;
+    }
+
+    public function addMensaje(\App\Entity\MensajePregunta $mensaje): static
+    {
+        if (!$this->mensajes->contains($mensaje)) {
+            $this->mensajes->add($mensaje);
+            $mensaje->setPregunta($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMensaje(\App\Entity\MensajePregunta $mensaje): static
+    {
+        if ($this->mensajes->removeElement($mensaje)) {
+            // set the owning side to null (unless already changed)
+            if ($mensaje->getPregunta() === $this) {
+                $mensaje->setPregunta(null);
+            }
+        }
 
         return $this;
     }

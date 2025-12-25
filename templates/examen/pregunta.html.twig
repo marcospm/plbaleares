@@ -88,6 +88,286 @@
                 {% endif %}
             </div>
         </form>
+
+        {% if is_granted('ROLE_USER') and not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
+        <div style="margin-top: 2rem; border-top: 2px solid #ddd; padding-top: 1.5rem;">
+            <div class="d-flex gap-2 align-items-center mb-3">
+                <button type="button" class="btn btn-info position-relative btn-sm" id="btnVerMensajes" data-pregunta-id="{{ pregunta.id }}">
+                    <span>💬 Ver Mensajes</span>
+                    <span class="badge bg-danger position-absolute top-0 start-100 translate-middle" id="contadorMensajes" style="display: none; font-size: 0.65rem; padding: 0.2rem 0.4rem;">0</span>
+                </button>
+            </div>
+            
+            <div class="card" style="border-left: 4px solid #FF9800; max-width: 500px;">
+                <div class="card-header" style="background-color: #fff3cd; padding: 0.75rem;">
+                    <h5 style="margin: 0; color: #856404; font-size: 0.9rem;">⚠️ Reportar Error en esta Pregunta</h5>
+                </div>
+                <div class="card-body" style="padding: 1rem;">
+                    <form method="post" id="formReportePregunta" data-pregunta-id="{{ pregunta.id }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('reportar_error_pregunta_' ~ pregunta.id) }}">
+                        <div class="form-group mb-2">
+                            <textarea name="mensaje" class="form-control" rows="3" placeholder="Describe el error que encontraste en esta pregunta..." required style="width: 100%; font-size: 0.85rem;"></textarea>
+                            <small style="color: #666; font-size: 0.7rem;">Los profesores y administradores serán notificados de tu solicitud.</small>
+                        </div>
+                        <button type="submit" class="btn btn-warning btn-sm">Enviar Reporte</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para mostrar mensajes -->
+        <div id="modalMensajesPregunta" style="display: none; position: fixed; z-index: 99999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); overflow-y: auto;">
+            <div style="background-color: #fefefe; margin: 5% auto; padding: 0; border: 1px solid #888; border-radius: 8px; width: 90%; max-width: 800px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); max-height: 80vh; display: flex; flex-direction: column; position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; border-bottom: 1px solid #ddd;">
+                    <h3 style="margin: 0; color: var(--color-primary); font-size: 1.1rem;">💬 Mensajes sobre esta Pregunta</h3>
+                    <span id="cerrarModalMensajesPregunta" style="color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; line-height: 1; user-select: none;" onclick="cerrarModalMensajesPregunta()">&times;</span>
+                </div>
+                <div id="contenidoMensajesPregunta" style="padding: 1.5rem; overflow-y: auto; flex: 1; min-height: 200px;">
+                    <div style="text-align: center; padding: 2rem;">
+                        <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--color-primary); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <p style="margin-top: 1rem; color: #666;">Cargando...</p>
+                    </div>
+                </div>
+                <div style="padding: 1rem; border-top: 1px solid #ddd; text-align: right;">
+                    <button onclick="cerrarModalMensajesPregunta()" class="btn btn-secondary btn-sm">Cerrar</button>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+
+        <script>
+        let contenidoMensajesPregunta = null;
+        let contadorMensajesPregunta = null;
+        const preguntaId = {{ pregunta.id }};
+
+        function cargarMensajesPregunta() {
+            if (!contenidoMensajesPregunta) {
+                contenidoMensajesPregunta = document.getElementById('contenidoMensajesPregunta');
+            }
+            
+            if (!contenidoMensajesPregunta) {
+                console.error('No se encontró el elemento contenidoMensajesPregunta');
+                return;
+            }
+            
+            contenidoMensajesPregunta.innerHTML = '<div style="text-align: center; padding: 2rem;"><div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--color-primary); border-radius: 50%; animation: spin 1s linear infinite;"></div><p style="margin-top: 1rem; color: #666;">Cargando...</p></div>';
+            
+            fetch(`/pregunta/${preguntaId}/mensajes`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error en la respuesta del servidor');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.mensajes && data.mensajes.length === 0) {
+                        contenidoMensajesPregunta.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">No hay mensajes aún sobre esta pregunta.</p>';
+                    } else if (data.mensajes) {
+                        let html = '<div style="display: grid; gap: 1rem;">';
+                        data.mensajes.forEach(function(mensaje) {
+                            const autor = mensaje.autor || 'Usuario eliminado';
+                            const fecha = mensaje.fechaCreacion || '';
+                            const mensajeTexto = mensaje.mensaje || '';
+                            const esProfesor = mensaje.esProfesor || false;
+                            const mensajeId = mensaje.id;
+                            const respuestas = mensaje.respuestas || [];
+                            const tieneRespuestas = mensaje.tieneRespuestas || false;
+                            
+                            const borderColor = esProfesor ? '#28a745' : 'var(--color-primary)';
+                            const bgColor = esProfesor ? '#f0f9f4' : '#fff';
+                            const badgeColor = esProfesor ? '#28a745' : 'var(--color-primary)';
+                            
+                            html += `
+                                <div style="padding: 1rem; border: 1px solid #ddd; border-left: 4px solid ${borderColor}; border-radius: 4px; background-color: ${bgColor}; margin-bottom: 1rem;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <strong style="color: ${badgeColor}; font-size: 0.9rem;">
+                                                ${autor}
+                                                ${esProfesor ? '<span style="background-color: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; margin-left: 0.5rem;">Profesor</span>' : '<span style="background-color: var(--color-primary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; margin-left: 0.5rem;">Alumno</span>'}
+                                            </strong>
+                                        </div>
+                                        <small style="color: #999; font-size: 0.8rem;">${fecha}</small>
+                                    </div>
+                                    <p style="margin: 0 0 1rem 0; color: #333; white-space: pre-wrap; line-height: 1.5; font-size: 0.9rem;">${mensajeTexto}</p>
+                                    
+                                    ${tieneRespuestas ? `
+                                        <div style="margin-left: 1rem; margin-top: 1rem; padding-left: 1rem; border-left: 3px solid #ddd;">
+                                            <strong style="color: #666; font-size: 0.85rem; margin-bottom: 0.5rem; display: block;">Respuestas:</strong>
+                                    ` : ''}
+                                    
+                                    ${respuestas.map(function(respuesta) {
+                                        const respuestaEsProfesor = respuesta.esProfesor || false;
+                                        const respuestaBorderColor = respuestaEsProfesor ? '#28a745' : 'var(--color-primary)';
+                                        const respuestaBgColor = respuestaEsProfesor ? '#f0f9f4' : '#fff';
+                                        return `
+                                            <div style="padding: 0.75rem; border: 1px solid #ddd; border-left: 4px solid ${respuestaBorderColor}; border-radius: 4px; background-color: ${respuestaBgColor}; margin-bottom: 0.75rem;">
+                                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                                    <strong style="color: ${respuestaBorderColor}; font-size: 0.85rem;">
+                                                        ${respuesta.autor}
+                                                        ${respuestaEsProfesor ? '<span style="background-color: #28a745; color: white; padding: 2px 6px; border-radius: 12px; font-size: 0.65rem; margin-left: 0.5rem;">Profesor</span>' : ''}
+                                                    </strong>
+                                                    <small style="color: #999; font-size: 0.8rem;">${respuesta.fechaCreacion}</small>
+                                                </div>
+                                                <p style="margin: 0; color: #333; white-space: pre-wrap; line-height: 1.5; font-size: 0.85rem;">${respuesta.mensaje}</p>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                    
+                                    ${tieneRespuestas ? '</div>' : ''}
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                        contenidoMensajesPregunta.innerHTML = html;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    contenidoMensajesPregunta.innerHTML = '<p style="text-align: center; color: #dc3545; padding: 2rem;">Error al cargar los mensajes.</p>';
+                });
+        }
+
+        function abrirModalMensajesPregunta(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            const modal = document.getElementById('modalMensajesPregunta');
+            if (modal) {
+                modal.style.display = 'block';
+                cargarMensajesPregunta();
+            } else {
+                console.error('No se encontró el modal modalMensajesPregunta');
+            }
+        }
+
+        function cerrarModalMensajesPregunta() {
+            const modal = document.getElementById('modalMensajesPregunta');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Cerrar modal al hacer clic fuera de él
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('modalMensajesPregunta');
+            if (modal && event.target == modal) {
+                cerrarModalMensajesPregunta();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const btnVerMensajes = document.getElementById('btnVerMensajes');
+            contadorMensajesPregunta = document.getElementById('contadorMensajes');
+            contenidoMensajesPregunta = document.getElementById('contenidoMensajesPregunta');
+            const formReporte = document.getElementById('formReportePregunta');
+            
+            function cargarContador() {
+                fetch(`/pregunta/${preguntaId}/contador-mensajes`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Error en la respuesta del servidor');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (contadorMensajesPregunta) {
+                            if (data.contador > 0) {
+                                contadorMensajesPregunta.textContent = data.contador;
+                                contadorMensajesPregunta.style.display = 'inline-block';
+                            } else {
+                                contadorMensajesPregunta.style.display = 'none';
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error al cargar contador:', error);
+                    });
+            }
+
+            if (btnVerMensajes) {
+                btnVerMensajes.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    abrirModalMensajesPregunta(e);
+                });
+            } else {
+                console.warn('No se encontró el botón btnVerMensajes');
+            }
+
+            if (formReporte) {
+                formReporte.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const formData = new FormData(formReporte);
+                    const submitBtn = formReporte.querySelector('button[type="submit"]');
+                    const originalText = submitBtn ? submitBtn.textContent : 'Enviar Reporte';
+                    
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = 'Enviando...';
+                    }
+                    
+                    fetch(`/pregunta/${preguntaId}/reportar-error`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Error en la respuesta del servidor');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            // Mostrar mensaje de éxito sin alert
+                            const mensajeExito = document.createElement('div');
+                            mensajeExito.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 1rem; border-radius: 4px; z-index: 100000; box-shadow: 0 4px 6px rgba(0,0,0,0.3);';
+                            mensajeExito.textContent = '✓ Error reportado correctamente. Los profesores han sido notificados.';
+                            document.body.appendChild(mensajeExito);
+                            setTimeout(() => mensajeExito.remove(), 3000);
+                            
+                            // Limpiar formulario
+                            const textarea = formReporte.querySelector('[name="mensaje"]');
+                            if (textarea) {
+                                textarea.value = '';
+                            }
+                            
+                            // Recargar contador y mensajes
+                            setTimeout(cargarContador, 500);
+                            if (document.getElementById('modalMensajesPregunta') && document.getElementById('modalMensajesPregunta').style.display === 'block') {
+                                setTimeout(cargarMensajesPregunta, 500);
+                            }
+                        } else {
+                            alert(data.error || 'Error al enviar el reporte.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error al enviar el reporte. Por favor, inténtalo de nuevo.');
+                    })
+                    .finally(() => {
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalText;
+                        }
+                    });
+                });
+            } else {
+                console.warn('No se encontró el formulario formReportePregunta');
+            }
+
+            cargarContador();
+        });
+        </script>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
