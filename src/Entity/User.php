@@ -36,6 +36,42 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $activo = false;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $email = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $telefono = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $direccion = null;
+
+    #[ORM\Column(length: 10, nullable: true)]
+    private ?string $codigoPostal = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $ciudad = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $provincia = null;
+
+    #[ORM\Column(type: 'date', nullable: true)]
+    private ?\DateTimeInterface $fechaNacimiento = null;
+
+    #[ORM\Column(length: 1, nullable: true)]
+    private ?string $sexo = null; // M, F, O (Masculino, Femenino, Otro)
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $dni = null;
+
+    #[ORM\Column(length: 34, nullable: true)]
+    private ?string $iban = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $banco = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $notas = null;
+
     #[ORM\ManyToMany(targetEntity: Municipio::class, mappedBy: 'usuarios')]
     private Collection $municipios;
 
@@ -137,6 +173,171 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setActivo(bool $activo): static
     {
         $this->activo = $activo;
+
+        return $this;
+    }
+
+    public function getEmail(): ?string
+    {
+        return $this->email;
+    }
+
+    public function setEmail(?string $email): static
+    {
+        $this->email = $email;
+
+        return $this;
+    }
+
+    public function getTelefono(): ?string
+    {
+        return $this->telefono;
+    }
+
+    public function setTelefono(?string $telefono): static
+    {
+        $this->telefono = $telefono;
+
+        return $this;
+    }
+
+    public function getDireccion(): ?string
+    {
+        return $this->direccion;
+    }
+
+    public function setDireccion(?string $direccion): static
+    {
+        $this->direccion = $direccion;
+
+        return $this;
+    }
+
+    public function getCodigoPostal(): ?string
+    {
+        return $this->codigoPostal;
+    }
+
+    public function setCodigoPostal(?string $codigoPostal): static
+    {
+        $this->codigoPostal = $codigoPostal;
+
+        return $this;
+    }
+
+    public function getCiudad(): ?string
+    {
+        return $this->ciudad;
+    }
+
+    public function setCiudad(?string $ciudad): static
+    {
+        $this->ciudad = $ciudad;
+
+        return $this;
+    }
+
+    public function getProvincia(): ?string
+    {
+        return $this->provincia;
+    }
+
+    public function setProvincia(?string $provincia): static
+    {
+        $this->provincia = $provincia;
+
+        return $this;
+    }
+
+    public function getFechaNacimiento(): ?\DateTimeInterface
+    {
+        return $this->fechaNacimiento;
+    }
+
+    public function setFechaNacimiento(?\DateTimeInterface $fechaNacimiento): static
+    {
+        $this->fechaNacimiento = $fechaNacimiento;
+
+        return $this;
+    }
+
+    public function getEdad(): ?int
+    {
+        if (!$this->fechaNacimiento) {
+            return null;
+        }
+        
+        $hoy = new \DateTime();
+        $edad = $hoy->diff($this->fechaNacimiento);
+        return $edad->y;
+    }
+
+    public function getSexo(): ?string
+    {
+        return $this->sexo;
+    }
+
+    public function setSexo(?string $sexo): static
+    {
+        $this->sexo = $sexo;
+
+        return $this;
+    }
+
+    public function getSexoLabel(): string
+    {
+        return match($this->sexo) {
+            'M' => 'Masculino',
+            'F' => 'Femenino',
+            'O' => 'Otro',
+            default => 'No especificado'
+        };
+    }
+
+    public function getDni(): ?string
+    {
+        return $this->dni;
+    }
+
+    public function setDni(?string $dni): static
+    {
+        $this->dni = $dni;
+
+        return $this;
+    }
+
+    public function getIban(): ?string
+    {
+        return $this->iban;
+    }
+
+    public function setIban(?string $iban): static
+    {
+        $this->iban = $iban;
+
+        return $this;
+    }
+
+    public function getBanco(): ?string
+    {
+        return $this->banco;
+    }
+
+    public function setBanco(?string $banco): static
+    {
+        $this->banco = $banco;
+
+        return $this;
+    }
+
+    public function getNotas(): ?string
+    {
+        return $this->notas;
+    }
+
+    public function setNotas(?string $notas): static
+    {
+        $this->notas = $notas;
 
         return $this;
     }

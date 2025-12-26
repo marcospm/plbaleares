@@ -154,7 +154,7 @@
         <div class="d-flex gap-2 mt-4">
             <a href="{{ path('app_pregunta_edit', {'id': pregunta.id}|merge(filtros|default({}))) }}" class="btn btn-primary">Editar</a>
             <a href="{{ path('app_pregunta_index', filtros|default({})) }}" class="btn btn-secondary">Volver</a>
-            <form method="post" action="{{ path('app_pregunta_delete', {'id': pregunta.id}) }}" onsubmit="return confirm('¿Estás seguro de eliminar esta pregunta?');" style="display: inline;">
+            <form method="post" action="{{ path('app_pregunta_delete', {'id': pregunta.id}|merge(filtros|default({}))) }}" onsubmit="return confirm('¿Estás seguro de eliminar esta pregunta?');" style="display: inline;">
                 <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ pregunta.id) }}">
                 <button type="submit" class="btn btn-danger">Eliminar</button>
             </form>

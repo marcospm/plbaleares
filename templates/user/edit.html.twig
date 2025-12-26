@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Editar Usuario: {{ user.username }}{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4">
+    <h1>Editar Usuario: {{ user.username }}</h1>
+    <a href="{{ path('app_user_show', {'id': user.id}) }}" class="btn btn-secondary">Volver</a>
+</div>
+
+<div class="card">
+    <div class="card-header" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+        <h3 style="margin: 0; color: #333; font-size: 1.1rem; font-weight: 600;">
+            ✏️ Editar Información del Usuario
+        </h3>
+    </div>
+    <div class="card-body">
+        {{ form_start(form) }}
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                {# Información Básica #}
+                <div>
+                    <h4 style="color: var(--color-primary); margin-bottom: 1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">
+                        👤 Información Básica
+                    </h4>
+                    {{ form_row(form.username) }}
+                    {{ form_row(form.email) }}
+                    {{ form_row(form.telefono) }}
+                    {{ form_row(form.dni) }}
+                    {{ form_row(form.fechaNacimiento) }}
+                    {{ form_row(form.sexo) }}
+                </div>
+
+                {# Dirección #}
+                <div>
+                    <h4 style="color: var(--color-primary); margin-bottom: 1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">
+                        📍 Dirección
+                    </h4>
+                    {{ form_row(form.direccion) }}
+                    {{ form_row(form.codigoPostal) }}
+                    {{ form_row(form.ciudad) }}
+                    {{ form_row(form.provincia) }}
+                </div>
+
+                {# Datos Bancarios #}
+                <div>
+                    <h4 style="color: var(--color-primary); margin-bottom: 1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">
+                        💳 Datos Bancarios
+                    </h4>
+                    {{ form_row(form.iban) }}
+                    {{ form_row(form.banco) }}
+                </div>
+            </div>
+
+            {# Notas #}
+            <div style="margin-top: 1.5rem;">
+                <h4 style="color: var(--color-primary); margin-bottom: 1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">
+                    📝 Notas
+                </h4>
+                {{ form_row(form.notas) }}
+            </div>
+            
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                <a href="{{ path('app_user_show', {'id': user.id}) }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
+

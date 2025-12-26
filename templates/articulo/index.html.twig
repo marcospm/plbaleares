@@ -11,7 +11,7 @@
 <form method="get" action="{{ path('app_articulo_index') }}" style="margin-bottom: 2rem;" id="filtro-form">
     <div class="card" style="border-left: 4px solid var(--color-primary);">
         <div class="card-header" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
-            <h3 style="margin: 0; color: var(--color-primary); font-size: 1.1rem;">
+            <h3 style="margin: 0; color: #333; font-size: 1.1rem; font-weight: 600;">
                 🔍 Filtros de Búsqueda
             </h3>
         </div>
@@ -88,8 +88,8 @@
     <div class="card">
         <div class="card-header" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0; color: var(--color-primary); font-size: 1.1rem;">
-                    📚 Artículos encontrados: <strong>{{ articulos|length }}</strong>
+                <h3 style="margin: 0; color: #333; font-size: 1.1rem; font-weight: 600;">
+                    📚 Artículos encontrados: <strong style="color: var(--color-primary);">{{ articulos|length }}</strong>
                 </h3>
             </div>
         </div>

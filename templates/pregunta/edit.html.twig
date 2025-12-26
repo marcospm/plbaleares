@@ -25,6 +25,9 @@
             {% if filtros.articulo is defined %}
                 <input type="hidden" name="filtro_articulo" value="{{ filtros.articulo }}">
             {% endif %}
+            {% if filtros.page is defined %}
+                <input type="hidden" name="filtro_page" value="{{ filtros.page }}">
+            {% endif %}
             
             {{ form_row(form.texto) }}
             {{ form_row(form.dificultad) }}

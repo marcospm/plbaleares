@@ -1,0 +1,148 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Usuario: {{ user.username }}{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4">
+    <h1>Usuario: {{ user.username }}</h1>
+    <div class="d-flex gap-2">
+        <a href="{{ path('app_user_edit', {'id': user.id}) }}" class="btn btn-primary">Editar</a>
+        <a href="{{ path('app_user_index') }}" class="btn btn-secondary">Volver</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+        <h3 style="margin: 0; color: #333; font-size: 1.1rem; font-weight: 600;">
+            📋 Información del Usuario
+        </h3>
+    </div>
+    <div class="card-body">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+            {# Información Básica #}
+            <div>
+                <h4 style="color: var(--color-primary); margin-bottom: 1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">
+                    👤 Información Básica
+                </h4>
+                <div class="form-group">
+                    <label class="form-label"><strong>Nombre de Usuario:</strong></label>
+                    <p>{{ user.username }}</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><strong>Email:</strong></label>
+                    <p>{{ user.email ?? '<span style="color: #999;">No especificado</span>'|raw }}</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><strong>Teléfono:</strong></label>
+                    <p>{{ user.telefono ?? '<span style="color: #999;">No especificado</span>'|raw }}</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><strong>DNI/NIE:</strong></label>
+                    <p>{{ user.dni ?? '<span style="color: #999;">No especificado</span>'|raw }}</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><strong>Fecha de Nacimiento:</strong></label>
+                    <p>
+                        {% if user.fechaNacimiento %}
+                            {{ user.fechaNacimiento|date('d/m/Y') }}
+                            {% if user.edad %}
+                                <span style="color: #666; font-size: 0.9rem;">({{ user.edad }} años)</span>
+                            {% endif %}
+                        {% else %}
+                            <span style="color: #999;">No especificado</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><strong>Sexo:</strong></label>
+                    <p>{{ user.sexoLabel }}</p>
+                </div>
+            </div>
+
+            {# Dirección #}
+            <div>
+                <h4 style="color: var(--color-primary); margin-bottom: 1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">
+                    📍 Dirección
+                </h4>
+                <div class="form-group">
+                    <label class="form-label"><strong>Dirección:</strong></label>
+                    <p>{{ user.direccion ?? '<span style="color: #999;">No especificado</span>'|raw }}</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><strong>Código Postal:</strong></label>
+                    <p>{{ user.codigoPostal ?? '<span style="color: #999;">No especificado</span>'|raw }}</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><strong>Ciudad:</strong></label>
+                    <p>{{ user.ciudad ?? '<span style="color: #999;">No especificado</span>'|raw }}</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><strong>Provincia:</strong></label>
+                    <p>{{ user.provincia ?? '<span style="color: #999;">No especificado</span>'|raw }}</p>
+                </div>
+            </div>
+
+            {# Datos Bancarios #}
+            <div>
+                <h4 style="color: var(--color-primary); margin-bottom: 1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">
+                    💳 Datos Bancarios
+                </h4>
+                <div class="form-group">
+                    <label class="form-label"><strong>IBAN:</strong></label>
+                    <p>{{ user.iban ?? '<span style="color: #999;">No especificado</span>'|raw }}</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><strong>Banco:</strong></label>
+                    <p>{{ user.banco ?? '<span style="color: #999;">No especificado</span>'|raw }}</p>
+                </div>
+            </div>
+        </div>
+
+        {# Información del Sistema #}
+        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 2px solid #dee2e6;">
+            <h4 style="color: var(--color-primary); margin-bottom: 1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">
+                ⚙️ Información del Sistema
+            </h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label"><strong>ID:</strong></label>
+                    <p>{{ user.id }}</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><strong>Roles:</strong></label>
+                    <p>
+                        {% for role in user.roles %}
+                            <span class="badge {% if role == 'ROLE_ADMIN' %}badge-dificil{% elseif role == 'ROLE_PROFESOR' %}badge-moderada{% else %}badge-facil{% endif %}">
+                                {{ role }}
+                            </span>
+                        {% endfor %}
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><strong>Estado:</strong></label>
+                    <p>
+                        {% if user.isActivo %}
+                            <span class="badge badge-success" style="background-color: var(--color-success);">Activo</span>
+                        {% else %}
+                            <span class="badge badge-danger" style="background-color: var(--color-danger);">Inactivo</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        {# Notas #}
+        {% if user.notas %}
+            <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 2px solid #dee2e6;">
+                <h4 style="color: var(--color-primary); margin-bottom: 1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">
+                    📝 Notas
+                </h4>
+                <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 4px; border-left: 4px solid var(--color-primary);">
+                    {{ user.notas|nl2br }}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

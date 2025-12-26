@@ -32,6 +32,10 @@ class PreguntaController extends AbstractController
         $leyId = $request->query->getInt('ley', 0);
         $dificultad = trim($request->query->get('dificultad', ''));
         $numeroArticulo = $request->query->getInt('articulo', 0);
+        
+        // Parámetros de paginación
+        $itemsPerPage = 20; // Número de preguntas por página
+        $page = max(1, $request->query->getInt('page', 1));
 
         // Obtener todas las preguntas
         $preguntas = $preguntaRepository->findAll();
@@ -74,12 +78,21 @@ class PreguntaController extends AbstractController
             }));
         }
 
+        // Calcular paginación
+        $totalItems = count($preguntas);
+        $totalPages = max(1, ceil($totalItems / $itemsPerPage));
+        $page = min($page, $totalPages); // Asegurar que la página no exceda el total
+        
+        // Obtener los items de la página actual
+        $offset = ($page - 1) * $itemsPerPage;
+        $preguntasPaginated = array_slice($preguntas, $offset, $itemsPerPage);
+
         // Obtener listas para los filtros
         $temas = $temaRepository->findAll();
         $leyes = $leyRepository->findAll();
 
         return $this->render('pregunta/index.html.twig', [
-            'preguntas' => $preguntas,
+            'preguntas' => $preguntasPaginated,
             'temas' => $temas,
             'leyes' => $leyes,
             'search' => $search,
@@ -87,6 +100,10 @@ class PreguntaController extends AbstractController
             'leySeleccionada' => $leyId,
             'dificultadSeleccionada' => $dificultad,
             'numeroArticuloSeleccionado' => $numeroArticulo,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'totalItems' => $totalItems,
+            'itemsPerPage' => $itemsPerPage,
         ]);
     }
 
@@ -134,6 +151,11 @@ class PreguntaController extends AbstractController
         if ($request->query->getInt('articulo') > 0) {
             $filtros['articulo'] = $request->query->getInt('articulo');
         }
+        // Mantener la página actual
+        $page = $request->query->getInt('page', 1);
+        if ($page > 1) {
+            $filtros['page'] = $page;
+        }
 
         // Obtener mensajes de la pregunta
         $mensajes = $mensajePreguntaRepository->findMensajesPrincipales($pregunta);
@@ -176,6 +198,11 @@ class PreguntaController extends AbstractController
         if ($articulo > 0) {
             $filtros['articulo'] = $articulo;
         }
+        // Mantener la página actual
+        $page = $request->query->getInt('page') ?: $request->request->getInt('filtro_page', 1);
+        if ($page > 1) {
+            $filtros['page'] = $page;
+        }
 
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->flush();
@@ -211,6 +238,11 @@ class PreguntaController extends AbstractController
         if ($request->query->getInt('articulo') > 0) {
             $filtros['articulo'] = $request->query->getInt('articulo');
         }
+        // Mantener la página actual
+        $page = $request->query->getInt('page', 1);
+        if ($page > 1) {
+            $filtros['page'] = $page;
+        }
 
         if ($this->isCsrfTokenValid('toggle'.$pregunta->getId(), $request->getPayload()->getString('_token'))) {
             $pregunta->setActivo(!$pregunta->isActivo());
@@ -242,6 +274,11 @@ class PreguntaController extends AbstractController
         }
         if ($request->query->getInt('articulo') > 0) {
             $filtros['articulo'] = $request->query->getInt('articulo');
+        }
+        // Mantener la página actual
+        $page = $request->query->getInt('page', 1);
+        if ($page > 1) {
+            $filtros['page'] = $page;
         }
 
         if ($this->isCsrfTokenValid('delete'.$pregunta->getId(), $request->getPayload()->get('_token'))) {
