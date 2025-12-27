@@ -45,7 +45,18 @@
 
         <div class="form-group">
             <label class="form-label"><strong>Dificultad:</strong></label>
-            <p><span class="badge badge-{{ pregunta.dificultad }}">{{ pregunta.getDificultadLabel() }}</span></p>
+            <p>
+                {% set dificultadLower = pregunta.dificultad|lower %}
+                {% if dificultadLower == 'facil' %}
+                    <span class="badge badge-{{ dificultadLower }}" style="background-color: var(--color-success); color: var(--color-white);">{{ pregunta.getDificultadLabel() }}</span>
+                {% elseif dificultadLower == 'moderada' %}
+                    <span class="badge badge-{{ dificultadLower }}" style="background-color: var(--color-warning); color: var(--color-white);">{{ pregunta.getDificultadLabel() }}</span>
+                {% elseif dificultadLower == 'dificil' %}
+                    <span class="badge badge-{{ dificultadLower }}" style="background-color: var(--color-danger); color: var(--color-white);">{{ pregunta.getDificultadLabel() }}</span>
+                {% else %}
+                    <span class="badge badge-{{ dificultadLower }}">{{ pregunta.getDificultadLabel() }}</span>
+                {% endif %}
+            </p>
         </div>
 
         <div class="form-group">

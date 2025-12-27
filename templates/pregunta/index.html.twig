@@ -190,7 +190,16 @@ document.getElementById('filtro-form').addEventListener('submit', function(e) {
                         <td>{{ pregunta.ley.nombre }}</td>
                         <td>Art. {{ pregunta.articulo.numero }}</td>
                         <td>
-                            <span class="badge badge-{{ pregunta.dificultad }}">{{ pregunta.getDificultadLabel() }}</span>
+                            {% set dificultadLower = pregunta.dificultad|lower %}
+                            {% if dificultadLower == 'facil' %}
+                                <span class="badge badge-{{ dificultadLower }}" style="background-color: var(--color-success); color: var(--color-white);">{{ pregunta.getDificultadLabel() }}</span>
+                            {% elseif dificultadLower == 'moderada' %}
+                                <span class="badge badge-{{ dificultadLower }}" style="background-color: var(--color-warning); color: var(--color-white);">{{ pregunta.getDificultadLabel() }}</span>
+                            {% elseif dificultadLower == 'dificil' %}
+                                <span class="badge badge-{{ dificultadLower }}" style="background-color: var(--color-danger); color: var(--color-white);">{{ pregunta.getDificultadLabel() }}</span>
+                            {% else %}
+                                <span class="badge badge-{{ dificultadLower }}">{{ pregunta.getDificultadLabel() }}</span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if pregunta.isActivo %}
