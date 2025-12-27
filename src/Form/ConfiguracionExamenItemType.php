@@ -14,7 +14,9 @@ class ConfiguracionExamenItemType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('id', HiddenType::class)
+            ->add('id', HiddenType::class, [
+                'mapped' => false,
+            ])
             ->add('porcentaje', NumberType::class, [
                 'label' => false,
                 'required' => false,

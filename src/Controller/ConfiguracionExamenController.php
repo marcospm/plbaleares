@@ -57,14 +57,20 @@ class ConfiguracionExamenController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
             $configuracionesForm = $data['configuraciones'] ?? [];
+            $configuracionesFormData = $form->get('configuraciones');
 
             // Obtener configuraciones existentes por ID y actualizar
-            foreach ($configuracionesForm as $configForm) {
-                $configId = $configForm->getId();
+            $configuracionesParaNormalizar = [];
+            foreach ($configuracionesFormData as $index => $configFormField) {
+                $configForm = $configuracionesForm[$index];
+                $configIdField = $configFormField->get('id');
+                $configId = $configIdField->getData();
+                
                 if ($configId) {
                     $config = $this->configuracionExamenRepository->find($configId);
                     if ($config) {
                         $config->setPorcentaje($configForm->getPorcentaje());
+                        $configuracionesParaNormalizar[] = $config;
                     }
                 } else {
                     // Si no tiene ID, es nueva (no debería pasar, pero por si acaso)
@@ -73,17 +79,6 @@ class ConfiguracionExamenController extends AbstractController
             }
 
             // Normalizar porcentajes automáticamente
-            $configuracionesParaNormalizar = [];
-            foreach ($configuracionesForm as $configForm) {
-                $configId = $configForm->getId();
-                if ($configId) {
-                    $config = $this->configuracionExamenRepository->find($configId);
-                    if ($config) {
-                        $configuracionesParaNormalizar[] = $config;
-                    }
-                }
-            }
-            
             $configuracionesParaNormalizar = $this->configuracionExamenService->normalizarPorcentajes($configuracionesParaNormalizar);
 
             $this->entityManager->flush();

@@ -57,7 +57,7 @@
                             {% endif %}
                         </td>
                         <td>
-                            {{ form_widget(form.configuraciones[loop.index0].id) }}
+                            {{ form_widget(form.configuraciones[loop.index0].id, {'value': configuracion.id}) }}
                             {{ form_widget(form.configuraciones[loop.index0].porcentaje, {'attr': {'data-tema-id': tema.id, 'class': 'form-control porcentaje-input'}}) }}
                             {{ form_errors(form.configuraciones[loop.index0].porcentaje) }}
                         </td>
