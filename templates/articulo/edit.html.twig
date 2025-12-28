@@ -10,7 +10,7 @@
 {% block body %}
 <div class="card">
     <div class="card-header">
-        <h1>Editar Artículo: Art. {{ articulo.numero }}</h1>
+        <h1>Editar Artículo: Art. {{ articulo.getNumeroCompleto() }}</h1>
     </div>
     <div class="card-body">
         {{ form_start(form, {'attr': {'enctype': 'multipart/form-data'}}) }}

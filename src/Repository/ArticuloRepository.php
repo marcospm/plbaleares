@@ -42,6 +42,7 @@ class ArticuloRepository extends ServiceEntityRepository
             $qb->andWhere(
                 $qb->expr()->orX(
                     $qb->expr()->like('CAST(a.numero AS CHAR)', ':search'),
+                    $qb->expr()->like('COALESCE(a.sufijo, \'\')', ':search'),
                     $qb->expr()->like('a.nombre', ':search'),
                     $qb->expr()->like('a.explicacion', ':search'),
                     $qb->expr()->like('l.nombre', ':search')
@@ -90,12 +91,13 @@ class ArticuloRepository extends ServiceEntityRepository
                ->setParameter('activo', $activo);
         }
 
-        // Filtro de búsqueda general (busca en número, nombre, explicación y nombre de ley)
+        // Filtro de búsqueda general (busca en número, sufijo, nombre, explicación y nombre de ley)
         if ($search !== null && $search !== '') {
             // Para búsqueda en número, convertir a CAST para buscar como texto
             $qb->andWhere(
                 $qb->expr()->orX(
                     $qb->expr()->like('CAST(a.numero AS CHAR)', ':search'),
+                    $qb->expr()->like('COALESCE(a.sufijo, \'\')', ':search'),
                     $qb->expr()->like('a.nombre', ':search'),
                     $qb->expr()->like('a.explicacion', ':search'),
                     $qb->expr()->like('l.nombre', ':search')

@@ -1,11 +1,11 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Pregunta del Artículo {{ pregunta.articulo.numero }}{% endblock %}
+{% block title %}Pregunta del Artículo {{ pregunta.articulo.getNumeroCompleto() }}{% endblock %}
 
 {% block body %}
 <div class="card">
     <div class="card-header">
-        <h1>Pregunta del Artículo {{ pregunta.articulo.numero }}{% if pregunta.articulo.nombre %} - {{ pregunta.articulo.nombre }}{% endif %}</h1>
+        <h1>Pregunta del Artículo {{ pregunta.articulo.getNumeroCompleto() }}{% if pregunta.articulo.nombre %} - {{ pregunta.articulo.nombre }}{% endif %}</h1>
     </div>
     <div class="card-body">
         <div class="form-group mb-4">

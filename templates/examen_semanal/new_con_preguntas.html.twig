@@ -450,7 +450,7 @@ function cargarArticulos(leyId) {
             data.forEach(articulo => {
                 const option = document.createElement('option');
                 option.value = articulo.id;
-                option.textContent = `Art. ${articulo.numero}${articulo.nombre ? ' - ' + articulo.nombre : ''}`;
+                option.textContent = `Art. ${articulo.numeroCompleto || articulo.numero}${articulo.nombre ? ' - ' + articulo.nombre : ''}`;
                 select.appendChild(option);
             });
         })

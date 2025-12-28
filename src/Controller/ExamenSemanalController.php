@@ -83,6 +83,8 @@ class ExamenSemanalController extends AbstractController
             $articulosArray[] = [
                 'id' => $articulo->getId(),
                 'numero' => $articulo->getNumero(),
+                'sufijo' => $articulo->getSufijo(),
+                'numeroCompleto' => $articulo->getNumeroCompleto(),
                 'nombre' => $articulo->getNombre(),
             ];
         }

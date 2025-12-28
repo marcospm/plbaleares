@@ -71,7 +71,7 @@
 
         <div class="form-group">
             <label class="form-label"><strong>Artículo:</strong></label>
-            <p><a href="{{ path('app_articulo_show', {'id': pregunta.articulo.id}) }}">Art. {{ pregunta.articulo.numero }}</a></p>
+            <p><a href="{{ path('app_articulo_show', {'id': pregunta.articulo.id}) }}">Art. {{ pregunta.articulo.getNumeroCompleto() }}</a></p>
         </div>
 
         {% if pregunta.retroalimentacion %}

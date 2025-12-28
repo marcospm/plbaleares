@@ -24,6 +24,11 @@ class ArticuloType extends AbstractType
                 'required' => true,
                 'attr' => ['class' => 'form-control', 'placeholder' => 'Ej: 1, 2, 3, 4, etc.']
             ])
+            ->add('sufijo', TextType::class, [
+                'label' => 'Sufijo del Artículo',
+                'required' => false,
+                'attr' => ['class' => 'form-control', 'placeholder' => 'Ej: bis, ter, quater, etc.']
+            ])
             ->add('nombre', TextType::class, [
                 'label' => 'Nombre del Artículo',
                 'required' => false,

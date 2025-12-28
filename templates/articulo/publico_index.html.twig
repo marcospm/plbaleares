@@ -43,7 +43,7 @@
                         <div class="card-body">
                             <h3 style="color: var(--color-primary); margin-bottom: 0.5rem;">
                                 <a href="{{ path('app_articulo_publico_show', {'id': articulo.id, 'ley': leySeleccionada ?? 0, 'search': search ?? ''}) }}" style="text-decoration: none; color: inherit;">
-                                    Artículo {{ articulo.numero }}{% if articulo.nombre %} - {{ articulo.nombre }}{% endif %}
+                                    Artículo {{ articulo.getNumeroCompleto() }}{% if articulo.nombre %} - {{ articulo.nombre }}{% endif %}
                                 </a>
                             </h3>
                             <p style="margin-bottom: 0.5rem; color: var(--color-text-light);">

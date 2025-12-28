@@ -192,7 +192,7 @@
                 {% for articulo in articulos %}
                     <tr>
                         <td>{{ articulo.id }}</td>
-                        <td><strong>Art. {{ articulo.numero }}</strong></td>
+                        <td><strong>Art. {{ articulo.getNumeroCompleto() }}</strong></td>
                         <td>{{ articulo.nombre|default('-') }}</td>
                         <td title="{{ articulo.ley.nombre }}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ articulo.ley.nombre|slice(0, 10) }}{% if articulo.ley.nombre|length > 10 %}...{% endif %}</td>
                         <td title="{{ articulo.explicacion|default('Sin explicación') }}" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ articulo.explicacion|default('Sin explicación')|slice(0, 10) }}{% if articulo.explicacion|default('')|length > 10 %}...{% endif %}</td>

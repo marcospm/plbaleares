@@ -1,11 +1,11 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Artículo: {{ articulo.numero }}{% endblock %}
+{% block title %}Artículo: {{ articulo.getNumeroCompleto() }}{% endblock %}
 
 {% block body %}
 <div class="card">
     <div class="card-header">
-        <h1>Artículo {{ articulo.numero }}{% if articulo.nombre %} - {{ articulo.nombre }}{% endif %}</h1>
+        <h1>Artículo {{ articulo.getNumeroCompleto() }}{% if articulo.nombre %} - {{ articulo.nombre }}{% endif %}</h1>
     </div>
     <div class="card-body">
         {% if articulo.nombre %}

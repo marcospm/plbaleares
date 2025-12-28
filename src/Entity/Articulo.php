@@ -18,6 +18,9 @@ class Articulo
     #[ORM\Column(type: 'integer')]
     private ?int $numero = null;
 
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $sufijo = null;
+
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $nombre = null;
 
@@ -61,6 +64,30 @@ class Articulo
         $this->numero = $numero;
 
         return $this;
+    }
+
+    public function getSufijo(): ?string
+    {
+        return $this->sufijo;
+    }
+
+    public function setSufijo(?string $sufijo): static
+    {
+        $this->sufijo = $sufijo;
+
+        return $this;
+    }
+
+    /**
+     * Obtiene el número completo del artículo (número + sufijo si existe)
+     */
+    public function getNumeroCompleto(): string
+    {
+        $result = (string)($this->numero ?? '');
+        if ($this->sufijo && trim($this->sufijo) !== '') {
+            $result .= ' ' . trim($this->sufijo);
+        }
+        return $result;
     }
 
     public function getNombre(): ?string
@@ -183,7 +210,7 @@ class Articulo
 
     public function __toString(): string
     {
-        $result = 'Art. ' . ($this->numero ?? '');
+        $result = 'Art. ' . $this->getNumeroCompleto();
         if ($this->nombre) {
             $result .= ' - ' . $this->nombre;
         }

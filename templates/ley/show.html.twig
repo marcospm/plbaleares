@@ -31,7 +31,7 @@
             {% if ley.articulos|length > 0 %}
                 <ul>
                     {% for articulo in ley.articulos %}
-                        <li><a href="{{ path('app_articulo_show', {'id': articulo.id}) }}">Art. {{ articulo.numero }}</a></li>
+                        <li><a href="{{ path('app_articulo_show', {'id': articulo.id}) }}">Art. {{ articulo.getNumeroCompleto() }}</a></li>
                     {% endfor %}
                 </ul>
             {% else %}

@@ -188,7 +188,7 @@ document.getElementById('filtro-form').addEventListener('submit', function(e) {
                         <td>{{ pregunta.texto|slice(0, 80) }}{% if pregunta.texto|length > 80 %}...{% endif %}</td>
                         <td>{{ pregunta.tema.nombre }}</td>
                         <td>{{ pregunta.ley.nombre }}</td>
-                        <td>Art. {{ pregunta.articulo.numero }}</td>
+                        <td>Art. {{ pregunta.articulo.getNumeroCompleto() }}</td>
                         <td>
                             {% set dificultadLower = pregunta.dificultad|lower %}
                             {% if dificultadLower == 'facil' %}
