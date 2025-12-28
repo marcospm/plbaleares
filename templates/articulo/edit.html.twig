@@ -34,9 +34,15 @@
                 </div>
             {% endif %}
             
+            {% if filtros is defined %}
+                {% for key, value in filtros %}
+                    <input type="hidden" name="filtro_{{ key }}" value="{{ value }}">
+                {% endfor %}
+            {% endif %}
             <div class="d-flex gap-2 mt-4">
                 <button type="submit" class="btn btn-primary">Actualizar</button>
-                <a href="{{ path('app_articulo_index') }}" class="btn btn-secondary">Cancelar</a>
+                {% set paramsFiltros = filtros|default({}) %}
+                <a href="{{ path('app_articulo_index', paramsFiltros) }}" class="btn btn-secondary">Cancelar</a>
             </div>
         {{ form_end(form) }}
     </div>

@@ -2,6 +2,81 @@
 
 {% block title %}Artículos{% endblock %}
 
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        /* Estilos para paginación */
+        .pagination {
+            display: flex;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            gap: 0.25rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .page-item {
+            margin: 0;
+        }
+        
+        .page-link {
+            display: block;
+            padding: 0.5rem 0.75rem;
+            color: var(--color-primary);
+            text-decoration: none;
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            transition: all 0.2s;
+            min-width: 40px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .page-link:hover:not(.disabled):not([aria-disabled="true"]) {
+            background-color: #e9ecef;
+            border-color: #dee2e6;
+            color: var(--color-primary);
+            transform: translateY(-1px);
+        }
+        
+        .page-item.active .page-link {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+            color: #fff;
+            font-weight: 600;
+        }
+        
+        .page-item.disabled .page-link,
+        .page-link[aria-disabled="true"] {
+            color: #6c757d;
+            pointer-events: none;
+            cursor: not-allowed;
+            background-color: #fff;
+            border-color: #dee2e6;
+            opacity: 0.6;
+        }
+        
+        .page-link:focus {
+            outline: none;
+            box-shadow: 0 0 0 0.2rem rgba(0, 113, 181, 0.25);
+        }
+        
+        @media (max-width: 768px) {
+            .pagination {
+                gap: 0.15rem;
+            }
+            
+            .page-link {
+                padding: 0.4rem 0.6rem;
+                font-size: 0.875rem;
+                min-width: 35px;
+            }
+        }
+    </style>
+{% endblock %}
+
 {% block body %}
 <div class="d-flex justify-content-between mb-4">
     <h1>Artículos</h1>
@@ -89,7 +164,12 @@
         <div class="card-header" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="margin: 0; color: #333; font-size: 1.1rem; font-weight: 600;">
-                    📚 Artículos encontrados: <strong style="color: var(--color-primary);">{{ articulos|length }}</strong>
+                    📚 Artículos encontrados: <strong style="color: var(--color-primary);">{{ totalItems }}</strong>
+                    {% if totalPages > 1 %}
+                        <span style="font-size: 0.9rem; color: #666; font-weight: normal;">
+                            (Página {{ currentPage }} de {{ totalPages }})
+                        </span>
+                    {% endif %}
                 </h3>
             </div>
         </div>
@@ -140,9 +220,17 @@
                         </td>
                         <td>
                             <div class="d-flex gap-2">
-                                <a href="{{ path('app_articulo_show', {'id': articulo.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
-                                <a href="{{ path('app_articulo_edit', {'id': articulo.id}) }}" class="btn btn-primary btn-sm">Editar</a>
-                                <form method="post" action="{{ path('app_articulo_toggle_activo', {'id': articulo.id}) }}" style="display: inline;">
+                                {% set paramsFiltros = {
+                                    'search': search,
+                                    'ley': leySeleccionada > 0 ? leySeleccionada : 0,
+                                    'numero': numero
+                                } %}
+                                {% if currentPage > 1 %}
+                                    {% set paramsFiltros = paramsFiltros|merge({'page': currentPage}) %}
+                                {% endif %}
+                                <a href="{{ path('app_articulo_show', {'id': articulo.id}|merge(paramsFiltros)) }}" class="btn btn-secondary btn-sm">Ver</a>
+                                <a href="{{ path('app_articulo_edit', {'id': articulo.id}|merge(paramsFiltros)) }}" class="btn btn-primary btn-sm">Editar</a>
+                                <form method="post" action="{{ path('app_articulo_toggle_activo', {'id': articulo.id}|merge(paramsFiltros)) }}" style="display: inline;">
                                     <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ articulo.id) }}">
                                     <button type="submit" class="btn btn-sm {% if articulo.isActivo %}btn-warning{% else %}btn-success{% endif %}">
                                         {% if articulo.isActivo %}Desactivar{% else %}Activar{% endif %}
@@ -155,6 +243,88 @@
             </tbody>
         </table>
         </div>
+        
+        {% if totalPages > 1 %}
+            <div class="card-footer" style="background-color: #f8f9fa; border-top: 1px solid #dee2e6; padding: 1rem;">
+                <nav aria-label="Paginación de artículos">
+                    <ul class="pagination justify-content-center mb-0" style="flex-wrap: wrap;">
+                        {% set paramsBase = {
+                            'search': search,
+                            'ley': leySeleccionada > 0 ? leySeleccionada : '',
+                            'numero': numero
+                        } %}
+                        {% set paramsBase = paramsBase|filter(v => v != '' and v != 0) %}
+                        
+                        {# Botón Anterior #}
+                        <li class="page-item {% if currentPage == 1 %}disabled{% endif %}">
+                            {% if currentPage > 1 %}
+                                {% set pageAnterior = currentPage - 1 %}
+                                {% if pageAnterior > 1 %}
+                                    {% set paramsAnterior = paramsBase|merge({'page': pageAnterior}) %}
+                                {% else %}
+                                    {% set paramsAnterior = paramsBase %}
+                                {% endif %}
+                                <a class="page-link" href="{{ path('app_articulo_index', paramsAnterior) }}">
+                            {% else %}
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                            {% endif %}
+                                ← Anterior
+                            </a>
+                        </li>
+                        
+                        {# Números de página #}
+                        {% set startPage = max(1, currentPage - 2) %}
+                        {% set endPage = min(totalPages, currentPage + 2) %}
+                        
+                        {% if startPage > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('app_articulo_index', paramsBase) }}">1</a>
+                            </li>
+                            {% if startPage > 2 %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endif %}
+                        
+                        {% for p in startPage..endPage %}
+                            <li class="page-item {% if p == currentPage %}active{% endif %}">
+                                {% if p > 1 %}
+                                    <a class="page-link" href="{{ path('app_articulo_index', paramsBase|merge({'page': p})) }}">{{ p }}</a>
+                                {% else %}
+                                    <a class="page-link" href="{{ path('app_articulo_index', paramsBase) }}">{{ p }}</a>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                        
+                        {% if endPage < totalPages %}
+                            {% if endPage < totalPages - 1 %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('app_articulo_index', paramsBase|merge({'page': totalPages})) }}">{{ totalPages }}</a>
+                            </li>
+                        {% endif %}
+                        
+                        {# Botón Siguiente #}
+                        <li class="page-item {% if currentPage == totalPages %}disabled{% endif %}">
+                            {% if currentPage < totalPages %}
+                                <a class="page-link" href="{{ path('app_articulo_index', paramsBase|merge({'page': currentPage + 1})) }}">
+                            {% else %}
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                            {% endif %}
+                                Siguiente →
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                <div style="text-align: center; margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
+                    Mostrando {{ ((currentPage - 1) * itemsPerPage) + 1 }} - {{ min(currentPage * itemsPerPage, totalItems) }} de {{ totalItems }} artículos
+                </div>
+            </div>
+        {% endif %}
     </div>
 {% else %}
     <div class="card">

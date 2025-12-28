@@ -37,6 +37,10 @@ class ArticuloController extends AbstractController
         $leyId = $request->query->getInt('ley', 0);
         $numero = trim($request->query->get('numero', ''));
 
+        // Parámetros de paginación
+        $itemsPerPage = 20; // Número de artículos por página
+        $page = max(1, $request->query->getInt('page', 1));
+
         // Obtener todas las leyes ordenadas por nombre
         $leyes = $leyRepository->findBy([], ['nombre' => 'ASC']);
 
@@ -48,19 +52,35 @@ class ArticuloController extends AbstractController
             null // null = todos los estados (activos e inactivos)
         );
 
-        // Obtener contadores de mensajes para cada artículo
+        // Convertir a array indexado numéricamente
+        $articulos = array_values($articulos);
+
+        // Calcular paginación
+        $totalItems = count($articulos);
+        $totalPages = max(1, ceil($totalItems / $itemsPerPage));
+        $page = min($page, $totalPages); // Asegurar que la página no exceda el total
+        
+        // Obtener los items de la página actual
+        $offset = ($page - 1) * $itemsPerPage;
+        $articulosPaginated = array_slice($articulos, $offset, $itemsPerPage);
+
+        // Obtener contadores de mensajes para cada artículo de la página actual
         $contadoresMensajes = [];
-        foreach ($articulos as $articulo) {
+        foreach ($articulosPaginated as $articulo) {
             $contadoresMensajes[$articulo->getId()] = $mensajeArticuloRepository->countMensajesPrincipales($articulo);
         }
 
         return $this->render('articulo/index.html.twig', [
-            'articulos' => $articulos,
+            'articulos' => $articulosPaginated,
             'leyes' => $leyes,
             'search' => $search,
             'leySeleccionada' => $leyId,
             'numero' => $numero,
             'contadoresMensajes' => $contadoresMensajes,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'totalItems' => $totalItems,
+            'itemsPerPage' => $itemsPerPage,
         ]);
     }
 
@@ -107,8 +127,26 @@ class ArticuloController extends AbstractController
     #[Route('/{id}', name: 'app_articulo_show', methods: ['GET'])]
     public function show(
         Articulo $articulo,
-        MensajeArticuloRepository $mensajeArticuloRepository
+        MensajeArticuloRepository $mensajeArticuloRepository,
+        Request $request
     ): Response {
+        // Obtener parámetros de filtro de la query string
+        $filtros = [];
+        if ($request->query->get('search')) {
+            $filtros['search'] = $request->query->get('search');
+        }
+        if ($request->query->getInt('ley') > 0) {
+            $filtros['ley'] = $request->query->getInt('ley');
+        }
+        if ($request->query->get('numero')) {
+            $filtros['numero'] = $request->query->get('numero');
+        }
+        // Mantener la página actual
+        $page = $request->query->getInt('page', 1);
+        if ($page > 1) {
+            $filtros['page'] = $page;
+        }
+
         $mensajes = $mensajeArticuloRepository->findMensajesPrincipales($articulo);
         $totalMensajes = count($mensajes);
         
@@ -116,6 +154,7 @@ class ArticuloController extends AbstractController
             'articulo' => $articulo,
             'mensajes' => $mensajes,
             'totalMensajes' => $totalMensajes,
+            'filtros' => $filtros,
         ]);
     }
 
@@ -124,6 +163,27 @@ class ArticuloController extends AbstractController
     {
         $form = $this->createForm(ArticuloType::class, $articulo);
         $form->handleRequest($request);
+
+        // Obtener parámetros de filtro de la query string o del request anterior
+        $filtros = [];
+        $search = $request->query->get('search') ?? $request->request->get('filtro_search');
+        $ley = $request->query->getInt('ley') ?: $request->request->getInt('filtro_ley', 0);
+        $numero = $request->query->get('numero') ?? $request->request->get('filtro_numero');
+        
+        if ($search) {
+            $filtros['search'] = $search;
+        }
+        if ($ley > 0) {
+            $filtros['ley'] = $ley;
+        }
+        if ($numero) {
+            $filtros['numero'] = $numero;
+        }
+        // Mantener la página actual
+        $page = $request->query->getInt('page') ?: $request->request->getInt('filtro_page', 1);
+        if ($page > 1) {
+            $filtros['page'] = $page;
+        }
 
         if ($form->isSubmitted() && $form->isValid()) {
             /** @var UploadedFile $videoFile */
@@ -153,18 +213,36 @@ class ArticuloController extends AbstractController
             $entityManager->flush();
 
             $this->addFlash('success', 'Artículo actualizado correctamente.');
-            return $this->redirectToRoute('app_articulo_index', [], Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute('app_articulo_index', $filtros, Response::HTTP_SEE_OTHER);
         }
 
         return $this->render('articulo/edit.html.twig', [
             'articulo' => $articulo,
             'form' => $form,
+            'filtros' => $filtros,
         ]);
     }
 
     #[Route('/{id}/toggle-activo', name: 'app_articulo_toggle_activo', methods: ['POST'])]
     public function toggleActivo(Articulo $articulo, EntityManagerInterface $entityManager, Request $request): Response
     {
+        // Obtener parámetros de filtro de la query string
+        $filtros = [];
+        if ($request->query->get('search')) {
+            $filtros['search'] = $request->query->get('search');
+        }
+        if ($request->query->getInt('ley') > 0) {
+            $filtros['ley'] = $request->query->getInt('ley');
+        }
+        if ($request->query->get('numero')) {
+            $filtros['numero'] = $request->query->get('numero');
+        }
+        // Mantener la página actual
+        $page = $request->query->getInt('page', 1);
+        if ($page > 1) {
+            $filtros['page'] = $page;
+        }
+
         if ($this->isCsrfTokenValid('toggle'.$articulo->getId(), $request->getPayload()->getString('_token'))) {
             $articulo->setActivo(!$articulo->isActivo());
             $entityManager->flush();
@@ -173,19 +251,36 @@ class ArticuloController extends AbstractController
             $this->addFlash('success', "El artículo '{$articulo->getNumero()}' ha sido {$estado} correctamente.");
         }
 
-        return $this->redirectToRoute('app_articulo_index', [], Response::HTTP_SEE_OTHER);
+        return $this->redirectToRoute('app_articulo_index', $filtros, Response::HTTP_SEE_OTHER);
     }
 
     #[Route('/{id}', name: 'app_articulo_delete', methods: ['POST'])]
     public function delete(Request $request, Articulo $articulo, EntityManagerInterface $entityManager): Response
     {
+        // Obtener parámetros de filtro de la query string
+        $filtros = [];
+        if ($request->query->get('search')) {
+            $filtros['search'] = $request->query->get('search');
+        }
+        if ($request->query->getInt('ley') > 0) {
+            $filtros['ley'] = $request->query->getInt('ley');
+        }
+        if ($request->query->get('numero')) {
+            $filtros['numero'] = $request->query->get('numero');
+        }
+        // Mantener la página actual
+        $page = $request->query->getInt('page', 1);
+        if ($page > 1) {
+            $filtros['page'] = $page;
+        }
+
         if ($this->isCsrfTokenValid('delete'.$articulo->getId(), $request->getPayload()->get('_token'))) {
             $entityManager->remove($articulo);
             $entityManager->flush();
             $this->addFlash('success', 'Artículo eliminado correctamente.');
         }
 
-        return $this->redirectToRoute('app_articulo_index', [], Response::HTTP_SEE_OTHER);
+        return $this->redirectToRoute('app_articulo_index', $filtros, Response::HTTP_SEE_OTHER);
     }
 }
 

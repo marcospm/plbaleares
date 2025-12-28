@@ -137,9 +137,10 @@
         </div>
 
         <div class="d-flex gap-2 mt-4">
-            <a href="{{ path('app_articulo_edit', {'id': articulo.id}) }}" class="btn btn-primary">Editar</a>
-            <a href="{{ path('app_articulo_index') }}" class="btn btn-secondary">Volver</a>
-            <form method="post" action="{{ path('app_articulo_delete', {'id': articulo.id}) }}" onsubmit="return confirm('¿Estás seguro de eliminar este artículo?');" style="display: inline;">
+            {% set paramsFiltros = filtros|default({}) %}
+            <a href="{{ path('app_articulo_edit', {'id': articulo.id}|merge(paramsFiltros)) }}" class="btn btn-primary">Editar</a>
+            <a href="{{ path('app_articulo_index', paramsFiltros) }}" class="btn btn-secondary">Volver</a>
+            <form method="post" action="{{ path('app_articulo_delete', {'id': articulo.id}|merge(paramsFiltros)) }}" onsubmit="return confirm('¿Estás seguro de eliminar este artículo?');" style="display: inline;">
                 <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ articulo.id) }}">
                 <button type="submit" class="btn btn-danger">Eliminar</button>
             </form>
