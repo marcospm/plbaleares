@@ -121,8 +121,9 @@
                     </div>
 
                     {% if item.pregunta.retroalimentacion %}
-                        <div class="alert alert-info" style="margin-top: 1rem;">
-                            <strong>Retroalimentación:</strong> {{ item.pregunta.retroalimentacion }}
+                        <div class="alert alert-info" style="margin-top: 1rem; line-height: 1.6;">
+                            <strong>Retroalimentación:</strong> 
+                            <div style="margin-top: 0.5rem;">{{ item.pregunta.retroalimentacion|markdown|raw }}</div>
                         </div>
                     {% endif %}
 
