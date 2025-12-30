@@ -46,6 +46,28 @@
             margin-bottom: 8px;
             color: #2196F3;
         }
+        .pregunta-metadata {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            border-radius: 4px;
+            font-size: 10pt;
+        }
+        .pregunta-ley {
+            font-weight: bold;
+            color: #1565C0;
+            font-size: 11pt;
+        }
+        .pregunta-tema {
+            color: #424242;
+            font-size: 9pt;
+            font-weight: 500;
+            background-color: rgba(255,255,255,0.8);
+            padding: 2px 6px;
+            border-radius: 3px;
+            display: inline-block;
+        }
         .pregunta-texto {
             margin-bottom: 12px;
             font-size: 11pt;
@@ -150,6 +172,19 @@
             <div class="pregunta">
                 <div class="pregunta-numero">
                     Pregunta {{ loop.index }}
+                </div>
+                <div class="pregunta-metadata">
+                    {% if pregunta.ley is defined and pregunta.ley %}
+                        <span class="pregunta-ley">📜 {{ pregunta.ley.nombre }}</span>
+                        {% if pregunta.tema is defined and pregunta.tema %}
+                            <span style="color: #999; margin: 0 4px;">•</span>
+                            <span class="pregunta-tema">{{ pregunta.tema.nombre }}</span>
+                        {% endif %}
+                    {% elseif pregunta.temaMunicipal is defined and pregunta.temaMunicipal %}
+                        <span class="pregunta-ley">🏛️ {{ pregunta.municipio.nombre }}</span>
+                        <span style="color: #999; margin: 0 4px;">•</span>
+                        <span class="pregunta-tema">{{ pregunta.temaMunicipal.nombre }}</span>
+                    {% endif %}
                 </div>
                 <div class="pregunta-texto">
                     {{ pregunta.texto|raw }}

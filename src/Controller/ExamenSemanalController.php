@@ -15,6 +15,8 @@ use App\Service\PreguntaService;
 use App\Repository\TemaRepository;
 use App\Repository\LeyRepository;
 use App\Repository\ArticuloRepository;
+use App\Repository\ConfiguracionExamenRepository;
+use App\Service\ConfiguracionExamenService;
 use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -41,7 +43,9 @@ class ExamenSemanalController extends AbstractController
         private PreguntaService $preguntaService,
         private TemaRepository $temaRepository,
         private LeyRepository $leyRepository,
-        private ArticuloRepository $articuloRepository
+        private ArticuloRepository $articuloRepository,
+        private ConfiguracionExamenRepository $configuracionExamenRepository,
+        private ConfiguracionExamenService $configuracionExamenService
     ) {
     }
 
@@ -648,6 +652,133 @@ class ExamenSemanalController extends AbstractController
     }
 
     /**
+     * Distribuir preguntas según porcentajes configurados por tema
+     */
+    private function distribuirPreguntasPorPorcentajes(array $preguntas, array $temas, int $cantidadTotal): array
+    {
+        // Obtener configuraciones de porcentajes
+        $configuraciones = $this->configuracionExamenRepository->findByTemas($temas);
+        
+        // Agrupar preguntas por tema
+        $preguntasPorTema = [];
+        foreach ($preguntas as $pregunta) {
+            $temaId = $pregunta->getTema()->getId();
+            if (!isset($preguntasPorTema[$temaId])) {
+                $preguntasPorTema[$temaId] = [];
+            }
+            $preguntasPorTema[$temaId][] = $pregunta;
+        }
+        
+        // Calcular cuántas preguntas por tema según porcentajes
+        $distribucionPorTema = [];
+        $totalTemas = count($temas);
+        
+        foreach ($temas as $tema) {
+            $temaId = $tema->getId();
+            $porcentaje = $this->configuracionExamenService->obtenerPorcentajeParaTema($configuraciones, $temaId, $totalTemas);
+            $cantidadParaTema = (int) round(($porcentaje / 100) * $cantidadTotal);
+            $distribucionPorTema[$temaId] = $cantidadParaTema;
+        }
+        
+        // Ajustar si la suma no coincide exactamente (por redondeos)
+        $sumaDistribucion = array_sum($distribucionPorTema);
+        if ($sumaDistribucion != $cantidadTotal) {
+            $diferencia = $cantidadTotal - $sumaDistribucion;
+            if ($diferencia > 0) {
+                // Si faltan preguntas, agregar al tema con más preguntas disponibles
+                $temaConMasPreguntas = null;
+                $maxPreguntas = 0;
+                foreach ($distribucionPorTema as $temaId => $cantidad) {
+                    $preguntasDisponibles = count($preguntasPorTema[$temaId] ?? []);
+                    if ($preguntasDisponibles > $maxPreguntas) {
+                        $maxPreguntas = $preguntasDisponibles;
+                        $temaConMasPreguntas = $temaId;
+                    }
+                }
+                if ($temaConMasPreguntas !== null) {
+                    $distribucionPorTema[$temaConMasPreguntas] += $diferencia;
+                }
+            } else {
+                // Si sobran preguntas, quitar del tema con más preguntas asignadas
+                $temaConMasPreguntas = null;
+                $maxCantidad = 0;
+                foreach ($distribucionPorTema as $temaId => $cantidad) {
+                    if ($cantidad > $maxCantidad) {
+                        $maxCantidad = $cantidad;
+                        $temaConMasPreguntas = $temaId;
+                    }
+                }
+                if ($temaConMasPreguntas !== null) {
+                    $distribucionPorTema[$temaConMasPreguntas] += $diferencia; // $diferencia es negativo
+                }
+            }
+        }
+        
+        // Seleccionar preguntas de cada tema según la distribución
+        $preguntasSeleccionadas = [];
+        $articulosUsados = [];
+        
+        foreach ($distribucionPorTema as $temaId => $cantidad) {
+            if ($cantidad <= 0 || !isset($preguntasPorTema[$temaId])) {
+                continue;
+            }
+            
+            // Mezclar preguntas del tema
+            $preguntasTema = $preguntasPorTema[$temaId];
+            shuffle($preguntasTema);
+            
+            // Seleccionar preguntas sin repetir artículos
+            $preguntasSeleccionadasTema = [];
+            foreach ($preguntasTema as $pregunta) {
+                if (count($preguntasSeleccionadasTema) >= $cantidad) {
+                    break;
+                }
+                
+                $articuloId = null;
+                if (method_exists($pregunta, 'getArticulo')) {
+                    $articulo = $pregunta->getArticulo();
+                    $articuloId = $articulo ? $articulo->getId() : null;
+                }
+                
+                // Si el artículo ya fue usado, saltar esta pregunta
+                if ($articuloId !== null && in_array($articuloId, $articulosUsados)) {
+                    continue;
+                }
+                
+                $preguntasSeleccionadasTema[] = $pregunta;
+                
+                // Marcar el artículo como usado
+                if ($articuloId !== null) {
+                    $articulosUsados[] = $articuloId;
+                }
+            }
+            
+            $preguntasSeleccionadas = array_merge($preguntasSeleccionadas, $preguntasSeleccionadasTema);
+        }
+        
+        // Si no se alcanzó la cantidad total, completar con preguntas aleatorias
+        if (count($preguntasSeleccionadas) < $cantidadTotal) {
+            $preguntasRestantes = array_filter($preguntas, function($p) use ($preguntasSeleccionadas) {
+                return !in_array($p, $preguntasSeleccionadas, true);
+            });
+            shuffle($preguntasRestantes);
+            
+            $faltantes = $cantidadTotal - count($preguntasSeleccionadas);
+            $preguntasSeleccionadas = array_merge($preguntasSeleccionadas, array_slice($preguntasRestantes, 0, $faltantes));
+        }
+        
+        // Asegurar que no se exceda el límite (por si acaso hay más preguntas de las solicitadas)
+        if (count($preguntasSeleccionadas) > $cantidadTotal) {
+            $preguntasSeleccionadas = array_slice($preguntasSeleccionadas, 0, $cantidadTotal);
+        }
+        
+        // Mezclar todas las preguntas seleccionadas para que no estén agrupadas por tema
+        shuffle($preguntasSeleccionadas);
+        
+        return $preguntasSeleccionadas;
+    }
+
+    /**
      * Obtiene las preguntas de un examen semanal
      */
     private function obtenerPreguntasExamen(ExamenSemanal $examenSemanal): array
@@ -664,6 +795,7 @@ class ExamenSemanalController extends AbstractController
         // Método original: obtener preguntas por temas
         $preguntas = [];
         $esMunicipal = $examenSemanal->getMunicipio() !== null;
+        $temas = [];
 
         if ($esMunicipal) {
             // Obtener preguntas municipales
@@ -690,10 +822,16 @@ class ExamenSemanalController extends AbstractController
             }
         }
 
-        // Si hay un número limitado de preguntas, seleccionar aleatoriamente
+        // Si hay un número limitado de preguntas, usar distribución por porcentajes para exámenes generales
         if ($examenSemanal->getNumeroPreguntas() && count($preguntas) > $examenSemanal->getNumeroPreguntas()) {
-            shuffle($preguntas);
-            $preguntas = array_slice($preguntas, 0, $examenSemanal->getNumeroPreguntas());
+            if (!$esMunicipal && !empty($temas)) {
+                // Para exámenes generales, usar distribución por porcentajes si está configurada
+                $preguntas = $this->distribuirPreguntasPorPorcentajes($preguntas, $temas, $examenSemanal->getNumeroPreguntas());
+            } else {
+                // Para exámenes municipales o si no hay temas, seleccionar aleatoriamente
+                shuffle($preguntas);
+                $preguntas = array_slice($preguntas, 0, $examenSemanal->getNumeroPreguntas());
+            }
         }
 
         return $preguntas;

@@ -887,18 +887,33 @@ class ExamenController extends AbstractController
         $sumaDistribucion = array_sum($distribucionPorTema);
         if ($sumaDistribucion != $cantidadTotal) {
             $diferencia = $cantidadTotal - $sumaDistribucion;
-            // Ajustar en el tema con más preguntas disponibles
-            $temaConMasPreguntas = null;
-            $maxPreguntas = 0;
-            foreach ($distribucionPorTema as $temaId => $cantidad) {
-                $preguntasDisponibles = count($preguntasPorTema[$temaId] ?? []);
-                if ($preguntasDisponibles > $maxPreguntas) {
-                    $maxPreguntas = $preguntasDisponibles;
-                    $temaConMasPreguntas = $temaId;
+            if ($diferencia > 0) {
+                // Si faltan preguntas, agregar al tema con más preguntas disponibles
+                $temaConMasPreguntas = null;
+                $maxPreguntas = 0;
+                foreach ($distribucionPorTema as $temaId => $cantidad) {
+                    $preguntasDisponibles = count($preguntasPorTema[$temaId] ?? []);
+                    if ($preguntasDisponibles > $maxPreguntas) {
+                        $maxPreguntas = $preguntasDisponibles;
+                        $temaConMasPreguntas = $temaId;
+                    }
                 }
-            }
-            if ($temaConMasPreguntas !== null) {
-                $distribucionPorTema[$temaConMasPreguntas] += $diferencia;
+                if ($temaConMasPreguntas !== null) {
+                    $distribucionPorTema[$temaConMasPreguntas] += $diferencia;
+                }
+            } else {
+                // Si sobran preguntas, quitar del tema con más preguntas asignadas
+                $temaConMasPreguntas = null;
+                $maxCantidad = 0;
+                foreach ($distribucionPorTema as $temaId => $cantidad) {
+                    if ($cantidad > $maxCantidad) {
+                        $maxCantidad = $cantidad;
+                        $temaConMasPreguntas = $temaId;
+                    }
+                }
+                if ($temaConMasPreguntas !== null) {
+                    $distribucionPorTema[$temaConMasPreguntas] += $diferencia; // $diferencia es negativo
+                }
             }
         }
         
@@ -970,6 +985,11 @@ class ExamenController extends AbstractController
                     }
                 }
             }
+        }
+        
+        // Asegurar que no se exceda el límite (por si acaso hay más preguntas de las solicitadas)
+        if (count($preguntasSeleccionadas) > $cantidadTotal) {
+            $preguntasSeleccionadas = array_slice($preguntasSeleccionadas, 0, $cantidadTotal);
         }
         
         // Mezclar todas las preguntas seleccionadas para que no estén agrupadas por tema
