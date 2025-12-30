@@ -24,20 +24,25 @@ class ExamenSemanalType extends AbstractType
         $examenSemanal = $options['examen_semanal'] ?? null;
         
         // Campos básicos del examen (siempre editables)
+        // En modo creación, estos campos se ocultan y no se usan (se usan campos separados)
+        // Por lo tanto, no deben mapearse a la entidad en modo creación
         $builder
             ->add('nombre', TextType::class, [
                 'label' => 'Nombre del Examen',
-                'required' => true,
+                'required' => $isEditMode,
+                'mapped' => $isEditMode, // Solo mapear en modo edición
                 'attr' => ['class' => 'form-control']
             ])
             ->add('descripcion', TextareaType::class, [
                 'label' => 'Descripción (opcional)',
                 'required' => false,
+                'mapped' => $isEditMode, // Solo mapear en modo edición
                 'attr' => ['class' => 'form-control', 'rows' => 3]
             ])
             ->add('fechaApertura', DateTimeType::class, [
                 'label' => 'Fecha y Hora de Apertura',
-                'required' => true,
+                'required' => $isEditMode,
+                'mapped' => $isEditMode, // Solo mapear en modo edición
                 'widget' => 'single_text',
                 'html5' => true,
                 'attr' => [
@@ -47,7 +52,8 @@ class ExamenSemanalType extends AbstractType
             ])
             ->add('fechaCierre', DateTimeType::class, [
                 'label' => 'Fecha y Hora de Cierre',
-                'required' => true,
+                'required' => $isEditMode,
+                'mapped' => $isEditMode, // Solo mapear en modo edición
                 'widget' => 'single_text',
                 'html5' => true,
                 'attr' => [
@@ -58,6 +64,8 @@ class ExamenSemanalType extends AbstractType
         ;
         
         // Solo agregar dificultad si NO está en modo edición
+        // En modo creación, este campo se oculta (se usan dificultadGeneral y dificultadMunicipal)
+        // Por lo tanto, no debe mapearse a la entidad
         if (!$isEditMode) {
             $builder->add('dificultad', ChoiceType::class, [
                 'label' => 'Dificultad',
@@ -66,7 +74,8 @@ class ExamenSemanalType extends AbstractType
                     'Moderada' => 'moderada',
                     'Difícil' => 'dificil',
                 ],
-                'required' => true,
+                'required' => false,
+                'mapped' => false, // No mapear en modo creación
                 'attr' => ['class' => 'form-control']
             ]);
         }
@@ -74,10 +83,12 @@ class ExamenSemanalType extends AbstractType
         // En modo edición, no agregar más campos (solo los básicos ya agregados arriba)
         if (!$isEditMode) {
             // Modo creación: incluir todos los campos (se ocultan en el template)
+            // Estos campos no se mapean porque se usan campos separados (nombreGeneral, fechaAperturaGeneral, etc.)
             $builder
                 ->add('numeroPreguntas', IntegerType::class, [
                     'label' => 'Número de Preguntas (opcional)',
                     'required' => false,
+                    'mapped' => false, // No mapear en modo creación
                     'attr' => [
                         'class' => 'form-control',
                         'min' => 1,
