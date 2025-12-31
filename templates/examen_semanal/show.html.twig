@@ -72,10 +72,19 @@
             </div>
         {% else %}
             <div class="mb-3">
-                <strong>Temas:</strong>
-                {% for tema in examenSemanal.temas %}
-                    <span class="badge badge-facil">{{ tema.nombre }}</span>
-                {% endfor %}
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <strong>Temas:</strong>
+                        {% for tema in examenSemanal.temas %}
+                            <span class="badge badge-facil">{{ tema.nombre }}</span>
+                        {% endfor %}
+                    </div>
+                    {% if porcentajesPorTema|length > 0 %}
+                        <button type="button" class="btn btn-info btn-sm" id="btnVerPorcentajes" style="font-size: 0.85rem; padding: 0.4rem 1rem;">
+                            📊 Ver % por Tema
+                        </button>
+                    {% endif %}
+                </div>
             </div>
         {% endif %}
 
@@ -118,6 +127,70 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Modal para mostrar porcentajes por tema -->
+{% if porcentajesPorTema|length > 0 %}
+<div id="modalPorcentajes" style="display: none; position: fixed; z-index: 99999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); overflow-y: auto;">
+    <div style="background-color: #fefefe; margin: 5% auto; padding: 0; border: 1px solid #888; border-radius: 8px; width: 90%; max-width: 500px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; border-bottom: 1px solid #ddd;">
+            <h3 style="margin: 0; color: var(--color-primary); font-size: 1.2rem;">📊 Distribución de Preguntas por Tema</h3>
+            <span id="cerrarModalPorcentajes" style="color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; line-height: 1; user-select: none;" onclick="cerrarModalPorcentajes()">&times;</span>
+        </div>
+        <div style="padding: 1.5rem;">
+            <div style="display: grid; gap: 0.75rem;">
+                {% for temaId, datos in porcentajesPorTema %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f8f9fa; border-radius: 4px; border-left: 4px solid var(--color-primary);">
+                        <div>
+                            <strong style="color: #333;">{{ datos.nombre }}</strong>
+                            <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">{{ datos.cantidad }} pregunta{{ datos.cantidad != 1 ? 's' : '' }}</div>
+                        </div>
+                        <div style="font-size: 1.2rem; font-weight: bold; color: var(--color-primary);">
+                            {{ datos.porcentaje }}%
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div style="padding: 1rem; border-top: 1px solid #ddd; text-align: right;">
+            <button onclick="cerrarModalPorcentajes()" class="btn btn-secondary btn-sm">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function abrirModalPorcentajes() {
+    const modal = document.getElementById('modalPorcentajes');
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+function cerrarModalPorcentajes() {
+    const modal = document.getElementById('modalPorcentajes');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Cerrar modal al hacer clic fuera de él
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('modalPorcentajes');
+    if (modal && event.target == modal) {
+        cerrarModalPorcentajes();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const btnVerPorcentajes = document.getElementById('btnVerPorcentajes');
+    if (btnVerPorcentajes) {
+        btnVerPorcentajes.addEventListener('click', function(e) {
+            e.preventDefault();
+            abrirModalPorcentajes();
+        });
+    }
+});
+</script>
+{% endif %}
 {% endblock %}
 
 

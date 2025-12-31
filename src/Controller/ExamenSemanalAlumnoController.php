@@ -12,7 +12,9 @@ use App\Repository\PreguntaMunicipalRepository;
 use App\Repository\TemaRepository;
 use App\Repository\TemaMunicipalRepository;
 use App\Repository\MunicipioRepository;
+use App\Repository\ConfiguracionExamenRepository;
 use App\Service\NotificacionService;
+use App\Service\ConfiguracionExamenService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -33,6 +35,8 @@ class ExamenSemanalAlumnoController extends AbstractController
         private TemaRepository $temaRepository,
         private TemaMunicipalRepository $temaMunicipalRepository,
         private MunicipioRepository $municipioRepository,
+        private ConfiguracionExamenRepository $configuracionExamenRepository,
+        private ConfiguracionExamenService $configuracionExamenService,
         private EntityManagerInterface $entityManager,
         private NotificacionService $notificacionService
     ) {
@@ -192,14 +196,25 @@ class ExamenSemanalAlumnoController extends AbstractController
             return $this->redirectToRoute('app_examen_semanal_alumno_index');
         }
 
-        // Mezclar preguntas aleatoriamente
-        shuffle($preguntas);
-
         // Limitar el número de preguntas si está especificado
         $numeroPreguntas = $examenSemanal->getNumeroPreguntas();
         if ($numeroPreguntas !== null && $numeroPreguntas > 0) {
-            // Seleccionar preguntas sin repetir artículos, respetando el límite
-            $preguntas = $this->seleccionarPreguntasSinRepetirArticulos($preguntas, $numeroPreguntas);
+            // Para exámenes generales (no municipales) con temas, usar distribución por porcentajes
+            if (!$esMunicipal && $examenSemanal->getModoCreacion() !== 'preguntas_especificas') {
+                $temas = $examenSemanal->getTemas()->toArray();
+                if (!empty($temas)) {
+                    // Usar distribución por porcentajes para exámenes generales
+                    $preguntas = $this->distribuirPreguntasPorPorcentajes($preguntas, $temas, $numeroPreguntas);
+                } else {
+                    // Si no hay temas, usar selección aleatoria sin repetir artículos
+                    shuffle($preguntas);
+                    $preguntas = $this->seleccionarPreguntasSinRepetirArticulos($preguntas, $numeroPreguntas);
+                }
+            } else {
+                // Para exámenes municipales o con preguntas específicas, usar selección aleatoria sin repetir artículos
+                shuffle($preguntas);
+                $preguntas = $this->seleccionarPreguntasSinRepetirArticulos($preguntas, $numeroPreguntas);
+            }
             
             // Si hay menos preguntas disponibles que el límite solicitado, informar al usuario
             if (count($preguntas) < $numeroPreguntas) {
@@ -208,6 +223,7 @@ class ExamenSemanalAlumnoController extends AbstractController
         } else {
             // Si no hay límite, aplicar solo la restricción de no repetir artículos
             // pero usar todas las preguntas disponibles
+            shuffle($preguntas);
             $preguntas = $this->seleccionarPreguntasSinRepetirArticulos($preguntas, count($preguntas));
         }
 
@@ -272,6 +288,208 @@ class ExamenSemanalAlumnoController extends AbstractController
             'posicion' => $posicion,
             'miExamen' => $miExamen,
         ]);
+    }
+
+    /**
+     * Distribuir preguntas según porcentajes configurados por tema
+     */
+    private function distribuirPreguntasPorPorcentajes(array $preguntas, array $temas, int $cantidadTotal): array
+    {
+        // Obtener configuraciones de porcentajes
+        $configuraciones = $this->configuracionExamenRepository->findByTemas($temas);
+        
+        // Agrupar preguntas por tema
+        $preguntasPorTema = [];
+        foreach ($preguntas as $pregunta) {
+            $temaId = $pregunta->getTema()->getId();
+            if (!isset($preguntasPorTema[$temaId])) {
+                $preguntasPorTema[$temaId] = [];
+            }
+            $preguntasPorTema[$temaId][] = $pregunta;
+        }
+        
+        // Calcular cuántas preguntas por tema según porcentajes
+        $distribucionPorTema = [];
+        $totalTemas = count($temas);
+        $temasConPorcentaje = [];
+        $porcentajesTemas = [];
+        
+        // Primero, calcular porcentajes y cantidades esperadas
+        foreach ($temas as $tema) {
+            $temaId = $tema->getId();
+            $porcentaje = $this->configuracionExamenService->obtenerPorcentajeParaTema($configuraciones, $temaId, $totalTemas);
+            $porcentajesTemas[$temaId] = $porcentaje;
+            
+            // Si el tema tiene porcentaje > 0 y hay preguntas disponibles, debe tener al menos 1 pregunta
+            if ($porcentaje > 0 && isset($preguntasPorTema[$temaId]) && count($preguntasPorTema[$temaId]) > 0) {
+                $temasConPorcentaje[] = $temaId;
+                // Calcular cantidad ideal basada en porcentaje
+                $cantidadIdeal = ($porcentaje / 100) * $cantidadTotal;
+                // Asegurar mínimo de 1 pregunta
+                $cantidadParaTema = max(1, (int) round($cantidadIdeal));
+            } else {
+                $cantidadParaTema = 0;
+            }
+            
+            $distribucionPorTema[$temaId] = $cantidadParaTema;
+        }
+        
+        // Ajustar distribución para que se acerque lo más posible a los porcentajes
+        $sumaDistribucion = array_sum($distribucionPorTema);
+        $diferencia = $cantidadTotal - $sumaDistribucion;
+        
+        if ($diferencia != 0) {
+            // Crear lista de temas con su diferencia respecto al porcentaje ideal
+            $temasAjustables = [];
+            foreach ($temasConPorcentaje as $temaId) {
+                $porcentaje = $porcentajesTemas[$temaId];
+                $cantidadIdeal = ($porcentaje / 100) * $cantidadTotal;
+                $cantidadActual = $distribucionPorTema[$temaId];
+                $preguntasDisponibles = count($preguntasPorTema[$temaId] ?? []);
+                
+                $temasAjustables[] = [
+                    'temaId' => $temaId,
+                    'porcentaje' => $porcentaje,
+                    'cantidadIdeal' => $cantidadIdeal,
+                    'cantidadActual' => $cantidadActual,
+                    'diferencia' => $cantidadIdeal - $cantidadActual,
+                    'preguntasDisponibles' => $preguntasDisponibles,
+                ];
+            }
+            
+            if ($diferencia > 0) {
+                // Faltan preguntas: asignar a temas que están por debajo de su porcentaje ideal
+                // Ordenar por diferencia (mayor diferencia primero = más lejos del ideal)
+                usort($temasAjustables, function($a, $b) {
+                    return $b['diferencia'] <=> $a['diferencia'];
+                });
+                
+                foreach ($temasAjustables as $temaAjustable) {
+                    if ($diferencia <= 0) break;
+                    $temaId = $temaAjustable['temaId'];
+                    if ($temaAjustable['preguntasDisponibles'] > $distribucionPorTema[$temaId]) {
+                        $distribucionPorTema[$temaId]++;
+                        $diferencia--;
+                    }
+                }
+                
+                // Si aún faltan, distribuir equitativamente
+                while ($diferencia > 0) {
+                    $asignado = false;
+                    foreach ($temasAjustables as $temaAjustable) {
+                        if ($diferencia <= 0) break;
+                        $temaId = $temaAjustable['temaId'];
+                        if ($temaAjustable['preguntasDisponibles'] > $distribucionPorTema[$temaId]) {
+                            $distribucionPorTema[$temaId]++;
+                            $diferencia--;
+                            $asignado = true;
+                        }
+                    }
+                    if (!$asignado) break;
+                }
+            } else {
+                // Sobran preguntas: quitar de temas que están por encima de su porcentaje ideal
+                // Ordenar por diferencia negativa (menos diferencia = más por encima del ideal)
+                usort($temasAjustables, function($a, $b) {
+                    return $a['diferencia'] <=> $b['diferencia'];
+                });
+                
+                while ($diferencia < 0) {
+                    $quitado = false;
+                    foreach ($temasAjustables as $temaAjustable) {
+                        if ($diferencia >= 0) break;
+                        $temaId = $temaAjustable['temaId'];
+                        // No quitar si solo tiene 1 pregunta (mínimo garantizado)
+                        if ($distribucionPorTema[$temaId] > 1) {
+                            $distribucionPorTema[$temaId]--;
+                            $diferencia++;
+                            $quitado = true;
+                        }
+                    }
+                    if (!$quitado) break;
+                }
+            }
+        }
+        
+        // Seleccionar preguntas de cada tema según la distribución
+        $preguntasSeleccionadas = [];
+        $articulosUsados = [];
+        
+        foreach ($distribucionPorTema as $temaId => $cantidad) {
+            if ($cantidad <= 0 || !isset($preguntasPorTema[$temaId])) {
+                continue;
+            }
+            
+            // Mezclar preguntas del tema
+            $preguntasTema = $preguntasPorTema[$temaId];
+            shuffle($preguntasTema);
+            
+            // Seleccionar preguntas sin repetir artículos
+            $preguntasSeleccionadasTema = [];
+            foreach ($preguntasTema as $pregunta) {
+                if (count($preguntasSeleccionadasTema) >= $cantidad) {
+                    break;
+                }
+                
+                $articuloId = null;
+                if (method_exists($pregunta, 'getArticulo')) {
+                    $articulo = $pregunta->getArticulo();
+                    $articuloId = $articulo ? $articulo->getId() : null;
+                }
+                
+                // Si el artículo ya fue usado, saltar esta pregunta
+                if ($articuloId !== null && in_array($articuloId, $articulosUsados)) {
+                    continue;
+                }
+                
+                $preguntasSeleccionadasTema[] = $pregunta;
+                
+                // Marcar el artículo como usado
+                if ($articuloId !== null) {
+                    $articulosUsados[] = $articuloId;
+                }
+            }
+            
+            $preguntasSeleccionadas = array_merge($preguntasSeleccionadas, $preguntasSeleccionadasTema);
+        }
+        
+        // Si no se alcanzó la cantidad total, completar con preguntas aleatorias
+        if (count($preguntasSeleccionadas) < $cantidadTotal) {
+            $preguntasRestantes = array_filter($preguntas, function($p) use ($preguntasSeleccionadas) {
+                return !in_array($p, $preguntasSeleccionadas, true);
+            });
+            shuffle($preguntasRestantes);
+            
+            $faltantes = $cantidadTotal - count($preguntasSeleccionadas);
+            foreach ($preguntasRestantes as $pregunta) {
+                if (count($preguntasSeleccionadas) >= $cantidadTotal) {
+                    break;
+                }
+                
+                $articuloId = null;
+                if (method_exists($pregunta, 'getArticulo')) {
+                    $articulo = $pregunta->getArticulo();
+                    $articuloId = $articulo ? $articulo->getId() : null;
+                }
+                
+                if ($articuloId === null || !in_array($articuloId, $articulosUsados)) {
+                    $preguntasSeleccionadas[] = $pregunta;
+                    if ($articuloId !== null) {
+                        $articulosUsados[] = $articuloId;
+                    }
+                }
+            }
+        }
+        
+        // Asegurar que no se exceda el límite (por si acaso hay más preguntas de las solicitadas)
+        if (count($preguntasSeleccionadas) > $cantidadTotal) {
+            $preguntasSeleccionadas = array_slice($preguntasSeleccionadas, 0, $cantidadTotal);
+        }
+        
+        // Mezclar todas las preguntas seleccionadas para que no estén agrupadas por tema
+        shuffle($preguntasSeleccionadas);
+        
+        return $preguntasSeleccionadas;
     }
 
     /**

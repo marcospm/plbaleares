@@ -53,6 +53,11 @@
                             <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                                 <a href="{{ path('app_examen_semanal_show', {'id': examen.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
                                 <a href="{{ path('app_examen_semanal_edit', {'id': examen.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                {% if porcentajesPorExamen[examen.id]|length > 0 %}
+                                    <button type="button" class="btn btn-info btn-sm btnVerPorcentajes" data-examen-id="{{ examen.id }}" data-porcentajes="{{ porcentajesPorExamen[examen.id]|json_encode|e('html_attr') }}" title="Ver % por Tema">
+                                        📊 %
+                                    </button>
+                                {% endif %}
                                 <a href="{{ path('app_examen_semanal_pdf', {'id': examen.id}) }}" class="btn btn-success btn-sm" target="_blank" title="Generar PDF del examen para imprimir">
                                     📄 PDF
                                 </a>
@@ -78,6 +83,88 @@
         </div>
     </div>
 {% endif %}
+
+<!-- Modal para mostrar porcentajes por tema -->
+<div id="modalPorcentajes" style="display: none; position: fixed; z-index: 99999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); overflow-y: auto;">
+    <div style="background-color: #fefefe; margin: 5% auto; padding: 0; border: 1px solid #888; border-radius: 8px; width: 90%; max-width: 500px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; border-bottom: 1px solid #ddd;">
+            <h3 style="margin: 0; color: var(--color-primary); font-size: 1.2rem;">📊 Distribución de Preguntas por Tema</h3>
+            <span id="cerrarModalPorcentajes" style="color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; line-height: 1; user-select: none;" onclick="cerrarModalPorcentajes()">&times;</span>
+        </div>
+        <div style="padding: 1.5rem;">
+            <div id="contenidoPorcentajes" style="display: grid; gap: 0.75rem;">
+                <!-- Contenido dinámico -->
+            </div>
+        </div>
+        <div style="padding: 1rem; border-top: 1px solid #ddd; text-align: right;">
+            <button onclick="cerrarModalPorcentajes()" class="btn btn-secondary btn-sm">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function abrirModalPorcentajes(porcentajes) {
+    const modal = document.getElementById('modalPorcentajes');
+    const contenido = document.getElementById('contenidoPorcentajes');
+    
+    if (modal && contenido) {
+        // Limpiar contenido anterior
+        contenido.innerHTML = '';
+        
+        // Generar contenido con los porcentajes
+        for (const temaId in porcentajes) {
+            const datos = porcentajes[temaId];
+            const div = document.createElement('div');
+            div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f8f9fa; border-radius: 4px; border-left: 4px solid var(--color-primary);';
+            div.innerHTML = `
+                <div>
+                    <strong style="color: #333;">${datos.nombre}</strong>
+                    <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">${datos.cantidad} pregunta${datos.cantidad != 1 ? 's' : ''}</div>
+                </div>
+                <div style="font-size: 1.2rem; font-weight: bold; color: var(--color-primary);">
+                    ${datos.porcentaje}%
+                </div>
+            `;
+            contenido.appendChild(div);
+        }
+        
+        modal.style.display = 'block';
+    }
+}
+
+function cerrarModalPorcentajes() {
+    const modal = document.getElementById('modalPorcentajes');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Cerrar modal al hacer clic fuera de él
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('modalPorcentajes');
+    if (modal && event.target == modal) {
+        cerrarModalPorcentajes();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const botones = document.querySelectorAll('.btnVerPorcentajes');
+    botones.forEach(function(boton) {
+        boton.addEventListener('click', function(e) {
+            e.preventDefault();
+            const porcentajesJson = this.getAttribute('data-porcentajes');
+            if (porcentajesJson) {
+                try {
+                    const porcentajes = JSON.parse(porcentajesJson);
+                    abrirModalPorcentajes(porcentajes);
+                } catch (error) {
+                    console.error('Error al parsear porcentajes:', error);
+                }
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
 
 

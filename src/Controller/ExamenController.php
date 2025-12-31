@@ -387,6 +387,39 @@ class ExamenController extends AbstractController
         $esUltima = ($indice === count($preguntasIds) - 1);
         $esPrimera = ($indice === 0);
 
+        // Calcular porcentajes por tema
+        $porcentajesPorTema = [];
+        if (!$esMunicipal) {
+            // Obtener todos los temas seleccionados en la configuración del examen
+            $temas = $this->temaRepository->findBy(['id' => $config['temas'] ?? []]);
+            $preguntasPorTema = [];
+            
+            // Contar preguntas por tema en el examen actual
+            foreach ($preguntasIds as $preguntaId) {
+                $preguntaTemp = $this->preguntaRepository->find($preguntaId);
+                if ($preguntaTemp && $preguntaTemp->getTema()) {
+                    $temaId = $preguntaTemp->getTema()->getId();
+                    if (!isset($preguntasPorTema[$temaId])) {
+                        $preguntasPorTema[$temaId] = 0;
+                    }
+                    $preguntasPorTema[$temaId]++;
+                }
+            }
+            
+            // Calcular porcentajes para todos los temas seleccionados
+            $totalPreguntas = count($preguntasIds);
+            foreach ($temas as $tema) {
+                $temaId = $tema->getId();
+                $cantidad = $preguntasPorTema[$temaId] ?? 0;
+                $porcentaje = $totalPreguntas > 0 ? round(($cantidad / $totalPreguntas) * 100, 1) : 0;
+                $porcentajesPorTema[$temaId] = [
+                    'nombre' => $tema->getNombre(),
+                    'cantidad' => $cantidad,
+                    'porcentaje' => $porcentaje,
+                ];
+            }
+        }
+
         return $this->render('examen/pregunta.html.twig', [
             'pregunta' => $pregunta,
             'numero' => $numero,
@@ -396,6 +429,7 @@ class ExamenController extends AbstractController
             'esPrimera' => $esPrimera,
             'temas' => $esMunicipal ? [] : $this->temaRepository->findBy(['id' => $config['temas'] ?? []]),
             'esMunicipal' => $esMunicipal,
+            'porcentajesPorTema' => $porcentajesPorTema,
         ]);
     }
 
@@ -875,44 +909,102 @@ class ExamenController extends AbstractController
         // Calcular cuántas preguntas por tema según porcentajes
         $distribucionPorTema = [];
         $totalTemas = count($temas);
+        $temasConPorcentaje = [];
+        $porcentajesTemas = [];
         
+        // Primero, calcular porcentajes y cantidades esperadas
         foreach ($temas as $tema) {
             $temaId = $tema->getId();
             $porcentaje = $this->configuracionExamenService->obtenerPorcentajeParaTema($configuraciones, $temaId, $totalTemas);
-            $cantidadParaTema = (int) round(($porcentaje / 100) * $cantidadTotal);
+            $porcentajesTemas[$temaId] = $porcentaje;
+            
+            // Si el tema tiene porcentaje > 0 y hay preguntas disponibles, debe tener al menos 1 pregunta
+            if ($porcentaje > 0 && isset($preguntasPorTema[$temaId]) && count($preguntasPorTema[$temaId]) > 0) {
+                $temasConPorcentaje[] = $temaId;
+                // Calcular cantidad ideal basada en porcentaje
+                $cantidadIdeal = ($porcentaje / 100) * $cantidadTotal;
+                // Asegurar mínimo de 1 pregunta
+                $cantidadParaTema = max(1, (int) round($cantidadIdeal));
+            } else {
+                $cantidadParaTema = 0;
+            }
+            
             $distribucionPorTema[$temaId] = $cantidadParaTema;
         }
         
-        // Ajustar si la suma no coincide exactamente (por redondeos)
+        // Ajustar distribución para que se acerque lo más posible a los porcentajes
         $sumaDistribucion = array_sum($distribucionPorTema);
-        if ($sumaDistribucion != $cantidadTotal) {
-            $diferencia = $cantidadTotal - $sumaDistribucion;
+        $diferencia = $cantidadTotal - $sumaDistribucion;
+        
+        if ($diferencia != 0) {
+            // Crear lista de temas con su diferencia respecto al porcentaje ideal
+            $temasAjustables = [];
+            foreach ($temasConPorcentaje as $temaId) {
+                $porcentaje = $porcentajesTemas[$temaId];
+                $cantidadIdeal = ($porcentaje / 100) * $cantidadTotal;
+                $cantidadActual = $distribucionPorTema[$temaId];
+                $preguntasDisponibles = count($preguntasPorTema[$temaId] ?? []);
+                
+                $temasAjustables[] = [
+                    'temaId' => $temaId,
+                    'porcentaje' => $porcentaje,
+                    'cantidadIdeal' => $cantidadIdeal,
+                    'cantidadActual' => $cantidadActual,
+                    'diferencia' => $cantidadIdeal - $cantidadActual,
+                    'preguntasDisponibles' => $preguntasDisponibles,
+                ];
+            }
+            
             if ($diferencia > 0) {
-                // Si faltan preguntas, agregar al tema con más preguntas disponibles
-                $temaConMasPreguntas = null;
-                $maxPreguntas = 0;
-                foreach ($distribucionPorTema as $temaId => $cantidad) {
-                    $preguntasDisponibles = count($preguntasPorTema[$temaId] ?? []);
-                    if ($preguntasDisponibles > $maxPreguntas) {
-                        $maxPreguntas = $preguntasDisponibles;
-                        $temaConMasPreguntas = $temaId;
+                // Faltan preguntas: asignar a temas que están por debajo de su porcentaje ideal
+                // Ordenar por diferencia (mayor diferencia primero = más lejos del ideal)
+                usort($temasAjustables, function($a, $b) {
+                    return $b['diferencia'] <=> $a['diferencia'];
+                });
+                
+                foreach ($temasAjustables as $temaAjustable) {
+                    if ($diferencia <= 0) break;
+                    $temaId = $temaAjustable['temaId'];
+                    if ($temaAjustable['preguntasDisponibles'] > $distribucionPorTema[$temaId]) {
+                        $distribucionPorTema[$temaId]++;
+                        $diferencia--;
                     }
                 }
-                if ($temaConMasPreguntas !== null) {
-                    $distribucionPorTema[$temaConMasPreguntas] += $diferencia;
+                
+                // Si aún faltan, distribuir equitativamente
+                while ($diferencia > 0) {
+                    $asignado = false;
+                    foreach ($temasAjustables as $temaAjustable) {
+                        if ($diferencia <= 0) break;
+                        $temaId = $temaAjustable['temaId'];
+                        if ($temaAjustable['preguntasDisponibles'] > $distribucionPorTema[$temaId]) {
+                            $distribucionPorTema[$temaId]++;
+                            $diferencia--;
+                            $asignado = true;
+                        }
+                    }
+                    if (!$asignado) break;
                 }
             } else {
-                // Si sobran preguntas, quitar del tema con más preguntas asignadas
-                $temaConMasPreguntas = null;
-                $maxCantidad = 0;
-                foreach ($distribucionPorTema as $temaId => $cantidad) {
-                    if ($cantidad > $maxCantidad) {
-                        $maxCantidad = $cantidad;
-                        $temaConMasPreguntas = $temaId;
+                // Sobran preguntas: quitar de temas que están por encima de su porcentaje ideal
+                // Ordenar por diferencia negativa (menos diferencia = más por encima del ideal)
+                usort($temasAjustables, function($a, $b) {
+                    return $a['diferencia'] <=> $b['diferencia'];
+                });
+                
+                while ($diferencia < 0) {
+                    $quitado = false;
+                    foreach ($temasAjustables as $temaAjustable) {
+                        if ($diferencia >= 0) break;
+                        $temaId = $temaAjustable['temaId'];
+                        // No quitar si solo tiene 1 pregunta (mínimo garantizado)
+                        if ($distribucionPorTema[$temaId] > 1) {
+                            $distribucionPorTema[$temaId]--;
+                            $diferencia++;
+                            $quitado = true;
+                        }
                     }
-                }
-                if ($temaConMasPreguntas !== null) {
-                    $distribucionPorTema[$temaConMasPreguntas] += $diferencia; // $diferencia es negativo
+                    if (!$quitado) break;
                 }
             }
         }
