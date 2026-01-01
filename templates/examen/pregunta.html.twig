@@ -456,23 +456,40 @@
             }
         });
 
-        document.addEventListener('DOMContentLoaded', function() {
+        // Función para inicializar el botón (se ejecuta tanto en carga inicial como en navegaciones Turbo)
+        function inicializarBotonPorcentajes() {
             const btnVerPorcentajes = document.getElementById('btnVerPorcentajes');
             if (btnVerPorcentajes) {
-                btnVerPorcentajes.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.stopImmediatePropagation();
-                    abrirModalPorcentajes();
-                    return false;
-                });
+                // Verificar si ya tiene un listener asignado para evitar duplicados
+                if (!btnVerPorcentajes.dataset.listenerAsignado) {
+                    btnVerPorcentajes.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        abrirModalPorcentajes();
+                        return false;
+                    });
+                    btnVerPorcentajes.dataset.listenerAsignado = 'true';
+                }
             } else {
                 console.warn('No se encontró el botón btnVerPorcentajes');
             }
             
             // También asignar la función global para el onclick del span de cerrar
             window.cerrarModalPorcentajes = cerrarModalPorcentajes;
-        });
+        }
+
+        // Ejecutar en carga inicial
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', inicializarBotonPorcentajes);
+        } else {
+            // Si el DOM ya está cargado, ejecutar inmediatamente
+            inicializarBotonPorcentajes();
+        }
+
+        // Ejecutar también en navegaciones de Turbo
+        document.addEventListener('turbo:load', inicializarBotonPorcentajes);
+        document.addEventListener('turbo:frame-load', inicializarBotonPorcentajes);
         </script>
         {% endif %}
     </div>
