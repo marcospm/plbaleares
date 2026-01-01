@@ -109,20 +109,6 @@ class ConvocatoriaController extends AbstractController
         $form = $this->createForm(ConvocatoriaType::class, $convocatoria);
         $form->handleRequest($request);
 
-        // Debug
-        if ($form->isSubmitted()) {
-            $this->addFlash('info', 'Formulario recibido. Método: ' . $request->getMethod());
-            if (!$form->isValid()) {
-                $errors = [];
-                foreach ($form->getErrors(true) as $error) {
-                    $errors[] = $error->getMessage();
-                }
-                $this->addFlash('error', 'Errores: ' . implode(', ', $errors));
-            } else {
-                $this->addFlash('info', 'Formulario válido. Procesando...');
-            }
-        }
-
         if ($form->isSubmitted() && $form->isValid()) {
             // Manejar documentos subidos
             /** @var UploadedFile[] $documentosFiles */
