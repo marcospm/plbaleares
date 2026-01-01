@@ -18,10 +18,17 @@ applications:
       "/var": "shared:files/var"
       "/public/uploads": "shared:files/uploads"
 
+    variables:
+      env:
+        APP_ENV: "prod"
+        APP_DEBUG: "0"
+
     hooks:
       build: |
         set -e
         composer install --no-dev --prefer-dist --no-progress --no-interaction --optimize-autoloader
+
       deploy: |
         set -e
-        php bin/console cache:clear
+        php bin/console cache:clear --no-warmup
+        php bin/console cache:warmup
