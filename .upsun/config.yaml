@@ -34,7 +34,14 @@ applications:
 
     mounts:
       "/var": "shared:files/var"
+
+      # Uploads persistentes (se conservan entre despliegues)
       "/public/uploads": "shared:files/uploads"
+      "/public/examenes": "shared:files/examenes"
+      "/public/pdf_municipales": "shared:files/pdf_municipales"
+      "/public/pdfs": "shared:files/pdfs"
+      "/public/recursos_especificos": "shared:files/recursos_especificos"
+      "/public/videos": "shared:files/videos"
 
     variables:
       env:
@@ -45,6 +52,16 @@ applications:
     hooks:
       build: |
         set -e
+
+        # Crear directorios (montajes) si no existen
+        mkdir -p \
+          public/uploads \
+          public/examenes \
+          public/pdf_municipales \
+          public/pdfs \
+          public/recursos_especificos \
+          public/videos
+
         composer install \
           --no-dev \
           --prefer-dist \

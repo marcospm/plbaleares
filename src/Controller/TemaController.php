@@ -72,7 +72,15 @@ class TemaController extends AbstractController
                 try {
                     $directorio = $this->kernel->getProjectDir() . '/public/pdfs';
                     if (!is_dir($directorio)) {
-                        mkdir($directorio, 0755, true);
+                        // Intentar crear el directorio, pero continuar si falla (puede ser sistema de solo lectura)
+                        try {
+                            @mkdir($directorio, 0755, true);
+                        } catch (\Exception $e) {
+                            // Si no se puede crear, verificar si el directorio existe ahora (puede haber sido creado por otro proceso)
+                            if (!is_dir($directorio)) {
+                                throw new FileException('No se pudo crear el directorio de destino y no existe.');
+                            }
+                        }
                     }
                     
                     $pdfFile->move($directorio, $newFilename);
@@ -153,7 +161,15 @@ class TemaController extends AbstractController
                 try {
                     $directorio = $this->kernel->getProjectDir() . '/public/pdfs';
                     if (!is_dir($directorio)) {
-                        mkdir($directorio, 0755, true);
+                        // Intentar crear el directorio, pero continuar si falla (puede ser sistema de solo lectura)
+                        try {
+                            @mkdir($directorio, 0755, true);
+                        } catch (\Exception $e) {
+                            // Si no se puede crear, verificar si el directorio existe ahora (puede haber sido creado por otro proceso)
+                            if (!is_dir($directorio)) {
+                                throw new FileException('No se pudo crear el directorio de destino y no existe.');
+                            }
+                        }
                     }
                     
                     $pdfFile->move($directorio, $newFilename);
