@@ -25,14 +25,12 @@ class RegistrationFormType extends AbstractType
                     'placeholder' => 'Elige un nombre de usuario'
                 ],
                 'constraints' => [
-                    new NotBlank([
-                        'message' => 'Por favor, introduce un nombre de usuario',
-                    ]),
-                    new Length([
-                        'min' => 3,
-                        'minMessage' => 'El nombre de usuario debe tener al menos {{ limit }} caracteres',
-                        'max' => 50,
-                    ]),
+                    new NotBlank(message: 'Por favor, introduce un nombre de usuario'),
+                    new Length(
+                        min: 3,
+                        minMessage: 'El nombre de usuario debe tener al menos {{ limit }} caracteres',
+                        max: 50,
+                    ),
                 ],
             ])
             ->add('plainPassword', RepeatedType::class, [
@@ -48,14 +46,12 @@ class RegistrationFormType extends AbstractType
                 ],
                 'invalid_message' => 'Las contraseñas no coinciden',
                 'constraints' => [
-                    new NotBlank([
-                        'message' => 'Por favor, introduce una contraseña',
-                    ]),
-                    new Length([
-                        'min' => 6,
-                        'minMessage' => 'La contraseña debe tener al menos {{ limit }} caracteres',
-                        'max' => 4096,
-                    ]),
+                    new NotBlank(message: 'Por favor, introduce una contraseña'),
+                    new Length(
+                        min: 6,
+                        minMessage: 'La contraseña debe tener al menos {{ limit }} caracteres',
+                        max: 4096,
+                    ),
                 ],
             ])
         ;

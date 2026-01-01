@@ -10,12 +10,9 @@
             <h1 style="font-size: 2rem; margin-bottom: 0.5rem; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
                 Sistema de Oposiciones
             </h1>
-            <h2 style="font-size: 1.3rem; margin-bottom: 1rem; font-weight: 400; opacity: 0.95;">
+            <h2 style="font-size: 1.3rem; margin-bottom: 1.5rem; font-weight: 400; opacity: 0.95;">
                 Policía Local - Illes Balears
             </h2>
-            <p style="font-size: 1rem; margin-bottom: 1rem; max-width: 800px; margin-left: auto; margin-right: auto; line-height: 1.5;">
-                Prepara tu oposición con nuestra plataforma especializada. Accede a exámenes, recursos de estudio y explicaciones detalladas de todos los artículos.
-            </p>
             {% if not app.user %}
                 <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
                     <a href="{{ path('app_register') }}" class="btn" style="background: var(--color-secondary); color: white; padding: 0.6rem 1.5rem; font-size: 0.95rem; font-weight: 600; text-decoration: none; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: transform 0.3s;">
@@ -37,7 +34,7 @@
             </h2>
             
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
-                <!-- Exámenes -->
+                <!-- Exámenes Personalizados -->
                 <div class="card" style="text-align: center; transition: transform 0.3s;">
                     <div class="card-body" style="padding: 2rem;">
                         <div style="font-size: 4rem; margin-bottom: 1rem;">📝</div>
@@ -45,7 +42,46 @@
                             Exámenes Personalizados
                         </h3>
                         <p style="color: var(--color-text-light); line-height: 1.6;">
-                            Realiza exámenes adaptados a tus necesidades. Elige los temas, la dificultad y el número de preguntas. Recibe feedback inmediato y mejora tu preparación.
+                            Crea exámenes adaptados a tus necesidades. Elige los temas, la dificultad (fácil, moderada, difícil) y el número de preguntas. Disponible para temario general y municipios específicos.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Exámenes Semanales -->
+                <div class="card" style="text-align: center; transition: transform 0.3s;">
+                    <div class="card-body" style="padding: 2rem;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">📅</div>
+                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
+                            Exámenes Semanales
+                        </h3>
+                        <p style="color: var(--color-text-light); line-height: 1.6;">
+                            Participa en exámenes semanales programados por tus profesores. Compite con otros opositores, consulta rankings y mejora tu posición. Disponible en modo general y municipal.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Planificaciones -->
+                <div class="card" style="text-align: center; transition: transform 0.3s;">
+                    <div class="card-body" style="padding: 2rem;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">📋</div>
+                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
+                            Planificaciones de Estudio
+                        </h3>
+                        <p style="color: var(--color-text-light); line-height: 1.6;">
+                            Accede a planificaciones personalizadas creadas por tus profesores. Organiza tu tiempo de estudio con franjas horarias, temas específicos y tareas asignadas. Sigue tu progreso semanal.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Municipios -->
+                <div class="card" style="text-align: center; transition: transform 0.3s;">
+                    <div class="card-body" style="padding: 2rem;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">🏛️</div>
+                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
+                            Contenido Municipal
+                        </h3>
+                        <p style="color: var(--color-text-light); line-height: 1.6;">
+                            Accede a temas y preguntas específicas de tu municipio. Descarga PDFs de temas municipales y realiza exámenes con contenido adaptado a tu convocatoria local.
                         </p>
                     </div>
                 </div>
@@ -58,7 +94,7 @@
                             Explicaciones de Artículos
                         </h3>
                         <p style="color: var(--color-text-light); line-height: 1.6;">
-                            Accede a explicaciones sencillas de todos los artículos de las leyes. Incluye videos explicativos de YouTube para una mejor comprensión.
+                            Accede a explicaciones sencillas de todos los artículos de las leyes. Incluye videos explicativos de YouTube para una mejor comprensión. Haz preguntas y obtén respuestas de la comunidad.
                         </p>
                     </div>
                 </div>
@@ -71,12 +107,12 @@
                             Recursos de Estudio
                         </h3>
                         <p style="color: var(--color-text-light); line-height: 1.6;">
-                            Descarga todos los recursos necesarios para tu preparación. Accede a los 30 temas completos y materiales adicionales.
+                            Descarga todos los recursos necesarios para tu preparación. Accede a los 30 temas completos en PDF, temas municipales y materiales adicionales organizados por categorías.
                         </p>
                     </div>
                 </div>
 
-                <!-- Historial -->
+                <!-- Historial y Estadísticas -->
                 <div class="card" style="text-align: center; transition: transform 0.3s;">
                     <div class="card-body" style="padding: 2rem;">
                         <div style="font-size: 4rem; margin-bottom: 1rem;">📊</div>
@@ -84,20 +120,33 @@
                             Seguimiento de Progreso
                         </h3>
                         <p style="color: var(--color-text-light); line-height: 1.6;">
-                            Consulta tu historial de exámenes, notas y estadísticas. Identifica tus fortalezas y áreas de mejora.
+                            Consulta tu historial completo de exámenes, notas y estadísticas detalladas. Visualiza porcentajes por tema, identifica tus fortalezas y áreas de mejora con gráficos y análisis.
                         </p>
                     </div>
                 </div>
 
-                <!-- Dificultad -->
+                <!-- Ranking -->
                 <div class="card" style="text-align: center; transition: transform 0.3s;">
                     <div class="card-body" style="padding: 2rem;">
-                        <div style="font-size: 4rem; margin-bottom: 1rem;">🎯</div>
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">🏆</div>
                         <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
-                            Niveles de Dificultad
+                            Ranking y Competencia
                         </h3>
                         <p style="color: var(--color-text-light); line-height: 1.6;">
-                            Practica con preguntas de diferentes niveles: fácil, moderada y difícil. Adapta tu estudio a tu nivel actual.
+                            Participa en rankings de exámenes semanales. Compara tu rendimiento con otros opositores, motívate y mejora tu posición en las clasificaciones.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Notificaciones -->
+                <div class="card" style="text-align: center; transition: transform 0.3s;">
+                    <div class="card-body" style="padding: 2rem;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">🔔</div>
+                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
+                            Sistema de Notificaciones
+                        </h3>
+                        <p style="color: var(--color-text-light); line-height: 1.6;">
+                            Mantente informado sobre nuevos exámenes semanales, planificaciones, tareas asignadas y respuestas a tus preguntas. Nunca te pierdas una actualización importante.
                         </p>
                     </div>
                 </div>
@@ -110,7 +159,7 @@
                             Retroalimentación Inmediata
                         </h3>
                         <p style="color: var(--color-text-light); line-height: 1.6;">
-                            Recibe explicaciones detalladas de cada pregunta. Aprende de tus errores y refuerza tus conocimientos.
+                            Recibe explicaciones detalladas de cada pregunta al finalizar el examen. Aprende de tus errores, refuerza tus conocimientos y mejora con cada intento.
                         </p>
                     </div>
                 </div>
@@ -127,28 +176,56 @@
                     <span style="font-size: 2rem;">✅</span>
                     <div>
                         <strong style="color: var(--color-primary);">30 Temas Completos</strong>
-                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Todos los temas de la oposición organizados y accesibles.</p>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Todos los temas de la oposición organizados y accesibles en formato PDF.</p>
                     </div>
                 </div>
                 <div style="display: flex; align-items: start; gap: 1rem;">
                     <span style="font-size: 2rem;">✅</span>
                     <div>
                         <strong style="color: var(--color-primary);">Sistema de Notas</strong>
-                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Sistema de calificación de 0 a 20 puntos con penalización por errores.</p>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Sistema de calificación de 0 a 20 puntos con penalización por errores, igual que en la oposición real.</p>
                     </div>
                 </div>
                 <div style="display: flex; align-items: start; gap: 1rem;">
                     <span style="font-size: 2rem;">✅</span>
                     <div>
                         <strong style="color: var(--color-primary);">Acceso 24/7</strong>
-                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Estudia cuando quieras, desde cualquier dispositivo.</p>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Estudia cuando quieras, desde cualquier dispositivo. Tu progreso se guarda automáticamente.</p>
                     </div>
                 </div>
                 <div style="display: flex; align-items: start; gap: 1rem;">
                     <span style="font-size: 2rem;">✅</span>
                     <div>
                         <strong style="color: var(--color-primary);">Contenido Actualizado</strong>
-                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Leyes y artículos actualizados según las bases oficiales.</p>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Leyes y artículos actualizados según las bases oficiales de la convocatoria.</p>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: start; gap: 1rem;">
+                    <span style="font-size: 2rem;">✅</span>
+                    <div>
+                        <strong style="color: var(--color-primary);">Planificación Personalizada</strong>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Recibe planificaciones semanales con horarios, temas y tareas específicas para optimizar tu estudio.</p>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: start; gap: 1rem;">
+                    <span style="font-size: 2rem;">✅</span>
+                    <div>
+                        <strong style="color: var(--color-primary);">Foro de Preguntas</strong>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Haz preguntas sobre artículos y obtén respuestas de profesores y otros opositores.</p>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: start; gap: 1rem;">
+                    <span style="font-size: 2rem;">✅</span>
+                    <div>
+                        <strong style="color: var(--color-primary);">Estadísticas Detalladas</strong>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Visualiza tu rendimiento por tema, dificultad y tipo de examen con gráficos y porcentajes.</p>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: start; gap: 1rem;">
+                    <span style="font-size: 2rem;">✅</span>
+                    <div>
+                        <strong style="color: var(--color-primary);">Soporte Profesional</strong>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Profesores disponibles para resolver dudas, crear exámenes y guiar tu preparación.</p>
                     </div>
                 </div>
             </div>
