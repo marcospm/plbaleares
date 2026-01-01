@@ -30,7 +30,6 @@
         <table class="table">
             <thead>
                 <tr>
-                    <th>ID</th>
                     <th>Nombre</th>
                     <th>Descripción</th>
                     <th>Leyes</th>
@@ -41,7 +40,6 @@
             <tbody>
                 {% for tema in temas %}
                     <tr>
-                        <td>{{ tema.id }}</td>
                         <td><strong>{{ tema.nombre }}</strong></td>
                         <td>{{ tema.descripcion|default('Sin descripción')|slice(0, 100) }}{% if tema.descripcion|length > 100 %}...{% endif %}</td>
                         <td>

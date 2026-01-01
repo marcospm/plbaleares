@@ -17,5 +17,7 @@
 
 ###> symfony/asset-mapper ###
 /public/assets/
+/public/examenes/
+/public/pdfs/
 /assets/vendor/
 ###< symfony/asset-mapper ###

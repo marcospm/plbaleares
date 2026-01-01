@@ -8,7 +8,7 @@
         <h1>Editar Tema: {{ tema.nombre }}</h1>
     </div>
     <div class="card-body">
-        {{ form_start(form) }}
+        {{ form_start(form, {'attr': {'data-turbo': 'false'}}) }}
             {{ form_row(form.nombre) }}
             {{ form_row(form.descripcion) }}
             {{ form_row(form.pdfFile) }}
