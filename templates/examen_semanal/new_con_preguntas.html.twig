@@ -199,7 +199,17 @@ const tipoExamen = '{{ tipoExamen }}';
 
 document.addEventListener('DOMContentLoaded', function() {
     // Crear examen
-    document.getElementById('crearExamenBtn').addEventListener('click', crearExamen);
+    const crearExamenBtn = document.getElementById('crearExamenBtn');
+    if (crearExamenBtn) {
+        crearExamenBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Botón crear examen clickeado');
+            crearExamen();
+        });
+    } else {
+        console.error('No se encontró el botón crearExamenBtn');
+    }
     
     // Agregar pregunta
     document.getElementById('agregarPreguntaBtn').addEventListener('click', agregarPregunta);
@@ -233,6 +243,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function crearExamen() {
+    console.log('Función crearExamen llamada');
+    
     const datos = {
         nombre: document.getElementById('nombreExamen').value,
         descripcion: document.getElementById('descripcionExamen').value,
@@ -245,6 +257,8 @@ function crearExamen() {
         datos.municipioId = document.getElementById('municipioSelect').value;
     }
 
+    console.log('Datos del examen:', datos);
+
     if (!datos.nombre || !datos.fechaApertura || !datos.fechaCierre || !datos.dificultad) {
         alert('Por favor completa todos los campos requeridos del examen');
         return;
@@ -255,15 +269,26 @@ function crearExamen() {
         return;
     }
 
-    fetch('{{ path('app_examen_semanal_new_con_preguntas', {'tipo': tipoExamen}) }}', {
+    const url = '{{ path('app_examen_semanal_new_con_preguntas', {'tipo': tipoExamen}) }}';
+    console.log('URL:', url);
+    
+    fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify(datos)
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error('HTTP error! status: ' + response.status);
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('Response data:', data);
         if (data.success) {
             examenId = data.examenId;
             document.getElementById('examenForm').style.display = 'none';
@@ -274,8 +299,8 @@ function crearExamen() {
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert('Error al crear el examen');
+        console.error('Error completo:', error);
+        alert('Error al crear el examen: ' + error.message);
     });
 }
 
