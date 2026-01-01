@@ -13,7 +13,7 @@ if (getenv('PLATFORM_RELATIONSHIPS')) {
     $creds = $config->credentials('database');
 
     $dsn = sprintf(
-        'mysql://%s:%s@%s:%s/%s?charset=utf8mb4&serverVersion=mariadb-11.4',
+        'mysql://%s:%s@%s:%s/%s?charset=utf8mb4&serverVersion=mariadb-11.4.0',
         rawurlencode($creds['username']),
         rawurlencode($creds['password']),
         $creds['host'],
