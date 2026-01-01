@@ -10,6 +10,21 @@ applications:
         "/":
           root: "public"
           passthru: "/index.php"
+          scripts: false
+
+        "/build":
+          root: "public/build"
+          allow: true
+          passthru: false
+          scripts: false
+          expires: 365d
+
+        "/assets":
+          root: "public/assets"
+          allow: true
+          passthru: false
+          scripts: false
+          expires: 365d
 
     relationships:
       database: "database:mysql"
@@ -35,6 +50,9 @@ applications:
           --optimize-autoloader \
           --no-scripts
 
+        # Compilar assets (Asset Mapper)
+        php bin/console asset-map:compile --env=prod
+
       deploy: |
         set -e
 
@@ -56,7 +74,6 @@ applications:
           $port   = $db["port"] ?? 3306;
           $name   = ltrim(($db["path"] ?? ""), "/");
 
-          // IMPORTANTE: formato correcto con patch
           $serverVersion = "mariadb-11.4.0";
 
           echo sprintf(
@@ -71,9 +88,7 @@ applications:
           );
         ')"
 
-        echo "DATABASE_URL=$DATABASE_URL"
-
-        # Cache Symfony (seguro en Upsun)
+        # Cache Symfony
         php bin/console cache:clear --env=prod --no-warmup
         php bin/console cache:warmup --env=prod --no-optional-warmers
 
