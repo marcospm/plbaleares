@@ -128,9 +128,22 @@ class TemaController extends AbstractController
                     ]);
                 }
                 
-                // Eliminar PDF anterior si existe
-                if ($tema->getRutaPdf() && file_exists($this->kernel->getProjectDir() . '/public' . $tema->getRutaPdf())) {
-                    unlink($this->kernel->getProjectDir() . '/public' . $tema->getRutaPdf());
+                // Eliminar PDF anterior si existe (intentar, pero no fallar si no es posible)
+                if ($tema->getRutaPdf()) {
+                    $rutaArchivoAnterior = $this->kernel->getProjectDir() . '/public' . $tema->getRutaPdf();
+                    if (file_exists($rutaArchivoAnterior)) {
+                        try {
+                            // Verificar si el archivo es escribible antes de intentar eliminarlo
+                            if (is_writable($rutaArchivoAnterior) || is_writable(dirname($rutaArchivoAnterior))) {
+                                @unlink($rutaArchivoAnterior);
+                            }
+                            // Si no se puede eliminar (sistema de solo lectura), simplemente continuar
+                            // El nuevo archivo se guardará con un nombre único de todos modos
+                        } catch (\Exception $e) {
+                            // Ignorar el error si no se puede eliminar (puede ser sistema de solo lectura)
+                            // El nuevo archivo se guardará con un nombre único de todos modos
+                        }
+                    }
                 }
                 
                 $originalFilename = pathinfo($pdfFile->getClientOriginalName(), PATHINFO_FILENAME);
