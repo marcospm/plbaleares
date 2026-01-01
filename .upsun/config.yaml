@@ -37,11 +37,25 @@ applications:
       deploy: |
         set -e
 
-        # DEBUG: comprobar que Upsun inyecta la BD
-        echo "DATABASE_URL=$DATABASE_URL"
-        php -r 'echo "ENV_DATABASE_URL=".(getenv("DATABASE_URL") ?: "NULL").PHP_EOL;'
+        # Construye DATABASE_URL desde PLATFORM_RELATIONSHIPS (Upsun)
+        export DATABASE_URL="$(php -r '
+          $rels = json_decode(base64_decode(getenv(\"PLATFORM_RELATIONSHIPS\")), true);
+          if (!isset($rels[\"database\"][0])) { fwrite(STDERR, \"No relationship named database found.\n\"); exit(1); }
+          $db = $rels[\"database\"][0];
+          $scheme = $db[\"scheme\"] ?? \"mysql\";
+          $user = rawurlencode($db[\"username\"] ?? \"\");
+          $pass = rawurlencode($db[\"password\"] ?? \"\");
+          $host = $db[\"host\"] ?? \"\";
+          $port = $db[\"port\"] ?? 3306;
+          $name = ltrim(($db[\"path\"] ?? \"\"), \"/\");
+          // Ajusta serverVersion si quieres (recomendado para Doctrine)
+          $serverVersion = \"mariadb-11.4\";
+          echo sprintf(\"%s://%s:%s@%s:%s/%s?serverVersion=%s\", $scheme, $user, $pass, $host, $port, $name, $serverVersion);
+        ')"
 
-        # Cache Symfony (sin tocar DB)
+        echo "DATABASE_URL=$DATABASE_URL"
+
+        # Cache Symfony
         php bin/console cache:clear --env=prod --no-warmup
         php bin/console cache:warmup --env=prod --no-optional-warmers
 
