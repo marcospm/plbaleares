@@ -36,7 +36,7 @@ applications:
     variables:
       env:
         APP_ENV: "prod"
-        APP_DEBUG: "0"
+        APP_DEBUG: "1"
         APP_SECRET: "a4f9fd292b86d214adcd16b1496e853dd56ecc807fae04e316b26a6079690b72"
 
     hooks:
