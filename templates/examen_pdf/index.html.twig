@@ -87,7 +87,6 @@
                     <thead>
                         <tr>
                             <th>Nombre</th>
-                            <th>Tema</th>
                             <th>Fecha de Subida</th>
                             <th>Acciones</th>
                         </tr>
@@ -99,13 +98,6 @@
                                     <strong>{{ examen.nombre }}</strong>
                                     {% if examen.descripcion %}
                                         <br><small class="text-muted">{{ examen.descripcion|slice(0, 100) }}{% if examen.descripcion|length > 100 %}...{% endif %}</small>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if examen.tema %}
-                                        <span class="badge bg-info">{{ examen.tema.nombre }}</span>
-                                    {% else %}
-                                        <span class="text-muted">Sin tema</span>
                                     {% endif %}
                                 </td>
                                 <td>{{ examen.fechaSubida|date('d/m/Y H:i') }}</td>

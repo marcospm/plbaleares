@@ -34,7 +34,12 @@ class ExamenPDFController extends AbstractController
         
         if ($temaId > 0) {
             $examenes = array_filter($examenes, function($examen) use ($temaId) {
-                return $examen->getTema() && $examen->getTema()->getId() === $temaId;
+                foreach ($examen->getTemas() as $tema) {
+                    if ($tema->getId() === $temaId) {
+                        return true;
+                    }
+                }
+                return false;
             });
         }
         
@@ -102,6 +107,41 @@ class ExamenPDFController extends AbstractController
                 ]);
             }
             
+            // Manejar archivo de respuestas (opcional)
+            /** @var UploadedFile|null $archivoRespuestas */
+            $archivoRespuestas = $form->get('archivoRespuestas')->getData();
+            
+            if ($archivoRespuestas) {
+                $extension = strtolower($archivoRespuestas->getClientOriginalExtension());
+                if ($extension !== 'pdf') {
+                    $this->addFlash('error', 'El archivo de respuestas debe ser un PDF (extensión .pdf).');
+                    return $this->render('examen_pdf/new.html.twig', [
+                        'examenPDF' => $examenPDF,
+                        'form' => $form,
+                    ]);
+                }
+                
+                $originalFilename = pathinfo($archivoRespuestas->getClientOriginalName(), PATHINFO_FILENAME);
+                $safeFilename = $slugger->slug($originalFilename);
+                $newFilename = 'respuestas-' . $safeFilename . '-' . uniqid() . '.pdf';
+                
+                try {
+                    $directorio = $this->kernel->getProjectDir() . '/public/examenes';
+                    if (!is_dir($directorio)) {
+                        mkdir($directorio, 0755, true);
+                    }
+                    
+                    $archivoRespuestas->move($directorio, $newFilename);
+                    $examenPDF->setRutaArchivoRespuestas('/examenes/' . $newFilename);
+                } catch (FileException $e) {
+                    $this->addFlash('error', 'Error al subir el archivo de respuestas: ' . $e->getMessage());
+                    return $this->render('examen_pdf/new.html.twig', [
+                        'examenPDF' => $examenPDF,
+                        'form' => $form,
+                    ]);
+                }
+            }
+            
             $entityManager->persist($examenPDF);
             $entityManager->flush();
 
@@ -163,6 +203,46 @@ class ExamenPDFController extends AbstractController
                     $examenPDF->setRutaArchivo('/examenes/' . $newFilename);
                 } catch (FileException $e) {
                     $this->addFlash('error', 'Error al subir el archivo PDF: ' . $e->getMessage());
+                    return $this->render('examen_pdf/edit.html.twig', [
+                        'examenPDF' => $examenPDF,
+                        'form' => $form,
+                    ]);
+                }
+            }
+            
+            // Manejar archivo de respuestas (opcional)
+            /** @var UploadedFile|null $archivoRespuestas */
+            $archivoRespuestas = $form->get('archivoRespuestas')->getData();
+            
+            if ($archivoRespuestas) {
+                $extension = strtolower($archivoRespuestas->getClientOriginalExtension());
+                if ($extension !== 'pdf') {
+                    $this->addFlash('error', 'El archivo de respuestas debe ser un PDF.');
+                    return $this->render('examen_pdf/edit.html.twig', [
+                        'examenPDF' => $examenPDF,
+                        'form' => $form,
+                    ]);
+                }
+                
+                // Eliminar archivo anterior si existe
+                if ($examenPDF->getRutaArchivoRespuestas() && file_exists($this->kernel->getProjectDir() . '/public' . $examenPDF->getRutaArchivoRespuestas())) {
+                    unlink($this->kernel->getProjectDir() . '/public' . $examenPDF->getRutaArchivoRespuestas());
+                }
+                
+                $originalFilename = pathinfo($archivoRespuestas->getClientOriginalName(), PATHINFO_FILENAME);
+                $safeFilename = $slugger->slug($originalFilename);
+                $newFilename = 'respuestas-' . $safeFilename . '-' . uniqid() . '.pdf';
+                
+                try {
+                    $directorio = $this->kernel->getProjectDir() . '/public/examenes';
+                    if (!is_dir($directorio)) {
+                        mkdir($directorio, 0755, true);
+                    }
+                    
+                    $archivoRespuestas->move($directorio, $newFilename);
+                    $examenPDF->setRutaArchivoRespuestas('/examenes/' . $newFilename);
+                } catch (FileException $e) {
+                    $this->addFlash('error', 'Error al subir el archivo de respuestas: ' . $e->getMessage());
                     return $this->render('examen_pdf/edit.html.twig', [
                         'examenPDF' => $examenPDF,
                         'form' => $form,

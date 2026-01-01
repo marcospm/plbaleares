@@ -11,7 +11,6 @@ use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Validator\Constraints\File;
 
 class ExamenPDFType extends AbstractType
 {
@@ -28,30 +27,39 @@ class ExamenPDFType extends AbstractType
                 'required' => false,
                 'attr' => ['class' => 'form-control', 'rows' => 3]
             ])
-            ->add('tema', EntityType::class, [
+            ->add('temas', EntityType::class, [
                 'class' => Tema::class,
                 'choice_label' => 'nombre',
-                'label' => 'Tema (opcional)',
+                'multiple' => true,
+                'expanded' => false,
+                'label' => 'Temas (opcional)',
                 'required' => false,
-                'placeholder' => 'Selecciona un tema',
-                'attr' => ['class' => 'form-control']
+                'placeholder' => 'Selecciona uno o más temas',
+                'attr' => [
+                    'class' => 'form-control',
+                    'size' => 10
+                ],
+                'help' => 'Puedes seleccionar múltiples temas. Mantén presionada la tecla Ctrl (o Cmd en Mac) para seleccionar varios.'
             ])
             ->add('archivoPDF', FileType::class, [
-                'label' => 'Archivo PDF',
+                'label' => 'Archivo PDF del Examen',
                 'required' => $options['require_file'],
                 'mapped' => false,
                 'attr' => [
                     'class' => 'form-control',
                     'accept' => '.pdf'
                 ],
-                'constraints' => $options['require_file'] ? [
-                    new File(
-                        maxSize: '20M',
-                        extensions: ['pdf'],
-                        extensionsMessage: 'Por favor, sube un archivo PDF válido'
-                    )
-                ] : [],
                 'help' => 'Tamaño máximo: 20MB. Solo archivos PDF (extensión .pdf).'
+            ])
+            ->add('archivoRespuestas', FileType::class, [
+                'label' => 'Hoja de Respuestas (opcional)',
+                'required' => false,
+                'mapped' => false,
+                'attr' => [
+                    'class' => 'form-control',
+                    'accept' => '.pdf'
+                ],
+                'help' => 'PDF con las respuestas del examen. Los alumnos podrán descargarlo desde sus recursos.'
             ])
         ;
     }

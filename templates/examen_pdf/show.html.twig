@@ -13,11 +13,13 @@
     </div>
     <div class="card-body">
         <div class="mb-3">
-            <strong>Tema:</strong>
-            {% if examenPDF.tema %}
-                <span class="badge bg-info">{{ examenPDF.tema.nombre }}</span>
+            <strong>Temas:</strong>
+            {% if examenPDF.temas|length > 0 %}
+                {% for tema in examenPDF.temas %}
+                    <span class="badge bg-info">{{ tema.nombre }}</span>
+                {% endfor %}
             {% else %}
-                <span class="text-muted">Sin tema asignado</span>
+                <span class="text-muted">Sin temas asignados</span>
             {% endif %}
         </div>
         

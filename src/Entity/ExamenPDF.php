@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\ExamenPDFRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -23,16 +25,20 @@ class ExamenPDF
     #[ORM\Column(length: 500)]
     private ?string $rutaArchivo = null;
 
+    #[ORM\Column(length: 500, nullable: true)]
+    private ?string $rutaArchivoRespuestas = null;
+
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $fechaSubida = null;
 
-    #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?Tema $tema = null;
+    #[ORM\ManyToMany(targetEntity: Tema::class)]
+    #[ORM\JoinTable(name: 'examen_pdf_tema')]
+    private Collection $temas;
 
     public function __construct()
     {
         $this->fechaSubida = new \DateTime();
+        $this->temas = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -76,6 +82,18 @@ class ExamenPDF
         return $this;
     }
 
+    public function getRutaArchivoRespuestas(): ?string
+    {
+        return $this->rutaArchivoRespuestas;
+    }
+
+    public function setRutaArchivoRespuestas(?string $rutaArchivoRespuestas): static
+    {
+        $this->rutaArchivoRespuestas = $rutaArchivoRespuestas;
+
+        return $this;
+    }
+
     public function getFechaSubida(): ?\DateTimeInterface
     {
         return $this->fechaSubida;
@@ -88,14 +106,26 @@ class ExamenPDF
         return $this;
     }
 
-    public function getTema(): ?Tema
+    /**
+     * @return Collection<int, Tema>
+     */
+    public function getTemas(): Collection
     {
-        return $this->tema;
+        return $this->temas;
     }
 
-    public function setTema(?Tema $tema): static
+    public function addTema(Tema $tema): static
     {
-        $this->tema = $tema;
+        if (!$this->temas->contains($tema)) {
+            $this->temas->add($tema);
+        }
+
+        return $this;
+    }
+
+    public function removeTema(Tema $tema): static
+    {
+        $this->temas->removeElement($tema);
 
         return $this;
     }

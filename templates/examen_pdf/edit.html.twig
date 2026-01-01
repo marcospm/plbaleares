@@ -11,12 +11,21 @@
         {{ form_start(form) }}
             {{ form_row(form.nombre) }}
             {{ form_row(form.descripcion) }}
-            {{ form_row(form.tema) }}
+            {{ form_row(form.temas) }}
             {{ form_row(form.archivoPDF) }}
             
             <div class="alert alert-info mt-3">
                 <strong>Nota:</strong> Si no seleccionas un nuevo archivo PDF, se mantendrá el archivo actual.
             </div>
+            
+            {{ form_row(form.archivoRespuestas) }}
+            
+            {% if examenPDF.rutaArchivoRespuestas %}
+                <div class="alert alert-success mt-2">
+                    <strong>Hoja de respuestas actual:</strong> 
+                    <a href="{{ examenPDF.rutaArchivoRespuestas }}" target="_blank" class="btn btn-sm btn-success">Ver Respuestas Actuales</a>
+                </div>
+            {% endif %}
             
             <div class="d-flex gap-2 mt-4">
                 <button type="submit" class="btn btn-primary">Guardar Cambios</button>
