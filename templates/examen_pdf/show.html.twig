@@ -35,12 +35,22 @@
         </div>
         
         <div class="mb-3">
-            <strong>Archivo:</strong>
+            <strong>Archivo del Examen:</strong>
             <br>
             <a href="{{ examenPDF.rutaArchivo }}" target="_blank" class="btn btn-primary mt-2" rel="noopener noreferrer">
-                Ver PDF
+                Ver/Descargar PDF
             </a>
         </div>
+        
+        {% if examenPDF.rutaArchivoRespuestas %}
+            <div class="mb-3">
+                <strong>Plantilla de Respuestas:</strong>
+                <br>
+                <a href="{{ examenPDF.rutaArchivoRespuestas }}" target="_blank" class="btn btn-success mt-2" rel="noopener noreferrer" download>
+                    Descargar Plantilla de Respuestas
+                </a>
+            </div>
+        {% endif %}
         
         <div class="mt-4">
             <form method="post" action="{{ path('app_examen_pdf_delete', {'id': examenPDF.id}) }}" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este examen?');">
