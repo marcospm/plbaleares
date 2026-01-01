@@ -1,0 +1,115 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ planificacion.nombre }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>{{ planificacion.nombre }}</h1>
+            <div>
+                <a href="{{ path('app_planificacion_edit', {'id': planificacion.id}) }}" class="btn btn-primary">Editar</a>
+                <a href="{{ path('app_planificacion_index') }}" class="btn btn-secondary">Volver</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if planificacion.descripcion %}
+            <div class="mb-3">
+                <strong>Descripción:</strong>
+                <p>{{ planificacion.descripcion }}</p>
+            </div>
+        {% endif %}
+
+        <div class="mb-3">
+            <strong>Alumno:</strong> {{ planificacion.usuario.username }}
+        </div>
+
+        <div class="mb-3">
+            <strong>Rango de Fechas:</strong> 
+            {{ planificacion.fechaInicio|date('d/m/Y') }} - {{ planificacion.fechaFin|date('d/m/Y') }}
+        </div>
+
+        <div class="mb-3">
+            <strong>Creado por:</strong> {{ planificacion.creadoPor.username }}
+        </div>
+
+        <div class="mb-3">
+            <strong>Fecha de creación:</strong> {{ planificacion.fechaCreacion|date('d/m/Y H:i') }}
+        </div>
+
+        <h3 style="margin-top: 2rem;">Actividades ({{ planificacion.franjasHorarias|length }})</h3>
+        
+        {% if franjasPorFecha|length > 0 %}
+            {% for fechaKey, franjas in franjasPorFecha %}
+                <div class="card mt-3">
+                    <div class="card-header" style="background-color: #f8f9fa;">
+                        <h4 style="margin: 0;">
+                            {{ franjas[0].fechaEspecifica|date('l, d/m/Y') }}
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        {% for franja in franjas %}
+                            <div class="mb-3" style="padding: 1rem; border-left: 4px solid {% if franja.tipoActividad == 'repaso_basico' %}#2196F3{% else %}#4CAF50{% endif %}; background-color: #f8f9fa;">
+                                <div style="display: flex; justify-content: space-between; align-items: start;">
+                                    <div style="flex: 1;">
+                                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+                                            <strong style="font-size: 1.1rem;">
+                                                {{ franja.horaInicio|date('H:i') }} - {{ franja.horaFin|date('H:i') }}
+                                            </strong>
+                                            <span class="badge" style="background-color: {% if franja.tipoActividad == 'repaso_basico' %}#2196F3{% else %}#4CAF50{% endif %};">
+                                                {% if franja.tipoActividad == 'repaso_basico' %}Repaso Básico{% else %}Estudio y Tareas{% endif %}
+                                            </span>
+                                        </div>
+                                        
+                                        {% if franja.descripcionRepaso %}
+                                            <p style="margin: 0.5rem 0;"><strong>Descripción:</strong> {{ franja.descripcionRepaso }}</p>
+                                        {% endif %}
+                                        
+                                        {% if franja.temas %}
+                                            <div style="margin: 0.5rem 0;">
+                                                <strong>Temas:</strong>
+                                                <p style="white-space: pre-line; margin: 0.25rem 0;">{{ franja.temas }}</p>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        {% if franja.recursos %}
+                                            <div style="margin: 0.5rem 0;">
+                                                <strong>Recursos:</strong>
+                                                <p style="white-space: pre-line; margin: 0.25rem 0;">{{ franja.recursos }}</p>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        {% if franja.enlaces %}
+                                            <div style="margin: 0.5rem 0;">
+                                                <strong>Enlaces:</strong>
+                                                <p style="white-space: pre-line; margin: 0.25rem 0;">
+                                                    {% for enlace in franja.enlaces|split('\n') %}
+                                                        {% if enlace|trim %}
+                                                            <a href="{{ enlace|trim }}" target="_blank" rel="noopener noreferrer">{{ enlace|trim }}</a><br>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </p>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        {% if franja.notas %}
+                                            <div style="margin: 0.5rem 0; padding: 0.75rem; background-color: #fff3cd; border-radius: 4px;">
+                                                <strong>Notas:</strong>
+                                                <p style="white-space: pre-line; margin: 0.25rem 0;">{{ franja.notas }}</p>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="color: #666; padding: 2rem; text-align: center;">No hay actividades asignadas.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

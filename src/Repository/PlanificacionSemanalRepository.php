@@ -48,10 +48,7 @@ class PlanificacionSemanalRepository extends ServiceEntityRepository
      */
     public function findConFiltros(?string $nombre = null, ?string $estado = null, ?int $usuarioId = null): array
     {
-        $qb = $this->createQueryBuilder('p')
-            ->leftJoin('p.planificacionesPersonalizadas', 'pp')
-            ->leftJoin('pp.usuario', 'u')
-            ->groupBy('p.id');
+        $qb = $this->createQueryBuilder('p');
 
         if ($nombre && $nombre !== '') {
             $qb->andWhere('p.nombre LIKE :nombre')
@@ -68,10 +65,8 @@ class PlanificacionSemanalRepository extends ServiceEntityRepository
             }
         }
 
-        if ($usuarioId && $usuarioId !== '') {
-            $qb->andWhere('u.id = :usuarioId')
-               ->setParameter('usuarioId', $usuarioId);
-        }
+        // Nota: El filtro por usuario ya no está disponible ya que PlanificacionSemanal
+        // ya no tiene relación directa con usuarios (se usa PlanificacionPersonalizada ahora)
 
         return $qb->orderBy('p.fechaCreacion', 'DESC')
                   ->getQuery()

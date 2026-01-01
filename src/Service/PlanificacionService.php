@@ -2,9 +2,7 @@
 
 namespace App\Service;
 
-use App\Entity\PlanificacionSemanal;
 use App\Entity\PlanificacionPersonalizada;
-use App\Entity\FranjaHoraria;
 use App\Entity\FranjaHorariaPersonalizada;
 use App\Entity\User;
 use App\Repository\FranjaHorariaPersonalizadaRepository;
@@ -20,31 +18,48 @@ class PlanificacionService
     ) {
     }
 
-    public function crearDesdePlantilla(PlanificacionSemanal $plantilla, User $usuario): PlanificacionPersonalizada
-    {
-        $planificacionPersonalizada = new PlanificacionPersonalizada();
-        $planificacionPersonalizada->setUsuario($usuario);
-        $planificacionPersonalizada->setPlanificacionBase($plantilla);
+    /**
+     * Crea una nueva planificación con fechas específicas
+     */
+    public function crearPlanificacionConFechas(
+        User $usuario,
+        User $creadoPor,
+        string $nombre,
+        ?string $descripcion,
+        \DateTime $fechaInicio,
+        \DateTime $fechaFin,
+        array $actividades
+    ): PlanificacionPersonalizada {
+        $planificacion = new PlanificacionPersonalizada();
+        $planificacion->setUsuario($usuario);
+        $planificacion->setCreadoPor($creadoPor);
+        $planificacion->setNombre($nombre);
+        $planificacion->setDescripcion($descripcion);
+        $planificacion->setFechaInicio($fechaInicio);
+        $planificacion->setFechaFin($fechaFin);
 
-        // Copiar todas las franjas de la plantilla
-        foreach ($plantilla->getFranjasHorarias() as $franjaBase) {
-            $franjaPersonalizada = new FranjaHorariaPersonalizada();
-            $franjaPersonalizada->setFranjaBase($franjaBase);
-            $franjaPersonalizada->setDiaSemana($franjaBase->getDiaSemana());
-            $franjaPersonalizada->setHoraInicio($franjaBase->getHoraInicio());
-            $franjaPersonalizada->setHoraFin($franjaBase->getHoraFin());
-            $franjaPersonalizada->setTipoActividad($franjaBase->getTipoActividad());
-            $franjaPersonalizada->setDescripcionRepaso($franjaBase->getDescripcionRepaso());
-            $franjaPersonalizada->setOrden($franjaBase->getOrden());
-            $franjaPersonalizada->setPlanificacion($planificacionPersonalizada);
+        $orden = 1;
+        foreach ($actividades as $actividad) {
+            $franja = new FranjaHorariaPersonalizada();
+            $franja->setPlanificacion($planificacion);
+            $franja->setFechaEspecifica($actividad['fecha']);
+            $franja->setHoraInicio($actividad['horaInicio']);
+            $franja->setHoraFin($actividad['horaFin']);
+            $franja->setTipoActividad($actividad['tipoActividad'] ?? 'repaso_basico');
+            $franja->setDescripcionRepaso($actividad['descripcionRepaso'] ?? null);
+            $franja->setTemas($actividad['temas'] ?? null);
+            $franja->setRecursos($actividad['recursos'] ?? null);
+            $franja->setEnlaces($actividad['enlaces'] ?? null);
+            $franja->setNotas($actividad['notas'] ?? null);
+            $franja->setOrden($orden++);
 
-            $planificacionPersonalizada->addFranjaHoraria($franjaPersonalizada);
+            $planificacion->addFranjaHoraria($franja);
         }
 
-        $this->entityManager->persist($planificacionPersonalizada);
+        $this->entityManager->persist($planificacion);
         $this->entityManager->flush();
 
-        return $planificacionPersonalizada;
+        return $planificacion;
     }
 
     /**
@@ -52,10 +67,7 @@ class PlanificacionService
      */
     public function obtenerFranjasDelDia(User $usuario, \DateTime $fecha): array
     {
-        $diaSemana = (int) $fecha->format('N'); // 1=Lunes, 7=Domingo
-        
-        // Pasar la fecha como referencia para filtrar por fechaFin de la planificación
-        return $this->franjaRepository->findByUsuarioYdia($usuario, $diaSemana, $fecha);
+        return $this->franjaRepository->findByUsuarioYFecha($usuario, $fecha);
     }
 
     /**
@@ -63,17 +75,18 @@ class PlanificacionService
      */
     public function obtenerFranjasDeSemana(User $usuario, \DateTime $lunesSemana): array
     {
-        $franjas = [];
-        for ($dia = 1; $dia <= 7; $dia++) {
-            $fechaDia = clone $lunesSemana;
-            $fechaDia->modify('+' . ($dia - 1) . ' days');
-            $franjasDelDia = $this->franjaRepository->findByUsuarioYdia($usuario, $dia, $fechaDia);
-            foreach ($franjasDelDia as $franja) {
-                $franjas[] = $franja;
-            }
-        }
+        $domingoSemana = clone $lunesSemana;
+        $domingoSemana->modify('+6 days');
         
-        return $franjas;
+        return $this->franjaRepository->findByUsuarioYRangoFechas($usuario, $lunesSemana, $domingoSemana);
+    }
+
+    /**
+     * @return FranjaHorariaPersonalizada[]
+     */
+    public function obtenerFranjasPorRangoFechas(User $usuario, \DateTime $fechaInicio, \DateTime $fechaFin): array
+    {
+        return $this->franjaRepository->findByUsuarioYRangoFechas($usuario, $fechaInicio, $fechaFin);
     }
 
     /**
@@ -117,34 +130,33 @@ class PlanificacionService
         return $this->tareaAsignadaRepository->findPendientesByUsuario($usuario);
     }
 
-    public function validarFranjas(array $franjas): array
+    /**
+     * Valida las franjas de una planificación
+     */
+    public function validarFranjas(array $franjas, User $usuario): array
     {
         $errores = [];
-        $franjasPorDia = [];
+        $franjasPorFecha = [];
 
-        // Agrupar franjas por día
+        // Agrupar franjas por fecha
         foreach ($franjas as $franja) {
-            $dia = $franja->getDiaSemana();
-            if (!isset($franjasPorDia[$dia])) {
-                $franjasPorDia[$dia] = [];
+            $fecha = $franja->getFechaEspecifica();
+            if ($fecha === null) {
+                $errores[] = "Todas las franjas deben tener una fecha específica.";
+                continue;
             }
-            $franjasPorDia[$dia][] = $franja;
+            
+            $fechaKey = $fecha->format('Y-m-d');
+            if (!isset($franjasPorFecha[$fechaKey])) {
+                $franjasPorFecha[$fechaKey] = [];
+            }
+            $franjasPorFecha[$fechaKey][] = $franja;
         }
 
-        // Validar cada día
-        foreach ($franjasPorDia as $dia => $franjasDelDia) {
-            // Verificar que hay al menos una franja de repaso_basico
-            $tieneRepaso = false;
-            foreach ($franjasDelDia as $franja) {
-                if ($franja->getTipoActividad() === 'repaso_basico') {
-                    $tieneRepaso = true;
-                    break;
-                }
-            }
-            if (!$tieneRepaso) {
-                $errores[] = "El día " . $this->getNombreDia($dia) . " debe tener al menos una franja de repaso básico.";
-            }
-
+        // Validar cada fecha
+        foreach ($franjasPorFecha as $fechaKey => $franjasDelDia) {
+            $fecha = $franjasDelDia[0]->getFechaEspecifica();
+            
             // Verificar solapamientos
             usort($franjasDelDia, function($a, $b) {
                 return $a->getHoraInicio() <=> $b->getHoraInicio();
@@ -155,15 +167,63 @@ class PlanificacionService
                 $franja2 = $franjasDelDia[$i + 1];
 
                 if ($franja1->getHoraFin() > $franja2->getHoraInicio()) {
-                    $errores[] = "Hay solapamiento en el día " . $this->getNombreDia($dia) . 
-                                " entre las franjas " . $franja1->getHoraInicio()->format('H:i') . 
-                                "-" . $franja1->getHoraFin()->format('H:i') . 
-                                " y " . $franja2->getHoraInicio()->format('H:i') . 
-                                "-" . $franja2->getHoraFin()->format('H:i');
+                    $errores[] = sprintf(
+                        "Hay solapamiento el %s entre las franjas %s-%s y %s-%s",
+                        $fecha->format('d/m/Y'),
+                        $franja1->getHoraInicio()->format('H:i'),
+                        $franja1->getHoraFin()->format('H:i'),
+                        $franja2->getHoraInicio()->format('H:i'),
+                        $franja2->getHoraFin()->format('H:i')
+                    );
+                }
+            }
+
+            // Verificar solapamientos con otras planificaciones del usuario
+            foreach ($franjasDelDia as $franja) {
+                if ($this->franjaRepository->tieneSolapamiento(
+                    $usuario,
+                    $franja->getFechaEspecifica(),
+                    $franja->getHoraInicio(),
+                    $franja->getHoraFin(),
+                    $franja->getId()
+                )) {
+                    $errores[] = sprintf(
+                        "La franja del %s (%s-%s) se solapa con otra planificación existente.",
+                        $fecha->format('d/m/Y'),
+                        $franja->getHoraInicio()->format('H:i'),
+                        $franja->getHoraFin()->format('H:i')
+                    );
                 }
             }
         }
 
+        return $errores;
+    }
+
+    /**
+     * Valida que las fechas de las franjas estén dentro del rango de la planificación
+     */
+    public function validarFechasEnRango(PlanificacionPersonalizada $planificacion): array
+    {
+        $errores = [];
+        
+        foreach ($planificacion->getFranjasHorarias() as $franja) {
+            $fechaFranja = $franja->getFechaEspecifica();
+            if ($fechaFranja === null) {
+                $errores[] = "Todas las franjas deben tener una fecha específica.";
+                continue;
+            }
+            
+            if ($fechaFranja < $planificacion->getFechaInicio() || $fechaFranja > $planificacion->getFechaFin()) {
+                $errores[] = sprintf(
+                    "La fecha %s está fuera del rango de la planificación (%s - %s).",
+                    $fechaFranja->format('d/m/Y'),
+                    $planificacion->getFechaInicio()->format('d/m/Y'),
+                    $planificacion->getFechaFin()->format('d/m/Y')
+                );
+            }
+        }
+        
         return $errores;
     }
 
@@ -199,10 +259,5 @@ class PlanificacionService
         ];
     }
 
-    private function getNombreDia(int $dia): string
-    {
-        $dias = [1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado', 7 => 'Domingo'];
-        return $dias[$dia] ?? '';
-    }
 }
 

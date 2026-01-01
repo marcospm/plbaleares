@@ -6,6 +6,7 @@ use App\Entity\Articulo;
 use App\Entity\Examen;
 use App\Entity\ExamenSemanal;
 use App\Entity\Notificacion;
+use App\Entity\PlanificacionPersonalizada;
 use App\Entity\PlanificacionSemanal;
 use App\Entity\Pregunta;
 use App\Entity\Tarea;
@@ -194,7 +195,7 @@ class NotificacionService
     /**
      * Crea notificaciones para alumnos cuando se crea una planificación y se les asigna
      */
-    public function crearNotificacionPlanificacionCreada(PlanificacionSemanal $planificacion, User $alumno, User $profesor): void
+    public function crearNotificacionPlanificacionCreada(PlanificacionPersonalizada $planificacion, User $alumno, User $profesor): void
     {
         // No notificar si el alumno es el mismo que el profesor que crea la planificación
         if ($alumno->getId() === $profesor->getId()) {
@@ -206,13 +207,15 @@ class NotificacionService
         $notificacion->setTitulo('Nueva Planificación Asignada');
         $notificacion->setMensaje(
             sprintf(
-                'Se te ha asignado una nueva planificación semanal: "%s".',
-                $planificacion->getNombre()
+                'Se te ha asignado una nueva planificación: "%s" (del %s al %s).',
+                $planificacion->getNombre(),
+                $planificacion->getFechaInicio()->format('d/m/Y'),
+                $planificacion->getFechaFin()->format('d/m/Y')
             )
         );
         $notificacion->setProfesor($profesor);
         $notificacion->setAlumno($alumno);
-        $notificacion->setPlanificacionSemanal($planificacion);
+        $notificacion->setPlanificacionSemanal(null); // Ya no usamos PlanificacionSemanal
         
         $this->entityManager->persist($notificacion);
     }
@@ -220,35 +223,29 @@ class NotificacionService
     /**
      * Crea notificaciones para alumnos cuando se edita una planificación que tienen asignada
      */
-    public function crearNotificacionPlanificacionEditada(PlanificacionSemanal $planificacion, User $profesor): void
+    public function crearNotificacionPlanificacionEditada(PlanificacionPersonalizada $planificacion, User $profesor): void
     {
-        // Obtener todos los alumnos que tienen esta planificación asignada
-        $planificacionesPersonalizadas = $planificacion->getPlanificacionesPersonalizadas();
+        $alumno = $planificacion->getUsuario();
         
-        foreach ($planificacionesPersonalizadas as $planificacionPersonalizada) {
-            $alumno = $planificacionPersonalizada->getUsuario();
-            
-            // No notificar si el alumno es el mismo que el profesor que edita la planificación
-            if ($alumno->getId() === $profesor->getId()) {
-                continue;
-            }
-            
-            $notificacion = new Notificacion();
-            $notificacion->setTipo(Notificacion::TIPO_PLANIFICACION_EDITADA);
-            $notificacion->setTitulo('Planificación Actualizada');
-            $notificacion->setMensaje(
-                sprintf(
-                    'La planificación semanal "%s" ha sido actualizada.',
-                    $planificacion->getNombre()
-                )
-            );
-            $notificacion->setProfesor($profesor);
-            $notificacion->setAlumno($alumno);
-            $notificacion->setPlanificacionSemanal($planificacion);
-            
-            $this->entityManager->persist($notificacion);
+        // No notificar si el alumno es el mismo que el profesor que edita la planificación
+        if ($alumno->getId() === $profesor->getId()) {
+            return;
         }
         
+        $notificacion = new Notificacion();
+        $notificacion->setTipo(Notificacion::TIPO_PLANIFICACION_EDITADA);
+        $notificacion->setTitulo('Planificación Actualizada');
+        $notificacion->setMensaje(
+            sprintf(
+                'La planificación "%s" ha sido actualizada.',
+                $planificacion->getNombre()
+            )
+        );
+        $notificacion->setProfesor($profesor);
+        $notificacion->setAlumno($alumno);
+        $notificacion->setPlanificacionSemanal(null);
+        
+        $this->entityManager->persist($notificacion);
         $this->entityManager->flush();
     }
 

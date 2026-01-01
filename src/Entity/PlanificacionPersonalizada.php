@@ -20,8 +20,21 @@ class PlanificacionPersonalizada
     #[ORM\JoinColumn(nullable: false)]
     private ?User $usuario = null;
 
-    #[ORM\ManyToOne(inversedBy: 'planificacionesPersonalizadas')]
-    private ?PlanificacionSemanal $planificacionBase = null;
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $nombre = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $descripcion = null;
+
+    #[ORM\Column(type: Types::DATE_MUTABLE)]
+    private ?\DateTimeInterface $fechaInicio = null;
+
+    #[ORM\Column(type: Types::DATE_MUTABLE)]
+    private ?\DateTimeInterface $fechaFin = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?User $creadoPor = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $fechaCreacion = null;
@@ -56,14 +69,62 @@ class PlanificacionPersonalizada
         return $this;
     }
 
-    public function getPlanificacionBase(): ?PlanificacionSemanal
+    public function getNombre(): ?string
     {
-        return $this->planificacionBase;
+        return $this->nombre;
     }
 
-    public function setPlanificacionBase(?PlanificacionSemanal $planificacionBase): static
+    public function setNombre(?string $nombre): static
     {
-        $this->planificacionBase = $planificacionBase;
+        $this->nombre = $nombre;
+
+        return $this;
+    }
+
+    public function getDescripcion(): ?string
+    {
+        return $this->descripcion;
+    }
+
+    public function setDescripcion(?string $descripcion): static
+    {
+        $this->descripcion = $descripcion;
+
+        return $this;
+    }
+
+    public function getFechaInicio(): ?\DateTimeInterface
+    {
+        return $this->fechaInicio;
+    }
+
+    public function setFechaInicio(?\DateTimeInterface $fechaInicio): static
+    {
+        $this->fechaInicio = $fechaInicio;
+
+        return $this;
+    }
+
+    public function getFechaFin(): ?\DateTimeInterface
+    {
+        return $this->fechaFin;
+    }
+
+    public function setFechaFin(?\DateTimeInterface $fechaFin): static
+    {
+        $this->fechaFin = $fechaFin;
+
+        return $this;
+    }
+
+    public function getCreadoPor(): ?User
+    {
+        return $this->creadoPor;
+    }
+
+    public function setCreadoPor(?User $creadoPor): static
+    {
+        $this->creadoPor = $creadoPor;
 
         return $this;
     }
@@ -98,6 +159,27 @@ class PlanificacionPersonalizada
     public function getFranjasHorarias(): Collection
     {
         return $this->franjasHorarias;
+    }
+
+    /**
+     * @param Collection<int, FranjaHorariaPersonalizada>|array $franjasHorarias
+     */
+    public function setFranjasHorarias(Collection|array $franjasHorarias): static
+    {
+        if (is_array($franjasHorarias)) {
+            $this->franjasHorarias = new ArrayCollection($franjasHorarias);
+        } else {
+            $this->franjasHorarias = $franjasHorarias;
+        }
+        
+        // Asegurar que todas las franjas tienen esta planificación como referencia
+        foreach ($this->franjasHorarias as $franja) {
+            if ($franja->getPlanificacion() !== $this) {
+                $franja->setPlanificacion($this);
+            }
+        }
+        
+        return $this;
     }
 
     public function addFranjaHoraria(FranjaHorariaPersonalizada $franjaHoraria): static

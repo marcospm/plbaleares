@@ -38,13 +38,9 @@ class PlanificacionSemanal
     #[ORM\OneToMany(targetEntity: FranjaHoraria::class, mappedBy: 'planificacion', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $franjasHorarias;
 
-    #[ORM\OneToMany(targetEntity: PlanificacionPersonalizada::class, mappedBy: 'planificacionBase')]
-    private Collection $planificacionesPersonalizadas;
-
     public function __construct()
     {
         $this->franjasHorarias = new ArrayCollection();
-        $this->planificacionesPersonalizadas = new ArrayCollection();
         $this->fechaCreacion = new \DateTimeImmutable();
     }
 
@@ -175,34 +171,6 @@ class PlanificacionSemanal
         return $this;
     }
 
-    /**
-     * @return Collection<int, PlanificacionPersonalizada>
-     */
-    public function getPlanificacionesPersonalizadas(): Collection
-    {
-        return $this->planificacionesPersonalizadas;
-    }
-
-    public function addPlanificacionPersonalizada(PlanificacionPersonalizada $planificacionPersonalizada): static
-    {
-        if (!$this->planificacionesPersonalizadas->contains($planificacionPersonalizada)) {
-            $this->planificacionesPersonalizadas->add($planificacionPersonalizada);
-            $planificacionPersonalizada->setPlanificacionBase($this);
-        }
-
-        return $this;
-    }
-
-    public function removePlanificacionPersonalizada(PlanificacionPersonalizada $planificacionPersonalizada): static
-    {
-        if ($this->planificacionesPersonalizadas->removeElement($planificacionPersonalizada)) {
-            if ($planificacionPersonalizada->getPlanificacionBase() === $this) {
-                $planificacionPersonalizada->setPlanificacionBase(null);
-            }
-        }
-
-        return $this;
-    }
 
     public function __toString(): string
     {

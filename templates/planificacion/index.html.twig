@@ -1,0 +1,162 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Planificaciones{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        /* Estilos para el formulario de filtros */
+        .card-body form {
+            margin: 0;
+        }
+        .form-control, .form-select {
+            width: 100%;
+            padding: 0.625rem 0.75rem;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #495057;
+            background-color: #fff;
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        .form-control:focus, .form-select:focus {
+            color: #495057;
+            background-color: #fff;
+            border-color: #80bdff;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+        .form-select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 16px 12px;
+            padding-right: 2.5rem;
+            appearance: none;
+        }
+        .form-select option {
+            padding: 0.5rem;
+        }
+        .row.g-3 > * {
+            padding-right: calc(var(--bs-gutter-x, 1rem) * 0.5);
+            padding-left: calc(var(--bs-gutter-x, 1rem) * 0.5);
+            margin-top: var(--bs-gutter-y, 1rem);
+        }
+        .row.g-3 {
+            --bs-gutter-x: 1.5rem;
+            --bs-gutter-y: 0;
+            margin-right: calc(-1 * var(--bs-gutter-x, 1.5rem) * 0.5);
+            margin-left: calc(-1 * var(--bs-gutter-x, 1.5rem) * 0.5);
+        }
+        @media (min-width: 768px) {
+            .col-md-4 {
+                flex: 0 0 auto;
+                width: 33.33333333%;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4">
+    <h1>Planificaciones</h1>
+    <a href="{{ path('app_planificacion_new') }}" class="btn btn-primary">Nueva Planificación</a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="nombre" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">Buscar por nombre:</label>
+                <input type="text" id="nombre" name="nombre" class="form-control" placeholder="Buscar por nombre..." value="{{ filtroNombre }}">
+            </div>
+            <div class="col-md-4">
+                <label for="usuario" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">Filtrar por alumno:</label>
+                <select id="usuario" name="usuario" class="form-select">
+                    <option value="">Todos los alumnos</option>
+                    {% for usuario in usuarios %}
+                        <option value="{{ usuario.id }}" {% if filtroUsuario == usuario.id %}selected{% endif %}>{{ usuario.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: transparent;">Acciones</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Filtrar</button>
+                    <a href="{{ path('app_planificacion_index') }}" class="btn btn-secondary" style="flex: 1; text-align: center;">Limpiar</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if planificaciones|length > 0 %}
+    <div class="card">
+        <div class="card-body" style="padding: 0;">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr style="background-color: #f8f9fa;">
+                        <th style="padding: 1rem; border-bottom: 2px solid #dee2e6;">Nombre</th>
+                        <th style="padding: 1rem; border-bottom: 2px solid #dee2e6;">Alumno</th>
+                        <th style="padding: 1rem; border-bottom: 2px solid #dee2e6;">Fecha Inicio</th>
+                        <th style="padding: 1rem; border-bottom: 2px solid #dee2e6;">Fecha Fin</th>
+                        <th style="padding: 1rem; border-bottom: 2px solid #dee2e6; text-align: center;">Actividades</th>
+                        <th style="padding: 1rem; border-bottom: 2px solid #dee2e6;">Creado Por</th>
+                        <th style="padding: 1rem; border-bottom: 2px solid #dee2e6; text-align: center;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for planificacion in planificaciones %}
+                        <tr style="border-bottom: 1px solid #dee2e6;">
+                            <td style="padding: 1rem; vertical-align: middle;">
+                                <strong style="color: var(--color-primary, #007bff);">{{ planificacion.nombre ?: 'Sin nombre' }}</strong>
+                                {% if planificacion.descripcion %}
+                                    <br><small style="color: #6c757d; font-size: 0.875rem;">{{ planificacion.descripcion|slice(0, 50) }}{% if planificacion.descripcion|length > 50 %}...{% endif %}</small>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 1rem; vertical-align: middle;">
+                                <span class="badge" style="background-color: var(--color-primary, #007bff); color: white; padding: 0.5rem 0.75rem; border-radius: 4px; font-weight: 500;">
+                                    {{ planificacion.usuario.username }}
+                                </span>
+                            </td>
+                            <td style="padding: 1rem; vertical-align: middle;">
+                                <span style="color: #495057;">{{ planificacion.fechaInicio|date('d/m/Y') }}</span>
+                            </td>
+                            <td style="padding: 1rem; vertical-align: middle;">
+                                <span style="color: #495057;">{{ planificacion.fechaFin|date('d/m/Y') }}</span>
+                            </td>
+                            <td style="padding: 1rem; vertical-align: middle; text-align: center;">
+                                <span class="badge" style="background-color: var(--color-secondary, #6c757d); color: white; padding: 0.5rem 0.75rem; border-radius: 4px;">
+                                    {{ planificacion.franjasHorarias|length }}
+                                </span>
+                            </td>
+                            <td style="padding: 1rem; vertical-align: middle;">
+                                <span style="color: #6c757d; font-size: 0.9rem;">{{ planificacion.creadoPor.username }}</span>
+                            </td>
+                            <td style="padding: 1rem; vertical-align: middle;">
+                                <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+                                    <a href="{{ path('app_planificacion_show', {'id': planificacion.id}) }}" class="btn btn-sm btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.875rem;">Ver</a>
+                                    <a href="{{ path('app_planificacion_edit', {'id': planificacion.id}) }}" class="btn btn-sm btn-primary" style="padding: 0.375rem 0.75rem; font-size: 0.875rem;">Editar</a>
+                                    <form method="post" action="{{ path('app_planificacion_delete', {'id': planificacion.id}) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de eliminar esta planificación?');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ planificacion.id) }}">
+                                        <button type="submit" class="btn btn-sm btn-danger" style="padding: 0.375rem 0.75rem; font-size: 0.875rem;">Eliminar</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center" style="padding: 3rem;">
+            <p style="color: #666; font-size: 1.1rem;">No hay planificaciones creadas.</p>
+            <a href="{{ path('app_planificacion_new') }}" class="btn btn-primary mt-3">Crear Primera Planificación</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+

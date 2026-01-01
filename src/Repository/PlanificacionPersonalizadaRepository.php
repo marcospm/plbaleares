@@ -3,7 +3,6 @@
 namespace App\Repository;
 
 use App\Entity\PlanificacionPersonalizada;
-use App\Entity\PlanificacionSemanal;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -43,26 +42,21 @@ class PlanificacionPersonalizadaRepository extends ServiceEntityRepository
     }
 
     /**
+     * Obtiene planificaciones activas de un usuario en un rango de fechas
      * @return PlanificacionPersonalizada[]
      */
-    public function findByPlanificacionBase(PlanificacionSemanal $base): array
-    {
-        return $this->createQueryBuilder('p')
-            ->where('p.planificacionBase = :base')
-            ->setParameter('base', $base)
-            ->getQuery()
-            ->getResult();
-    }
-
-    public function findByUsuarioAndPlanificacionBase(User $usuario, PlanificacionSemanal $planificacionBase): ?PlanificacionPersonalizada
+    public function findActivasPorRango(User $usuario, \DateTime $fechaInicio, \DateTime $fechaFin): array
     {
         return $this->createQueryBuilder('p')
             ->where('p.usuario = :usuario')
-            ->andWhere('p.planificacionBase = :planificacionBase')
+            ->andWhere('p.fechaInicio <= :fechaFin')
+            ->andWhere('p.fechaFin >= :fechaInicio')
             ->setParameter('usuario', $usuario)
-            ->setParameter('planificacionBase', $planificacionBase)
+            ->setParameter('fechaInicio', $fechaInicio)
+            ->setParameter('fechaFin', $fechaFin)
+            ->orderBy('p.fechaInicio', 'ASC')
             ->getQuery()
-            ->getOneOrNullResult();
+            ->getResult();
     }
 }
 

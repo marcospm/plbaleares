@@ -21,13 +21,16 @@ class FranjaHorariaPersonalizadaRepository extends ServiceEntityRepository
     /**
      * @return FranjaHorariaPersonalizada[]
      */
-    public function findByPlanificacionYdia(PlanificacionPersonalizada $plan, int $dia): array
+    public function findByPlanificacionYFecha(PlanificacionPersonalizada $plan, \DateTime $fecha): array
     {
+        $fechaNormalizada = clone $fecha;
+        $fechaNormalizada->setTime(0, 0, 0);
+        
         return $this->createQueryBuilder('f')
             ->where('f.planificacion = :plan')
-            ->andWhere('f.diaSemana = :dia')
+            ->andWhere('f.fechaEspecifica = :fecha')
             ->setParameter('plan', $plan)
-            ->setParameter('dia', $dia)
+            ->setParameter('fecha', $fechaNormalizada)
             ->orderBy('f.orden', 'ASC')
             ->getQuery()
             ->getResult();
@@ -36,30 +39,23 @@ class FranjaHorariaPersonalizadaRepository extends ServiceEntityRepository
     /**
      * @return FranjaHorariaPersonalizada[]
      */
-    public function findByUsuarioYdia(User $usuario, int $diaSemana, ?\DateTime $fechaReferencia = null): array
+    public function findByUsuarioYFecha(User $usuario, \DateTime $fecha): array
     {
+        $fechaNormalizada = clone $fecha;
+        $fechaNormalizada->setTime(0, 0, 0);
+        
         $qb = $this->createQueryBuilder('f')
             ->join('f.planificacion', 'p')
-            ->join('p.planificacionBase', 'pb')
             ->leftJoin('f.tareasAsignadas', 't')
             ->leftJoin('t.tarea', 'ta')
             ->addSelect('t')
             ->addSelect('ta')
             ->where('p.usuario = :usuario')
-            ->andWhere('f.diaSemana = :dia')
+            ->andWhere('f.fechaEspecifica = :fecha')
+            ->andWhere('p.fechaInicio <= :fecha')
+            ->andWhere('p.fechaFin >= :fecha')
             ->setParameter('usuario', $usuario)
-            ->setParameter('dia', $diaSemana);
-
-        // Filtrar por fechaFin si se proporciona una fecha de referencia
-        if ($fechaReferencia !== null) {
-            // Si la planificación tiene fechaFin, solo mostrar si la fecha de referencia es anterior o igual
-            // Normalizar la fecha de referencia al inicio del día para comparación
-            $fechaReferenciaInicio = clone $fechaReferencia;
-            $fechaReferenciaInicio->setTime(0, 0, 0);
-            // Comparar solo la parte de fecha (sin hora)
-            $qb->andWhere('(pb.fechaFin IS NULL OR pb.fechaFin >= :fechaReferencia)')
-               ->setParameter('fechaReferencia', $fechaReferenciaInicio);
-        }
+            ->setParameter('fecha', $fechaNormalizada);
 
         return $qb->orderBy('f.orden', 'ASC')
             ->getQuery()
@@ -69,25 +65,59 @@ class FranjaHorariaPersonalizadaRepository extends ServiceEntityRepository
     /**
      * @return FranjaHorariaPersonalizada[]
      */
-    public function findConTareas(User $usuario, int $diaSemana, \DateTime $fechaSemana): array
+    public function findByUsuarioYRangoFechas(User $usuario, \DateTime $fechaInicio, \DateTime $fechaFin): array
     {
-        // Obtener el lunes de la semana
-        $lunesSemana = clone $fechaSemana;
-        $lunesSemana->modify('monday this week');
+        $fechaInicioNormalizada = clone $fechaInicio;
+        $fechaInicioNormalizada->setTime(0, 0, 0);
+        $fechaFinNormalizada = clone $fechaFin;
+        $fechaFinNormalizada->setTime(23, 59, 59);
         
         return $this->createQueryBuilder('f')
             ->join('f.planificacion', 'p')
             ->leftJoin('f.tareasAsignadas', 't')
             ->leftJoin('t.tarea', 'ta')
+            ->addSelect('t')
+            ->addSelect('ta')
             ->where('p.usuario = :usuario')
-            ->andWhere('f.diaSemana = :dia')
-            ->andWhere('(ta.semanaAsignacion = :semana OR ta.semanaAsignacion IS NULL)')
+            ->andWhere('f.fechaEspecifica >= :fechaInicio')
+            ->andWhere('f.fechaEspecifica <= :fechaFin')
+            ->andWhere('p.fechaInicio <= :fechaFin')
+            ->andWhere('p.fechaFin >= :fechaInicio')
             ->setParameter('usuario', $usuario)
-            ->setParameter('dia', $diaSemana)
-            ->setParameter('semana', $lunesSemana)
-            ->orderBy('f.orden', 'ASC')
+            ->setParameter('fechaInicio', $fechaInicioNormalizada)
+            ->setParameter('fechaFin', $fechaFinNormalizada)
+            ->orderBy('f.fechaEspecifica', 'ASC')
+            ->addOrderBy('f.orden', 'ASC')
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Verifica si hay solapamiento de horarios en una fecha específica
+     */
+    public function tieneSolapamiento(User $usuario, \DateTime $fecha, \DateTime $horaInicio, \DateTime $horaFin, ?int $excluirFranjaId = null): bool
+    {
+        $fechaNormalizada = clone $fecha;
+        $fechaNormalizada->setTime(0, 0, 0);
+        
+        $qb = $this->createQueryBuilder('f')
+            ->join('f.planificacion', 'p')
+            ->where('p.usuario = :usuario')
+            ->andWhere('f.fechaEspecifica = :fecha')
+            ->andWhere('p.fechaInicio <= :fecha')
+            ->andWhere('p.fechaFin >= :fecha')
+            ->andWhere('(f.horaInicio < :horaFin AND f.horaFin > :horaInicio)')
+            ->setParameter('usuario', $usuario)
+            ->setParameter('fecha', $fechaNormalizada)
+            ->setParameter('horaInicio', $horaInicio)
+            ->setParameter('horaFin', $horaFin);
+        
+        if ($excluirFranjaId !== null) {
+            $qb->andWhere('f.id != :excluirId')
+               ->setParameter('excluirId', $excluirFranjaId);
+        }
+        
+        return $qb->getQuery()->getOneOrNullResult() !== null;
     }
 }
 

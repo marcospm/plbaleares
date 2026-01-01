@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\FranjaHorariaPersonalizadaRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: FranjaHorariaPersonalizadaRepository::class)]
@@ -23,8 +24,8 @@ class FranjaHorariaPersonalizada
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?FranjaHoraria $franjaBase = null;
 
-    #[ORM\Column]
-    private ?int $diaSemana = null; // 1=Lunes, 7=Domingo
+    #[ORM\Column(type: Types::DATE_MUTABLE)]
+    private ?\DateTimeInterface $fechaEspecifica = null;
 
     #[ORM\Column(type: 'time')]
     private ?\DateTimeInterface $horaInicio = null;
@@ -37,6 +38,18 @@ class FranjaHorariaPersonalizada
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $descripcionRepaso = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $temas = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $recursos = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $enlaces = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $notas = null;
 
     #[ORM\Column]
     private ?int $orden = null;
@@ -78,14 +91,14 @@ class FranjaHorariaPersonalizada
         return $this;
     }
 
-    public function getDiaSemana(): ?int
+    public function getFechaEspecifica(): ?\DateTimeInterface
     {
-        return $this->diaSemana;
+        return $this->fechaEspecifica;
     }
 
-    public function setDiaSemana(int $diaSemana): static
+    public function setFechaEspecifica(?\DateTimeInterface $fechaEspecifica): static
     {
-        $this->diaSemana = $diaSemana;
+        $this->fechaEspecifica = $fechaEspecifica;
 
         return $this;
     }
@@ -179,10 +192,61 @@ class FranjaHorariaPersonalizada
         return $this;
     }
 
+    public function getTemas(): ?string
+    {
+        return $this->temas;
+    }
+
+    public function setTemas(?string $temas): static
+    {
+        $this->temas = $temas;
+
+        return $this;
+    }
+
+    public function getRecursos(): ?string
+    {
+        return $this->recursos;
+    }
+
+    public function setRecursos(?string $recursos): static
+    {
+        $this->recursos = $recursos;
+
+        return $this;
+    }
+
+    public function getEnlaces(): ?string
+    {
+        return $this->enlaces;
+    }
+
+    public function setEnlaces(?string $enlaces): static
+    {
+        $this->enlaces = $enlaces;
+
+        return $this;
+    }
+
+    public function getNotas(): ?string
+    {
+        return $this->notas;
+    }
+
+    public function setNotas(?string $notas): static
+    {
+        $this->notas = $notas;
+
+        return $this;
+    }
+
     public function getNombreDia(): string
     {
-        $dias = [1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado', 7 => 'Domingo'];
-        return $dias[$this->diaSemana] ?? '';
+        if ($this->fechaEspecifica) {
+            $dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            return $dias[(int)$this->fechaEspecifica->format('w')];
+        }
+        return '';
     }
 }
 

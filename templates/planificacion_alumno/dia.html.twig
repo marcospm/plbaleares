@@ -10,20 +10,54 @@
     <div class="card-body">
         {% if franjasDelDia|length > 0 %}
             {% for franja in franjasDelDia %}
-                <div class="card mb-3">
+                <div class="card mb-3" style="border-left: 4px solid {% if franja.tipoActividad == 'repaso_basico' %}#2196F3{% else %}#4CAF50{% endif %};">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start">
-                            <div>
+                            <div style="flex: 1;">
                                 <h4>
                                     {{ franja.horaInicio|date('H:i') }} - {{ franja.horaFin|date('H:i') }}
                                     {% if franja.tipoActividad == 'repaso_basico' %}
-                                        <span class="badge badge-info">Repaso Básico</span>
+                                        <span class="badge" style="background-color: #2196F3;">Repaso Básico</span>
                                     {% else %}
-                                        <span class="badge badge-success">Estudio y Tareas</span>
+                                        <span class="badge" style="background-color: #4CAF50;">Estudio y Tareas</span>
                                     {% endif %}
                                 </h4>
                                 {% if franja.descripcionRepaso %}
-                                    <p>{{ franja.descripcionRepaso }}</p>
+                                    <p style="margin: 0.5rem 0;"><strong>Descripción:</strong> {{ franja.descripcionRepaso }}</p>
+                                {% endif %}
+                                
+                                {% if franja.temas %}
+                                    <div style="margin: 0.75rem 0; padding: 0.75rem; background-color: #e3f2fd; border-radius: 4px;">
+                                        <strong>📚 Temas:</strong>
+                                        <p style="white-space: pre-line; margin: 0.25rem 0;">{{ franja.temas }}</p>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if franja.recursos %}
+                                    <div style="margin: 0.75rem 0; padding: 0.75rem; background-color: #f3e5f5; border-radius: 4px;">
+                                        <strong>📥 Recursos:</strong>
+                                        <p style="white-space: pre-line; margin: 0.25rem 0;">{{ franja.recursos }}</p>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if franja.enlaces %}
+                                    <div style="margin: 0.75rem 0; padding: 0.75rem; background-color: #e8f5e9; border-radius: 4px;">
+                                        <strong>🔗 Enlaces:</strong>
+                                        <p style="margin: 0.25rem 0;">
+                                            {% for enlace in franja.enlaces|split('\n') %}
+                                                {% if enlace|trim %}
+                                                    <a href="{{ enlace|trim }}" target="_blank" rel="noopener noreferrer" style="display: block; margin: 0.25rem 0;">{{ enlace|trim }}</a>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </p>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if franja.notas %}
+                                    <div style="margin: 0.75rem 0; padding: 0.75rem; background-color: #fff3cd; border-radius: 4px; border-left: 3px solid #ffc107;">
+                                        <strong>📝 Notas del Profesor:</strong>
+                                        <p style="white-space: pre-line; margin: 0.25rem 0;">{{ franja.notas }}</p>
+                                    </div>
                                 {% endif %}
                             </div>
                         </div>

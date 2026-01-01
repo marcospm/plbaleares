@@ -1,0 +1,294 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Editar Planificación{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .card-header {
+            background: var(--color-primary, #007bff);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px 8px 0 0;
+        }
+        .card-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        .card-body {
+            padding: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        .form-control, .form-select, input[type="text"], input[type="date"], input[type="time"], 
+        input[type="number"], select, textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        .form-control:focus, .form-select:focus, input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--color-primary, #007bff);
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+        .btn-primary {
+            background: var(--color-primary, #007bff);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: var(--color-primary-dark, #0056b3);
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        .alert-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-left: -0.5rem;
+            margin-right: -0.5rem;
+        }
+        .col-md-1, .col-md-2, .col-md-3, .col-md-6, .col-md-12 {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+        .col-md-1 { width: 8.333%; }
+        .col-md-2 { width: 16.666%; }
+        .col-md-3 { width: 25%; }
+        .col-md-6 { width: 50%; }
+        .col-md-12 { width: 100%; }
+        .mb-0 { margin-bottom: 0; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-3 { margin-bottom: 1rem; }
+        .mt-2 { margin-top: 0.5rem; }
+        .mt-4 { margin-top: 1.5rem; }
+        .d-flex {
+            display: flex;
+        }
+        .justify-content-between {
+            justify-content: space-between;
+        }
+        .align-items-center {
+            align-items: center;
+        }
+        .gap-2 {
+            gap: 0.5rem;
+        }
+        .text-muted {
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .table th, .table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(0,0,0,0.05);
+        }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        @media (max-width: 768px) {
+            .col-md-1, .col-md-2, .col-md-3, .col-md-6, .col-md-12 {
+                width: 100%;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Editar Planificación: {{ planificacion.nombre }}</h1>
+    </div>
+    <div class="card-body">
+        {{ form_start(form) }}
+            <div class="form-group mb-3">
+                {{ form_row(form.nombre) }}
+            </div>
+            
+            <div class="form-group mb-3">
+                {{ form_row(form.descripcion) }}
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    {{ form_row(form.fechaInicio) }}
+                </div>
+                <div class="col-md-6">
+                    {{ form_row(form.fechaFin) }}
+                </div>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label class="form-label"><strong>Alumno Asignado</strong></label>
+                <div style="padding: 0.75rem; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px;">
+                    <span class="badge" style="background-color: var(--color-primary, #007bff); color: white; padding: 0.5rem 0.75rem; border-radius: 4px; font-weight: 500; font-size: 1rem;">
+                        {{ planificacion.usuario.username }}
+                    </span>
+                    <small style="display: block; margin-top: 0.5rem; color: #6c757d;">
+                        El alumno asignado no puede ser modificado. Si necesitas cambiar el alumno, crea una nueva planificación.
+                    </small>
+                </div>
+            </div>
+            
+            <div class="form-group mb-3">
+                <label class="form-label"><strong>Actividades Existentes</strong></label>
+                <div class="alert alert-info" style="font-size: 0.9rem; margin-bottom: 1rem; padding: 0.75rem;">
+                    <strong>💡 Importante:</strong> Cada actividad debe tener una <strong>fecha específica</strong> (día concreto). 
+                    Puedes agregar múltiples actividades para el mismo día con diferentes horarios.
+                </div>
+                
+                {% if actividadesExistentes|length > 0 %}
+                    <div class="table-responsive" style="margin-bottom: 1.5rem;">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Hora Inicio</th>
+                                    <th>Hora Fin</th>
+                                    <th>Tipo</th>
+                                    <th>Descripción</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for actividad in actividadesExistentes %}
+                                    <tr>
+                                        <td>{{ actividad.fechaEspecifica|date('d/m/Y') }}</td>
+                                        <td>{{ actividad.horaInicio|date('H:i') }}</td>
+                                        <td>{{ actividad.horaFin|date('H:i') }}</td>
+                                        <td>{{ actividad.tipoActividad == 'repaso_basico' ? 'Repaso Básico' : 'Estudio y Tareas' }}</td>
+                                        <td>{{ actividad.descripcionRepaso|slice(0, 50) }}{% if actividad.descripcionRepaso|length > 50 %}...{% endif %}</td>
+                                        <td>
+                                            <a href="{{ path('app_planificacion_actividad_edit', {'id': actividad.id}) }}" class="btn btn-sm btn-primary">Editar</a>
+                                            <form method="post" action="{{ path('app_planificacion_actividad_delete', {'id': actividad.id}) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta actividad?');">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ actividad.id) }}">
+                                                <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div style="padding: 2rem; text-align: center; color: #6c757d; font-style: italic; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 4px; margin-bottom: 1.5rem;">
+                        No hay actividades agregadas. Agrega una nueva actividad abajo.
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group mb-3">
+                <label class="form-label"><strong>Agregar Nueva Actividad</strong></label>
+                {{ form_start(formNuevaActividad, {'action': path('app_planificacion_actividad_new', {'planificacionId': planificacion.id})}) }}
+                    <div class="row">
+                        <div class="col-md-3">
+                            {{ form_row(formNuevaActividad.fechaEspecifica) }}
+                        </div>
+                        <div class="col-md-2">
+                            {{ form_row(formNuevaActividad.horaInicio) }}
+                        </div>
+                        <div class="col-md-2">
+                            {{ form_row(formNuevaActividad.horaFin) }}
+                        </div>
+                        <div class="col-md-2">
+                            {{ form_row(formNuevaActividad.tipoActividad) }}
+                        </div>
+                        <div class="col-md-1">
+                            {{ form_row(formNuevaActividad.orden) }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            {{ form_row(formNuevaActividad.descripcionRepaso) }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form_row(formNuevaActividad.temas) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(formNuevaActividad.recursos) }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form_row(formNuevaActividad.enlaces) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form_row(formNuevaActividad.notas) }}
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Agregar Actividad</button>
+                {{ form_end(formNuevaActividad) }}
+            </div>
+            
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                <a href="{{ path('app_planificacion_show', {'id': planificacion.id}) }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
