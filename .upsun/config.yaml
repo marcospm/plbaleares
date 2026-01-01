@@ -12,7 +12,7 @@ applications:
           passthru: "/index.php"
 
     relationships:
-      database: "database:mariadb"
+      database: "database:mysql"
 
     mounts:
       "/var": "shared:files/var"

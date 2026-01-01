@@ -556,6 +556,11 @@ class ExamenSemanalController extends AbstractController
 
             $pregunta = $this->preguntaService->crearPreguntaMunicipal($datos, $temaMunicipal, $municipio);
             $examenSemanal->addPreguntasMunicipale($pregunta);
+            
+            // Agregar el tema municipal al examen semanal si no está ya agregado
+            if (!$examenSemanal->getTemasMunicipales()->contains($temaMunicipal)) {
+                $examenSemanal->addTemasMunicipale($temaMunicipal);
+            }
         } else {
             // Pregunta general
             $errores = $this->preguntaService->validarDatosPreguntaGeneral($datos);

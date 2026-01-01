@@ -239,7 +239,23 @@ class ExamenSemanalAlumnoController extends AbstractController
         
         if ($esMunicipal) {
             $config['municipio_id'] = $examenSemanal->getMunicipio()->getId();
-            $config['temas_municipales'] = array_map(fn($t) => $t->getId(), $examenSemanal->getTemasMunicipales()->toArray());
+            
+            // Si el examen está en modo preguntas específicas, extraer temas municipales de las preguntas
+            if ($examenSemanal->getModoCreacion() === 'preguntas_especificas') {
+                $temasMunicipalesIds = [];
+                foreach ($preguntas as $pregunta) {
+                    if (method_exists($pregunta, 'getTemaMunicipal') && $pregunta->getTemaMunicipal()) {
+                        $temaId = $pregunta->getTemaMunicipal()->getId();
+                        if (!in_array($temaId, $temasMunicipalesIds)) {
+                            $temasMunicipalesIds[] = $temaId;
+                        }
+                    }
+                }
+                $config['temas_municipales'] = $temasMunicipalesIds;
+            } else {
+                // Modo tradicional: usar los temas municipales del examen semanal
+                $config['temas_municipales'] = array_map(fn($t) => $t->getId(), $examenSemanal->getTemasMunicipales()->toArray());
+            }
         } else {
             $config['temas'] = array_map(fn($t) => $t->getId(), $examenSemanal->getTemas()->toArray());
         }

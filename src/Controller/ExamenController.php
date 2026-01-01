@@ -519,6 +519,25 @@ class ExamenController extends AbstractController
         $examen->setRespuestas($respuestas);
         $examen->setPreguntasIds($preguntasIds);
 
+        // Asociar con examen semanal si viene de uno
+        $examenSemanal = null;
+        if (isset($config['examen_semanal_id'])) {
+            $examenSemanalRepository = $this->entityManager->getRepository(\App\Entity\ExamenSemanal::class);
+            $examenSemanal = $examenSemanalRepository->createQueryBuilder('es')
+                ->leftJoin('es.temasMunicipales', 'tm')
+                ->addSelect('tm')
+                ->leftJoin('es.temas', 't')
+                ->addSelect('t')
+                ->where('es.id = :id')
+                ->setParameter('id', $config['examen_semanal_id'])
+                ->getQuery()
+                ->getOneOrNullResult();
+            
+            if ($examenSemanal) {
+                $examen->setExamenSemanal($examenSemanal);
+            }
+        }
+
         // Agregar temas o temas municipales
         $esMunicipal = $config['es_municipal'] ?? false;
         if ($esMunicipal) {
@@ -526,23 +545,49 @@ class ExamenController extends AbstractController
             if ($municipio) {
                 $examen->setMunicipio($municipio);
             }
-            $temasMunicipales = $this->temaMunicipalRepository->findBy(['id' => $config['temas_municipales'] ?? []]);
-            foreach ($temasMunicipales as $temaMunicipal) {
-                $examen->addTemasMunicipale($temaMunicipal);
+            
+            // Obtener temas municipales de la sesión o del examen semanal
+            $temasMunicipalesIds = $config['temas_municipales'] ?? [];
+            
+            // Si viene de un examen semanal y no hay temas en la sesión, obtenerlos del examen semanal
+            if ($examenSemanal && empty($temasMunicipalesIds) && $examenSemanal->getMunicipio()) {
+                $temasMunicipalesIds = array_map(fn($t) => $t->getId(), $examenSemanal->getTemasMunicipales()->toArray());
+            }
+            
+            // Si aún no hay temas, intentar extraerlos de las preguntas
+            if (empty($temasMunicipalesIds)) {
+                $temasMunicipalesIds = [];
+                foreach ($preguntasIds as $preguntaId) {
+                    $pregunta = $this->preguntaMunicipalRepository->find($preguntaId);
+                    if ($pregunta && $pregunta->getTemaMunicipal()) {
+                        $temaId = $pregunta->getTemaMunicipal()->getId();
+                        if (!in_array($temaId, $temasMunicipalesIds)) {
+                            $temasMunicipalesIds[] = $temaId;
+                        }
+                    }
+                }
+            }
+            
+            if (!empty($temasMunicipalesIds)) {
+                $temasMunicipales = $this->temaMunicipalRepository->findBy(['id' => $temasMunicipalesIds]);
+                foreach ($temasMunicipales as $temaMunicipal) {
+                    $examen->addTemasMunicipale($temaMunicipal);
+                }
             }
         } else {
-            $temas = $this->temaRepository->findBy(['id' => $config['temas'] ?? []]);
-            foreach ($temas as $tema) {
-                $examen->addTema($tema);
+            // Para exámenes generales, obtener temas de la sesión o del examen semanal
+            $temasIds = $config['temas'] ?? [];
+            
+            // Si viene de un examen semanal y no hay temas en la sesión, obtenerlos del examen semanal
+            if ($examenSemanal && empty($temasIds) && !$examenSemanal->getMunicipio()) {
+                $temasIds = array_map(fn($t) => $t->getId(), $examenSemanal->getTemas()->toArray());
             }
-        }
-
-        // Asociar con examen semanal si viene de uno
-        if (isset($config['examen_semanal_id'])) {
-            $examenSemanalRepository = $this->entityManager->getRepository(\App\Entity\ExamenSemanal::class);
-            $examenSemanal = $examenSemanalRepository->find($config['examen_semanal_id']);
-            if ($examenSemanal) {
-                $examen->setExamenSemanal($examenSemanal);
+            
+            if (!empty($temasIds)) {
+                $temas = $this->temaRepository->findBy(['id' => $temasIds]);
+                foreach ($temas as $tema) {
+                    $examen->addTema($tema);
+                }
             }
         }
 
