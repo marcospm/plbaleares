@@ -1,16 +1,18 @@
 applications:
-  database: "database:mariadb"
   app:
     source:
       root: "/"
 
-    type: "php:8.2"
+    type: "php:8.4"
 
     web:
       locations:
         "/":
           root: "public"
           passthru: "/index.php"
+
+    relationships:
+      database: "database:mariadb"
 
     mounts:
       "/var": "shared:files/var"

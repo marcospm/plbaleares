@@ -823,6 +823,23 @@ class ExamenController extends AbstractController
     #[Route('/detalle/{id}', name: 'app_examen_detalle', methods: ['GET'])]
     public function detalle(Examen $examen): Response
     {
+        // Cargar explícitamente los temas municipales y temas generales
+        $examen = $this->examenRepository->createQueryBuilder('e')
+            ->leftJoin('e.temasMunicipales', 'tm')
+            ->addSelect('tm')
+            ->leftJoin('e.temas', 't')
+            ->addSelect('t')
+            ->leftJoin('e.municipio', 'm')
+            ->addSelect('m')
+            ->where('e.id = :id')
+            ->setParameter('id', $examen->getId())
+            ->getQuery()
+            ->getOneOrNullResult();
+        
+        if (!$examen) {
+            throw $this->createNotFoundException('Examen no encontrado');
+        }
+        
         $usuarioActual = $this->getUser();
         $esAdmin = $this->isGranted('ROLE_ADMIN');
         $esProfesor = $this->isGranted('ROLE_PROFESOR') || $esAdmin;
