@@ -283,10 +283,15 @@ class DashboardController extends AbstractController
             }
         }
 
-        // Obtener convocatorias activas del usuario
+        // Obtener convocatorias activas del usuario con sus documentos
         $convocatorias = $user->getConvocatorias()->filter(function($convocatoria) {
             return $convocatoria->isActivo();
         })->toArray();
+        
+        // Asegurar que los documentos se carguen (lazy loading)
+        foreach ($convocatorias as $convocatoria) {
+            $convocatoria->getDocumentos()->toArray();
+        }
 
         // Obtener cantidad de exámenes para el ranking (por defecto 3)
         $cantidadRanking = $request->query->getInt('cantidad', 3);

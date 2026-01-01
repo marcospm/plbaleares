@@ -417,6 +417,19 @@
                                 {% endif %}
                             </div>
                             
+                            {% if convocatoria.documentos|length > 0 %}
+                                <div style="margin-bottom: 0.75rem; padding: 0.4rem 0.6rem; background-color: #f8f9fa; border-radius: 4px; border-left: 2px solid var(--color-primary);">
+                                    <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;">
+                                        <span style="font-size: 0.7rem; color: #666; font-weight: 500;">📎</span>
+                                        {% for documento in convocatoria.documentos %}
+                                            <a href="{{ documento.rutaArchivo }}" target="_blank" download style="font-size: 0.7rem; color: var(--color-primary); text-decoration: none; padding: 0.2rem 0.4rem; background-color: white; border: 1px solid #ddd; border-radius: 3px; transition: all 0.2s; white-space: nowrap;" onmouseover="this.style.backgroundColor='#e3f2fd'; this.style.borderColor='var(--color-primary)';" onmouseout="this.style.backgroundColor='white'; this.style.borderColor='#ddd';" title="{{ documento.nombre }}">
+                                                {{ documento.nombre|slice(0, 15) }}{% if documento.nombre|length > 15 %}...{% endif %}
+                                            </a>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                            
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem;">
                                 <div style="text-align: center; padding: 0.75rem; background-color: #f8f9fa; border-radius: 4px;">
                                     <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">Teórico</div>

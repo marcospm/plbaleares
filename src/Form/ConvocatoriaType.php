@@ -7,9 +7,11 @@ use App\Entity\Municipio;
 use App\Repository\MunicipioRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\DateType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\CollectionType;
+use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -59,6 +61,17 @@ class ConvocatoriaType extends AbstractType
                 'label' => 'Activa',
                 'required' => false,
                 'data' => true,
+            ])
+            ->add('documentosFiles', FileType::class, [
+                'label' => 'Documentos (opcional)',
+                'required' => false,
+                'mapped' => false,
+                'multiple' => true,
+                'attr' => [
+                    'class' => 'form-control',
+                    'accept' => '*/*'
+                ],
+                'help' => 'Puedes subir múltiples documentos (bases, normativas, etc.). Tamaño máximo: 20MB por archivo.'
             ])
         ;
     }

@@ -45,9 +45,13 @@ class Convocatoria
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $fechaActualizacion = null;
 
+    #[ORM\OneToMany(targetEntity: DocumentoConvocatoria::class, mappedBy: 'convocatoria', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $documentos;
+
     public function __construct()
     {
         $this->usuarios = new ArrayCollection();
+        $this->documentos = new ArrayCollection();
         $this->fechaCreacion = new \DateTime();
         $this->fechaActualizacion = new \DateTime();
     }
@@ -173,6 +177,35 @@ class Convocatoria
     public function setFechaActualizacion(\DateTimeInterface $fechaActualizacion): static
     {
         $this->fechaActualizacion = $fechaActualizacion;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, DocumentoConvocatoria>
+     */
+    public function getDocumentos(): Collection
+    {
+        return $this->documentos;
+    }
+
+    public function addDocumento(DocumentoConvocatoria $documento): static
+    {
+        if (!$this->documentos->contains($documento)) {
+            $this->documentos->add($documento);
+            $documento->setConvocatoria($this);
+        }
+
+        return $this;
+    }
+
+    public function removeDocumento(DocumentoConvocatoria $documento): static
+    {
+        if ($this->documentos->removeElement($documento)) {
+            if ($documento->getConvocatoria() === $this) {
+                $documento->setConvocatoria(null);
+            }
+        }
 
         return $this;
     }

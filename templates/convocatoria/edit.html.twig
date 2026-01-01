@@ -8,6 +8,13 @@
         <h1>Editar Convocatoria: {{ convocatoria.nombre }}</h1>
     </div>
     <div class="card-body">
+        {% if not form.vars.valid and form.vars.submitted %}
+            <div class="alert alert-danger">
+                <strong>Errores en el formulario:</strong>
+                {{ form_errors(form) }}
+            </div>
+        {% endif %}
+        
         {{ form_start(form) }}
             {{ form_row(form.nombre) }}
             {{ form_row(form.municipio) }}
@@ -15,6 +22,25 @@
             {{ form_row(form.fechaFisicas) }}
             {{ form_row(form.fechaPsicotecnico) }}
             {{ form_row(form.activo) }}
+            {{ form_row(form.documentosFiles) }}
+            
+            {% if convocatoria.documentos|length > 0 %}
+                <div class="alert alert-info mt-3">
+                    <strong>Documentos actuales:</strong>
+                    <ul style="margin: 0.5rem 0 0 0; padding-left: 1.5rem;">
+                        {% for documento in convocatoria.documentos %}
+                            <li style="margin-bottom: 0.25rem;">
+                                <a href="{{ documento.rutaArchivo }}" target="_blank" class="btn btn-sm btn-success">{{ documento.nombre }}</a>
+                                <form method="post" action="{{ path('app_convocatoria_documento_delete', {'id': documento.id}) }}" style="display: inline; margin-left: 0.5rem;" onsubmit="return confirm('¿Eliminar este documento?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ documento.id) }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                                </form>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <small class="d-block mt-2">Puedes agregar más documentos subiendo nuevos archivos arriba.</small>
+                </div>
+            {% endif %}
             
             <div class="d-flex gap-2 mt-4">
                 <button type="submit" class="btn btn-primary">Actualizar</button>
@@ -24,15 +50,3 @@
     </div>
 </div>
 {% endblock %}
-
-
-
-
-
-
-
-
-
-
-
-

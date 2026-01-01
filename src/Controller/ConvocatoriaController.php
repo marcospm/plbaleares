@@ -3,20 +3,29 @@
 namespace App\Controller;
 
 use App\Entity\Convocatoria;
+use App\Entity\DocumentoConvocatoria;
 use App\Form\ConvocatoriaType;
 use App\Repository\ConvocatoriaRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\String\Slugger\SluggerInterface;
 
 #[Route('/convocatoria')]
 #[IsGranted('ROLE_PROFESOR')]
 class ConvocatoriaController extends AbstractController
 {
+    public function __construct(
+        private KernelInterface $kernel
+    ) {
+    }
     #[Route('/', name: 'app_convocatoria_index', methods: ['GET'])]
     public function index(ConvocatoriaRepository $convocatoriaRepository): Response
     {
@@ -26,13 +35,52 @@ class ConvocatoriaController extends AbstractController
     }
 
     #[Route('/new', name: 'app_convocatoria_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request, EntityManagerInterface $entityManager, SluggerInterface $slugger): Response
     {
         $convocatoria = new Convocatoria();
         $form = $this->createForm(ConvocatoriaType::class, $convocatoria);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Manejar documentos subidos
+            /** @var UploadedFile[] $documentosFiles */
+            $documentosFiles = $form->get('documentosFiles')->getData();
+            
+            if ($documentosFiles) {
+                foreach ($documentosFiles as $archivo) {
+                    if ($archivo) {
+                        // Validar tamaño (20MB máximo)
+                        if ($archivo->getSize() > 20 * 1024 * 1024) {
+                            $this->addFlash('error', 'El archivo "' . $archivo->getClientOriginalName() . '" es demasiado grande. Tamaño máximo: 20MB.');
+                            continue;
+                        }
+                        
+                        $originalFilename = pathinfo($archivo->getClientOriginalName(), PATHINFO_FILENAME);
+                        $extension = $archivo->getClientOriginalExtension();
+                        $safeFilename = $slugger->slug($originalFilename);
+                        $newFilename = $safeFilename . '-' . uniqid() . '.' . $extension;
+                        
+                        try {
+                            $directorio = $this->kernel->getProjectDir() . '/public/convocatorias';
+                            if (!is_dir($directorio)) {
+                                mkdir($directorio, 0755, true);
+                            }
+                            
+                            $archivo->move($directorio, $newFilename);
+                            
+                            $documento = new DocumentoConvocatoria();
+                            $documento->setNombre($archivo->getClientOriginalName());
+                            $documento->setRutaArchivo('/convocatorias/' . $newFilename);
+                            $documento->setConvocatoria($convocatoria);
+                            
+                            $entityManager->persist($documento);
+                        } catch (FileException $e) {
+                            $this->addFlash('error', 'Error al subir el archivo "' . $archivo->getClientOriginalName() . '": ' . $e->getMessage());
+                        }
+                    }
+                }
+            }
+            
             $convocatoria->setFechaActualizacion(new \DateTime());
             $entityManager->persist($convocatoria);
             $entityManager->flush();
@@ -56,12 +104,58 @@ class ConvocatoriaController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'app_convocatoria_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Convocatoria $convocatoria, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, Convocatoria $convocatoria, EntityManagerInterface $entityManager, SluggerInterface $slugger): Response
     {
         $form = $this->createForm(ConvocatoriaType::class, $convocatoria);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Manejar documentos subidos
+            /** @var UploadedFile[] $documentosFiles */
+            $documentosFiles = $form->get('documentosFiles')->getData();
+            
+            if ($documentosFiles) {
+                foreach ($documentosFiles as $archivo) {
+                    if ($archivo) {
+                        // Validar tamaño (20MB máximo)
+                        if ($archivo->getSize() > 20 * 1024 * 1024) {
+                            $this->addFlash('error', 'El archivo "' . $archivo->getClientOriginalName() . '" es demasiado grande. Tamaño máximo: 20MB.');
+                            return $this->render('convocatoria/edit.html.twig', [
+                                'convocatoria' => $convocatoria,
+                                'form' => $form,
+                            ]);
+                        }
+                        
+                        $originalFilename = pathinfo($archivo->getClientOriginalName(), PATHINFO_FILENAME);
+                        $extension = $archivo->getClientOriginalExtension();
+                        $safeFilename = $slugger->slug($originalFilename);
+                        $newFilename = $safeFilename . '-' . uniqid() . '.' . $extension;
+                        
+                        try {
+                            $directorio = $this->kernel->getProjectDir() . '/public/convocatorias';
+                            if (!is_dir($directorio)) {
+                                mkdir($directorio, 0755, true);
+                            }
+                            
+                            $archivo->move($directorio, $newFilename);
+                            
+                            $documento = new DocumentoConvocatoria();
+                            $documento->setNombre($archivo->getClientOriginalName());
+                            $documento->setRutaArchivo('/convocatorias/' . $newFilename);
+                            $documento->setConvocatoria($convocatoria);
+                            
+                            $entityManager->persist($documento);
+                        } catch (FileException $e) {
+                            $this->addFlash('error', 'Error al subir el archivo "' . $archivo->getClientOriginalName() . '": ' . $e->getMessage());
+                            return $this->render('convocatoria/edit.html.twig', [
+                                'convocatoria' => $convocatoria,
+                                'form' => $form,
+                            ]);
+                        }
+                    }
+                }
+            }
+            
             $convocatoria->setFechaActualizacion(new \DateTime());
             $entityManager->flush();
 
@@ -145,6 +239,33 @@ class ConvocatoriaController extends AbstractController
         }
 
         return $this->redirectToRoute('app_convocatoria_index', [], Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/documento/{id}', name: 'app_convocatoria_documento_delete', methods: ['POST'])]
+    #[IsGranted('ROLE_PROFESOR')]
+    public function deleteDocumento(
+        Request $request,
+        DocumentoConvocatoria $documento,
+        EntityManagerInterface $entityManager
+    ): Response {
+        $convocatoria = $documento->getConvocatoria();
+        
+        $token = $request->request->getString('_token');
+        if (!$this->isCsrfTokenValid('delete' . $documento->getId(), $token)) {
+            $this->addFlash('error', 'Token CSRF inválido. Por favor, recarga la página e intenta de nuevo.');
+            return $this->redirectToRoute('app_convocatoria_edit', ['id' => $convocatoria->getId()], Response::HTTP_SEE_OTHER);
+        }
+        
+        // Eliminar archivo físico
+        if ($documento->getRutaArchivo() && file_exists($this->kernel->getProjectDir() . '/public' . $documento->getRutaArchivo())) {
+            unlink($this->kernel->getProjectDir() . '/public' . $documento->getRutaArchivo());
+        }
+        
+        $entityManager->remove($documento);
+        $entityManager->flush();
+        
+        $this->addFlash('success', 'Documento eliminado correctamente.');
+        return $this->redirectToRoute('app_convocatoria_edit', ['id' => $convocatoria->getId()], Response::HTTP_SEE_OTHER);
     }
 }
 
