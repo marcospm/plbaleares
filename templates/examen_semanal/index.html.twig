@@ -54,7 +54,7 @@
                                 <a href="{{ path('app_examen_semanal_show', {'id': examen.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
                                 <a href="{{ path('app_examen_semanal_edit', {'id': examen.id}) }}" class="btn btn-primary btn-sm">Editar</a>
                                 {% if porcentajesPorExamen[examen.id]|length > 0 %}
-                                    <button type="button" class="btn btn-info btn-sm btnVerPorcentajes" data-examen-id="{{ examen.id }}" data-porcentajes="{{ porcentajesPorExamen[examen.id]|json_encode|e('html_attr') }}" title="Ver % por Tema">
+                                    <button type="button" class="btn btn-info btn-sm btnVerPorcentajes" data-examen-id="{{ examen.id }}" data-porcentajes="{{ porcentajesPorExamen[examen.id]|json_encode|e('html_attr') }}" title="Ver % por Tema" onclick="event.stopPropagation(); return false;">
                                         📊 %
                                     </button>
                                 {% endif %}
@@ -107,65 +107,107 @@ function abrirModalPorcentajes(porcentajes) {
     const modal = document.getElementById('modalPorcentajes');
     const contenido = document.getElementById('contenidoPorcentajes');
     
-    if (modal && contenido) {
-        // Limpiar contenido anterior
-        contenido.innerHTML = '';
-        
-        // Generar contenido con los porcentajes
-        for (const temaId in porcentajes) {
-            const datos = porcentajes[temaId];
-            const div = document.createElement('div');
-            div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f8f9fa; border-radius: 4px; border-left: 4px solid var(--color-primary);';
-            div.innerHTML = `
-                <div>
-                    <strong style="color: #333;">${datos.nombre}</strong>
-                    <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">${datos.cantidad} pregunta${datos.cantidad != 1 ? 's' : ''}</div>
-                </div>
-                <div style="font-size: 1.2rem; font-weight: bold; color: var(--color-primary);">
-                    ${datos.porcentaje}%
-                </div>
-            `;
-            contenido.appendChild(div);
-        }
-        
-        modal.style.display = 'block';
+    if (!modal) {
+        console.error('No se encontró el modal modalPorcentajes');
+        return;
     }
+    
+    if (!contenido) {
+        console.error('No se encontró el contenido contenidoPorcentajes');
+        return;
+    }
+    
+    // Limpiar contenido anterior
+    contenido.innerHTML = '';
+    
+    // Generar contenido con los porcentajes
+    if (porcentajes && typeof porcentajes === 'object') {
+        for (const temaId in porcentajes) {
+            if (porcentajes.hasOwnProperty(temaId)) {
+                const datos = porcentajes[temaId];
+                const div = document.createElement('div');
+                div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f8f9fa; border-radius: 4px; border-left: 4px solid var(--color-primary);';
+                div.innerHTML = `
+                    <div>
+                        <strong style="color: #333;">${datos.nombre || 'Sin nombre'}</strong>
+                        <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">${datos.cantidad || 0} pregunta${datos.cantidad != 1 ? 's' : ''}</div>
+                    </div>
+                    <div style="font-size: 1.2rem; font-weight: bold; color: var(--color-primary);">
+                        ${datos.porcentaje || 0}%
+                    </div>
+                `;
+                contenido.appendChild(div);
+            }
+        }
+    }
+    
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
 }
 
 function cerrarModalPorcentajes() {
     const modal = document.getElementById('modalPorcentajes');
     if (modal) {
         modal.style.display = 'none';
+        document.body.style.overflow = '';
     }
 }
 
 // Cerrar modal al hacer clic fuera de él
-window.addEventListener('click', function(event) {
+document.addEventListener('click', function(event) {
     const modal = document.getElementById('modalPorcentajes');
-    if (modal && event.target == modal) {
+    if (modal && event.target === modal) {
         cerrarModalPorcentajes();
     }
 });
 
+// Cerrar modal con ESC
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const modal = document.getElementById('modalPorcentajes');
+        if (modal && modal.style.display === 'block') {
+            cerrarModalPorcentajes();
+        }
+    }
+});
+
+// Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
     const botones = document.querySelectorAll('.btnVerPorcentajes');
+    console.log('Botones encontrados:', botones.length);
+    
     botones.forEach(function(boton) {
         boton.addEventListener('click', function(e) {
             e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
             const porcentajesJson = this.getAttribute('data-porcentajes');
+            console.log('Porcentajes JSON:', porcentajesJson);
+            
             if (porcentajesJson) {
                 try {
                     const porcentajes = JSON.parse(porcentajesJson);
+                    console.log('Porcentajes parseados:', porcentajes);
                     abrirModalPorcentajes(porcentajes);
                 } catch (error) {
                     console.error('Error al parsear porcentajes:', error);
+                    alert('Error al cargar los porcentajes. Por favor, inténtalo de nuevo.');
                 }
+            } else {
+                console.error('No se encontraron porcentajes en el atributo data-porcentajes');
             }
+            
+            return false;
         });
     });
+    
+    // También asignar la función global para el onclick del span de cerrar
+    window.cerrarModalPorcentajes = cerrarModalPorcentajes;
 });
 </script>
 {% endblock %}
+
 
 
 

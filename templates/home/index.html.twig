@@ -5,23 +5,23 @@
 {% block body %}
 <div style="min-height: 80vh;">
     <!-- Hero Section -->
-    <div style="background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color: white; padding: 4rem 2rem; text-align: center; margin: -2rem -1rem 3rem -1rem; border-bottom: 3px solid var(--color-secondary);">
+    <div style="background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color: white; padding: 2rem 2rem; text-align: center; margin: -2rem -1rem 2rem -1rem; border-bottom: 3px solid var(--color-secondary);">
         <div class="container" style="max-width: 1200px; margin: 0 auto;">
-            <h1 style="font-size: 3rem; margin-bottom: 1rem; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+            <h1 style="font-size: 2rem; margin-bottom: 0.5rem; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
                 Sistema de Oposiciones
             </h1>
-            <h2 style="font-size: 2rem; margin-bottom: 2rem; font-weight: 400; opacity: 0.95;">
+            <h2 style="font-size: 1.3rem; margin-bottom: 1rem; font-weight: 400; opacity: 0.95;">
                 Policía Local - Illes Balears
             </h2>
-            <p style="font-size: 1.3rem; margin-bottom: 2rem; max-width: 800px; margin-left: auto; margin-right: auto; line-height: 1.6;">
+            <p style="font-size: 1rem; margin-bottom: 1rem; max-width: 800px; margin-left: auto; margin-right: auto; line-height: 1.5;">
                 Prepara tu oposición con nuestra plataforma especializada. Accede a exámenes, recursos de estudio y explicaciones detalladas de todos los artículos.
             </p>
             {% if not app.user %}
-                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                    <a href="{{ path('app_register') }}" class="btn" style="background: var(--color-secondary); color: white; padding: 1rem 2rem; font-size: 1.1rem; font-weight: 600; text-decoration: none; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: transform 0.3s;">
+                <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="{{ path('app_register') }}" class="btn" style="background: var(--color-secondary); color: white; padding: 0.6rem 1.5rem; font-size: 0.95rem; font-weight: 600; text-decoration: none; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: transform 0.3s;">
                         Crear Cuenta
                     </a>
-                    <a href="{{ path('app_login') }}" class="btn" style="background: rgba(255,255,255,0.2); color: white; padding: 1rem 2rem; font-size: 1.1rem; font-weight: 600; text-decoration: none; border-radius: 8px; border: 2px solid white; transition: transform 0.3s;">
+                    <a href="{{ path('app_login') }}" class="btn" style="background: rgba(255,255,255,0.2); color: white; padding: 0.6rem 1.5rem; font-size: 0.95rem; font-weight: 600; text-decoration: none; border-radius: 6px; border: 2px solid white; transition: transform 0.3s;">
                         Iniciar Sesión
                     </a>
                 </div>

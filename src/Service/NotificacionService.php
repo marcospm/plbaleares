@@ -196,6 +196,11 @@ class NotificacionService
      */
     public function crearNotificacionPlanificacionCreada(PlanificacionSemanal $planificacion, User $alumno, User $profesor): void
     {
+        // No notificar si el alumno es el mismo que el profesor que crea la planificación
+        if ($alumno->getId() === $profesor->getId()) {
+            return;
+        }
+        
         $notificacion = new Notificacion();
         $notificacion->setTipo(Notificacion::TIPO_PLANIFICACION_CREADA);
         $notificacion->setTitulo('Nueva Planificación Asignada');
@@ -223,6 +228,11 @@ class NotificacionService
         foreach ($planificacionesPersonalizadas as $planificacionPersonalizada) {
             $alumno = $planificacionPersonalizada->getUsuario();
             
+            // No notificar si el alumno es el mismo que el profesor que edita la planificación
+            if ($alumno->getId() === $profesor->getId()) {
+                continue;
+            }
+            
             $notificacion = new Notificacion();
             $notificacion->setTipo(Notificacion::TIPO_PLANIFICACION_EDITADA);
             $notificacion->setTitulo('Planificación Actualizada');
@@ -248,6 +258,11 @@ class NotificacionService
     public function crearNotificacionPlanificacionEliminada(string $nombrePlanificacion, array $alumnos, User $profesor): void
     {
         foreach ($alumnos as $alumno) {
+            // No notificar si el alumno es el mismo que el profesor que elimina la planificación
+            if ($alumno->getId() === $profesor->getId()) {
+                continue;
+            }
+            
             $notificacion = new Notificacion();
             $notificacion->setTipo(Notificacion::TIPO_PLANIFICACION_ELIMINADA);
             $notificacion->setTitulo('Planificación Eliminada');
@@ -271,6 +286,11 @@ class NotificacionService
      */
     public function crearNotificacionTareaCreada(Tarea $tarea, User $alumno, User $profesor): void
     {
+        // No notificar si el alumno es el mismo que el profesor que crea la tarea
+        if ($alumno->getId() === $profesor->getId()) {
+            return;
+        }
+        
         $notificacion = new Notificacion();
         $notificacion->setTipo(Notificacion::TIPO_TAREA_CREADA);
         $notificacion->setTitulo('Nueva Tarea Asignada');
@@ -298,6 +318,11 @@ class NotificacionService
         foreach ($asignaciones as $asignacion) {
             $alumno = $asignacion->getUsuario();
             
+            // No notificar si el alumno es el mismo que el profesor que edita la tarea
+            if ($alumno->getId() === $profesor->getId()) {
+                continue;
+            }
+            
             $notificacion = new Notificacion();
             $notificacion->setTipo(Notificacion::TIPO_TAREA_EDITADA);
             $notificacion->setTitulo('Tarea Actualizada');
@@ -323,6 +348,11 @@ class NotificacionService
     public function crearNotificacionTareaEliminada(string $nombreTarea, array $alumnos, User $profesor): void
     {
         foreach ($alumnos as $alumno) {
+            // No notificar si el alumno es el mismo que el profesor que elimina la tarea
+            if ($alumno->getId() === $profesor->getId()) {
+                continue;
+            }
+            
             $notificacion = new Notificacion();
             $notificacion->setTipo(Notificacion::TIPO_TAREA_ELIMINADA);
             $notificacion->setTitulo('Tarea Eliminada');
@@ -346,6 +376,11 @@ class NotificacionService
      */
     public function crearNotificacionExamenSemanal(ExamenSemanal $examenSemanal, User $alumno, User $profesor): void
     {
+        // No notificar si el alumno es el mismo que el profesor que crea el examen
+        if ($alumno->getId() === $profesor->getId()) {
+            return;
+        }
+        
         $notificacion = new Notificacion();
         $notificacion->setTipo(Notificacion::TIPO_EXAMEN_SEMANAL);
         $notificacion->setTitulo('Nuevo Examen Semanal');

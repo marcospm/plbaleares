@@ -374,8 +374,10 @@ class ExamenSemanalController extends AbstractController
                     ->getResult();
 
                 foreach ($alumnos as $alumno) {
-                    // Verificar que no sea profesor ni admin
-                    if (!in_array('ROLE_PROFESOR', $alumno->getRoles()) && !in_array('ROLE_ADMIN', $alumno->getRoles())) {
+                    // Verificar que no sea profesor ni admin, y que no sea el mismo que el profesor que crea el examen
+                    if (!in_array('ROLE_PROFESOR', $alumno->getRoles()) 
+                        && !in_array('ROLE_ADMIN', $alumno->getRoles())
+                        && $alumno->getId() !== $profesor->getId()) {
                         foreach ($examenesCreados as $examenCreado) {
                             $this->notificacionService->crearNotificacionExamenSemanal($examenCreado, $alumno, $profesor);
                         }
@@ -643,7 +645,10 @@ class ExamenSemanalController extends AbstractController
 
             $profesor = $this->getUser();
             foreach ($alumnos as $alumno) {
-                if (!in_array('ROLE_PROFESOR', $alumno->getRoles()) && !in_array('ROLE_ADMIN', $alumno->getRoles())) {
+                // Verificar que no sea profesor ni admin, y que no sea el mismo que el profesor que crea el examen
+                if (!in_array('ROLE_PROFESOR', $alumno->getRoles()) 
+                    && !in_array('ROLE_ADMIN', $alumno->getRoles())
+                    && $alumno->getId() !== $profesor->getId()) {
                     $this->notificacionService->crearNotificacionExamenSemanal($examenSemanal, $alumno, $profesor);
                 }
             }

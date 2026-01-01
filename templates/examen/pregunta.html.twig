@@ -32,7 +32,7 @@
                         <span class="badge" style="background-color: #4CAF50; padding: 0.25rem 0.75rem; font-size: 0.85rem; font-weight: bold;">TEMARIO GENERAL</span>
                     </div>
                     {% if porcentajesPorTema|length > 0 %}
-                        <button type="button" class="btn btn-sm btn-info" id="btnVerPorcentajes" style="font-size: 0.85rem; padding: 0.4rem 1rem;">
+                        <button type="button" class="btn btn-sm btn-info" id="btnVerPorcentajes" style="font-size: 0.85rem; padding: 0.4rem 1rem;" onclick="event.stopPropagation(); return false;">
                             📊 Ver % por Tema
                         </button>
                     {% endif %}
@@ -422,23 +422,37 @@
         <script>
         function abrirModalPorcentajes() {
             const modal = document.getElementById('modalPorcentajes');
-            if (modal) {
-                modal.style.display = 'block';
+            if (!modal) {
+                console.error('No se encontró el modal modalPorcentajes');
+                return;
             }
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
         }
 
         function cerrarModalPorcentajes() {
             const modal = document.getElementById('modalPorcentajes');
             if (modal) {
                 modal.style.display = 'none';
+                document.body.style.overflow = '';
             }
         }
 
         // Cerrar modal al hacer clic fuera de él
-        window.addEventListener('click', function(event) {
+        document.addEventListener('click', function(event) {
             const modal = document.getElementById('modalPorcentajes');
-            if (modal && event.target == modal) {
+            if (modal && event.target === modal) {
                 cerrarModalPorcentajes();
+            }
+        });
+
+        // Cerrar modal con ESC
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modal = document.getElementById('modalPorcentajes');
+                if (modal && modal.style.display === 'block') {
+                    cerrarModalPorcentajes();
+                }
             }
         });
 
@@ -447,9 +461,17 @@
             if (btnVerPorcentajes) {
                 btnVerPorcentajes.addEventListener('click', function(e) {
                     e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
                     abrirModalPorcentajes();
+                    return false;
                 });
+            } else {
+                console.warn('No se encontró el botón btnVerPorcentajes');
             }
+            
+            // También asignar la función global para el onclick del span de cerrar
+            window.cerrarModalPorcentajes = cerrarModalPorcentajes;
         });
         </script>
         {% endif %}

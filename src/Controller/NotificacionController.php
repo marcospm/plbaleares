@@ -131,14 +131,15 @@ class NotificacionController extends AbstractController
 
     #[Route('/marcar-todas-leidas', name: 'app_notificacion_marcar_todas_leidas', methods: ['POST'])]
     #[IsGranted('ROLE_PROFESOR')]
-    public function marcarTodasLeidas(NotificacionRepository $notificacionRepository, EntityManagerInterface $entityManager, Request $request): JsonResponse
+    public function marcarTodasLeidas(NotificacionRepository $notificacionRepository, EntityManagerInterface $entityManager, Request $request): Response
     {
         $profesor = $this->getUser();
         if (!$profesor) {
-            return new JsonResponse(['success' => false, 'message' => 'Usuario no autenticado.'], 401);
+            $this->addFlash('error', 'Usuario no autenticado.');
+            return $this->redirectToRoute('app_notificacion_todas');
         }
         
-        if ($this->isCsrfTokenValid('marcar_todas_leidas', $request->getPayload()->getString('_token'))) {
+        if ($this->isCsrfTokenValid('marcar_todas_leidas', $request->request->get('_token'))) {
             // Usar query directa para marcar todas como leídas (más eficiente y seguro)
             $qb = $entityManager->createQueryBuilder();
             $qb->update(\App\Entity\Notificacion::class, 'n')
@@ -151,13 +152,12 @@ class NotificacionController extends AbstractController
             
             $result = $qb->getQuery()->execute();
 
-            return new JsonResponse([
-                'success' => true, 
-                'message' => sprintf('%d notificación(es) marcada(s) como leída(s).', $result)
-            ]);
+            $this->addFlash('success', sprintf('%d notificación(es) marcada(s) como leída(s).', $result));
+            return $this->redirectToRoute('app_notificacion_todas');
         }
 
-        return new JsonResponse(['success' => false, 'message' => 'Token inválido.'], 400);
+        $this->addFlash('error', 'Token inválido.');
+        return $this->redirectToRoute('app_notificacion_todas');
     }
 
     #[Route('/{id}/marcar-leida-get', name: 'app_notificacion_marcar_leida_get', methods: ['GET'])]
@@ -331,19 +331,21 @@ class NotificacionController extends AbstractController
 
     #[Route('/alumno/marcar-todas-leidas', name: 'app_notificacion_alumno_marcar_todas_leidas', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function marcarTodasLeidasAlumno(NotificacionRepository $notificacionRepository, EntityManagerInterface $entityManager, Request $request): JsonResponse
+    public function marcarTodasLeidasAlumno(NotificacionRepository $notificacionRepository, EntityManagerInterface $entityManager, Request $request): Response
     {
         // Verificar que no sea profesor ni admin
         if ($this->isGranted('ROLE_PROFESOR') || $this->isGranted('ROLE_ADMIN')) {
-            return new JsonResponse(['success' => false, 'message' => 'No tienes permiso para esta acción.'], 403);
+            $this->addFlash('error', 'No tienes permiso para esta acción.');
+            return $this->redirectToRoute('app_notificacion_alumno_todas');
         }
 
         $alumno = $this->getUser();
         if (!$alumno) {
-            return new JsonResponse(['success' => false, 'message' => 'Usuario no autenticado.'], 401);
+            $this->addFlash('error', 'Usuario no autenticado.');
+            return $this->redirectToRoute('app_notificacion_alumno_todas');
         }
         
-        if ($this->isCsrfTokenValid('marcar_todas_leidas_alumno', $request->getPayload()->getString('_token'))) {
+        if ($this->isCsrfTokenValid('marcar_todas_leidas_alumno', $request->request->get('_token'))) {
             // Usar query directa para marcar todas como leídas (más eficiente y seguro)
             $qb = $entityManager->createQueryBuilder();
             $qb->update(\App\Entity\Notificacion::class, 'n')
@@ -367,13 +369,12 @@ class NotificacionController extends AbstractController
             
             $result = $qb->getQuery()->execute();
 
-            return new JsonResponse([
-                'success' => true, 
-                'message' => sprintf('%d notificación(es) marcada(s) como leída(s).', $result)
-            ]);
+            $this->addFlash('success', sprintf('%d notificación(es) marcada(s) como leída(s).', $result));
+            return $this->redirectToRoute('app_notificacion_alumno_todas');
         }
 
-        return new JsonResponse(['success' => false, 'message' => 'Token inválido.'], 400);
+        $this->addFlash('error', 'Token inválido.');
+        return $this->redirectToRoute('app_notificacion_alumno_todas');
     }
 
     #[Route('/alumno/{id}/marcar-leida-get', name: 'app_notificacion_alumno_marcar_leida_get', methods: ['GET'])]
