@@ -11,8 +11,6 @@ applications:
           root: "public"
           passthru: "/index.php"
 
-    disk: 1024
-
     mounts:
       "/var": "shared:files/var"
       "/public/uploads": "shared:files/uploads"
