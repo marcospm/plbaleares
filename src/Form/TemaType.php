@@ -6,6 +6,7 @@ use App\Entity\Tema;
 use App\Entity\Ley;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -26,10 +27,15 @@ class TemaType extends AbstractType
                 'required' => false,
                 'attr' => ['class' => 'form-control', 'rows' => 4]
             ])
-            ->add('rutaPdf', TextType::class, [
-                'label' => 'Ruta del PDF',
+            ->add('pdfFile', FileType::class, [
+                'label' => 'PDF del Tema',
                 'required' => false,
-                'attr' => ['class' => 'form-control', 'placeholder' => 'Ej: /pdfs/tema1.pdf o https://...']
+                'mapped' => false,
+                'attr' => [
+                    'class' => 'form-control',
+                    'accept' => '.pdf'
+                ],
+                'help' => 'Tamaño máximo: 20MB. Solo archivos PDF (extensión .pdf). Si no seleccionas un archivo, se mantendrá el actual.'
             ])
             ->add('leyes', EntityType::class, [
                 'class' => Ley::class,

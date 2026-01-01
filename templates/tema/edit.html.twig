@@ -11,6 +11,16 @@
         {{ form_start(form) }}
             {{ form_row(form.nombre) }}
             {{ form_row(form.descripcion) }}
+            {{ form_row(form.pdfFile) }}
+            
+            {% if tema.rutaPdf %}
+                <div class="alert alert-info mt-3">
+                    <strong>PDF actual:</strong> 
+                    <a href="{{ tema.rutaPdf }}" target="_blank" class="btn btn-sm btn-success">Ver PDF Actual</a>
+                    <small class="d-block mt-2">Si subes un nuevo archivo, se reemplazará el actual.</small>
+                </div>
+            {% endif %}
+            
             {{ form_row(form.leyes) }}
             
             <div class="d-flex gap-2 mt-4">
