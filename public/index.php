@@ -4,7 +4,7 @@ use App\Kernel;
 use Platformsh\ConfigReader\Config;
 
 require_once dirname(__DIR__).'/vendor/autoload_runtime.php';
-
+ 
 /**
  * Platform.sh – generate DATABASE_URL from relationships
  */
