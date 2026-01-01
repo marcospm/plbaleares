@@ -109,6 +109,20 @@ class ConvocatoriaController extends AbstractController
         $form = $this->createForm(ConvocatoriaType::class, $convocatoria);
         $form->handleRequest($request);
 
+        // Debug
+        if ($form->isSubmitted()) {
+            $this->addFlash('info', 'Formulario recibido. Método: ' . $request->getMethod());
+            if (!$form->isValid()) {
+                $errors = [];
+                foreach ($form->getErrors(true) as $error) {
+                    $errors[] = $error->getMessage();
+                }
+                $this->addFlash('error', 'Errores: ' . implode(', ', $errors));
+            } else {
+                $this->addFlash('info', 'Formulario válido. Procesando...');
+            }
+        }
+
         if ($form->isSubmitted() && $form->isValid()) {
             // Manejar documentos subidos
             /** @var UploadedFile[] $documentosFiles */
@@ -120,10 +134,7 @@ class ConvocatoriaController extends AbstractController
                         // Validar tamaño (20MB máximo)
                         if ($archivo->getSize() > 20 * 1024 * 1024) {
                             $this->addFlash('error', 'El archivo "' . $archivo->getClientOriginalName() . '" es demasiado grande. Tamaño máximo: 20MB.');
-                            return $this->render('convocatoria/edit.html.twig', [
-                                'convocatoria' => $convocatoria,
-                                'form' => $form,
-                            ]);
+                            continue;
                         }
                         
                         $originalFilename = pathinfo($archivo->getClientOriginalName(), PATHINFO_FILENAME);
@@ -147,16 +158,13 @@ class ConvocatoriaController extends AbstractController
                             $entityManager->persist($documento);
                         } catch (FileException $e) {
                             $this->addFlash('error', 'Error al subir el archivo "' . $archivo->getClientOriginalName() . '": ' . $e->getMessage());
-                            return $this->render('convocatoria/edit.html.twig', [
-                                'convocatoria' => $convocatoria,
-                                'form' => $form,
-                            ]);
                         }
                     }
                 }
             }
             
             $convocatoria->setFechaActualizacion(new \DateTime());
+            $entityManager->persist($convocatoria);
             $entityManager->flush();
 
             $this->addFlash('success', 'Convocatoria actualizada correctamente.');

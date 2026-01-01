@@ -8,14 +8,7 @@
         <h1>Editar Convocatoria: {{ convocatoria.nombre }}</h1>
     </div>
     <div class="card-body">
-        {% if not form.vars.valid and form.vars.submitted %}
-            <div class="alert alert-danger">
-                <strong>Errores en el formulario:</strong>
-                {{ form_errors(form) }}
-            </div>
-        {% endif %}
-        
-        {{ form_start(form) }}
+        {{ form_start(form, {'attr': {'enctype': 'multipart/form-data'}}) }}
             {{ form_row(form.nombre) }}
             {{ form_row(form.municipio) }}
             {{ form_row(form.fechaTeorico) }}
