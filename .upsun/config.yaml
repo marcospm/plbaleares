@@ -1,23 +1,26 @@
-name: app
+applications:
+  app:
+    source:
+      root: "/"
 
-type: php:8.2
+    type: "php:8.2"
 
-web:
-  locations:
-    "/":
-      root: "public"
-      passthru: "/index.php"
+    web:
+      locations:
+        "/":
+          root: "public"
+          passthru: "/index.php"
 
-disk: 1024
+    disk: 1024
 
-mounts:
-  "/var": "shared:files/var"
-  "/public/uploads": "shared:files/uploads"
+    mounts:
+      "/var": "shared:files/var"
+      "/public/uploads": "shared:files/uploads"
 
-hooks:
-  build: |
-    set -e
-    composer install --no-dev --prefer-dist --no-progress --no-interaction --optimize-autoloader
-  deploy: |
-    set -e
-    php bin/console cache:clear
+    hooks:
+      build: |
+        set -e
+        composer install --no-dev --prefer-dist --no-progress --no-interaction --optimize-autoloader
+      deploy: |
+        set -e
+        php bin/console cache:clear

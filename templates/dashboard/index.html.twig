@@ -759,7 +759,6 @@
                             <tr>
                                 <th>Fecha</th>
                                 <th>Tipo</th>
-                                <th>Temas</th>
                                 <th>Dificultad</th>
                                 <th>Preguntas</th>
                                 <th>Nota</th>
@@ -784,21 +783,6 @@
                                                 <span style="font-size: 0.9rem; color: #9C27B0;" title="Examen Semanal: {{ examen.examenSemanal.nombre }}">📅</span>
                                             {% endif %}
                                         </div>
-                                    </td>
-                                    <td>
-                                        {% if examen.municipio %}
-                                            {% for temaMunicipal in examen.temasMunicipales %}
-                                                {% set nombreTema = temaMunicipal.nombre|trim %}
-                                                {% set nombreTruncado = nombreTema|length > 20 ? nombreTema|slice(0, 20) ~ '...' : nombreTema %}
-                                                <span class="badge badge-facil tema-tooltip" style="cursor: pointer;" data-tema-nombre="{{ nombreTema }}" onclick="mostrarTemaCompleto('{{ nombreTema|e('js') }}')">{{ nombreTruncado }}</span>
-                                            {% endfor %}
-                                        {% else %}
-                                            {% for tema in examen.temas %}
-                                                {% set nombreTema = tema.nombre|trim %}
-                                                {% set nombreTruncado = nombreTema|length > 20 ? nombreTema|slice(0, 20) ~ '...' : nombreTema %}
-                                                <span class="badge badge-facil tema-tooltip" style="cursor: pointer;" data-tema-nombre="{{ nombreTema }}" onclick="mostrarTemaCompleto('{{ nombreTema|e('js') }}')">{{ nombreTruncado }}</span>
-                                            {% endfor %}
-                                        {% endif %}
                                     </td>
                                     <td>
                                         <span class="badge badge-{{ examen.dificultad }}">{{ examen.getDificultadLabel() }}</span>
