@@ -26,9 +26,21 @@ applications:
     hooks:
       build: |
         set -e
-        composer install --no-dev --prefer-dist --no-progress --no-interaction --optimize-autoloader
+        composer install \
+          --no-dev \
+          --prefer-dist \
+          --no-progress \
+          --no-interaction \
+          --optimize-autoloader
 
       deploy: |
         set -e
+
+        # Ejecutar migraciones Doctrine
+        php bin/console doctrine:migrations:migrate \
+          --no-interaction \
+          --allow-no-migration
+
+        # Cache Symfony
         php bin/console cache:clear --no-warmup
         php bin/console cache:warmup
