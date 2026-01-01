@@ -213,7 +213,8 @@ class NotificacionService
                 $planificacion->getFechaFin()->format('d/m/Y')
             )
         );
-        $notificacion->setProfesor($profesor);
+        // No establecer profesor: estas notificaciones son solo para alumnos
+        $notificacion->setProfesor(null);
         $notificacion->setAlumno($alumno);
         $notificacion->setPlanificacionSemanal(null); // Ya no usamos PlanificacionSemanal
         
@@ -241,7 +242,8 @@ class NotificacionService
                 $planificacion->getNombre()
             )
         );
-        $notificacion->setProfesor($profesor);
+        // No establecer profesor: estas notificaciones son solo para alumnos
+        $notificacion->setProfesor(null);
         $notificacion->setAlumno($alumno);
         $notificacion->setPlanificacionSemanal(null);
         
@@ -269,7 +271,8 @@ class NotificacionService
                     $nombrePlanificacion
                 )
             );
-            $notificacion->setProfesor($profesor);
+            // No establecer profesor: estas notificaciones son solo para alumnos
+            $notificacion->setProfesor(null);
             $notificacion->setAlumno($alumno);
             
             $this->entityManager->persist($notificacion);
@@ -297,7 +300,8 @@ class NotificacionService
                 $tarea->getNombre()
             )
         );
-        $notificacion->setProfesor($profesor);
+        // No establecer profesor: estas notificaciones son solo para alumnos
+        $notificacion->setProfesor(null);
         $notificacion->setAlumno($alumno);
         $notificacion->setTarea($tarea);
         
@@ -329,7 +333,8 @@ class NotificacionService
                     $tarea->getNombre()
                 )
             );
-            $notificacion->setProfesor($profesor);
+            // No establecer profesor: estas notificaciones son solo para alumnos
+            $notificacion->setProfesor(null);
             $notificacion->setAlumno($alumno);
             $notificacion->setTarea($tarea);
             
@@ -359,7 +364,8 @@ class NotificacionService
                     $nombreTarea
                 )
             );
-            $notificacion->setProfesor($profesor);
+            // No establecer profesor: estas notificaciones son solo para alumnos
+            $notificacion->setProfesor(null);
             $notificacion->setAlumno($alumno);
             
             $this->entityManager->persist($notificacion);
@@ -388,7 +394,8 @@ class NotificacionService
                 $examenSemanal->getFechaCierre()->format('d/m/Y H:i')
             )
         );
-        $notificacion->setProfesor($profesor);
+        // No establecer profesor: estas notificaciones son solo para alumnos
+        $notificacion->setProfesor(null);
         $notificacion->setAlumno($alumno);
         $notificacion->setExamenSemanal($examenSemanal);
         
@@ -419,7 +426,8 @@ class NotificacionService
                 $respuestaTexto
             )
         );
-        $notificacion->setProfesor($profesor);
+        // No establecer profesor: estas notificaciones son solo para alumnos
+        $notificacion->setProfesor(null);
         $notificacion->setAlumno($alumno);
         $notificacion->setArticulo($articulo);
         
@@ -497,7 +505,8 @@ class NotificacionService
                 $respuestaTexto
             )
         );
-        $notificacion->setProfesor($profesor);
+        // No establecer profesor: estas notificaciones son solo para alumnos
+        $notificacion->setProfesor(null);
         $notificacion->setAlumno($alumno);
         $notificacion->setPregunta($pregunta);
         
