@@ -37,9 +37,15 @@ applications:
       deploy: |
         set -e
 
-        php bin/console cache:clear --env=prod --no-warmup
-        php bin/console cache:warmup --env=prod
+        # DEBUG: comprobar que Upsun inyecta la BD
+        echo "DATABASE_URL=$DATABASE_URL"
+        php -r 'echo "ENV_DATABASE_URL=".(getenv("DATABASE_URL") ?: "NULL").PHP_EOL;'
 
+        # Cache Symfony (sin tocar DB)
+        php bin/console cache:clear --env=prod --no-warmup
+        php bin/console cache:warmup --env=prod --no-optional-warmers
+
+        # Migraciones Doctrine
         php bin/console doctrine:migrations:migrate \
           --no-interaction \
           --allow-no-migration
