@@ -32,9 +32,25 @@ class PlanificacionAlumnoController extends AbstractController
         $usuario = $this->getUser();
         $planificaciones = $planificacionRepository->findAllByUsuario($usuario);
 
+        // Si no hay planificaciones, mostrar la página con un mensaje
         if (empty($planificaciones)) {
-            $this->addFlash('warning', 'No tienes planificaciones asignadas. Contacta con un administrador.');
-            return $this->redirectToRoute('app_dashboard');
+            return $this->render('planificacion_alumno/index.html.twig', [
+                'planificaciones' => [],
+                'franjasPorDia' => [],
+                'tareasPendientesPorSemana' => [],
+                'lunesSemana' => new \DateTime('monday this week'),
+                'lunesActual' => new \DateTime('monday this week'),
+                'semanaAnterior' => null,
+                'semanaSiguiente' => null,
+                'esSemanaActual' => true,
+                'resumen' => [
+                    'total' => 0,
+                    'completadas' => 0,
+                    'pendientes' => 0,
+                    'vencidas' => 0,
+                ],
+                'sinPlanificacion' => true,
+            ]);
         }
 
         // Obtener semana (por defecto la actual, pero permitir navegar)
@@ -132,8 +148,8 @@ class PlanificacionAlumnoController extends AbstractController
         $planificaciones = $planificacionRepository->findAllByUsuario($usuario);
 
         if (empty($planificaciones)) {
-            $this->addFlash('warning', 'No tienes planificaciones asignadas.');
-            return $this->redirectToRoute('app_dashboard');
+            $this->addFlash('warning', 'No tienes planificaciones asignadas. Contacta con tu profesor para empezar con una planificación.');
+            return $this->redirectToRoute('app_planificacion_alumno_index');
         }
 
         $fechaObj = new \DateTime($fecha);

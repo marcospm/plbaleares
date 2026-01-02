@@ -5,7 +5,8 @@
 {% block body %}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h1>Mi Planificación Semanal - Semana del {{ lunesSemana|date('d/m/Y') }}</h1>
+        <h1>{% if sinPlanificacion is defined and sinPlanificacion %}Mi Planificación Semanal{% else %}Mi Planificación Semanal - Semana del {{ lunesSemana|date('d/m/Y') }}{% endif %}</h1>
+        {% if sinPlanificacion is not defined or not sinPlanificacion %}
         <div class="d-flex gap-2 align-items-center">
             {% if semanaAnterior %}
                 <a href="{{ path('app_planificacion_alumno_index', {'semana': semanaAnterior|date('Y-m-d')}) }}" class="btn btn-sm btn-secondary">← Semana Anterior</a>
@@ -18,14 +19,24 @@
             <a href="{{ path('app_planificacion_alumno_index', {'semana': semanaSiguiente|date('Y-m-d')}) }}" class="btn btn-sm btn-secondary">Semana Siguiente →</a>
             <a href="{{ path('app_planificacion_alumno_index') }}" class="btn btn-sm btn-primary">Hoy</a>
         </div>
+        {% endif %}
     </div>
     <div class="card-body">
-        {% if planificaciones|length > 1 %}
+        {% if sinPlanificacion is defined and sinPlanificacion %}
+            <div class="alert alert-warning text-center" style="padding: 2rem; margin: 2rem 0;">
+                <h4 style="margin-bottom: 1rem;">📅 No tienes planificaciones asignadas</h4>
+                <p style="font-size: 1.1rem; margin-bottom: 1.5rem;">
+                    Para empezar con una planificación, contacta con tu profesor.
+                </p>
+                <a href="{{ path('app_contacto') }}" class="btn btn-primary">Contactar con el Profesor</a>
+            </div>
+        {% elseif planificaciones|length > 1 %}
             <div class="alert alert-info mb-3">
                 <strong>Planificaciones activas:</strong> Tienes {{ planificaciones|length }} planificaciones asignadas. Las franjas horarias se muestran agrupadas por día.
             </div>
         {% endif %}
         
+        {% if sinPlanificacion is not defined or not sinPlanificacion %}
         <div class="mb-4">
             <h3>Resumen de la Semana</h3>
             <div class="d-flex gap-3">
@@ -133,8 +144,9 @@
                 </tbody>
             </table>
         </div>
+        {% endif %}
 
-
+        {% if sinPlanificacion is not defined or not sinPlanificacion %}
         {% if tareasPendientesPorSemana|length > 0 %}
             <div class="card mt-4">
                 <div class="card-header">
@@ -198,6 +210,7 @@
                     <p class="text-muted">No tienes tareas pendientes. ¡Excelente trabajo! 🎉</p>
                 </div>
             </div>
+        {% endif %}
         {% endif %}
     </div>
 </div>
