@@ -6,6 +6,7 @@ use App\Entity\ExamenSemanal;
 use App\Entity\Tema;
 use App\Entity\TemaMunicipal;
 use App\Entity\Municipio;
+use App\Entity\Convocatoria;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
@@ -124,6 +125,32 @@ class ExamenSemanalType extends AbstractType
                     'label' => 'Temas Municipales (si se selecciona municipio)',
                     'attr' => ['class' => 'form-control', 'id' => 'examen_semanal_temasMunicipales'],
                     'help' => 'Selecciona los temas municipales para el examen municipal. Los temas se filtrarán automáticamente según el municipio seleccionado.',
+                    'query_builder' => function ($er) {
+                        return $er->createQueryBuilder('t')
+                            ->where('1 = 0'); // No mostrar nada inicialmente
+                    },
+                ])
+                ->add('convocatoria', EntityType::class, [
+                    'class' => Convocatoria::class,
+                    'choice_label' => 'nombre',
+                    'required' => false,
+                    'label' => 'Convocatoria para Examen de Convocatoria (opcional)',
+                    'placeholder' => 'Ninguna',
+                    'attr' => ['class' => 'form-control', 'id' => 'examen_semanal_convocatoria'],
+                    'help' => 'Selecciona una convocatoria. El examen incluirá automáticamente todos los temas de todos los municipios de la convocatoria seleccionada.'
+                ])
+                ->add('temasMunicipalesConvocatoria', EntityType::class, [
+                    'class' => TemaMunicipal::class,
+                    'choice_label' => function($tema) {
+                        return $tema->getNombre() . ' (' . $tema->getMunicipio()->getNombre() . ')';
+                    },
+                    'multiple' => true,
+                    'expanded' => false,
+                    'required' => false,
+                    'mapped' => false, // No mapear a la entidad
+                    'label' => 'Temas Municipales de la Convocatoria',
+                    'attr' => ['class' => 'form-control', 'id' => 'examen_semanal_temasMunicipalesConvocatoria'],
+                    'help' => 'Se cargarán automáticamente todos los temas de todos los municipios de la convocatoria seleccionada.',
                     'query_builder' => function ($er) {
                         return $er->createQueryBuilder('t')
                             ->where('1 = 0'); // No mostrar nada inicialmente
@@ -252,6 +279,68 @@ class ExamenSemanalType extends AbstractType
                         'placeholder' => 'Dejar vacío para usar todas las disponibles'
                     ],
                     'help' => 'Número de preguntas que tendrá el examen municipal. Si se deja vacío, se usarán todas las preguntas disponibles.'
+                ])
+            ;
+
+            // Campos para examen de convocatoria (solo en modo creación)
+            $builder
+                ->add('nombreConvocatoria', TextType::class, [
+                    'label' => 'Nombre del Examen de Convocatoria',
+                    'required' => false,
+                    'mapped' => false,
+                    'attr' => ['class' => 'form-control'],
+                    'help' => 'Nombre específico para el examen de convocatoria (requerido si seleccionas convocatoria)'
+                ])
+                ->add('descripcionConvocatoria', TextareaType::class, [
+                    'label' => 'Descripción del Examen de Convocatoria (opcional)',
+                    'required' => false,
+                    'mapped' => false,
+                    'attr' => ['class' => 'form-control', 'rows' => 3]
+                ])
+                ->add('fechaAperturaConvocatoria', DateTimeType::class, [
+                    'label' => 'Fecha y Hora de Apertura - Convocatoria',
+                    'required' => false,
+                    'mapped' => false,
+                    'widget' => 'single_text',
+                    'html5' => true,
+                    'attr' => [
+                        'class' => 'form-control',
+                        'type' => 'datetime-local'
+                    ]
+                ])
+                ->add('fechaCierreConvocatoria', DateTimeType::class, [
+                    'label' => 'Fecha y Hora de Cierre - Convocatoria',
+                    'required' => false,
+                    'mapped' => false,
+                    'widget' => 'single_text',
+                    'html5' => true,
+                    'attr' => [
+                        'class' => 'form-control',
+                        'type' => 'datetime-local'
+                    ]
+                ])
+                ->add('dificultadConvocatoria', ChoiceType::class, [
+                    'label' => 'Dificultad - Convocatoria',
+                    'choices' => [
+                        'Fácil' => 'facil',
+                        'Moderada' => 'moderada',
+                        'Difícil' => 'dificil',
+                    ],
+                    'required' => false,
+                    'mapped' => false,
+                    'placeholder' => 'Selecciona dificultad',
+                    'attr' => ['class' => 'form-control']
+                ])
+                ->add('numeroPreguntasConvocatoria', IntegerType::class, [
+                    'label' => 'Número de Preguntas - Convocatoria',
+                    'required' => false,
+                    'mapped' => false,
+                    'attr' => [
+                        'class' => 'form-control',
+                        'min' => 1,
+                        'placeholder' => 'Dejar vacío para usar todas las disponibles'
+                    ],
+                    'help' => 'Número de preguntas que tendrá el examen de convocatoria. Si se deja vacío, se usarán todas las preguntas disponibles de todos los temas de todos los municipios de la convocatoria.'
                 ])
             ;
         }

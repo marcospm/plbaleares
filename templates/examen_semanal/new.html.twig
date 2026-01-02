@@ -36,7 +36,7 @@
             </div>
         </div>
 
-        {{ form_start(form) }}
+        {{ form_start(form, {'attr': {'data-turbo': 'false'}}) }}
             {# Ocultar campos básicos mapeados ya que se usan campos no mapeados para la creación #}
             <div style="display: none;">
                 {{ form_row(form.nombre) }}
@@ -63,6 +63,29 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         {{ form_row(form.dificultadGeneral) }}
                         {{ form_row(form.numeroPreguntasGeneral) }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="background-color: #f3e5f5; border-left: 4px solid #9C27B0; margin-bottom: 1.5rem;">
+                <div class="card-body">
+                    <h4 style="margin-top: 0; color: #7B1FA2; font-weight: 600;">📋 Examen de Convocatoria (Opcional)</h4>
+                    <p style="color: #666; margin-bottom: 1.5rem; font-size: 0.9rem;">Configura los parámetros específicos para el examen de convocatoria. Este examen incluirá <strong>automáticamente todas las preguntas de todos los temas de todos los municipios</strong> de la convocatoria seleccionada.</p>
+                    {{ form_row(form.convocatoria) }}
+                    <div style="display: none;">
+                        {{ form_row(form.temasMunicipalesConvocatoria) }}
+                    </div>
+                    <hr style="margin: 1.5rem 0;">
+                    <h5 style="color: #7B1FA2; margin-bottom: 1rem;">Configuración del Examen de Convocatoria</h5>
+                    {{ form_row(form.nombreConvocatoria) }}
+                    {{ form_row(form.descripcionConvocatoria) }}
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        {{ form_row(form.fechaAperturaConvocatoria) }}
+                        {{ form_row(form.fechaCierreConvocatoria) }}
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        {{ form_row(form.dificultadConvocatoria) }}
+                        {{ form_row(form.numeroPreguntasConvocatoria) }}
                     </div>
                 </div>
             </div>

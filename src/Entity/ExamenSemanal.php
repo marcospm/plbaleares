@@ -52,6 +52,10 @@ class ExamenSemanal
     #[ORM\JoinColumn(nullable: true)]
     private ?Municipio $municipio = null;
 
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Convocatoria $convocatoria = null;
+
     #[ORM\ManyToMany(targetEntity: TemaMunicipal::class)]
     #[ORM\JoinTable(name: 'examen_semanal_tema_municipal')]
     private Collection $temasMunicipales;
@@ -373,6 +377,18 @@ class ExamenSemanal
     public function removePreguntasMunicipale(PreguntaMunicipal $preguntasMunicipale): static
     {
         $this->preguntasMunicipales->removeElement($preguntasMunicipale);
+
+        return $this;
+    }
+
+    public function getConvocatoria(): ?Convocatoria
+    {
+        return $this->convocatoria;
+    }
+
+    public function setConvocatoria(?Convocatoria $convocatoria): static
+    {
+        $this->convocatoria = $convocatoria;
 
         return $this;
     }

@@ -7,6 +7,7 @@ use App\Form\ExamenSemanalType;
 use App\Repository\ExamenSemanalRepository;
 use App\Repository\UserRepository;
 use App\Repository\MunicipioRepository;
+use App\Repository\ConvocatoriaRepository;
 use App\Repository\TemaMunicipalRepository;
 use App\Repository\PreguntaRepository;
 use App\Repository\PreguntaMunicipalRepository;
@@ -37,6 +38,7 @@ class ExamenSemanalController extends AbstractController
         private NotificacionService $notificacionService,
         private UserRepository $userRepository,
         private MunicipioRepository $municipioRepository,
+        private ConvocatoriaRepository $convocatoriaRepository,
         private TemaMunicipalRepository $temaMunicipalRepository,
         private PreguntaRepository $preguntaRepository,
         private PreguntaMunicipalRepository $preguntaMunicipalRepository,
@@ -68,6 +70,41 @@ class ExamenSemanalController extends AbstractController
             ];
         }
 
+        return new JsonResponse($temasArray);
+    }
+
+    #[Route('/temas-municipales-convocatoria/{convocatoriaId}', name: 'app_examen_semanal_temas_municipales_convocatoria', methods: ['GET'])]
+    public function temasMunicipalesConvocatoria(int $convocatoriaId): JsonResponse
+    {
+        $convocatoria = $this->convocatoriaRepository->find($convocatoriaId);
+        
+        if (!$convocatoria) {
+            return new JsonResponse(['error' => 'Convocatoria no encontrada'], 404);
+        }
+        
+        // Obtener todos los municipios de la convocatoria
+        $municipios = $convocatoria->getMunicipios();
+        $municipiosIds = array_map(fn($m) => $m->getId(), $municipios->toArray());
+        
+        // Obtener todos los temas municipales de todos los municipios de la convocatoria
+        $temas = $this->temaMunicipalRepository->createQueryBuilder('t')
+            ->innerJoin('t.municipio', 'm')
+            ->where('m.id IN (:municipiosIds)')
+            ->andWhere('t.activo = :activo')
+            ->setParameter('municipiosIds', $municipiosIds)
+            ->setParameter('activo', true)
+            ->orderBy('m.nombre', 'ASC')
+            ->addOrderBy('t.nombre', 'ASC')
+            ->getQuery()
+            ->getResult();
+        
+        $temasArray = array_map(function($tema) {
+            return [
+                'id' => $tema->getId(),
+                'nombre' => $tema->getNombre() . ' (' . $tema->getMunicipio()->getNombre() . ')',
+            ];
+        }, $temas);
+        
         return new JsonResponse($temasArray);
     }
 
@@ -202,9 +239,13 @@ class ExamenSemanalController extends AbstractController
             // Validar que haya al menos un tipo de examen seleccionado
             $tieneTemasGenerales = !$examenSemanal->getTemas()->isEmpty();
             $tieneTemasMunicipales = $examenSemanal->getMunicipio() !== null && !$examenSemanal->getTemasMunicipales()->isEmpty();
+            
+            // Para convocatoria, solo verificar que haya una convocatoria seleccionada
+            // Los temas se cargarán automáticamente de todos los municipios de la convocatoria
+            $tieneConvocatoria = $examenSemanal->getConvocatoria() !== null;
 
-            if (!$tieneTemasGenerales && !$tieneTemasMunicipales) {
-                $this->addFlash('error', 'Debes seleccionar temas del temario general o crear un examen municipal (municipio + temas municipales).');
+            if (!$tieneTemasGenerales && !$tieneTemasMunicipales && !$tieneConvocatoria) {
+                $this->addFlash('error', 'Debes seleccionar temas del temario general, crear un examen municipal (municipio + temas municipales) o crear un examen de convocatoria.');
                 return $this->render('examen_semanal/new.html.twig', [
                     'examenSemanal' => $examenSemanal,
                     'form' => $form,
@@ -217,6 +258,16 @@ class ExamenSemanalController extends AbstractController
                 return $this->render('examen_semanal/new.html.twig', [
                     'examenSemanal' => $examenSemanal,
                     'form' => $form,
+                ]);
+            }
+
+            // Validar que si se selecciona convocatoria, tenga municipios
+            if ($examenSemanal->getConvocatoria() && $examenSemanal->getConvocatoria()->getMunicipios()->isEmpty()) {
+                $this->addFlash('error', 'La convocatoria seleccionada no tiene municipios asignados.');
+                return $this->render('examen_semanal/new.html.twig', [
+                    'examenSemanal' => $examenSemanal,
+                    'form' => $form,
+                    'convocatorias' => $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']),
                 ]);
             }
 
@@ -361,6 +412,92 @@ class ExamenSemanalController extends AbstractController
                 $examenesCreados[] = $examenMunicipal;
             }
 
+            // Crear examen de convocatoria si hay convocatoria seleccionada
+            if ($tieneConvocatoria) {
+                $examenConvocatoria = new ExamenSemanal();
+                
+                // Validar que el nombre sea requerido
+                $nombreConvocatoria = $form->get('nombreConvocatoria')->getData();
+                if (empty($nombreConvocatoria)) {
+                    $this->addFlash('error', 'Debes especificar el nombre para el examen de convocatoria.');
+                    return $this->render('examen_semanal/new.html.twig', [
+                        'examenSemanal' => $examenSemanal,
+                        'form' => $form,
+                    ]);
+                }
+                $examenConvocatoria->setNombre($nombreConvocatoria);
+                
+                // Usar descripción específica
+                $descripcionConvocatoria = $form->get('descripcionConvocatoria')->getData();
+                $examenConvocatoria->setDescripcion($descripcionConvocatoria);
+                
+                // Usar fechas específicas o requerir que se completen
+                $fechaAperturaConvocatoria = $form->get('fechaAperturaConvocatoria')->getData();
+                $fechaCierreConvocatoria = $form->get('fechaCierreConvocatoria')->getData();
+                
+                if (!$fechaAperturaConvocatoria || !$fechaCierreConvocatoria) {
+                    $this->addFlash('error', 'Debes especificar fecha de apertura y cierre para el examen de convocatoria.');
+                    return $this->render('examen_semanal/new.html.twig', [
+                        'examenSemanal' => $examenSemanal,
+                        'form' => $form,
+                    ]);
+                }
+                
+                if ($fechaCierreConvocatoria <= $fechaAperturaConvocatoria) {
+                    $this->addFlash('error', 'La fecha de cierre del examen de convocatoria debe ser posterior a la fecha de apertura.');
+                    return $this->render('examen_semanal/new.html.twig', [
+                        'examenSemanal' => $examenSemanal,
+                        'form' => $form,
+                    ]);
+                }
+                
+                $examenConvocatoria->setFechaApertura($fechaAperturaConvocatoria);
+                $examenConvocatoria->setFechaCierre($fechaCierreConvocatoria);
+                
+                // Usar dificultad específica o requerir que se complete
+                $dificultadConvocatoria = $form->get('dificultadConvocatoria')->getData();
+                if (!$dificultadConvocatoria) {
+                    $this->addFlash('error', 'Debes especificar la dificultad para el examen de convocatoria.');
+                    return $this->render('examen_semanal/new.html.twig', [
+                        'examenSemanal' => $examenSemanal,
+                        'form' => $form,
+                    ]);
+                }
+                $examenConvocatoria->setDificultad($dificultadConvocatoria);
+                
+                // Número de preguntas (opcional)
+                $numeroPreguntasConvocatoria = $form->get('numeroPreguntasConvocatoria')->getData();
+                $examenConvocatoria->setNumeroPreguntas($numeroPreguntasConvocatoria);
+                
+                $examenConvocatoria->setCreadoPor($profesor);
+                $examenConvocatoria->setActivo(true);
+                $examenConvocatoria->setConvocatoria($examenSemanal->getConvocatoria());
+                
+                // Añadir todos los temas municipales de todos los municipios de la convocatoria
+                // Obtener todos los municipios de la convocatoria
+                $convocatoria = $examenSemanal->getConvocatoria();
+                $municipios = $convocatoria->getMunicipios();
+                $municipiosIds = array_map(fn($m) => $m->getId(), $municipios->toArray());
+                
+                // Obtener todos los temas municipales activos de todos los municipios de la convocatoria
+                $todosLosTemas = $this->temaMunicipalRepository->createQueryBuilder('t')
+                    ->innerJoin('t.municipio', 'm')
+                    ->where('m.id IN (:municipiosIds)')
+                    ->andWhere('t.activo = :activo')
+                    ->setParameter('municipiosIds', $municipiosIds)
+                    ->setParameter('activo', true)
+                    ->getQuery()
+                    ->getResult();
+                
+                // Añadir todos los temas al examen
+                foreach ($todosLosTemas as $temaMunicipal) {
+                    $examenConvocatoria->addTemasMunicipale($temaMunicipal);
+                }
+                
+                $this->entityManager->persist($examenConvocatoria);
+                $examenesCreados[] = $examenConvocatoria;
+            }
+
             $this->entityManager->flush();
 
             // Crear notificaciones para todos los alumnos
@@ -395,9 +532,12 @@ class ExamenSemanalController extends AbstractController
             return $this->redirectToRoute('app_examen_semanal_index', [], Response::HTTP_SEE_OTHER);
         }
 
+        $convocatorias = $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']);
+
         return $this->render('examen_semanal/new.html.twig', [
             'examenSemanal' => $examenSemanal,
             'form' => $form,
+            'convocatorias' => $convocatorias,
         ]);
     }
 

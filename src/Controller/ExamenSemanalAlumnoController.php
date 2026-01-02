@@ -83,20 +83,26 @@ class ExamenSemanalAlumnoController extends AbstractController
             return !in_array($examen->getId(), $examenesRealizadosIds);
         });
 
-        // Separar en examen general y municipal
+        // Separar en examen general, municipal y convocatoria
         $examenGeneral = null;
         $examenMunicipal = null;
+        $examenConvocatoria = null;
 
         foreach ($examenesDisponibles as $examen) {
-            if ($examen->getMunicipio() === null) {
-                // Es examen general
-                if ($examenGeneral === null || $examen->getFechaApertura() > $examenGeneral->getFechaApertura()) {
-                    $examenGeneral = $examen;
+            if ($examen->getConvocatoria() !== null) {
+                // Es examen de convocatoria
+                if ($examenConvocatoria === null || $examen->getFechaApertura() > $examenConvocatoria->getFechaApertura()) {
+                    $examenConvocatoria = $examen;
                 }
-            } else {
+            } elseif ($examen->getMunicipio() !== null) {
                 // Es examen municipal
                 if ($examenMunicipal === null || $examen->getFechaApertura() > $examenMunicipal->getFechaApertura()) {
                     $examenMunicipal = $examen;
+                }
+            } else {
+                // Es examen general
+                if ($examenGeneral === null || $examen->getFechaApertura() > $examenGeneral->getFechaApertura()) {
+                    $examenGeneral = $examen;
                 }
             }
         }
@@ -113,6 +119,7 @@ class ExamenSemanalAlumnoController extends AbstractController
         return $this->render('examen_semanal_alumno/index.html.twig', [
             'examenGeneral' => $examenGeneral,
             'examenMunicipal' => $examenMunicipal,
+            'examenConvocatoria' => $examenConvocatoria,
             'yaRealizadoGeneral' => false, // Ya no se muestran los realizados aquí
             'yaRealizadoMunicipal' => false, // Ya no se muestran los realizados aquí
             'examenesRealizados' => $examenesRealizados,
@@ -158,17 +165,18 @@ class ExamenSemanalAlumnoController extends AbstractController
         // Obtener preguntas según el modo de creación del examen
         $preguntas = [];
         $esMunicipal = $examenSemanal->getMunicipio() !== null;
+        $esConvocatoria = $examenSemanal->getConvocatoria() !== null;
 
         if ($examenSemanal->getModoCreacion() === 'preguntas_especificas') {
             // Examen con preguntas específicas (creadas al vuelo)
-            if ($esMunicipal) {
+            if ($esMunicipal || $esConvocatoria) {
                 $preguntas = $examenSemanal->getPreguntasMunicipales()->toArray();
             } else {
                 $preguntas = $examenSemanal->getPreguntas()->toArray();
             }
         } else {
             // Examen con preguntas por temas (método tradicional)
-            if ($esMunicipal) {
+            if ($esMunicipal || $esConvocatoria) {
                 $temasMunicipales = $examenSemanal->getTemasMunicipales();
                 foreach ($temasMunicipales as $temaMunicipal) {
                     $preguntasTema = $this->preguntaMunicipalRepository->findBy([
@@ -233,11 +241,33 @@ class ExamenSemanalAlumnoController extends AbstractController
         $config = [
             'dificultad' => $examenSemanal->getDificultad(),
             'numero_preguntas' => count($preguntasIds),
-            'es_municipal' => $esMunicipal,
+            'es_municipal' => $esMunicipal || $esConvocatoria,
             'examen_semanal_id' => $examenSemanal->getId(),
         ];
         
-        if ($esMunicipal) {
+        if ($esConvocatoria) {
+            // Examen de convocatoria
+            $config['convocatoria_id'] = $examenSemanal->getConvocatoria()->getId();
+            $config['municipio_id'] = null; // No hay un municipio específico
+            
+            // Si el examen está en modo preguntas específicas, extraer temas municipales de las preguntas
+            if ($examenSemanal->getModoCreacion() === 'preguntas_especificas') {
+                $temasMunicipalesIds = [];
+                foreach ($preguntas as $pregunta) {
+                    if (method_exists($pregunta, 'getTemaMunicipal') && $pregunta->getTemaMunicipal()) {
+                        $temaId = $pregunta->getTemaMunicipal()->getId();
+                        if (!in_array($temaId, $temasMunicipalesIds)) {
+                            $temasMunicipalesIds[] = $temaId;
+                        }
+                    }
+                }
+                $config['temas_municipales'] = $temasMunicipalesIds;
+            } else {
+                // Modo tradicional: usar los temas municipales del examen semanal
+                $config['temas_municipales'] = array_map(fn($t) => $t->getId(), $examenSemanal->getTemasMunicipales()->toArray());
+            }
+        } elseif ($esMunicipal) {
+            // Examen municipal
             $config['municipio_id'] = $examenSemanal->getMunicipio()->getId();
             
             // Si el examen está en modo preguntas específicas, extraer temas municipales de las preguntas
@@ -257,6 +287,7 @@ class ExamenSemanalAlumnoController extends AbstractController
                 $config['temas_municipales'] = array_map(fn($t) => $t->getId(), $examenSemanal->getTemasMunicipales()->toArray());
             }
         } else {
+            // Examen general
             $config['temas'] = array_map(fn($t) => $t->getId(), $examenSemanal->getTemas()->toArray());
         }
         

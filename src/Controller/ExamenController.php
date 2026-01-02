@@ -662,6 +662,8 @@ class ExamenController extends AbstractController
                 ->addSelect('tm')
                 ->leftJoin('es.temas', 't')
                 ->addSelect('t')
+                ->leftJoin('es.convocatoria', 'c')
+                ->addSelect('c')
                 ->where('es.id = :id')
                 ->setParameter('id', $config['examen_semanal_id'])
                 ->getQuery()
@@ -697,7 +699,8 @@ class ExamenController extends AbstractController
             $temasMunicipalesIds = $config['temas_municipales'] ?? [];
             
             // Si viene de un examen semanal y no hay temas en la sesión, obtenerlos del examen semanal
-            if ($examenSemanal && empty($temasMunicipalesIds) && $examenSemanal->getMunicipio()) {
+            // Tanto para exámenes municipales como de convocatoria
+            if ($examenSemanal && empty($temasMunicipalesIds) && ($examenSemanal->getMunicipio() || $examenSemanal->getConvocatoria())) {
                 $temasMunicipalesIds = array_map(fn($t) => $t->getId(), $examenSemanal->getTemasMunicipales()->toArray());
             }
             
@@ -726,7 +729,8 @@ class ExamenController extends AbstractController
             $temasIds = $config['temas'] ?? [];
             
             // Si viene de un examen semanal y no hay temas en la sesión, obtenerlos del examen semanal
-            if ($examenSemanal && empty($temasIds) && !$examenSemanal->getMunicipio()) {
+            // Solo para exámenes generales (sin municipio ni convocatoria)
+            if ($examenSemanal && empty($temasIds) && !$examenSemanal->getMunicipio() && !$examenSemanal->getConvocatoria()) {
                 $temasIds = array_map(fn($t) => $t->getId(), $examenSemanal->getTemas()->toArray());
             }
             
@@ -740,6 +744,23 @@ class ExamenController extends AbstractController
 
         $this->entityManager->persist($examen);
         $this->entityManager->flush();
+
+        // Recargar el examen con todas sus relaciones para asegurar que estén disponibles en el template
+        $examen = $this->examenRepository->createQueryBuilder('e')
+            ->leftJoin('e.convocatoria', 'c')
+            ->addSelect('c')
+            ->leftJoin('c.municipios', 'cm')
+            ->addSelect('cm')
+            ->leftJoin('e.municipio', 'm')
+            ->addSelect('m')
+            ->leftJoin('e.temasMunicipales', 'tm')
+            ->addSelect('tm')
+            ->leftJoin('e.temas', 't')
+            ->addSelect('t')
+            ->where('e.id = :id')
+            ->setParameter('id', $examen->getId())
+            ->getQuery()
+            ->getOneOrNullResult();
 
         // Crear notificación para el profesor asignado
         try {
