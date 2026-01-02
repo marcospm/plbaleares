@@ -218,7 +218,7 @@
                                         <td>{{ actividad.fechaEspecifica|date('d/m/Y') }}</td>
                                         <td>{{ actividad.horaInicio|date('H:i') }}</td>
                                         <td>{{ actividad.horaFin|date('H:i') }}</td>
-                                        <td>{{ actividad.tipoActividad == 'repaso_basico' ? 'Repaso Básico' : 'Estudio y Tareas' }}</td>
+                                        <td>{{ actividad.tipoActividad == 'repaso_basico' ? 'Repaso Básico' : 'Estudio' }}</td>
                                         <td>{{ actividad.descripcionRepaso|slice(0, 50) }}{% if actividad.descripcionRepaso|length > 50 %}...{% endif %}</td>
                                         <td>
                                             <a href="{{ path('app_planificacion_actividad_edit', {'id': actividad.id}) }}" class="btn btn-sm btn-primary">Editar</a>

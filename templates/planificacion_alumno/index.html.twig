@@ -103,7 +103,10 @@
                                                     <span class="badge badge-info">Repaso</span>
                                                     <div>{{ franja.descripcionRepaso }}</div>
                                                 {% else %}
-                                                    <span class="badge badge-success">Estudio/Tareas</span>
+                                                    <span class="badge badge-success">Estudio</span>
+                                                    {% if franja.descripcionRepaso %}
+                                                        <div>{{ franja.descripcionRepaso }}</div>
+                                                    {% endif %}
                                                     {% if tareasFranja|length > 0 %}
                                                         <div class="mt-1">
                                                             <strong>{{ tareasFranja|length }} tarea(s)</strong>
