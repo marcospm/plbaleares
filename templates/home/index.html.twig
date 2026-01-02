@@ -5,7 +5,7 @@
 {% block body %}
 <div style="min-height: 80vh;">
     <!-- Hero Section -->
-    <div style="background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color: white; padding: 2rem 2rem; text-align: center; margin: -2rem -1rem 2rem -1rem; border-bottom: 3px solid var(--color-secondary);">
+    <div class="hero-section" style="background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color: white; padding: 2rem 2rem; text-align: center; margin: -2rem -1rem 2rem -1rem; border-bottom: 3px solid var(--color-secondary);">
         <div class="container" style="max-width: 1200px; margin: 0 auto;">
             <h1 style="font-size: 2rem; margin-bottom: 0.5rem; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
                 Sistema de Oposiciones
@@ -15,10 +15,10 @@
             </h2>
             {% if not app.user %}
                 <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
-                    <a href="{{ path('app_register') }}" class="btn" style="background: var(--color-secondary); color: white; padding: 0.6rem 1.5rem; font-size: 0.95rem; font-weight: 600; text-decoration: none; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: transform 0.3s;">
+                    <a href="{{ path('app_register') }}" class="btn hero-btn" style="background: var(--color-secondary); color: white; padding: 0.6rem 1.5rem; font-size: 0.95rem; font-weight: 600; text-decoration: none; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: transform 0.3s;">
                         Crear Cuenta
                     </a>
-                    <a href="{{ path('app_login') }}" class="btn" style="background: rgba(255,255,255,0.2); color: white; padding: 0.6rem 1.5rem; font-size: 0.95rem; font-weight: 600; text-decoration: none; border-radius: 6px; border: 2px solid white; transition: transform 0.3s;">
+                    <a href="{{ path('app_login') }}" class="btn hero-btn" style="background: rgba(255,255,255,0.2); color: white; padding: 0.6rem 1.5rem; font-size: 0.95rem; font-weight: 600; text-decoration: none; border-radius: 6px; border: 2px solid white; transition: transform 0.3s;">
                         Iniciar Sesión
                     </a>
                 </div>
@@ -94,7 +94,7 @@
                             Explicaciones de Artículos
                         </h3>
                         <p style="color: var(--color-text-light); line-height: 1.6;">
-                            Accede a explicaciones sencillas de todos los artículos de las leyes. Incluye videos explicativos de YouTube para una mejor comprensión. Haz preguntas y obtén respuestas de la comunidad.
+                            Accede a explicaciones sencillas de todos los artículos de las leyes. Haz preguntas y obtén respuestas de la comunidad.
                         </p>
                     </div>
                 </div>
@@ -250,6 +250,79 @@
 .card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+/* Estilos responsive para móviles */
+@media (max-width: 768px) {
+    /* Ajustar hero section en móviles */
+    .hero-section h1 {
+        font-size: 1.5rem !important;
+    }
+    
+    .hero-section h2 {
+        font-size: 1.1rem !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    /* Ajustar botones del hero */
+    .hero-section .hero-btn {
+        font-size: 0.85rem !important;
+        padding: 0.5rem 1.2rem !important;
+        width: 100%;
+        max-width: 200px;
+    }
+    
+    /* Ajustar padding del hero */
+    .hero-section {
+        padding: 1.5rem 1rem !important;
+    }
+    
+    /* Ajustar grid de servicios */
+    div[style*="grid-template-columns: repeat(auto-fit"] {
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem !important;
+    }
+    
+    /* Ajustar tarjetas de servicios */
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    /* Ajustar grid de características */
+    div[style*="grid-template-columns: repeat(auto-fit, minmax(250px"] {
+        grid-template-columns: 1fr !important;
+    }
+    
+    /* Ajustar título de servicios */
+    h2[style*="font-size: 2.5rem"] {
+        font-size: 2rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Ajustes adicionales para pantallas muy pequeñas */
+    .hero-section h1 {
+        font-size: 1.3rem !important;
+    }
+    
+    .hero-section h2 {
+        font-size: 1rem !important;
+    }
+    
+    .hero-section .hero-btn {
+        font-size: 0.8rem !important;
+        padding: 0.45rem 1rem !important;
+        max-width: 180px;
+    }
+    
+    .hero-section {
+        padding: 1rem 0.75rem !important;
+    }
+    
+    /* Ajustar título de servicios */
+    h2[style*="font-size: 2.5rem"] {
+        font-size: 1.75rem !important;
+    }
 }
 </style>
 {% endblock %}

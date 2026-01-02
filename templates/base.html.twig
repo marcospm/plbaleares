@@ -59,6 +59,172 @@
                 .nav-dropdown {
                     position: relative;
                 }
+                
+                /* Estilos responsive para móviles */
+                @media (max-width: 768px) {
+                    /* Ocultar menú de navegación horizontal en móviles solo para usuarios autenticados */
+                    .navbar-nav {
+                        display: flex !important;
+                        flex-direction: column !important;
+                        width: 100% !important;
+                        gap: 0.5rem !important;
+                        margin-top: 0.5rem !important;
+                    }
+                    
+                    .navbar-nav li {
+                        width: 100% !important;
+                    }
+                    
+                    .navbar-nav .nav-link {
+                        display: block !important;
+                        width: 100% !important;
+                        text-align: center !important;
+                        padding: 0.6rem 1rem !important;
+                        border: 1px solid rgba(255,255,255,0.3) !important;
+                        border-radius: 4px !important;
+                        background-color: rgba(255,255,255,0.1) !important;
+                        font-size: 0.9rem !important;
+                    }
+                    
+                    .navbar-nav .nav-link:hover {
+                        background-color: rgba(255,255,255,0.2) !important;
+                    }
+                    
+                    /* Estilos específicos para enlaces de invitados */
+                    .navbar-nav .nav-link-guest {
+                        color: white !important;
+                        border: 1px solid rgba(255,255,255,0.3) !important;
+                        background-color: rgba(255,255,255,0.1) !important;
+                    }
+                    
+                    .navbar-nav .nav-link-guest:hover {
+                        background-color: rgba(255,255,255,0.2) !important;
+                        color: white !important;
+                    }
+                    
+                    /* Ajustar logo y texto en móviles */
+                    .logo-text-main {
+                        font-size: 0.9rem !important;
+                    }
+                    
+                    .logo-text-sub {
+                        font-size: 0.7rem !important;
+                    }
+                    
+                    /* Ajustar botones del menú de profesores */
+                    .nav-dropdown .dropdown-toggle {
+                        font-size: 0.8rem !important;
+                        padding: 0.4rem 0.7rem !important;
+                    }
+                    
+                    /* Ajustar información del usuario */
+                    .navbar > .container > div > div:last-child {
+                        flex-direction: column !important;
+                        align-items: flex-end !important;
+                        gap: 0.5rem !important;
+                    }
+                    
+                    .navbar > .container > div > div:last-child > div {
+                        flex-wrap: wrap !important;
+                        justify-content: flex-end !important;
+                    }
+                    
+                    /* Ajustar badges y texto del usuario */
+                    .navbar span[style*="font-size: 0.9rem"] {
+                        font-size: 0.75rem !important;
+                    }
+                    
+                    .badge {
+                        font-size: 0.65rem !important;
+                        padding: 0.2rem 0.4rem !important;
+                    }
+                    
+                    /* Ajustar botones de notificaciones y logout */
+                    .navbar a[href*="logout"],
+                    .navbar a[onclick*="toggleNotificacionesDropdown"] {
+                        font-size: 0.75rem !important;
+                        padding: 0.35rem 0.6rem !important;
+                    }
+                    
+                    /* Ajustar dropdown de notificaciones en móviles */
+                    .dropdown-menu {
+                        min-width: 280px !important;
+                        max-width: 90vw !important;
+                        right: 0 !important;
+                        left: auto !important;
+                    }
+                    
+                    /* Ajustar menú de profesores debajo del logo */
+                    .navbar > .container > div > div:first-child > div:last-child {
+                        flex-wrap: wrap !important;
+                        gap: 0.4rem !important;
+                    }
+                    
+                    /* Hacer que los botones se apilen mejor */
+                    .navbar > .container > div {
+                        flex-direction: column !important;
+                        align-items: stretch !important;
+                    }
+                    
+                    .navbar > .container > div > div:first-child {
+                        width: 100% !important;
+                    }
+                    
+                    .navbar > .container > div > div:last-child {
+                        width: 100% !important;
+                        margin-left: 0 !important;
+                        justify-content: space-between !important;
+                    }
+                    
+                    /* Asegurar que el navbar-nav esté visible para usuarios no autenticados */
+                    .navbar > .container > div {
+                        flex-direction: column !important;
+                    }
+                    
+                    /* Asegurar que el contenedor del menú sea visible */
+                    .navbar > .container > div > div:last-child {
+                        order: 2;
+                    }
+                    
+                    .navbar > .container > div > div:first-child {
+                        order: 1;
+                    }
+                }
+                
+                @media (max-width: 480px) {
+                    /* Ajustes adicionales para pantallas muy pequeñas */
+                    .navbar-nav .nav-link-guest {
+                        font-size: 0.85rem !important;
+                        padding: 0.5rem 0.75rem !important;
+                    }
+                }
+                
+                @media (max-width: 480px) {
+                    /* Ajustes adicionales para pantallas muy pequeñas */
+                    .logo-text-main {
+                        font-size: 0.8rem !important;
+                    }
+                    
+                    .logo-text-sub {
+                        font-size: 0.65rem !important;
+                    }
+                    
+                    .nav-dropdown .dropdown-toggle {
+                        font-size: 0.75rem !important;
+                        padding: 0.35rem 0.6rem !important;
+                    }
+                    
+                    .navbar a[href*="logout"],
+                    .navbar a[onclick*="toggleNotificacionesDropdown"] {
+                        font-size: 0.7rem !important;
+                        padding: 0.3rem 0.5rem !important;
+                    }
+                    
+                    /* Ocultar nombre de usuario en pantallas muy pequeñas, solo mostrar badge */
+                    .navbar span[style*="font-size: 0.9rem"] {
+                        display: none !important;
+                    }
+                }
             </style>
         {% endblock %}
 
@@ -387,7 +553,7 @@
                             </div>
                         {% endif %}
                     </div>
-                    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-left: auto;">
+                    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; {% if not app.user %}width: 100%; justify-content: flex-end;{% else %}margin-left: auto;{% endif %}">
                         {% if app.user %}
                             <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; flex-wrap: wrap;">
                                 <span style="font-size: 0.9rem; color: white; font-weight: 500;">
@@ -453,10 +619,8 @@
                                 {% endif %}
                             {% else %}
                                 {# Menú para usuarios no autenticados #}
-                                <li><a href="{{ path('app_home') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Inicio</a></li>
-                                <li><a href="{{ path('app_contacto') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Contacto</a></li>
-                                <li><a href="{{ path('app_register') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Registrarse</a></li>
-                                <li><a href="{{ path('app_login') }}" class="nav-link" style="border: 1px solid #ddd; padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem;">Iniciar Sesión</a></li>
+                                <li><a href="{{ path('app_home') }}" class="nav-link nav-link-guest" style="border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem; color: white; text-decoration: none; background-color: rgba(255,255,255,0.1);">Inicio</a></li>
+                                <li><a href="{{ path('app_contacto') }}" class="nav-link nav-link-guest" style="border: 1px solid rgba(255,255,255,0.3); padding: 0.5rem 1rem; border-radius: 4px; margin: 0 0.25rem; color: white; text-decoration: none; background-color: rgba(255,255,255,0.1);">Contacto</a></li>
                             {% endif %}
                         </ul>
                     </div>
