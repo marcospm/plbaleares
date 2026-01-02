@@ -249,15 +249,47 @@ class ExamenSemanalController extends AbstractController
                 return $this->render('examen_semanal/new.html.twig', [
                     'examenSemanal' => $examenSemanal,
                     'form' => $form,
+                    'convocatorias' => $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']),
                 ]);
             }
 
-            // Validar que si se selecciona municipio, tenga temas municipales
-            if ($examenSemanal->getMunicipio() && $examenSemanal->getTemasMunicipales()->isEmpty()) {
-                $this->addFlash('error', 'Si seleccionas un municipio, debes seleccionar al menos un tema municipal.');
+            // Validar examen de 30 temas: temas son obligatorios
+            if ($tieneTemasGenerales && $examenSemanal->getTemas()->isEmpty()) {
+                $this->addFlash('error', 'Para crear un examen de 30 temas, debes seleccionar al menos un tema del temario general.');
                 return $this->render('examen_semanal/new.html.twig', [
                     'examenSemanal' => $examenSemanal,
                     'form' => $form,
+                    'convocatorias' => $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']),
+                ]);
+            }
+
+            // Validar examen de convocatoria: convocatoria es obligatoria
+            if ($tieneConvocatoria && $examenSemanal->getConvocatoria() === null) {
+                $this->addFlash('error', 'Para crear un examen de convocatoria, debes seleccionar una convocatoria.');
+                return $this->render('examen_semanal/new.html.twig', [
+                    'examenSemanal' => $examenSemanal,
+                    'form' => $form,
+                    'convocatorias' => $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']),
+                ]);
+            }
+
+            // Validar examen municipal: municipio y temas municipales son obligatorios
+            if ($examenSemanal->getMunicipio() !== null) {
+                if ($examenSemanal->getTemasMunicipales()->isEmpty()) {
+                    $this->addFlash('error', 'Para crear un examen municipal, debes seleccionar un municipio y al menos un tema municipal.');
+                    return $this->render('examen_semanal/new.html.twig', [
+                        'examenSemanal' => $examenSemanal,
+                        'form' => $form,
+                        'convocatorias' => $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']),
+                    ]);
+                }
+            } elseif (!$examenSemanal->getTemasMunicipales()->isEmpty()) {
+                // Si hay temas municipales pero no municipio
+                $this->addFlash('error', 'Si seleccionas temas municipales, debes seleccionar también un municipio.');
+                return $this->render('examen_semanal/new.html.twig', [
+                    'examenSemanal' => $examenSemanal,
+                    'form' => $form,
+                    'convocatorias' => $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']),
                 ]);
             }
 

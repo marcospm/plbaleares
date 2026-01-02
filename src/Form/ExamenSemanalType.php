@@ -16,6 +16,10 @@ use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Constraints\Count;
 
 class ExamenSemanalType extends AbstractType
 {
@@ -103,18 +107,18 @@ class ExamenSemanalType extends AbstractType
                     'multiple' => true,
                     'expanded' => false,
                     'required' => false,
-                    'label' => 'Temas del Temario General (opcional)',
+                    'label' => 'Temas del Temario General',
                     'attr' => ['class' => 'form-control'],
-                    'help' => 'Selecciona los temas para crear un examen del temario general'
+                    'help' => 'Selecciona los temas para crear un examen del temario general (obligatorio si creas examen de 30 temas)'
                 ])
                 ->add('municipio', EntityType::class, [
                     'class' => Municipio::class,
                     'choice_label' => 'nombre',
                     'required' => false,
-                    'label' => 'Municipio para Examen Municipal (opcional)',
+                    'label' => 'Municipio para Examen Municipal',
                     'placeholder' => 'Ninguno',
                     'attr' => ['class' => 'form-control', 'id' => 'examen_semanal_municipio'],
-                    'help' => 'Selecciona un municipio para crear también un examen municipal'
+                    'help' => 'Selecciona un municipio para crear un examen municipal (obligatorio si creas examen municipal)'
                 ])
                 ->add('temasMunicipales', EntityType::class, [
                     'class' => TemaMunicipal::class,
@@ -122,9 +126,9 @@ class ExamenSemanalType extends AbstractType
                     'multiple' => true,
                     'expanded' => false,
                     'required' => false,
-                    'label' => 'Temas Municipales (si se selecciona municipio)',
+                    'label' => 'Temas Municipales',
                     'attr' => ['class' => 'form-control', 'id' => 'examen_semanal_temasMunicipales'],
-                    'help' => 'Selecciona los temas municipales para el examen municipal. Los temas se filtrarán automáticamente según el municipio seleccionado.',
+                    'help' => 'Selecciona los temas municipales para el examen municipal (obligatorio si seleccionas municipio). Los temas se filtrarán automáticamente según el municipio seleccionado.',
                     'query_builder' => function ($er) {
                         return $er->createQueryBuilder('t')
                             ->where('1 = 0'); // No mostrar nada inicialmente
@@ -134,10 +138,10 @@ class ExamenSemanalType extends AbstractType
                     'class' => Convocatoria::class,
                     'choice_label' => 'nombre',
                     'required' => false,
-                    'label' => 'Convocatoria para Examen de Convocatoria (opcional)',
+                    'label' => 'Convocatoria para Examen de Convocatoria',
                     'placeholder' => 'Ninguna',
                     'attr' => ['class' => 'form-control', 'id' => 'examen_semanal_convocatoria'],
-                    'help' => 'Selecciona una convocatoria. El examen incluirá automáticamente todos los temas de todos los municipios de la convocatoria seleccionada.'
+                    'help' => 'Selecciona una convocatoria (obligatorio si creas examen de convocatoria). El examen incluirá automáticamente todos los temas de todos los municipios de la convocatoria seleccionada.'
                 ])
                 ->add('temasMunicipalesConvocatoria', EntityType::class, [
                     'class' => TemaMunicipal::class,
@@ -343,6 +347,7 @@ class ExamenSemanalType extends AbstractType
                     'help' => 'Número de preguntas que tendrá el examen de convocatoria. Si se deja vacío, se usarán todas las preguntas disponibles de todos los temas de todos los municipios de la convocatoria.'
                 ])
             ;
+            
         }
     }
 

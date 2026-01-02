@@ -118,20 +118,29 @@
         {{ form_end(form) }}
 
         <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const municipioSelect = document.getElementById('examen_semanal_municipio');
-            const temasMunicipalesSelect = document.getElementById('examen_semanal_temasMunicipales');
-            
-            if (municipioSelect && temasMunicipalesSelect) {
+        // Usar función inmediata para asegurar que se ejecute tan pronto como sea posible
+        (function() {
+            function initializeMunicipioTemas() {
+                const municipioSelect = document.getElementById('examen_semanal_municipio');
+                const temasMunicipalesSelect = document.getElementById('examen_semanal_temasMunicipales');
+                
+                if (!municipioSelect || !temasMunicipalesSelect) {
+                    // Si los elementos no están disponibles, intentar de nuevo en el siguiente ciclo
+                    setTimeout(initializeMunicipioTemas, 50);
+                    return;
+                }
+                
                 // Función para cargar temas municipales
                 function cargarTemasMunicipales(municipioId) {
                     // Limpiar selección actual
                     temasMunicipalesSelect.innerHTML = '<option value="">Cargando temas...</option>';
                     temasMunicipalesSelect.disabled = true;
+                    temasMunicipalesSelect.style.opacity = '0.6';
                     
                     if (!municipioId || municipioId === '') {
                         temasMunicipalesSelect.innerHTML = '<option value="">Selecciona un municipio primero</option>';
                         temasMunicipalesSelect.disabled = true;
+                        temasMunicipalesSelect.style.opacity = '0.6';
                         return;
                     }
                     
@@ -147,6 +156,7 @@
                                 option.textContent = 'No hay temas disponibles para este municipio';
                                 temasMunicipalesSelect.appendChild(option);
                                 temasMunicipalesSelect.disabled = true;
+                                temasMunicipalesSelect.style.opacity = '0.6';
                             } else {
                                 // Agregar placeholder
                                 const placeholderOption = document.createElement('option');
@@ -163,12 +173,14 @@
                                 });
                                 
                                 temasMunicipalesSelect.disabled = false;
+                                temasMunicipalesSelect.style.opacity = '1';
                             }
                         })
                         .catch(error => {
                             console.error('Error al cargar temas municipales:', error);
                             temasMunicipalesSelect.innerHTML = '<option value="">Error al cargar temas</option>';
                             temasMunicipalesSelect.disabled = true;
+                            temasMunicipalesSelect.style.opacity = '0.6';
                         });
                 }
                 
@@ -177,16 +189,26 @@
                     cargarTemasMunicipales(this.value);
                 });
                 
-                // Inicializar estado: si no hay municipio seleccionado, deshabilitar temas
+                // Inicializar estado inmediatamente: si no hay municipio seleccionado, deshabilitar temas
                 if (!municipioSelect.value || municipioSelect.value === '') {
+                    // Limpiar cualquier contenido previo y establecer estado inicial
                     temasMunicipalesSelect.innerHTML = '<option value="">Selecciona un municipio primero</option>';
                     temasMunicipalesSelect.disabled = true;
+                    temasMunicipalesSelect.style.opacity = '0.6';
                 } else {
                     // Si ya hay un municipio seleccionado, cargar sus temas
                     cargarTemasMunicipales(municipioSelect.value);
                 }
             }
-        });
+            
+            // Intentar inicializar inmediatamente
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initializeMunicipioTemas);
+            } else {
+                // DOM ya está listo, ejecutar inmediatamente
+                initializeMunicipioTemas();
+            }
+        })();
         </script>
     </div>
 </div>
