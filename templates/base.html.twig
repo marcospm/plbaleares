@@ -60,6 +60,24 @@
                     position: relative;
                 }
                 
+                /* Estilos para botones del menú del alumno */
+                .nav-link-alumno {
+                    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                    border-radius: 6px !important;
+                    padding: 0.5rem 1rem !important;
+                    background-color: rgba(255, 255, 255, 0.05) !important;
+                    transition: all 0.2s ease !important;
+                    display: inline-block !important;
+                    margin: 0.25rem 0.5rem !important;
+                }
+                
+                .nav-link-alumno:hover {
+                    background-color: rgba(255, 255, 255, 0.15) !important;
+                    border-color: rgba(255, 255, 255, 0.4) !important;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                }
+                
                 /* Estilos responsive para móviles */
                 @media (max-width: 768px) {
                     /* Ocultar menú de navegación horizontal en móviles solo para usuarios autenticados */
@@ -100,6 +118,13 @@
                     .navbar-nav .nav-link-guest:hover {
                         background-color: rgba(255,255,255,0.2) !important;
                         color: white !important;
+                    }
+                    
+                    /* Ajustar botones del alumno en móviles */
+                    .navbar-nav .nav-link-alumno {
+                        width: 100% !important;
+                        margin: 0.25rem 0 !important;
+                        text-align: center !important;
                     }
                     
                     /* Ajustar logo y texto en móviles */
@@ -605,17 +630,21 @@
                         <ul class="navbar-nav">
                             {% if app.user %}
                                 {# Menú común: Inicio #}
-                                <li><a href="{{ path('app_dashboard') }}" class="nav-link">Inicio</a></li>
+                                {% if not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
+                                    <li><a href="{{ path('app_dashboard') }}" class="nav-link nav-link-alumno">Inicio</a></li>
+                                {% else %}
+                                    <li><a href="{{ path('app_dashboard') }}" class="nav-link">Inicio</a></li>
+                                {% endif %}
                                 
                                 {# Menú para ALUMNOS (ROLE_USER sin ROLE_PROFESOR ni ROLE_ADMIN) #}
                                 {% if not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
-                                    <li><a href="{{ path('app_planificacion_alumno_index') }}" class="nav-link">Mi Planificación</a></li>
-                                    <li><a href="{{ path('app_examen_iniciar') }}" class="nav-link">Exámenes</a></li>
-                                    <li><a href="{{ path('app_examen_semanal_alumno_index') }}" class="nav-link">Exámenes Semanales</a></li>
-                                    <li><a href="{{ path('app_examen_historial') }}" class="nav-link">Historial</a></li>
-                                    <li><a href="{{ path('app_articulo_publico_index') }}" class="nav-link">Artículos</a></li>
-                                    <li><a href="{{ path('app_recurso_publico_index') }}" class="nav-link">Recursos</a></li>
-                                    <li><a href="{{ path('app_contacto') }}" class="nav-link">Contacto</a></li>
+                                    <li><a href="{{ path('app_planificacion_alumno_index') }}" class="nav-link nav-link-alumno">Mi Planificación</a></li>
+                                    <li><a href="{{ path('app_examen_iniciar') }}" class="nav-link nav-link-alumno">Exámenes</a></li>
+                                    <li><a href="{{ path('app_examen_semanal_alumno_index') }}" class="nav-link nav-link-alumno">Exámenes Semanales</a></li>
+                                    <li><a href="{{ path('app_examen_historial') }}" class="nav-link nav-link-alumno">Historial</a></li>
+                                    <li><a href="{{ path('app_articulo_publico_index') }}" class="nav-link nav-link-alumno">Artículos</a></li>
+                                    <li><a href="{{ path('app_recurso_publico_index') }}" class="nav-link nav-link-alumno">Recursos</a></li>
+                                    <li><a href="{{ path('app_contacto') }}" class="nav-link nav-link-alumno">Contacto</a></li>
                                 {% endif %}
                             {% else %}
                                 {# Menú para usuarios no autenticados #}
