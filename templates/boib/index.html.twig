@@ -1,0 +1,370 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}BOIB - Boletín Oficial de las Islas Baleares{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .boib-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .boib-header h1 {
+            color: white;
+            margin-bottom: 0.5rem;
+            font-size: 2rem;
+        }
+        
+        .boib-header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.1rem;
+            margin: 0;
+        }
+        
+        .resultados-container {
+            margin-top: 2rem;
+        }
+        
+        .resultado-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .resultado-item:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+            border-color: var(--color-primary);
+        }
+        
+        .resultado-item h3 {
+            color: var(--color-primary);
+            margin-bottom: 0.75rem;
+            font-size: 1.3rem;
+        }
+        
+        .resultado-item .info {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .resultado-item .info span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .resultado-item .coincidencias {
+            background-color: #e3f2fd;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        
+        .resultado-item .coincidencias strong {
+            color: var(--color-primary);
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        
+        .resultado-item .coincidencias ul {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+        
+        .resultado-item .coincidencias li {
+            margin-bottom: 0.25rem;
+        }
+        
+        .resultado-item .extractos {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #ddd;
+        }
+        
+        .resultado-item .extractos .extracto {
+            background-color: #f5f5f5;
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #555;
+        }
+        
+        .resultado-item .enlaces {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .resultado-item .enlace {
+            display: inline-block;
+            background-color: var(--color-primary);
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .resultado-item .enlace:hover {
+            background-color: #0056b3;
+            transform: translateX(4px);
+        }
+        
+        .resultado-item .enlace-secundario {
+            background-color: #6c757d;
+        }
+        
+        .resultado-item .enlace-secundario:hover {
+            background-color: #5a6268;
+        }
+        
+        .sin-resultados {
+            text-align: center;
+            padding: 3rem;
+            background: white;
+            border-radius: 8px;
+            border: 2px dashed #ddd;
+        }
+        
+        .sin-resultados h3 {
+            color: #666;
+            margin-bottom: 1rem;
+        }
+        
+        .sin-resultados p {
+            color: #999;
+        }
+        
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+        
+        .badge-coincidencia {
+            display: inline-block;
+            background-color: #28a745;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <div class="boib-header">
+            <h1>📋 BOIB - Boletín Oficial de las Islas Baleares</h1>
+            <p>Búsqueda automática de entradas relacionadas con policía, policía local, proceso unificado y OEP</p>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if buscando and resultados is empty and error is empty %}
+            <div style="text-align: center; padding: 2rem;">
+                <p style="font-size: 1.1rem; color: #666;">Cargando boletines del BOIB...</p>
+            </div>
+        {% endif %}
+
+        {% if error %}
+            <div class="error-message">
+                <strong>Error:</strong> {{ error }}
+            </div>
+        {% endif %}
+
+
+        {% if buscando %}
+            {% if error %}
+                <div class="error-message">
+                    <strong>Error:</strong> {{ error }}
+                </div>
+            {% endif %}
+            
+            {% if resultados is defined and resultados|length > 0 %}
+                <div style="margin-top: 2rem;">
+                    <h2 style="margin-bottom: 1.5rem; color: var(--color-primary);">
+                        Boletines encontrados: {{ resultados|length }}
+                    </h2>
+                    
+                    <div style="display: grid; gap: 1rem;">
+                        {% for item in resultados %}
+                            <div class="resultado-item">
+                                <h3 style="color: var(--color-primary); margin-bottom: 0.75rem; font-size: 1.2rem;">
+                                    {{ item.titulo }}
+                                </h3>
+                                
+                                <div class="info">
+                                    {% if item.fechaFormateada %}
+                                        <span>📅 <strong>Fecha:</strong> {{ item.fechaFormateada }}</span>
+                                    {% endif %}
+                                    {% if item.link %}
+                                        <span>🔗 <strong>Enlace:</strong> <a href="{{ item.link }}" target="_blank" style="color: var(--color-primary); text-decoration: underline;">Ver en BOIB</a></span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                                    {% if item.urlSumario %}
+                                        <button type="button" class="btn btn-primary consultar-sumario-btn" 
+                                                data-url="{{ item.urlSumario }}" 
+                                                data-titulo="{{ item.titulo|e }}"
+                                                style="padding: 0.6rem 1.5rem; font-weight: 600;">
+                                            🔍 Consultar Sumario
+                                        </button>
+                                        <a href="{{ item.urlSumario }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="padding: 0.6rem 1.5rem; font-weight: 600; text-decoration: none; display: inline-block;">
+                                            📄 Ver PDF
+                                        </a>
+                                    {% else %}
+                                        <button type="button" class="btn btn-secondary" disabled style="padding: 0.6rem 1.5rem; font-weight: 600;">
+                                            🔍 Consultar (URL no disponible)
+                                        </button>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="resultado-consulta" id="consulta-{{ loop.index }}" style="display: none; margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 6px; border: 1px solid #ddd;">
+                                    <div class="loading-consulta" style="text-align: center; padding: 1rem;">
+                                        <p>Consultando sumario...</p>
+                                    </div>
+                                    <div class="resultado-consulta-content" style="display: none;"></div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% elseif xmlContent %}
+                <div style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 1.5rem; margin-top: 2rem;">
+                    <h2 style="margin-bottom: 1rem; color: var(--color-primary);">XML del Feed RSS</h2>
+                    <div style="background: white; padding: 1rem; border-radius: 4px; border: 1px solid #ccc;">
+                        <pre style="margin: 0; overflow-x: auto; max-height: 600px; overflow-y: auto; font-size: 0.85rem; line-height: 1.4; white-space: pre-wrap; word-wrap: break-word;">{{ xmlContent|raw }}</pre>
+                    </div>
+                </div>
+            {% else %}
+                <div class="loading">
+                    <p>Cargando boletines del RSS...</p>
+                    {% if error %}
+                        <p style="color: red; margin-top: 0.5rem;">{{ error }}</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% endif %}
+
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const botones = document.querySelectorAll('.consultar-sumario-btn');
+        
+        botones.forEach(function(boton) {
+            boton.addEventListener('click', function() {
+                const url = this.getAttribute('data-url');
+                const titulo = this.getAttribute('data-titulo');
+                const resultadoDiv = this.closest('.resultado-item').querySelector('.resultado-consulta');
+                const loadingDiv = resultadoDiv.querySelector('.loading-consulta');
+                const contentDiv = resultadoDiv.querySelector('.resultado-consulta-content');
+                
+                // Mostrar el div de resultado
+                resultadoDiv.style.display = 'block';
+                loadingDiv.style.display = 'block';
+                contentDiv.style.display = 'none';
+                
+                // Deshabilitar el botón mientras se consulta
+                this.disabled = true;
+                this.textContent = 'Consultando...';
+                
+                // Hacer la petición
+                fetch('{{ path('app_boib_consultar') }}?consultar=' + encodeURIComponent(url))
+                    .then(response => response.json())
+                    .then(data => {
+                        loadingDiv.style.display = 'none';
+                        contentDiv.style.display = 'block';
+                        
+                        if (data.success) {
+                            if (data.extractos && data.extractos.length > 0) {
+                                let html = '<div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; padding: 1rem; margin-bottom: 1rem;">';
+                                html += '<strong style="color: #155724; display: block; margin-bottom: 0.75rem; font-size: 1.1rem;">✅ Referencias encontradas (' + data.totalExtractos + '):</strong>';
+                                
+                                if (data.terminosEncontrados && data.terminosEncontrados.length > 0) {
+                                    html += '<div style="margin-bottom: 1rem; padding: 0.75rem; background: white; border-radius: 4px; border: 1px solid #c3e6cb;">';
+                                    html += '<strong style="color: #155724; display: block; margin-bottom: 0.5rem;">Términos encontrados:</strong>';
+                                    html += '<div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">';
+                                    data.terminosEncontrados.forEach(function(termino) {
+                                        html += '<span style="background: #28a745; color: white; padding: 0.25rem 0.75rem; border-radius: 3px; font-size: 0.85rem; font-weight: 500;">' + termino + '</span>';
+                                    });
+                                    html += '</div>';
+                                    html += '</div>';
+                                }
+                                
+                                html += '<div style="display: grid; gap: 1rem;">';
+                                data.extractos.forEach(function(extracto, index) {
+                                    html += '<div style="background: white; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+                                    html += '<div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">';
+                                    html += '<span style="background: #28a745; color: white; padding: 0.2rem 0.6rem; border-radius: 3px; font-size: 0.75rem; font-weight: 600;">#' + (index + 1) + '</span>';
+                                    html += '<strong style="color: #155724; font-size: 0.95rem;">Término: ' + extracto.termino + '</strong>';
+                                    html += '</div>';
+                                    html += '<div style="color: #333; line-height: 1.6; font-size: 0.9rem; white-space: pre-wrap; word-wrap: break-word;">';
+                                    // Resaltar el término encontrado en el texto
+                                    let textoResaltado = extracto.texto.replace(
+                                        new RegExp('(' + extracto.termino.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'),
+                                        '<mark style="background: #ffeb3b; padding: 0.1rem 0.2rem; border-radius: 2px; font-weight: 600;">$1</mark>'
+                                    );
+                                    html += textoResaltado;
+                                    html += '</div>';
+                                    html += '</div>';
+                                });
+                                html += '</div>';
+                                html += '</div>';
+                                contentDiv.innerHTML = html;
+                            } else {
+                                contentDiv.innerHTML = '<div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 1rem; color: #856404;">⚠️ No se encontraron referencias a policía, proceso unificado u OEP en este sumario.</div>';
+                            }
+                        } else {
+                            contentDiv.innerHTML = '<div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; padding: 1rem; color: #721c24;">❌ Error: ' + (data.error || 'Error desconocido') + '</div>';
+                        }
+                        
+                        // Rehabilitar el botón
+                        boton.disabled = false;
+                        boton.textContent = '🔍 Consultar Sumario';
+                    })
+                    .catch(error => {
+                        loadingDiv.style.display = 'none';
+                        contentDiv.style.display = 'block';
+                        contentDiv.innerHTML = '<div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; padding: 1rem; color: #721c24;">❌ Error al consultar: ' + error.message + '</div>';
+                        
+                        // Rehabilitar el botón
+                        boton.disabled = false;
+                        boton.textContent = '🔍 Consultar Sumario';
+                    });
+            });
+        });
+    });
+</script>
+{% endblock %}
