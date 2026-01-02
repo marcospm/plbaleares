@@ -1,0 +1,53 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Clonar Planificación{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Clonar Planificación</h1>
+        <p class="text-muted mb-0">Selecciona el alumno origen (de quien se copia) y el alumno destino (a quien se copia). Se eliminarán todas las planificaciones del alumno destino antes de copiar las del origen.</p>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            <div class="mb-4">
+                <label for="alumno_origen" class="form-label" style="font-weight: 600; color: #333; margin-bottom: 0.5rem;">
+                    Alumno Origen <span style="color: #dc3545;">*</span>
+                </label>
+                <select id="alumno_origen" name="alumno_origen" class="form-select" required style="padding: 0.625rem 0.75rem; font-size: 0.95rem;">
+                    <option value="">-- Selecciona el alumno origen --</option>
+                    {% for usuario in usuarios %}
+                        <option value="{{ usuario.id }}">{{ usuario.username }}</option>
+                    {% endfor %}
+                </select>
+                <small class="form-text text-muted">Alumno del cual se copiará la planificación</small>
+            </div>
+
+            <div class="mb-4">
+                <label for="alumno_destino" class="form-label" style="font-weight: 600; color: #333; margin-bottom: 0.5rem;">
+                    Alumno Destino <span style="color: #dc3545;">*</span>
+                </label>
+                <select id="alumno_destino" name="alumno_destino" class="form-select" required style="padding: 0.625rem 0.75rem; font-size: 0.95rem;">
+                    <option value="">-- Selecciona el alumno destino --</option>
+                    {% for usuario in usuarios %}
+                        <option value="{{ usuario.id }}">{{ usuario.username }}</option>
+                    {% endfor %}
+                </select>
+                <small class="form-text text-muted">Alumno al cual se copiará la planificación (se eliminarán todas sus planificaciones actuales)</small>
+            </div>
+
+            <div class="alert alert-warning" role="alert" style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 0.375rem; padding: 1rem; margin-bottom: 1.5rem;">
+                <strong>⚠️ Advertencia:</strong> Esta acción eliminará todas las planificaciones existentes del alumno destino y las reemplazará con las del alumno origen. Esta acción no se puede deshacer.
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success" onclick="return confirm('¿Estás seguro de clonar la planificación? Se eliminarán todas las planificaciones del alumno destino.');">
+                    Clonar Planificación
+                </button>
+                <a href="{{ path('app_planificacion_index') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

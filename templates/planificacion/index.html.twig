@@ -61,7 +61,10 @@
 {% block body %}
 <div class="d-flex justify-content-between mb-4">
     <h1>Planificaciones</h1>
-    <a href="{{ path('app_planificacion_new') }}" class="btn btn-primary">Nueva Planificación</a>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="{{ path('app_planificacion_clonar') }}" class="btn btn-success">Clonar Planificación</a>
+        <a href="{{ path('app_planificacion_new') }}" class="btn btn-primary">Nueva Planificación</a>
+    </div>
 </div>
 
 <div class="card mb-3">

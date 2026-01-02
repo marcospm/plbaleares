@@ -60,6 +60,144 @@ class PlanificacionController extends AbstractController
         ]);
     }
 
+    #[Route('/clonar', name: 'app_planificacion_clonar', methods: ['GET', 'POST'])]
+    public function clonar(
+        Request $request,
+        PlanificacionPersonalizadaRepository $planificacionRepository,
+        UserRepository $userRepository,
+        EntityManagerInterface $entityManager,
+        NotificacionService $notificacionService
+    ): Response {
+        $usuarios = $userRepository->createQueryBuilder('u')
+            ->where('u.activo = :activo')
+            ->andWhere('u.roles LIKE :role')
+            ->setParameter('activo', true)
+            ->setParameter('role', '%ROLE_USER%')
+            ->orderBy('u.username', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        if ($request->isMethod('POST')) {
+            $alumnoOrigenId = $request->request->get('alumno_origen');
+            $alumnoDestinoId = $request->request->get('alumno_destino');
+
+            if (!$alumnoOrigenId || !$alumnoDestinoId) {
+                $this->addFlash('error', 'Debes seleccionar tanto el alumno origen como el alumno destino.');
+                return $this->render('planificacion/clonar.html.twig', [
+                    'usuarios' => $usuarios,
+                ]);
+            }
+
+            if ($alumnoOrigenId === $alumnoDestinoId) {
+                $this->addFlash('error', 'El alumno origen y destino no pueden ser el mismo.');
+                return $this->render('planificacion/clonar.html.twig', [
+                    'usuarios' => $usuarios,
+                ]);
+            }
+
+            $alumnoOrigen = $userRepository->find($alumnoOrigenId);
+            $alumnoDestino = $userRepository->find($alumnoDestinoId);
+
+            if (!$alumnoOrigen || !$alumnoDestino) {
+                $this->addFlash('error', 'Uno o ambos alumnos no fueron encontrados.');
+                return $this->render('planificacion/clonar.html.twig', [
+                    'usuarios' => $usuarios,
+                ]);
+            }
+
+            // Obtener todas las planificaciones del alumno origen
+            $planificacionesOrigen = $planificacionRepository->findBy(['usuario' => $alumnoOrigen]);
+
+            if (empty($planificacionesOrigen)) {
+                $this->addFlash('error', 'El alumno origen no tiene planificaciones para clonar.');
+                return $this->render('planificacion/clonar.html.twig', [
+                    'usuarios' => $usuarios,
+                ]);
+            }
+
+            // Obtener todas las planificaciones del alumno destino y eliminarlas
+            $planificacionesDestino = $planificacionRepository->findBy(['usuario' => $alumnoDestino]);
+            $planificacionesEliminadas = count($planificacionesDestino);
+
+            foreach ($planificacionesDestino as $planificacionDestino) {
+                // Eliminar también las tareas asignadas relacionadas
+                foreach ($planificacionDestino->getFranjasHorarias() as $franja) {
+                    foreach ($franja->getTareasAsignadas() as $tareaAsignada) {
+                        $entityManager->remove($tareaAsignada);
+                    }
+                }
+                $entityManager->remove($planificacionDestino);
+            }
+
+            // Clonar todas las planificaciones del origen al destino
+            $planificacionesClonadas = 0;
+            $creadoPor = $this->getUser();
+
+            foreach ($planificacionesOrigen as $planificacionOrigen) {
+                try {
+                    // Crear nueva planificación para el destino
+                    $nuevaPlanificacion = new PlanificacionPersonalizada();
+                    $nuevaPlanificacion->setUsuario($alumnoDestino);
+                    $nuevaPlanificacion->setCreadoPor($creadoPor);
+                    $nuevaPlanificacion->setNombre($planificacionOrigen->getNombre());
+                    $nuevaPlanificacion->setDescripcion($planificacionOrigen->getDescripcion());
+                    $nuevaPlanificacion->setFechaInicio($planificacionOrigen->getFechaInicio());
+                    $nuevaPlanificacion->setFechaFin($planificacionOrigen->getFechaFin());
+
+                    // Clonar todas las franjas horarias
+                    foreach ($planificacionOrigen->getFranjasHorarias() as $franjaOrigen) {
+                        $nuevaFranja = new \App\Entity\FranjaHorariaPersonalizada();
+                        $nuevaFranja->setPlanificacion($nuevaPlanificacion);
+                        $nuevaFranja->setFranjaBase($franjaOrigen->getFranjaBase());
+                        $nuevaFranja->setFechaEspecifica($franjaOrigen->getFechaEspecifica());
+                        $nuevaFranja->setHoraInicio($franjaOrigen->getHoraInicio());
+                        $nuevaFranja->setHoraFin($franjaOrigen->getHoraFin());
+                        $nuevaFranja->setTipoActividad($franjaOrigen->getTipoActividad());
+                        $nuevaFranja->setDescripcionRepaso($franjaOrigen->getDescripcionRepaso());
+                        $nuevaFranja->setTemas($franjaOrigen->getTemas());
+                        $nuevaFranja->setRecursos($franjaOrigen->getRecursos());
+                        $nuevaFranja->setEnlaces($franjaOrigen->getEnlaces());
+                        $nuevaFranja->setNotas($franjaOrigen->getNotas());
+                        $nuevaFranja->setOrden($franjaOrigen->getOrden());
+
+                        $nuevaPlanificacion->addFranjaHoraria($nuevaFranja);
+                    }
+
+                    $entityManager->persist($nuevaPlanificacion);
+                    $planificacionesClonadas++;
+
+                    // Crear notificación para el alumno destino
+                    try {
+                        $notificacionService->crearNotificacionPlanificacionCreada(
+                            $nuevaPlanificacion,
+                            $alumnoDestino,
+                            $creadoPor
+                        );
+                    } catch (\Exception $e) {
+                        error_log('Error al crear notificación: ' . $e->getMessage());
+                    }
+                } catch (\Exception $e) {
+                    error_log('Error al clonar planificación: ' . $e->getMessage());
+                }
+            }
+
+            $entityManager->flush();
+
+            $mensaje = sprintf(
+                'Planificación clonada correctamente. Se eliminaron %d planificación(es) del alumno destino y se clonaron %d planificación(es) del alumno origen.',
+                $planificacionesEliminadas,
+                $planificacionesClonadas
+            );
+            $this->addFlash('success', $mensaje);
+
+            return $this->redirectToRoute('app_planificacion_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('planificacion/clonar.html.twig', [
+            'usuarios' => $usuarios,
+        ]);
+    }
+
     #[Route('/new', name: 'app_planificacion_new', methods: ['GET', 'POST'])]
     public function new(
         Request $request,
