@@ -30,6 +30,12 @@
                 {{ form_errors(form.municipio) }}
             </div>
 
+            <div class="form-group mb-4" id="convocatoria_group" style="display: none;">
+                <label for="convocatoria_select" class="form-label fw-bold">Selecciona la Convocatoria</label>
+                {{ form_widget(form.convocatoria, {'attr': {'class': 'form-select form-select-lg', 'id': 'convocatoria_select'}}) }}
+                {{ form_errors(form.convocatoria) }}
+            </div>
+
             <div class="form-group mb-4" id="temas_general_group" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                     <label class="form-label fw-bold mb-0">Selecciona los Temas del Temario General</label>
@@ -57,7 +63,7 @@
 
             <div class="form-group mb-4" id="temas_municipales_group" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <label class="form-label fw-bold mb-0">Selecciona los Temas Municipales</label>
+                    <label class="form-label fw-bold mb-0" id="temas_municipales_label">Selecciona los Temas Municipales</label>
                     <div style="display: flex; gap: 0.5rem;">
                         <button type="button" class="btn btn-sm btn-outline-primary" id="seleccionar_todos_municipal" style="font-size: 0.85rem;">✓ Seleccionar todos</button>
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="deseleccionar_todos_municipal" style="font-size: 0.85rem;">✗ Deseleccionar todos</button>
@@ -111,11 +117,13 @@
 </div>
 
 <style>
-/* Estilos para ambos selectores - tipo de examen y municipio */
+/* Estilos para todos los selectores - tipo de examen, municipio y convocatoria */
 #tipo_examen_select,
 #municipio_select,
+#convocatoria_select,
 select[name="examen_iniciar[tipoExamen]"],
-select[name="examen_iniciar[municipio]"] {
+select[name="examen_iniciar[municipio]"],
+select[name="examen_iniciar[convocatoria]"] {
     min-height: 45px !important;
     font-size: 1rem !important;
     padding: 0.5rem 0.75rem !important;
@@ -135,8 +143,10 @@ select[name="examen_iniciar[municipio]"] {
 
 #tipo_examen_select:focus,
 #municipio_select:focus,
+#convocatoria_select:focus,
 select[name="examen_iniciar[tipoExamen]"]:focus,
-select[name="examen_iniciar[municipio]"]:focus {
+select[name="examen_iniciar[municipio]"]:focus,
+select[name="examen_iniciar[convocatoria]"]:focus {
     border-color: #86b7fe !important;
     outline: 0 !important;
     box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
@@ -158,6 +168,9 @@ select[name="examen_iniciar[municipio]"]:focus {
         const municipioGroup = document.getElementById('municipio_group');
         const municipioSelect = document.getElementById('municipio_select') || 
                                document.querySelector('select[name="examen_iniciar[municipio]"]');
+        const convocatoriaGroup = document.getElementById('convocatoria_group');
+        const convocatoriaSelect = document.getElementById('convocatoria_select') || 
+                                  document.querySelector('select[name="examen_iniciar[convocatoria]"]');
         const temasGeneralGroup = document.getElementById('temas_general_group');
         const temasMunicipalesGroup = document.getElementById('temas_municipales_group');
         
@@ -173,10 +186,13 @@ select[name="examen_iniciar[municipio]"]:focus {
         function actualizarVista(limpiarSelecciones = false) {
             const tipoSeleccionado = tipoExamenSelect ? tipoExamenSelect.value : '';
             const municipioSeleccionado = municipioSelect ? municipioSelect.value : null;
+            const convocatoriaSeleccionada = convocatoriaSelect ? convocatoriaSelect.value : null;
             const tieneMunicipio = municipioIdFromUrl || (municipioSeleccionado && municipioSeleccionado !== '' && municipioSeleccionado !== '0');
+            const tieneConvocatoria = convocatoriaSeleccionada && convocatoriaSeleccionada !== '' && convocatoriaSeleccionada !== '0';
             
             // Ocultar todo primero
             if (municipioGroup) municipioGroup.style.display = 'none';
+            if (convocatoriaGroup) convocatoriaGroup.style.display = 'none';
             if (temasGeneralGroup) temasGeneralGroup.style.display = 'none';
             if (temasMunicipalesGroup) temasMunicipalesGroup.style.display = 'none';
             
@@ -195,8 +211,9 @@ select[name="examen_iniciar[municipio]"]:focus {
                 });
             }
             
-            // Quitar requerido del municipio
+            // Quitar requerido del municipio y convocatoria
             if (municipioSelect) municipioSelect.required = false;
+            if (convocatoriaSelect) convocatoriaSelect.required = false;
             
             if (tipoSeleccionado === 'general') {
                 // Mostrar temas generales
@@ -218,6 +235,32 @@ select[name="examen_iniciar[municipio]"]:focus {
                     if (temasMunicipalesGroup) {
                         temasMunicipalesGroup.style.display = 'block';
                     }
+                    // Actualizar label
+                    const labelMunicipales = document.getElementById('temas_municipales_label');
+                    if (labelMunicipales) {
+                        labelMunicipales.textContent = 'Selecciona los Temas Municipales';
+                    }
+                }
+            } else if (tipoSeleccionado === 'convocatoria') {
+                // Mostrar selector de convocatoria
+                if (convocatoriaGroup) {
+                    convocatoriaGroup.style.display = 'block';
+                }
+                // Hacer requerido la convocatoria solo si no hay una ya seleccionada
+                if (convocatoriaSelect && !convocatoriaSelect.value) {
+                    convocatoriaSelect.required = true;
+                }
+                
+                // Mostrar temas municipales solo si hay convocatoria seleccionada
+                if (tieneConvocatoria) {
+                    if (temasMunicipalesGroup) {
+                        temasMunicipalesGroup.style.display = 'block';
+                    }
+                    // Actualizar label para indicar que son temas de todos los municipios de la convocatoria
+                    const labelMunicipales = document.getElementById('temas_municipales_label');
+                    if (labelMunicipales) {
+                        labelMunicipales.textContent = 'Selecciona los Temas Municipales (de todos los municipios de la convocatoria)';
+                    }
                 }
             }
         }
@@ -227,22 +270,45 @@ select[name="examen_iniciar[municipio]"]:focus {
             const tipoSeleccionado = this.value;
             
             if (tipoSeleccionado === 'general') {
-                // Limpiar municipio si estaba seleccionado
+                // Limpiar municipio y convocatoria si estaban seleccionados
                 if (municipioSelect) {
                     municipioSelect.value = '';
                 }
-                // Limpiar parámetro de municipio de la URL sin recargar
+                if (convocatoriaSelect) {
+                    convocatoriaSelect.value = '';
+                }
+                // Limpiar parámetros de la URL sin recargar
                 const url = new URL(window.location.href);
                 url.searchParams.delete('municipio');
+                url.searchParams.delete('convocatoria');
                 window.history.replaceState({}, '', url.toString());
                 // Actualizar vista para mostrar temas generales, limpiando selecciones municipales
                 actualizarVista(true);
             } else if (tipoSeleccionado === 'municipal') {
+                // Limpiar convocatoria si estaba seleccionada
+                if (convocatoriaSelect) {
+                    convocatoriaSelect.value = '';
+                }
+                // Limpiar parámetro de convocatoria de la URL
+                const url = new URL(window.location.href);
+                url.searchParams.delete('convocatoria');
+                window.history.replaceState({}, '', url.toString());
                 // Limpiar municipio si había uno seleccionado y actualizar vista inmediatamente
                 if (municipioSelect) {
                     municipioSelect.value = '';
                 }
                 // Actualizar vista para mostrar el selector de municipio, limpiando selecciones generales
+                actualizarVista(true);
+            } else if (tipoSeleccionado === 'convocatoria') {
+                // Limpiar municipio si estaba seleccionado
+                if (municipioSelect) {
+                    municipioSelect.value = '';
+                }
+                // Limpiar parámetro de municipio de la URL
+                const url = new URL(window.location.href);
+                url.searchParams.delete('municipio');
+                window.history.replaceState({}, '', url.toString());
+                // Actualizar vista para mostrar el selector de convocatoria, limpiando selecciones generales
                 actualizarVista(true);
             } else {
                 // Si vuelve al placeholder, ocultar todo y limpiar selecciones
@@ -260,9 +326,15 @@ select[name="examen_iniciar[municipio]"]:focus {
                         tipoExamenSelect.value = 'municipal';
                     }
                     
+                    // Limpiar convocatoria si estaba seleccionada
+                    if (convocatoriaSelect) {
+                        convocatoriaSelect.value = '';
+                    }
+                    
                     // Recargar la página con el municipio seleccionado para cargar los temas
                     const url = new URL(window.location.href);
                     url.searchParams.set('municipio', municipioId);
+                    url.searchParams.delete('convocatoria');
                     window.location.href = url.toString();
                 } else {
                     // Si se deselecciona, limpiar la URL
@@ -273,9 +345,46 @@ select[name="examen_iniciar[municipio]"]:focus {
             });
         }
         
+        // Event listener para la convocatoria
+        if (convocatoriaSelect) {
+            convocatoriaSelect.addEventListener('change', function() {
+                const convocatoriaId = this.value;
+                if (convocatoriaId && convocatoriaId !== '') {
+                    // Asegurar que el tipo convocatoria esté seleccionado
+                    if (tipoExamenSelect && tipoExamenSelect.value !== 'convocatoria') {
+                        tipoExamenSelect.value = 'convocatoria';
+                    }
+                    
+                    // Limpiar municipio si estaba seleccionado
+                    if (municipioSelect) {
+                        municipioSelect.value = '';
+                    }
+                    
+                    // Recargar la página con la convocatoria seleccionada para cargar los temas
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('convocatoria', convocatoriaId);
+                    url.searchParams.delete('municipio');
+                    window.location.href = url.toString();
+                } else {
+                    // Si se deselecciona, limpiar la URL
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('convocatoria');
+                    window.location.href = url.toString();
+                }
+            });
+        }
+        
+        // Obtener convocatoria de la URL si existe
+        const convocatoriaIdFromUrl = urlParams.get('convocatoria');
+        
         // Si hay municipio en la URL, establecer el tipo a municipal
         if (municipioIdFromUrl && tipoExamenSelect) {
             tipoExamenSelect.value = 'municipal';
+        }
+        
+        // Si hay convocatoria en la URL, establecer el tipo a convocatoria
+        if (convocatoriaIdFromUrl && tipoExamenSelect) {
+            tipoExamenSelect.value = 'convocatoria';
         }
         
         // Inicializar vista al cargar
@@ -332,6 +441,19 @@ select[name="examen_iniciar[municipio]"]:focus {
                     if (!municipioSelect || !municipioSelect.value) {
                         isValid = false;
                         errorMessage = 'Debes seleccionar un municipio.';
+                    } else {
+                        // Verificar que haya al menos un tema municipal seleccionado
+                        const temasMunicipalesInputs = document.querySelectorAll('input[name^="examen_iniciar[temasMunicipales]"][type="checkbox"]:checked');
+                        if (temasMunicipalesInputs.length === 0) {
+                            isValid = false;
+                            errorMessage = 'Debes seleccionar al menos un tema municipal.';
+                        }
+                    }
+                } else if (tipoSeleccionado === 'convocatoria') {
+                    // Verificar que haya una convocatoria seleccionada
+                    if (!convocatoriaSelect || !convocatoriaSelect.value) {
+                        isValid = false;
+                        errorMessage = 'Debes seleccionar una convocatoria.';
                     } else {
                         // Verificar que haya al menos un tema municipal seleccionado
                         const temasMunicipalesInputs = document.querySelectorAll('input[name^="examen_iniciar[temasMunicipales]"][type="checkbox"]:checked');

@@ -12,6 +12,7 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\Count;
 
 class ConvocatoriaType extends AbstractType
 {
@@ -23,19 +24,27 @@ class ConvocatoriaType extends AbstractType
                 'attr' => ['class' => 'form-control', 'placeholder' => 'Ej: Convocatoria Palma 2025'],
                 'required' => true,
             ])
-            ->add('municipio', EntityType::class, [
+            ->add('municipios', EntityType::class, [
                 'class' => Municipio::class,
                 'choice_label' => 'nombre',
-                'required' => false,
-                'label' => 'Municipio (opcional)',
-                'placeholder' => 'Selecciona un municipio',
+                'required' => true,
+                'multiple' => true,
+                'expanded' => false,
+                'label' => 'Municipios <span style="color: #dc3545;">*</span>',
+                'label_html' => true,
                 'query_builder' => function (MunicipioRepository $er) {
                     return $er->createQueryBuilder('m')
                         ->where('m.activo = :activo')
                         ->setParameter('activo', true)
                         ->orderBy('m.nombre', 'ASC');
                 },
-                'attr' => ['class' => 'form-control'],
+                'attr' => ['class' => 'form-control', 'size' => 5],
+                'constraints' => [
+                    new Count(
+                        min: 1,
+                        minMessage: 'Debes seleccionar al menos un municipio.'
+                    ),
+                ],
             ])
             ->add('fechaTeorico', DateType::class, [
                 'label' => 'Fecha Examen Teórico',

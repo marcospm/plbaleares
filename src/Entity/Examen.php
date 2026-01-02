@@ -63,6 +63,10 @@ class Examen
     #[ORM\JoinColumn(nullable: true)]
     private ?ExamenSemanal $examenSemanal = null;
 
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Convocatoria $convocatoria = null;
+
     public function __construct()
     {
         $this->temas = new ArrayCollection();
@@ -273,6 +277,18 @@ class Examen
     public function setExamenSemanal(?ExamenSemanal $examenSemanal): static
     {
         $this->examenSemanal = $examenSemanal;
+
+        return $this;
+    }
+
+    public function getConvocatoria(): ?Convocatoria
+    {
+        return $this->convocatoria;
+    }
+
+    public function setConvocatoria(?Convocatoria $convocatoria): static
+    {
+        $this->convocatoria = $convocatoria;
 
         return $this;
     }

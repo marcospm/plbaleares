@@ -307,7 +307,9 @@
                         <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>
                         <td>
                             <span class="badge badge-{{ examen.dificultad }}">{{ examen.getDificultadLabel() }}</span>
-                            {% if examen.municipio %}
+                            {% if examen.convocatoria %}
+                                <br><small style="color: #9C27B0; font-size: 0.75rem; font-weight: bold;">Convocatoria</small>
+                            {% elseif examen.municipio %}
                                 <br><small style="color: #2196F3; font-size: 0.75rem;">Municipal</small>
                             {% endif %}
                         </td>

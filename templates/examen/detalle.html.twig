@@ -52,7 +52,26 @@
         </div>
 
         <div class="mb-4">
-            {% if examen.municipio %}
+            {% if examen.convocatoria %}
+                <strong>Convocatoria:</strong> <span class="badge" style="background-color: #9C27B0;">{{ examen.convocatoria.nombre }}</span><br>
+                <strong>Municipios de la Convocatoria:</strong>
+                {% if examen.convocatoria.municipios|length > 0 %}
+                    {% for municipio in examen.convocatoria.municipios %}
+                        <span class="badge" style="background-color: #2196F3;">{{ municipio.nombre }}</span>
+                    {% endfor %}
+                {% else %}
+                    <span class="text-muted">No hay municipios asignados</span>
+                {% endif %}
+                <br><br>
+                <strong>Temas Municipales:</strong>
+                {% if examen.temasMunicipales|length > 0 %}
+                    {% for temaMunicipal in examen.temasMunicipales %}
+                        <span class="badge badge-facil">{{ temaMunicipal.nombre }} ({{ temaMunicipal.municipio.nombre }})</span>
+                    {% endfor %}
+                {% else %}
+                    <span class="text-muted">No hay temas municipales asignados</span>
+                {% endif %}
+            {% elseif examen.municipio %}
                 <strong>Municipio:</strong> <span class="badge" style="background-color: #2196F3;">{{ examen.municipio.nombre }}</span><br>
                 <strong>Temas Municipales:</strong>
                 {% if examen.temasMunicipales|length > 0 %}

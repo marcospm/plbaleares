@@ -5,6 +5,7 @@ namespace App\Form;
 use App\Entity\Tema;
 use App\Entity\Municipio;
 use App\Entity\TemaMunicipal;
+use App\Entity\Convocatoria;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -31,6 +32,12 @@ class ExamenIniciarType extends AbstractType
         // Solo agregar la opción municipal si el usuario tiene municipios activos
         if ($tieneMunicipiosActivos) {
             $choicesTipoExamen['Municipio'] = 'municipal';
+        }
+        
+        // Agregar opción de convocatoria si el usuario tiene convocatorias activas
+        $tieneConvocatoriasActivas = $options['tiene_convocatorias_activas'] ?? false;
+        if ($tieneConvocatoriasActivas) {
+            $choicesTipoExamen['Convocatoria'] = 'convocatoria';
         }
         
         $builder
@@ -63,6 +70,25 @@ class ExamenIniciarType extends AbstractType
                     return $qb->orderBy('m.nombre', 'ASC');
                 },
             ])
+            ->add('convocatoria', EntityType::class, [
+                'class' => Convocatoria::class,
+                'choice_label' => 'nombre',
+                'required' => false,
+                'label' => false,
+                'placeholder' => '-- Selecciona una convocatoria --',
+                'attr' => ['class' => 'form-select', 'id' => 'convocatoria_select'],
+                'query_builder' => function ($er) use ($user) {
+                    $qb = $er->createQueryBuilder('c')
+                        ->where('c.activo = :activo')
+                        ->setParameter('activo', true);
+                    if ($user) {
+                        $qb->innerJoin('c.usuarios', 'u')
+                           ->andWhere('u.id = :userId')
+                           ->setParameter('userId', $user->getId());
+                    }
+                    return $qb->orderBy('c.nombre', 'ASC');
+                },
+            ])
             ->add('temas', EntityType::class, [
                 'class' => Tema::class,
                 'choice_label' => 'nombre',
@@ -88,16 +114,40 @@ class ExamenIniciarType extends AbstractType
                 'label' => 'Selecciona los Temas Municipales',
                 'query_builder' => function ($er) use ($user, $options) {
                     $municipioId = $options['municipio_id'] ?? null;
+                    $convocatoriaId = $options['convocatoria_id'] ?? null;
                     $qb = $er->createQueryBuilder('t')
                         ->where('t.activo = :activo')
                         ->setParameter('activo', true);
-                    if ($municipioId) {
+                    
+                    if ($convocatoriaId) {
+                        // Si hay convocatoria seleccionada, cargar temas de todos sus municipios
+                        // Primero obtener los IDs de los municipios de la convocatoria
+                        $em = $er->getEntityManager();
+                        $convocatoria = $em->getRepository('App\Entity\Convocatoria')->find($convocatoriaId);
+                        if ($convocatoria) {
+                            $municipiosIds = array_map(function($m) {
+                                return $m->getId();
+                            }, $convocatoria->getMunicipios()->toArray());
+                            
+                            if (!empty($municipiosIds)) {
+                                $qb->innerJoin('t.municipio', 'm')
+                                   ->andWhere('m.id IN (:municipiosIds)')
+                                   ->setParameter('municipiosIds', $municipiosIds);
+                            } else {
+                                // Si la convocatoria no tiene municipios, no mostrar temas
+                                $qb->andWhere('1 = 0');
+                            }
+                        } else {
+                            // Si no se encuentra la convocatoria, no mostrar temas
+                            $qb->andWhere('1 = 0');
+                        }
+                    } elseif ($municipioId) {
                         // Filtrar por el ID del municipio usando join - solo temas de ese municipio
                         $qb->innerJoin('t.municipio', 'm')
                            ->andWhere('m.id = :municipioId')
                            ->setParameter('municipioId', $municipioId);
                     } else {
-                        // Si no hay municipio seleccionado, no mostrar ningún tema
+                        // Si no hay municipio ni convocatoria seleccionado, no mostrar ningún tema
                         $qb->andWhere('1 = 0');
                     }
                     return $qb->orderBy('t.nombre', 'ASC');
@@ -165,6 +215,34 @@ class ExamenIniciarType extends AbstractType
                         }
                     }
                 }
+            } else if ($tipoExamen === 'convocatoria') {
+                $convocatoria = $data['convocatoria'] ?? null;
+                $temasMunicipales = $data['temasMunicipales'] ?? null;
+                
+                // Validar que haya una convocatoria seleccionada
+                if (!$convocatoria) {
+                    $form->get('convocatoria')->addError(new FormError('Debes seleccionar una convocatoria para realizar un examen de convocatoria.'));
+                }
+                
+                // Validar que haya temas municipales seleccionados
+                if (!$temasMunicipales || (is_countable($temasMunicipales) && count($temasMunicipales) === 0)) {
+                    $form->get('temasMunicipales')->addError(new FormError('Debes seleccionar al menos un tema municipal.'));
+                } elseif ($convocatoria) {
+                    // Validar que los temas seleccionados pertenezcan a algún municipio de la convocatoria
+                    $municipiosConvocatoria = $convocatoria->getMunicipios();
+                    $municipiosIds = array_map(fn($m) => $m->getId(), $municipiosConvocatoria->toArray());
+                    
+                    $temasArray = $temasMunicipales instanceof \Doctrine\Common\Collections\Collection 
+                        ? $temasMunicipales->toArray() 
+                        : (is_array($temasMunicipales) ? $temasMunicipales : [$temasMunicipales]);
+                    
+                    foreach ($temasArray as $tema) {
+                        if (!in_array($tema->getMunicipio()->getId(), $municipiosIds)) {
+                            $form->get('temasMunicipales')->addError(new FormError('Los temas seleccionados deben pertenecer a algún municipio de la convocatoria seleccionada.'));
+                            break;
+                        }
+                    }
+                }
             } else if ($tipoExamen === 'general') {
                 // Validar que haya temas generales seleccionados
                 $temas = $data['temas'] ?? null;
@@ -180,7 +258,9 @@ class ExamenIniciarType extends AbstractType
         $resolver->setDefaults([
             'user' => null,
             'municipio_id' => null,
+            'convocatoria_id' => null,
             'tiene_municipios_activos' => false,
+            'tiene_convocatorias_activas' => false,
         ]);
     }
 }

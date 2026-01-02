@@ -163,9 +163,11 @@
         </style>
 
         <script>
-        let contenidoMensajesPregunta = null;
-        let contadorMensajesPregunta = null;
-        const preguntaId = {{ pregunta.id }};
+        (function() {
+            'use strict';
+            let contenidoMensajesPregunta = null;
+            let contadorMensajesPregunta = null;
+            const preguntaId = {{ pregunta.id }};
 
         function cargarMensajesPregunta() {
             if (!contenidoMensajesPregunta) {
@@ -387,6 +389,11 @@
 
             cargarContador();
         });
+        
+        // Exponer funciones necesarias globalmente
+        window.abrirModalMensajesPregunta = abrirModalMensajesPregunta;
+        window.cerrarModalMensajesPregunta = cerrarModalMensajesPregunta;
+        })();
         </script>
         {% endif %}
 

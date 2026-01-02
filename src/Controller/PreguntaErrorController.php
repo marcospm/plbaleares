@@ -18,7 +18,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[Route('/pregunta')]
 class PreguntaErrorController extends AbstractController
 {
-    #[Route('/{id}/reportar-error', name: 'app_pregunta_reportar_error', methods: ['POST'])]
+    #[Route('/{id}/reportar-error', name: 'app_pregunta_reportar_error', methods: ['POST'], priority: 10)]
     #[IsGranted('ROLE_USER')]
     public function reportarError(
         Pregunta $pregunta,
@@ -80,7 +80,7 @@ class PreguntaErrorController extends AbstractController
         }
     }
 
-    #[Route('/{id}/mensajes', name: 'app_pregunta_mensajes', methods: ['GET'])]
+    #[Route('/{id}/mensajes', name: 'app_pregunta_mensajes', methods: ['GET'], priority: 10)]
     #[IsGranted('ROLE_USER')]
     public function obtenerMensajes(
         Pregunta $pregunta,
@@ -149,7 +149,7 @@ class PreguntaErrorController extends AbstractController
         }
     }
 
-    #[Route('/{id}/contador-mensajes', name: 'app_pregunta_contador_mensajes', methods: ['GET'])]
+    #[Route('/{id}/contador-mensajes', name: 'app_pregunta_contador_mensajes', methods: ['GET'], priority: 10)]
     #[IsGranted('ROLE_USER')]
     public function contadorMensajes(
         Pregunta $pregunta,

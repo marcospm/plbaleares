@@ -32,9 +32,9 @@ class Convocatoria
     #[ORM\JoinTable(name: 'convocatoria_user')]
     private Collection $usuarios;
 
-    #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?Municipio $municipio = null;
+    #[ORM\ManyToMany(targetEntity: Municipio::class)]
+    #[ORM\JoinTable(name: 'convocatoria_municipio')]
+    private Collection $municipios;
 
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
     private bool $activo = true;
@@ -48,6 +48,7 @@ class Convocatoria
     public function __construct()
     {
         $this->usuarios = new ArrayCollection();
+        $this->municipios = new ArrayCollection();
         $this->fechaCreacion = new \DateTime();
         $this->fechaActualizacion = new \DateTime();
     }
@@ -129,14 +130,26 @@ class Convocatoria
         return $this;
     }
 
-    public function getMunicipio(): ?Municipio
+    /**
+     * @return Collection<int, Municipio>
+     */
+    public function getMunicipios(): Collection
     {
-        return $this->municipio;
+        return $this->municipios;
     }
 
-    public function setMunicipio(?Municipio $municipio): static
+    public function addMunicipio(Municipio $municipio): static
     {
-        $this->municipio = $municipio;
+        if (!$this->municipios->contains($municipio)) {
+            $this->municipios->add($municipio);
+        }
+
+        return $this;
+    }
+
+    public function removeMunicipio(Municipio $municipio): static
+    {
+        $this->municipios->removeElement($municipio);
 
         return $this;
     }

@@ -28,11 +28,9 @@
                         <td>{{ convocatoria.id }}</td>
                         <td><strong>{{ convocatoria.nombre }}</strong></td>
                         <td>
-                            {% if convocatoria.municipio %}
-                                <span class="badge" style="background-color: #2196F3;">{{ convocatoria.municipio.nombre }}</span>
-                            {% else %}
-                                <span class="text-muted">General</span>
-                            {% endif %}
+                            {% for municipio in convocatoria.municipios %}
+                                <span class="badge" style="background-color: #2196F3; margin-right: 0.25rem;">{{ municipio.nombre }}</span>
+                            {% endfor %}
                         </td>
                         <td>
                             <span class="badge badge-moderada">{{ convocatoria.usuarios|length }} alumno(s)</span>

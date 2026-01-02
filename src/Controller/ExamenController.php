@@ -12,6 +12,7 @@ use App\Repository\TemaRepository;
 use App\Repository\TemaMunicipalRepository;
 use App\Repository\MunicipioRepository;
 use App\Repository\UserRepository;
+use App\Repository\ConvocatoriaRepository;
 use App\Repository\ConfiguracionExamenRepository;
 use App\Service\NotificacionService;
 use App\Service\ConfiguracionExamenService;
@@ -33,6 +34,7 @@ class ExamenController extends AbstractController
         private TemaRepository $temaRepository,
         private TemaMunicipalRepository $temaMunicipalRepository,
         private MunicipioRepository $municipioRepository,
+        private ConvocatoriaRepository $convocatoriaRepository,
         private ExamenRepository $examenRepository,
         private ConfiguracionExamenRepository $configuracionExamenRepository,
         private ConfiguracionExamenService $configuracionExamenService,
@@ -51,6 +53,7 @@ class ExamenController extends AbstractController
         $session->remove('examen_pregunta_actual');
 
         $municipioId = $request->query->getInt('municipio');
+        $convocatoriaId = $request->query->getInt('convocatoria');
         $user = $this->getUser();
         
         // Verificar si el usuario tiene municipios activos
@@ -60,6 +63,13 @@ class ExamenController extends AbstractController
                 return $municipio->isActivo();
             });
             $tieneMunicipiosActivos = $municipiosActivos->count() > 0;
+        }
+        
+        // Verificar si el usuario tiene convocatorias activas
+        $tieneConvocatoriasActivas = false;
+        if ($user) {
+            $convocatoriasActivas = $this->convocatoriaRepository->findByUsuario($user);
+            $tieneConvocatoriasActivas = count($convocatoriasActivas) > 0;
         }
         
         // Si hay un municipio en la URL, establecer datos iniciales para tipo municipal
@@ -72,13 +82,24 @@ class ExamenController extends AbstractController
                     'municipio' => $municipio,
                 ];
             }
+        } elseif ($convocatoriaId > 0 && $tieneConvocatoriasActivas) {
+            // Si hay una convocatoria en la URL, establecer datos iniciales para tipo convocatoria
+            $convocatoria = $this->convocatoriaRepository->find($convocatoriaId);
+            if ($convocatoria && $user->getConvocatorias()->contains($convocatoria) && $convocatoria->isActivo()) {
+                $formData = [
+                    'tipoExamen' => 'convocatoria',
+                    'convocatoria' => $convocatoria,
+                ];
+            }
         }
-        // Si no hay municipio en la URL, no establecer tipoExamen para que muestre el placeholder
+        // Si no hay municipio ni convocatoria en la URL, no establecer tipoExamen para que muestre el placeholder
         
         $form = $this->createForm(ExamenIniciarType::class, $formData, [
             'user' => $user,
             'municipio_id' => $municipioId > 0 ? $municipioId : null,
+            'convocatoria_id' => $convocatoriaId > 0 ? $convocatoriaId : null,
             'tiene_municipios_activos' => $tieneMunicipiosActivos,
+            'tiene_convocatorias_activas' => $tieneConvocatoriasActivas,
         ]);
         $form->handleRequest($request);
         
@@ -117,8 +138,79 @@ class ExamenController extends AbstractController
                 $temasArray = [];
                 $temasMunicipalesArray = [];
                 $esMunicipal = false;
+                $convocatoria = $data['convocatoria'] ?? null;
 
-                if ($tipoExamen === 'municipal' && $municipio) {
+                if ($tipoExamen === 'convocatoria' && $convocatoria) {
+                    // Verificar que el usuario tenga convocatorias activas
+                    if (!$tieneConvocatoriasActivas) {
+                        $this->addFlash('error', 'No tienes convocatorias activas asignadas. No puedes crear exámenes de convocatoria.');
+                        return $this->redirectToRoute('app_examen_iniciar');
+                    }
+                    
+                    // Verificar que la convocatoria esté activa
+                    if (!$convocatoria->isActivo()) {
+                        $this->addFlash('error', 'La convocatoria seleccionada no está activa.');
+                        return $this->redirectToRoute('app_examen_iniciar');
+                    }
+                    
+                    // Verificar que el usuario tenga acceso a la convocatoria
+                    $user = $this->getUser();
+                    if (!$user->getConvocatorias()->contains($convocatoria)) {
+                        $this->addFlash('error', 'No tienes acceso a esta convocatoria.');
+                        return $this->redirectToRoute('app_examen_iniciar');
+                    }
+                    
+                    // Examen de convocatoria (municipal pero con múltiples municipios)
+                    $esMunicipal = true;
+                    
+                    if ($temasMunicipales === null) {
+                        $this->addFlash('error', 'No se recibieron temas municipales. Por favor, selecciona al menos un tema municipal.');
+                        return $this->redirectToRoute('app_examen_iniciar');
+                    }
+
+                    if ($temasMunicipales instanceof \Doctrine\Common\Collections\Collection) {
+                        $temasMunicipalesArray = $temasMunicipales->toArray();
+                    } elseif (is_array($temasMunicipales)) {
+                        $temasMunicipalesArray = $temasMunicipales;
+                    } else {
+                        $temasMunicipalesArray = [$temasMunicipales];
+                    }
+
+                    if (empty($temasMunicipalesArray)) {
+                        $this->addFlash('error', 'Debes seleccionar al menos un tema municipal.');
+                        return $this->redirectToRoute('app_examen_iniciar');
+                    }
+
+                    // Verificar que los temas seleccionados pertenezcan a algún municipio de la convocatoria
+                    $municipiosConvocatoria = $convocatoria->getMunicipios();
+                    $municipiosIds = array_map(fn($m) => $m->getId(), $municipiosConvocatoria->toArray());
+                    
+                    foreach ($temasMunicipalesArray as $tema) {
+                        if (!in_array($tema->getMunicipio()->getId(), $municipiosIds)) {
+                            $this->addFlash('error', 'Los temas seleccionados deben pertenecer a algún municipio de la convocatoria seleccionada.');
+                            return $this->redirectToRoute('app_examen_iniciar');
+                        }
+                    }
+
+                    // Obtener preguntas municipales de todos los temas seleccionados
+                    $preguntas = $this->preguntaMunicipalRepository->findByTemasMunicipales(
+                        $temasMunicipalesArray,
+                        $dificultad
+                    );
+                    
+                    // Para exámenes de convocatoria, filtrar temas sin preguntas sin avisar
+                    $temasConPreguntas = [];
+                    foreach ($temasMunicipalesArray as $tema) {
+                        $preguntasTema = array_filter($preguntas, function($p) use ($tema) {
+                            return $p->getTemaMunicipal() && $p->getTemaMunicipal()->getId() === $tema->getId();
+                        });
+                        if (!empty($preguntasTema)) {
+                            $temasConPreguntas[] = $tema;
+                        }
+                    }
+                    // Actualizar temasMunicipalesArray para solo incluir temas con preguntas
+                    $temasMunicipalesArray = $temasConPreguntas;
+                } elseif ($tipoExamen === 'municipal' && $municipio) {
                     // Verificar que el usuario tenga municipios activos
                     if (!$tieneMunicipiosActivos) {
                         $this->addFlash('error', 'No tienes municipios activos asignados. No puedes crear exámenes municipales.');
@@ -164,6 +256,39 @@ class ExamenController extends AbstractController
                         $temasMunicipalesArray,
                         $dificultad
                     );
+                    
+                    // Verificar qué temas tienen preguntas y cuáles no
+                    $temasSinPreguntas = [];
+                    $temasConPreguntas = [];
+                    foreach ($temasMunicipalesArray as $tema) {
+                        $preguntasTema = array_filter($preguntas, function($p) use ($tema) {
+                            return $p->getTemaMunicipal() && $p->getTemaMunicipal()->getId() === $tema->getId();
+                        });
+                        if (empty($preguntasTema)) {
+                            $temasSinPreguntas[] = $tema->getNombre() . ' (' . $tema->getMunicipio()->getNombre() . ')';
+                        } else {
+                            $temasConPreguntas[] = $tema;
+                        }
+                    }
+                    
+                    // Para exámenes municipales, avisar sobre temas sin preguntas
+                    if ($tipoExamen === 'municipal' && !empty($temasSinPreguntas)) {
+                        $this->addFlash('warning', 'Los siguientes temas no tienen preguntas disponibles y no se incluirán en el examen: ' . implode(', ', $temasSinPreguntas));
+                    }
+                    // Para exámenes de convocatoria, simplemente ignorar temas sin preguntas sin avisar
+                    
+                    // Actualizar temasMunicipalesArray para solo incluir temas con preguntas
+                    $temasMunicipalesArray = $temasConPreguntas;
+                    
+                    // Validar que después de filtrar, quede al menos un tema con preguntas
+                    if (empty($temasMunicipalesArray)) {
+                        if ($tipoExamen === 'convocatoria') {
+                            $this->addFlash('error', 'Ninguno de los temas seleccionados tiene preguntas disponibles para la dificultad seleccionada. Por favor, selecciona otros temas o dificultad.');
+                        } else {
+                            $this->addFlash('error', 'Ninguno de los temas seleccionados tiene preguntas disponibles para la dificultad seleccionada. Por favor, selecciona otros temas o dificultad.');
+                        }
+                        return $this->redirectToRoute('app_examen_iniciar');
+                    }
                 } else {
                     // Examen general
                     if ($temas === null) {
@@ -198,7 +323,11 @@ class ExamenController extends AbstractController
 
                 // Validar que haya al menos una pregunta
                 if (count($preguntas) === 0) {
-                    $this->addFlash('error', 'No hay preguntas disponibles para los temas y dificultad seleccionados. Por favor, selecciona otros temas o dificultad.');
+                    if ($tipoExamen === 'convocatoria') {
+                        $this->addFlash('error', 'Ninguno de los temas seleccionados tiene preguntas disponibles para la dificultad seleccionada. Por favor, selecciona otros temas o dificultad.');
+                    } else {
+                        $this->addFlash('error', 'No hay preguntas disponibles para los temas y dificultad seleccionados. Por favor, selecciona otros temas o dificultad.');
+                    }
                     return $this->redirectToRoute('app_examen_iniciar');
                 }
 
@@ -229,7 +358,12 @@ class ExamenController extends AbstractController
                 ];
                 
                 if ($esMunicipal) {
-                    $config['municipio_id'] = $municipio->getId();
+                    if ($tipoExamen === 'convocatoria' && $convocatoria) {
+                        $config['convocatoria_id'] = $convocatoria->getId();
+                        $config['municipio_id'] = null; // No hay un municipio específico, es de múltiples municipios
+                    } else {
+                        $config['municipio_id'] = $municipio->getId();
+                    }
                     $config['temas_municipales'] = array_map(fn($t) => $t->getId(), $temasMunicipalesArray);
                 } else {
                     $config['temas'] = array_map(fn($t) => $t->getId(), $temasArray);
@@ -541,9 +675,22 @@ class ExamenController extends AbstractController
         // Agregar temas o temas municipales
         $esMunicipal = $config['es_municipal'] ?? false;
         if ($esMunicipal) {
-            $municipio = $this->municipioRepository->find($config['municipio_id'] ?? null);
-            if ($municipio) {
-                $examen->setMunicipio($municipio);
+            // Verificar si es un examen de convocatoria
+            $convocatoriaId = $config['convocatoria_id'] ?? null;
+            if ($convocatoriaId !== null && $convocatoriaId > 0) {
+                $convocatoria = $this->convocatoriaRepository->find($convocatoriaId);
+                if ($convocatoria) {
+                    $examen->setConvocatoria($convocatoria);
+                }
+            } else {
+                // Solo establecer municipio si hay un municipio_id válido (no para exámenes de convocatoria)
+                $municipioId = $config['municipio_id'] ?? null;
+                if ($municipioId !== null && $municipioId > 0) {
+                    $municipio = $this->municipioRepository->find($municipioId);
+                    if ($municipio) {
+                        $examen->setMunicipio($municipio);
+                    }
+                }
             }
             
             // Obtener temas municipales de la sesión o del examen semanal
@@ -872,10 +1019,16 @@ class ExamenController extends AbstractController
         $examen = $this->examenRepository->createQueryBuilder('e')
             ->leftJoin('e.temasMunicipales', 'tm')
             ->addSelect('tm')
+            ->leftJoin('tm.municipio', 'tmm')
+            ->addSelect('tmm')
             ->leftJoin('e.temas', 't')
             ->addSelect('t')
             ->leftJoin('e.municipio', 'm')
             ->addSelect('m')
+            ->leftJoin('e.convocatoria', 'c')
+            ->addSelect('c')
+            ->leftJoin('c.municipios', 'cm')
+            ->addSelect('cm')
             ->where('e.id = :id')
             ->setParameter('id', $examen->getId())
             ->getQuery()
@@ -909,6 +1062,7 @@ class ExamenController extends AbstractController
         $respuestas = $examen->getRespuestas();
         $preguntasIds = $examen->getPreguntasIds() ?? [];
         $esMunicipal = $examen->getMunicipio() !== null;
+        $esConvocatoria = $examen->getConvocatoria() !== null;
 
         // Obtener las preguntas del examen usando los IDs guardados
         foreach ($preguntasIds as $preguntaId) {
@@ -940,6 +1094,7 @@ class ExamenController extends AbstractController
             'examen' => $examen,
             'preguntas' => $preguntas,
             'esMunicipal' => $esMunicipal,
+            'esConvocatoria' => $esConvocatoria,
         ]);
     }
 
