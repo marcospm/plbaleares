@@ -1030,6 +1030,29 @@ class ExamenController extends AbstractController
             });
         }
         
+        // Convertir a arrays indexados numéricamente
+        $examenesGeneral = array_values($examenesGeneral);
+        $examenesMunicipal = array_values($examenesMunicipal);
+        
+        // Parámetros de paginación
+        $itemsPerPage = 20; // Número de exámenes por página
+        $pageGeneral = max(1, $request->query->getInt('page_general', 1));
+        $pageMunicipal = max(1, $request->query->getInt('page_municipal', 1));
+        
+        // Calcular paginación para exámenes generales
+        $totalItemsGeneral = count($examenesGeneral);
+        $totalPagesGeneral = max(1, ceil($totalItemsGeneral / $itemsPerPage));
+        $pageGeneral = min($pageGeneral, $totalPagesGeneral);
+        $offsetGeneral = ($pageGeneral - 1) * $itemsPerPage;
+        $examenesGeneralPaginated = array_slice($examenesGeneral, $offsetGeneral, $itemsPerPage);
+        
+        // Calcular paginación para exámenes municipales
+        $totalItemsMunicipal = count($examenesMunicipal);
+        $totalPagesMunicipal = max(1, ceil($totalItemsMunicipal / $itemsPerPage));
+        $pageMunicipal = min($pageMunicipal, $totalPagesMunicipal);
+        $offsetMunicipal = ($pageMunicipal - 1) * $itemsPerPage;
+        $examenesMunicipalPaginated = array_slice($examenesMunicipal, $offsetMunicipal, $itemsPerPage);
+        
         // Obtener usuarios para el filtro (solo alumnos asignados si no es admin)
         if ($esAdmin) {
             $todosUsuarios = $userRepository->createQueryBuilder('u')
@@ -1060,13 +1083,22 @@ class ExamenController extends AbstractController
         });
         
         return $this->render('examen/profesor.html.twig', [
-            'examenesGeneral' => $examenesGeneral,
-            'examenesMunicipal' => $examenesMunicipal,
+            'examenesGeneral' => $examenesGeneralPaginated,
+            'examenesMunicipal' => $examenesMunicipalPaginated,
             'usuarios' => $usuarios,
             'temas' => $temas,
             'usuarioSeleccionado' => $usuarioId !== null && $usuarioId > 0 ? $usuarioId : null,
             'dificultadSeleccionada' => $dificultad,
             'temaSeleccionado' => $tema,
+            // Paginación general
+            'currentPageGeneral' => $pageGeneral,
+            'totalPagesGeneral' => $totalPagesGeneral,
+            'totalItemsGeneral' => $totalItemsGeneral,
+            'itemsPerPage' => $itemsPerPage,
+            // Paginación municipal
+            'currentPageMunicipal' => $pageMunicipal,
+            'totalPagesMunicipal' => $totalPagesMunicipal,
+            'totalItemsMunicipal' => $totalItemsMunicipal,
         ]);
     }
 

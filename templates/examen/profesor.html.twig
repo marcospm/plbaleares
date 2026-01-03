@@ -5,6 +5,73 @@
 {% block stylesheets %}
     {{ parent() }}
     <style>
+        /* Estilos para paginación */
+        .pagination {
+            display: flex;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            gap: 0.25rem;
+            flex-wrap: wrap;
+        }
+        
+        .page-item {
+            margin: 0;
+        }
+        
+        .page-link {
+            display: block;
+            padding: 0.5rem 0.75rem;
+            color: var(--color-primary);
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            min-width: 38px;
+            text-align: center;
+        }
+        
+        .page-link:hover:not(.disabled):not([aria-disabled="true"]) {
+            color: #0056b3;
+            background-color: #e9ecef;
+            border-color: #dee2e6;
+        }
+        
+        .page-item.active .page-link {
+            color: #fff;
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+            font-weight: 600;
+        }
+        
+        .page-item.disabled .page-link,
+        .page-link[aria-disabled="true"] {
+            color: #6c757d;
+            pointer-events: none;
+            background-color: #fff;
+            border-color: #dee2e6;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .page-link:focus {
+            outline: none;
+            box-shadow: 0 0 0 0.2rem rgba(0, 113, 181, 0.25);
+        }
+        
+        @media (max-width: 768px) {
+            .pagination {
+                gap: 0.15rem;
+            }
+            
+            .page-link {
+                padding: 0.4rem 0.6rem;
+                font-size: 0.875rem;
+                min-width: 35px;
+            }
+        }
+        
         /* Estilos para el select de tema */
         select[name="tema"], select#tema {
             background-color: #fff;
@@ -181,6 +248,91 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    
+                    {% if totalPagesGeneral > 1 %}
+                        <div class="card-footer" style="background-color: #f8f9fa; border-top: 1px solid #dee2e6; padding: 1rem;">
+                            <nav aria-label="Paginación de exámenes generales">
+                                <ul class="pagination justify-content-center mb-0" style="flex-wrap: wrap;">
+                                    {% set paramsBaseGeneral = {
+                                        'usuario': usuarioSeleccionado ? usuarioSeleccionado : '',
+                                        'dificultad': dificultadSeleccionada ? dificultadSeleccionada : '',
+                                        'tema': temaSeleccionado ? temaSeleccionado.id : '',
+                                        'page_municipal': currentPageMunicipal > 1 ? currentPageMunicipal : ''
+                                    } %}
+                                    {% set paramsBaseGeneral = paramsBaseGeneral|filter(v => v != '' and v != 0) %}
+                                    
+                                    {# Botón Anterior #}
+                                    <li class="page-item {% if currentPageGeneral == 1 %}disabled{% endif %}">
+                                        {% if currentPageGeneral > 1 %}
+                                            {% set pageAnteriorGeneral = currentPageGeneral - 1 %}
+                                            {% set paramsAnteriorGeneral = paramsBaseGeneral|merge({'page_general': pageAnteriorGeneral > 1 ? pageAnteriorGeneral : ''}) %}
+                                            {% set paramsAnteriorGeneral = paramsAnteriorGeneral|filter(v => v != '') %}
+                                            <a class="page-link" href="{{ path('app_examen_profesor', paramsAnteriorGeneral) }}">
+                                        {% else %}
+                                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                                        {% endif %}
+                                            ← Anterior
+                                        </a>
+                                    </li>
+                                    
+                                    {# Números de página #}
+                                    {% set startPageGeneral = max(1, currentPageGeneral - 2) %}
+                                    {% set endPageGeneral = min(totalPagesGeneral, currentPageGeneral + 2) %}
+                                    
+                                    {% if startPageGeneral > 1 %}
+                                        <li class="page-item">
+                                            {% set paramsFirst = paramsBaseGeneral|filter(v => v != '') %}
+                                            <a class="page-link" href="{{ path('app_examen_profesor', paramsFirst) }}">1</a>
+                                        </li>
+                                        {% if startPageGeneral > 2 %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        {% endif %}
+                                    {% endif %}
+                                    
+                                    {% for p in startPageGeneral..endPageGeneral %}
+                                        <li class="page-item {% if p == currentPageGeneral %}active{% endif %}">
+                                            {% if p > 1 %}
+                                                {% set paramsPage = paramsBaseGeneral|merge({'page_general': p})|filter(v => v != '') %}
+                                                <a class="page-link" href="{{ path('app_examen_profesor', paramsPage) }}">{{ p }}</a>
+                                            {% else %}
+                                                {% set paramsPage = paramsBaseGeneral|filter(v => v != '' and v != 'page_general') %}
+                                                <a class="page-link" href="{{ path('app_examen_profesor', paramsPage) }}">{{ p }}</a>
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                    
+                                    {% if endPageGeneral < totalPagesGeneral %}
+                                        {% if endPageGeneral < totalPagesGeneral - 1 %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        {% endif %}
+                                        <li class="page-item">
+                                            {% set paramsLast = paramsBaseGeneral|merge({'page_general': totalPagesGeneral})|filter(v => v != '') %}
+                                            <a class="page-link" href="{{ path('app_examen_profesor', paramsLast) }}">{{ totalPagesGeneral }}</a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {# Botón Siguiente #}
+                                    <li class="page-item {% if currentPageGeneral == totalPagesGeneral %}disabled{% endif %}">
+                                        {% if currentPageGeneral < totalPagesGeneral %}
+                                            {% set paramsNext = paramsBaseGeneral|merge({'page_general': currentPageGeneral + 1})|filter(v => v != '') %}
+                                            <a class="page-link" href="{{ path('app_examen_profesor', paramsNext) }}">
+                                        {% else %}
+                                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                                        {% endif %}
+                                            Siguiente →
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                            <div style="text-align: center; margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
+                                Mostrando {{ ((currentPageGeneral - 1) * itemsPerPage) + 1 }} - {{ min(currentPageGeneral * itemsPerPage, totalItemsGeneral) }} de {{ totalItemsGeneral }} exámenes
+                            </div>
+                        </div>
+                    {% endif %}
                 {% else %}
                     <div class="text-center" style="padding: 2rem;">
                         <p style="font-size: 1.1rem; color: #666;">No se encontraron exámenes del temario general con los filtros seleccionados.</p>
@@ -250,6 +402,91 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    
+                    {% if totalPagesMunicipal > 1 %}
+                        <div class="card-footer" style="background-color: #f8f9fa; border-top: 1px solid #dee2e6; padding: 1rem;">
+                            <nav aria-label="Paginación de exámenes municipales">
+                                <ul class="pagination justify-content-center mb-0" style="flex-wrap: wrap;">
+                                    {% set paramsBaseMunicipal = {
+                                        'usuario': usuarioSeleccionado ? usuarioSeleccionado : '',
+                                        'dificultad': dificultadSeleccionada ? dificultadSeleccionada : '',
+                                        'tema': temaSeleccionado ? temaSeleccionado.id : '',
+                                        'page_general': currentPageGeneral > 1 ? currentPageGeneral : ''
+                                    } %}
+                                    {% set paramsBaseMunicipal = paramsBaseMunicipal|filter(v => v != '' and v != 0) %}
+                                    
+                                    {# Botón Anterior #}
+                                    <li class="page-item {% if currentPageMunicipal == 1 %}disabled{% endif %}">
+                                        {% if currentPageMunicipal > 1 %}
+                                            {% set pageAnteriorMunicipal = currentPageMunicipal - 1 %}
+                                            {% set paramsAnteriorMunicipal = paramsBaseMunicipal|merge({'page_municipal': pageAnteriorMunicipal > 1 ? pageAnteriorMunicipal : ''}) %}
+                                            {% set paramsAnteriorMunicipal = paramsAnteriorMunicipal|filter(v => v != '') %}
+                                            <a class="page-link" href="{{ path('app_examen_profesor', paramsAnteriorMunicipal) }}">
+                                        {% else %}
+                                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                                        {% endif %}
+                                            ← Anterior
+                                        </a>
+                                    </li>
+                                    
+                                    {# Números de página #}
+                                    {% set startPageMunicipal = max(1, currentPageMunicipal - 2) %}
+                                    {% set endPageMunicipal = min(totalPagesMunicipal, currentPageMunicipal + 2) %}
+                                    
+                                    {% if startPageMunicipal > 1 %}
+                                        <li class="page-item">
+                                            {% set paramsFirst = paramsBaseMunicipal|filter(v => v != '') %}
+                                            <a class="page-link" href="{{ path('app_examen_profesor', paramsFirst) }}">1</a>
+                                        </li>
+                                        {% if startPageMunicipal > 2 %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        {% endif %}
+                                    {% endif %}
+                                    
+                                    {% for p in startPageMunicipal..endPageMunicipal %}
+                                        <li class="page-item {% if p == currentPageMunicipal %}active{% endif %}">
+                                            {% if p > 1 %}
+                                                {% set paramsPage = paramsBaseMunicipal|merge({'page_municipal': p})|filter(v => v != '') %}
+                                                <a class="page-link" href="{{ path('app_examen_profesor', paramsPage) }}">{{ p }}</a>
+                                            {% else %}
+                                                {% set paramsPage = paramsBaseMunicipal|filter(v => v != '' and v != 'page_municipal') %}
+                                                <a class="page-link" href="{{ path('app_examen_profesor', paramsPage) }}">{{ p }}</a>
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                    
+                                    {% if endPageMunicipal < totalPagesMunicipal %}
+                                        {% if endPageMunicipal < totalPagesMunicipal - 1 %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        {% endif %}
+                                        <li class="page-item">
+                                            {% set paramsLast = paramsBaseMunicipal|merge({'page_municipal': totalPagesMunicipal})|filter(v => v != '') %}
+                                            <a class="page-link" href="{{ path('app_examen_profesor', paramsLast) }}">{{ totalPagesMunicipal }}</a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {# Botón Siguiente #}
+                                    <li class="page-item {% if currentPageMunicipal == totalPagesMunicipal %}disabled{% endif %}">
+                                        {% if currentPageMunicipal < totalPagesMunicipal %}
+                                            {% set paramsNext = paramsBaseMunicipal|merge({'page_municipal': currentPageMunicipal + 1})|filter(v => v != '') %}
+                                            <a class="page-link" href="{{ path('app_examen_profesor', paramsNext) }}">
+                                        {% else %}
+                                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                                        {% endif %}
+                                            Siguiente →
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                            <div style="text-align: center; margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
+                                Mostrando {{ ((currentPageMunicipal - 1) * itemsPerPage) + 1 }} - {{ min(currentPageMunicipal * itemsPerPage, totalItemsMunicipal) }} de {{ totalItemsMunicipal }} exámenes
+                            </div>
+                        </div>
+                    {% endif %}
                 {% else %}
                     <div class="text-center" style="padding: 2rem;">
                         <p style="font-size: 1.1rem; color: #666;">No se encontraron exámenes municipales con los filtros seleccionados.</p>
