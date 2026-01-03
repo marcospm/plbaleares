@@ -45,7 +45,14 @@
                                             <a href="{{ path('app_examen_semanal_alumno_ranking', {'id': examenGeneral.id}) }}" class="btn btn-primary btn-sm">Ver Ranking</a>
                                         </div>
                                     {% elseif examenGeneral.estaDisponible() %}
-                                        <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenGeneral.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;">Realizar Examen</a>
+                                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                            <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenGeneral.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;">Realizar Examen Online</a>
+                                            {% if examenesPDFPorSemanal[examenGeneral.id] is defined %}
+                                                <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examenGeneral.id}) }}" class="btn btn-warning" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Editar Resultados PDF</a>
+                                            {% else %}
+                                                <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examenGeneral.id}) }}" class="btn btn-outline-secondary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Introducir Resultados PDF</a>
+                                            {% endif %}
+                                        </div>
                                     {% elseif examenGeneral.estaPendiente() %}
                                         <span class="badge" style="background-color: #ffc107; padding: 0.5rem 1rem; font-size: 1rem;">Pendiente</span>
                                     {% else %}
@@ -95,7 +102,14 @@
                                             <a href="{{ path('app_examen_semanal_alumno_ranking', {'id': examenMunicipal.id}) }}" class="btn btn-primary btn-sm">Ver Ranking</a>
                                         </div>
                                     {% elseif examenMunicipal.estaDisponible() %}
-                                        <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenMunicipal.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;">Realizar Examen</a>
+                                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                            <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenMunicipal.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;">Realizar Examen Online</a>
+                                            {% if examenesPDFPorSemanal[examenMunicipal.id] is defined %}
+                                                <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examenMunicipal.id}) }}" class="btn btn-warning" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Editar Resultados PDF</a>
+                                            {% else %}
+                                                <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examenMunicipal.id}) }}" class="btn btn-outline-secondary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Introducir Resultados PDF</a>
+                                            {% endif %}
+                                        </div>
                                     {% elseif examenMunicipal.estaPendiente() %}
                                         <span class="badge" style="background-color: #ffc107; padding: 0.5rem 1rem; font-size: 1rem;">Pendiente</span>
                                     {% else %}
@@ -147,7 +161,14 @@
                                 </div>
                                 <div>
                                     {% if examenConvocatoria.estaDisponible() %}
-                                        <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenConvocatoria.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;">Realizar Examen</a>
+                                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                            <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenConvocatoria.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;">Realizar Examen Online</a>
+                                            {% if examenesPDFPorSemanal[examenConvocatoria.id] is defined %}
+                                                <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examenConvocatoria.id}) }}" class="btn btn-warning" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Editar Resultados PDF</a>
+                                            {% else %}
+                                                <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examenConvocatoria.id}) }}" class="btn btn-outline-secondary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Introducir Resultados PDF</a>
+                                            {% endif %}
+                                        </div>
                                     {% elseif examenConvocatoria.estaPendiente() %}
                                         <span class="badge" style="background-color: #ffc107; padding: 0.5rem 1rem; font-size: 1rem;">Pendiente</span>
                                     {% else %}
@@ -177,6 +198,7 @@
                             <th>Aciertos</th>
                             <th>Errores</th>
                             <th>En blanco</th>
+                            <th>Tipo</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -190,8 +212,18 @@
                                 <td style="color: var(--color-danger);"><strong>{{ examen.errores }}</strong></td>
                                 <td style="color: #999;"><strong>{{ examen.enBlanco }}</strong></td>
                                 <td>
+                                    {% if examen.realizadoEnPDF %}
+                                        <span class="badge" style="background-color: #ff9800;">PDF</span>
+                                    {% else %}
+                                        <span class="badge" style="background-color: #4caf50;">Online</span>
+                                    {% endif %}
+                                </td>
+                                <td>
                                     <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-secondary btn-sm">Ver Detalle</a>
                                     <a href="{{ path('app_examen_semanal_alumno_ranking', {'id': examen.examenSemanal.id}) }}" class="btn btn-primary btn-sm">Ver Ranking</a>
+                                    {% if examen.realizadoEnPDF and examen.examenSemanal.estaDisponible() %}
+                                        <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examen.examenSemanal.id}) }}" class="btn btn-warning btn-sm">Editar PDF</a>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}

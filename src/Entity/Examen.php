@@ -41,6 +41,9 @@ class Examen
     #[ORM\Column(options: ['default' => 0])]
     private int $enBlanco = 0;
 
+    #[ORM\Column(type: 'boolean', options: ['default' => false], name: 'realizado_en_pdf')]
+    private bool $realizadoEnPDF = false;
+
     #[ORM\Column(type: Types::JSON)]
     private array $respuestas = [];
 
@@ -171,6 +174,18 @@ class Examen
     public function setEnBlanco(int $enBlanco): static
     {
         $this->enBlanco = $enBlanco;
+
+        return $this;
+    }
+
+    public function isRealizadoEnPDF(): bool
+    {
+        return $this->realizadoEnPDF;
+    }
+
+    public function setRealizadoEnPDF(bool $realizadoEnPDF): static
+    {
+        $this->realizadoEnPDF = $realizadoEnPDF;
 
         return $this;
     }

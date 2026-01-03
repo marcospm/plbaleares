@@ -12,6 +12,7 @@ use App\Repository\PreguntaMunicipalRepository;
 use App\Repository\TemaRepository;
 use App\Repository\TemaMunicipalRepository;
 use App\Repository\MunicipioRepository;
+use App\Form\ExamenSemanalPDFType;
 use App\Repository\ConfiguracionExamenRepository;
 use App\Service\NotificacionService;
 use App\Service\ConfiguracionExamenService;
@@ -63,7 +64,7 @@ class ExamenSemanalAlumnoController extends AbstractController
             ->getQuery()
             ->getResult();
 
-        // Obtener IDs de exámenes semanales ya realizados por el alumno
+        // Obtener exámenes semanales ya realizados por el alumno
         $examenesCompletados = $this->examenRepository->createQueryBuilder('e')
             ->where('e.usuario = :usuario')
             ->andWhere('e.examenSemanal IS NOT NULL')
@@ -72,13 +73,21 @@ class ExamenSemanalAlumnoController extends AbstractController
             ->getResult();
         
         $examenesRealizadosIds = [];
+        $examenesPDFPorSemanal = []; // Mapa de examenSemanalId => Examen (si es PDF)
         foreach ($examenesCompletados as $examen) {
             if ($examen->getExamenSemanal()) {
-                $examenesRealizadosIds[] = $examen->getExamenSemanal()->getId();
+                $examenSemanalId = $examen->getExamenSemanal()->getId();
+                // Solo considerar como "realizado" si NO es PDF (los PDF se pueden editar)
+                if (!$examen->isRealizadoEnPDF()) {
+                    $examenesRealizadosIds[] = $examenSemanalId;
+                } else {
+                    // Guardar el examen PDF para poder editarlo
+                    $examenesPDFPorSemanal[$examenSemanalId] = $examen;
+                }
             }
         }
 
-        // Filtrar solo exámenes pendientes (no realizados)
+        // Filtrar solo exámenes pendientes (no realizados online)
         $examenesDisponibles = array_filter($todosExamenes, function($examen) use ($examenesRealizadosIds) {
             return !in_array($examen->getId(), $examenesRealizadosIds);
         });
@@ -123,6 +132,7 @@ class ExamenSemanalAlumnoController extends AbstractController
             'yaRealizadoGeneral' => false, // Ya no se muestran los realizados aquí
             'yaRealizadoMunicipal' => false, // Ya no se muestran los realizados aquí
             'examenesRealizados' => $examenesRealizados,
+            'examenesPDFPorSemanal' => $examenesPDFPorSemanal,
         ]);
     }
 
@@ -152,6 +162,12 @@ class ExamenSemanalAlumnoController extends AbstractController
             ->getOneOrNullResult();
         
         if ($examenRealizado) {
+            // Si ya tiene un examen realizado en PDF, no puede hacer el online
+            if ($examenRealizado->isRealizadoEnPDF()) {
+                $this->addFlash('error', 'Ya has realizado este examen en formato PDF. Puedes editar los resultados desde la lista de exámenes realizados.');
+                return $this->redirectToRoute('app_examen_semanal_alumno_index');
+            }
+            // Si ya tiene un examen online, no puede hacerlo de nuevo
             $this->addFlash('error', 'Ya has realizado este examen semanal.');
             return $this->redirectToRoute('app_examen_semanal_alumno_index');
         }
@@ -580,6 +596,98 @@ class ExamenSemanalAlumnoController extends AbstractController
         }
         
         return $preguntasSeleccionadas;
+    }
+
+    #[Route('/{id}/introducir-pdf', name: 'app_examen_semanal_alumno_introducir_pdf', methods: ['GET', 'POST'])]
+    public function introducirPDF(Request $request, ExamenSemanal $examenSemanal): Response
+    {
+        // Verificar que no sea profesor ni admin
+        if ($this->isGranted('ROLE_PROFESOR') || $this->isGranted('ROLE_ADMIN')) {
+            throw $this->createAccessDeniedException('Esta ruta es solo para alumnos.');
+        }
+
+        $alumno = $this->getUser();
+
+        // Verificar que el examen esté disponible
+        if (!$examenSemanal->estaDisponible()) {
+            $this->addFlash('error', 'Este examen no está disponible en este momento. Solo puedes introducir resultados cuando el período de realización está abierto.');
+            return $this->redirectToRoute('app_examen_semanal_alumno_index');
+        }
+
+        // Verificar si ya existe un examen para este alumno y examen semanal
+        $examenExistente = $this->examenRepository->createQueryBuilder('e')
+            ->where('e.usuario = :usuario')
+            ->andWhere('e.examenSemanal = :examenSemanal')
+            ->setParameter('usuario', $alumno)
+            ->setParameter('examenSemanal', $examenSemanal)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        // Si ya existe un examen online, no puede introducir datos PDF
+        if ($examenExistente && !$examenExistente->isRealizadoEnPDF()) {
+            $this->addFlash('error', 'Ya has realizado este examen online. No puedes introducir datos de PDF.');
+            return $this->redirectToRoute('app_examen_semanal_alumno_index');
+        }
+
+        // Si no existe, crear uno nuevo; si existe y es PDF, editar
+        $examen = $examenExistente ?? new Examen();
+        
+        if (!$examenExistente) {
+            // Configurar el examen nuevo
+            $examen->setUsuario($alumno);
+            $examen->setExamenSemanal($examenSemanal);
+            $examen->setDificultad($examenSemanal->getDificultad());
+            $examen->setNumeroPreguntas($examenSemanal->getNumeroPreguntas() ?? 0);
+            $examen->setFecha(new \DateTime());
+            $examen->setRealizadoEnPDF(true);
+            $examen->setRespuestas([]);
+            $examen->setPreguntasIds([]);
+            
+            // Agregar temas o temas municipales según corresponda
+            if ($examenSemanal->getMunicipio() || $examenSemanal->getConvocatoria()) {
+                foreach ($examenSemanal->getTemasMunicipales() as $temaMunicipal) {
+                    $examen->addTemasMunicipale($temaMunicipal);
+                }
+                if ($examenSemanal->getMunicipio()) {
+                    $examen->setMunicipio($examenSemanal->getMunicipio());
+                }
+                if ($examenSemanal->getConvocatoria()) {
+                    $examen->setConvocatoria($examenSemanal->getConvocatoria());
+                }
+            } else {
+                foreach ($examenSemanal->getTemas() as $tema) {
+                    $examen->addTema($tema);
+                }
+            }
+        }
+
+        $form = $this->createForm(ExamenSemanalPDFType::class, $examen, [
+            'examen_semanal' => $examenSemanal
+        ]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            // Calcular la nota (aciertos / total * 10)
+            $numeroPreguntas = $examenSemanal->getNumeroPreguntas() ?? 1;
+            $nota = ($examen->getAciertos() / $numeroPreguntas) * 10;
+            $examen->setNota(number_format($nota, 2, '.', ''));
+            
+            $examen->setRealizadoEnPDF(true);
+
+            if (!$examenExistente) {
+                $this->entityManager->persist($examen);
+            }
+            $this->entityManager->flush();
+
+            $this->addFlash('success', 'Resultados del examen PDF guardados correctamente.');
+            return $this->redirectToRoute('app_examen_semanal_alumno_index');
+        }
+
+        return $this->render('examen_semanal_alumno/introducir_pdf.html.twig', [
+            'examenSemanal' => $examenSemanal,
+            'form' => $form,
+            'esEdicion' => $examenExistente !== null,
+        ]);
     }
 }
 

@@ -1,0 +1,116 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{% if esEdicion %}Editar{% else %}Introducir{% endif %} Resultados PDF - {{ examenSemanal.nombre }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>{% if esEdicion %}Editar{% else %}Introducir{% endif %} Resultados del Examen PDF</h1>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <h4>{{ examenSemanal.nombre }}</h4>
+            <p><strong>Número de preguntas:</strong> {{ examenSemanal.numeroPreguntas ?? 'No especificado' }}</p>
+            <p><strong>Dificultad:</strong> {{ examenSemanal.getDificultadLabel() }}</p>
+            <p><strong>Período de realización:</strong> Del {{ examenSemanal.fechaApertura|date('d/m/Y H:i') }} al {{ examenSemanal.fechaCierre|date('d/m/Y H:i') }}</p>
+            {% if esEdicion %}
+                <p class="text-warning"><strong>⚠️ Nota:</strong> Estás editando los resultados que ya habías introducido. Una vez guardados, no podrás realizar el examen online.</p>
+            {% else %}
+                <p class="text-warning"><strong>⚠️ Nota:</strong> Una vez introduzcas estos datos, no podrás realizar el examen online.</p>
+            {% endif %}
+        </div>
+
+        {{ form_start(form) }}
+            <div class="form-group">
+                {{ form_label(form.aciertos) }}
+                {{ form_widget(form.aciertos) }}
+                {{ form_errors(form.aciertos) }}
+                <small class="form-text text-muted">Número de respuestas correctas</small>
+            </div>
+
+            <div class="form-group">
+                {{ form_label(form.errores) }}
+                {{ form_widget(form.errores) }}
+                {{ form_errors(form.errores) }}
+                <small class="form-text text-muted">Número de respuestas incorrectas</small>
+            </div>
+
+            <div class="form-group">
+                {{ form_label(form.enBlanco) }}
+                {{ form_widget(form.enBlanco) }}
+                {{ form_errors(form.enBlanco) }}
+                <small class="form-text text-muted">Número de respuestas no contestadas</small>
+            </div>
+
+            <div class="alert alert-warning" id="suma-alert" style="display: none;">
+                <strong>⚠️ Atención:</strong> La suma de aciertos + errores + en blanco debe ser igual a <strong>{{ examenSemanal.numeroPreguntas ?? '?' }}</strong> preguntas.
+                <span id="suma-actual"></span>
+            </div>
+            
+            <div class="alert alert-danger" id="suma-exceso-alert" style="display: none;">
+                <strong>❌ Error:</strong> <span id="suma-exceso-mensaje"></span>
+            </div>
+
+            <div class="form-group">
+                {{ form_widget(form.submit) }}
+                <a href="{{ path('app_examen_semanal_alumno_index') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const aciertosInput = document.getElementById('{{ form.aciertos.vars.id }}');
+    const erroresInput = document.getElementById('{{ form.errores.vars.id }}');
+    const enBlancoInput = document.getElementById('{{ form.enBlanco.vars.id }}');
+    const sumaAlert = document.getElementById('suma-alert');
+    const sumaActual = document.getElementById('suma-actual');
+    const totalPreguntas = {{ examenSemanal.numeroPreguntas ?? 0 }};
+
+    function actualizarSuma() {
+        const aciertos = parseInt(aciertosInput.value) || 0;
+        const errores = parseInt(erroresInput.value) || 0;
+        const enBlanco = parseInt(enBlancoInput.value) || 0;
+        const suma = aciertos + errores + enBlanco;
+        const sumaExcesoAlert = document.getElementById('suma-exceso-alert');
+        const sumaExcesoMensaje = document.getElementById('suma-exceso-mensaje');
+
+        if (totalPreguntas > 0) {
+            // Ocultar ambos avisos primero
+            sumaAlert.style.display = 'none';
+            sumaExcesoAlert.style.display = 'none';
+            
+            if (suma > totalPreguntas) {
+                // Mostrar aviso de error cuando se supera el total
+                const exceso = suma - totalPreguntas;
+                sumaExcesoMensaje.textContent = `La suma de aciertos (${aciertos}) + errores (${errores}) + en blanco (${enBlanco}) = ${suma}, pero no puede superar el número total de preguntas (${totalPreguntas}). Hay un exceso de ${exceso} pregunta(s).`;
+                sumaExcesoAlert.style.display = 'block';
+                
+                // También mostrar el aviso de advertencia con información adicional
+                sumaActual.textContent = ` Suma actual: ${suma} (sobran ${exceso} pregunta(s))`;
+                sumaAlert.style.display = 'block';
+                sumaAlert.className = 'alert alert-danger';
+            } else if (suma < totalPreguntas) {
+                // Mostrar aviso de advertencia cuando falta
+                const faltantes = totalPreguntas - suma;
+                sumaActual.textContent = ` Suma actual: ${suma} (faltan ${faltantes} pregunta(s))`;
+                sumaAlert.style.display = 'block';
+                sumaAlert.className = 'alert alert-warning';
+            } else {
+                // Todo correcto
+                sumaAlert.style.display = 'none';
+                sumaExcesoAlert.style.display = 'none';
+            }
+        }
+    }
+
+    aciertosInput.addEventListener('input', actualizarSuma);
+    erroresInput.addEventListener('input', actualizarSuma);
+    enBlancoInput.addEventListener('input', actualizarSuma);
+    
+    actualizarSuma(); // Ejecutar al cargar
+});
+</script>
+{% endblock %}
+
