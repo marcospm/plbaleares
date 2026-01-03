@@ -3,8 +3,6 @@
 namespace App\Form;
 
 use App\Entity\ExamenPDF;
-use App\Entity\Tema;
-use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -26,20 +24,6 @@ class ExamenPDFType extends AbstractType
                 'label' => 'Descripción (opcional)',
                 'required' => false,
                 'attr' => ['class' => 'form-control', 'rows' => 3]
-            ])
-            ->add('temas', EntityType::class, [
-                'class' => Tema::class,
-                'choice_label' => 'nombre',
-                'multiple' => true,
-                'expanded' => false,
-                'label' => 'Temas (opcional)',
-                'required' => false,
-                'placeholder' => 'Selecciona uno o más temas',
-                'attr' => [
-                    'class' => 'form-control',
-                    'size' => 10
-                ],
-                'help' => 'Puedes seleccionar múltiples temas. Mantén presionada la tecla Ctrl (o Cmd en Mac) para seleccionar varios.'
             ])
             ->add('archivoPDF', FileType::class, [
                 'label' => 'Archivo PDF del Examen',

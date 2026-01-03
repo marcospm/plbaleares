@@ -280,91 +280,109 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const botones = document.querySelectorAll('.consultar-sumario-btn');
-        
-        botones.forEach(function(boton) {
-            boton.addEventListener('click', function() {
-                const url = this.getAttribute('data-url');
-                const titulo = this.getAttribute('data-titulo');
-                const resultadoDiv = this.closest('.resultado-item').querySelector('.resultado-consulta');
-                const loadingDiv = resultadoDiv.querySelector('.loading-consulta');
-                const contentDiv = resultadoDiv.querySelector('.resultado-consulta-content');
-                
-                // Mostrar el div de resultado
-                resultadoDiv.style.display = 'block';
-                loadingDiv.style.display = 'block';
-                contentDiv.style.display = 'none';
-                
-                // Deshabilitar el botón mientras se consulta
-                this.disabled = true;
-                this.textContent = 'Consultando...';
-                
-                // Hacer la petición
-                fetch('{{ path('app_boib_consultar') }}?consultar=' + encodeURIComponent(url))
-                    .then(response => response.json())
-                    .then(data => {
-                        loadingDiv.style.display = 'none';
-                        contentDiv.style.display = 'block';
-                        
-                        if (data.success) {
-                            if (data.extractos && data.extractos.length > 0) {
-                                let html = '<div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; padding: 1rem; margin-bottom: 1rem;">';
-                                html += '<strong style="color: #155724; display: block; margin-bottom: 0.75rem; font-size: 1.1rem;">✅ Referencias encontradas (' + data.totalExtractos + '):</strong>';
-                                
-                                if (data.terminosEncontrados && data.terminosEncontrados.length > 0) {
-                                    html += '<div style="margin-bottom: 1rem; padding: 0.75rem; background: white; border-radius: 4px; border: 1px solid #c3e6cb;">';
-                                    html += '<strong style="color: #155724; display: block; margin-bottom: 0.5rem;">Términos encontrados:</strong>';
-                                    html += '<div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">';
-                                    data.terminosEncontrados.forEach(function(termino) {
-                                        html += '<span style="background: #28a745; color: white; padding: 0.25rem 0.75rem; border-radius: 3px; font-size: 0.85rem; font-weight: 500;">' + termino + '</span>';
-                                    });
-                                    html += '</div>';
-                                    html += '</div>';
-                                }
-                                
-                                html += '<div style="display: grid; gap: 1rem;">';
-                                data.extractos.forEach(function(extracto, index) {
-                                    html += '<div style="background: white; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-                                    html += '<div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">';
-                                    html += '<span style="background: #28a745; color: white; padding: 0.2rem 0.6rem; border-radius: 3px; font-size: 0.75rem; font-weight: 600;">#' + (index + 1) + '</span>';
-                                    html += '<strong style="color: #155724; font-size: 0.95rem;">Término: ' + extracto.termino + '</strong>';
-                                    html += '</div>';
-                                    html += '<div style="color: #333; line-height: 1.6; font-size: 0.9rem; white-space: pre-wrap; word-wrap: break-word;">';
-                                    // Resaltar el término encontrado en el texto
-                                    let textoResaltado = extracto.texto.replace(
-                                        new RegExp('(' + extracto.termino.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'),
-                                        '<mark style="background: #ffeb3b; padding: 0.1rem 0.2rem; border-radius: 2px; font-weight: 600;">$1</mark>'
-                                    );
-                                    html += textoResaltado;
-                                    html += '</div>';
-                                    html += '</div>';
+    // Usar delegación de eventos para que funcione incluso con contenido cargado dinámicamente
+    (function() {
+        function manejarClickConsultar(e) {
+            const boton = e.target.closest('.consultar-sumario-btn');
+            if (!boton) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const url = boton.getAttribute('data-url');
+            const titulo = boton.getAttribute('data-titulo');
+            const resultadoDiv = boton.closest('.resultado-item').querySelector('.resultado-consulta');
+            const loadingDiv = resultadoDiv.querySelector('.loading-consulta');
+            const contentDiv = resultadoDiv.querySelector('.resultado-consulta-content');
+            
+            // Mostrar el div de resultado
+            resultadoDiv.style.display = 'block';
+            loadingDiv.style.display = 'block';
+            contentDiv.style.display = 'none';
+            
+            // Deshabilitar el botón mientras se consulta
+            boton.disabled = true;
+            const textoOriginal = boton.textContent;
+            boton.textContent = 'Consultando...';
+            
+            // Hacer la petición
+            fetch('{{ path('app_boib_consultar') }}?consultar=' + encodeURIComponent(url))
+                .then(response => response.json())
+                .then(data => {
+                    loadingDiv.style.display = 'none';
+                    contentDiv.style.display = 'block';
+                    
+                    if (data.success) {
+                        if (data.extractos && data.extractos.length > 0) {
+                            let html = '<div style="background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; padding: 1rem; margin-bottom: 1rem;">';
+                            html += '<strong style="color: #155724; display: block; margin-bottom: 0.75rem; font-size: 1.1rem;">✅ Referencias encontradas (' + data.totalExtractos + '):</strong>';
+                            
+                            if (data.terminosEncontrados && data.terminosEncontrados.length > 0) {
+                                html += '<div style="margin-bottom: 1rem; padding: 0.75rem; background: white; border-radius: 4px; border: 1px solid #c3e6cb;">';
+                                html += '<strong style="color: #155724; display: block; margin-bottom: 0.5rem;">Términos encontrados:</strong>';
+                                html += '<div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">';
+                                data.terminosEncontrados.forEach(function(termino) {
+                                    html += '<span style="background: #28a745; color: white; padding: 0.25rem 0.75rem; border-radius: 3px; font-size: 0.85rem; font-weight: 500;">' + termino + '</span>';
                                 });
                                 html += '</div>';
                                 html += '</div>';
-                                contentDiv.innerHTML = html;
-                            } else {
-                                contentDiv.innerHTML = '<div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 1rem; color: #856404;">⚠️ No se encontraron referencias a policía, proceso unificado u OEP en este sumario.</div>';
                             }
+                            
+                            html += '<div style="display: grid; gap: 1rem;">';
+                            data.extractos.forEach(function(extracto, index) {
+                                html += '<div style="background: white; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+                                html += '<div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">';
+                                html += '<span style="background: #28a745; color: white; padding: 0.2rem 0.6rem; border-radius: 3px; font-size: 0.75rem; font-weight: 600;">#' + (index + 1) + '</span>';
+                                html += '<strong style="color: #155724; font-size: 0.95rem;">Término: ' + extracto.termino + '</strong>';
+                                html += '</div>';
+                                html += '<div style="color: #333; line-height: 1.6; font-size: 0.9rem; white-space: pre-wrap; word-wrap: break-word;">';
+                                // Resaltar el término encontrado en el texto
+                                let textoResaltado = extracto.texto.replace(
+                                    new RegExp('(' + extracto.termino.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'),
+                                    '<mark style="background: #ffeb3b; padding: 0.1rem 0.2rem; border-radius: 2px; font-weight: 600;">$1</mark>'
+                                );
+                                html += textoResaltado;
+                                html += '</div>';
+                                html += '</div>';
+                            });
+                            html += '</div>';
+                            html += '</div>';
+                            contentDiv.innerHTML = html;
                         } else {
-                            contentDiv.innerHTML = '<div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; padding: 1rem; color: #721c24;">❌ Error: ' + (data.error || 'Error desconocido') + '</div>';
+                            contentDiv.innerHTML = '<div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 1rem; color: #856404;">⚠️ No se encontraron referencias a policía, proceso unificado u OEP en este sumario.</div>';
                         }
-                        
-                        // Rehabilitar el botón
-                        boton.disabled = false;
-                        boton.textContent = '🔍 Consultar términos policiales en el Sumario';
-                    })
-                    .catch(error => {
-                        loadingDiv.style.display = 'none';
-                        contentDiv.style.display = 'block';
-                        contentDiv.innerHTML = '<div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; padding: 1rem; color: #721c24;">❌ Error al consultar: ' + error.message + '</div>';
-                        
-                        // Rehabilitar el botón
-                        boton.disabled = false;
-                        boton.textContent = '🔍 Consultar términos policiales en el Sumario';
-                    });
+                    } else {
+                        contentDiv.innerHTML = '<div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; padding: 1rem; color: #721c24;">❌ Error: ' + (data.error || 'Error desconocido') + '</div>';
+                    }
+                    
+                    // Rehabilitar el botón
+                    boton.disabled = false;
+                    boton.textContent = textoOriginal;
+                })
+                .catch(error => {
+                    loadingDiv.style.display = 'none';
+                    contentDiv.style.display = 'block';
+                    contentDiv.innerHTML = '<div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; padding: 1rem; color: #721c24;">❌ Error al consultar: ' + error.message + '</div>';
+                    
+                    // Rehabilitar el botón
+                    boton.disabled = false;
+                    boton.textContent = textoOriginal;
+                });
+        }
+        
+        // Añadir el listener usando delegación de eventos (funciona con contenido dinámico)
+        document.addEventListener('click', manejarClickConsultar);
+        
+        // También inicializar cuando se carga contenido dinámicamente (para Turbo, AJAX, etc.)
+        if (typeof window.Turbo !== 'undefined') {
+            document.addEventListener('turbo:load', function() {
+                // El listener de delegación ya está activo, pero podemos forzar una verificación
+                console.log('Turbo load - botones de consultar sumario listos');
             });
-        });
-    });
+            document.addEventListener('turbo:render', function() {
+                console.log('Turbo render - botones de consultar sumario listos');
+            });
+        }
+    })();
 </script>
 {% endblock %}

@@ -310,35 +310,64 @@ class DashboardController extends AbstractController
             ];
         }
 
-        // Rankings por municipio
-        $rankingsPorMunicipio = [];
-        $posicionesPorMunicipio = [];
-        $municipiosActivos = $user->getMunicipios();
+        // Rankings por convocatoria
+        $rankingsPorConvocatoria = [];
         
-        foreach ($municipiosActivos as $municipio) {
-            if (!$municipio->isActivo()) {
-                continue;
-            }
+        foreach ($convocatorias as $convocatoria) {
+            $rankingsConvocatoria = [];
+            $posicionesConvocatoria = [];
             
-            $rankingsMunicipio = [];
-            $posicionesMunicipio = [];
-            
+            // Rankings generales de la convocatoria
             foreach ($dificultades as $dificultad) {
-                $ranking = $examenRepository->getRankingPorMunicipioYDificultad($municipio, $dificultad, $cantidadRanking);
-                $rankingsMunicipio[$dificultad] = $ranking;
-                $posicion = $examenRepository->getPosicionUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidadRanking);
-                $notaMedia = $examenRepository->getNotaMediaUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidadRanking);
-                $posicionesMunicipio[$dificultad] = [
+                $ranking = $examenRepository->getRankingPorConvocatoriaYDificultad($convocatoria, $dificultad, $cantidadRanking);
+                $rankingsConvocatoria[$dificultad] = $ranking;
+                $posicion = $examenRepository->getPosicionUsuarioPorConvocatoria($user, $convocatoria, $dificultad, $cantidadRanking);
+                $notaMedia = $examenRepository->getNotaMediaUsuarioPorConvocatoria($user, $convocatoria, $dificultad, $cantidadRanking);
+                $posicionesConvocatoria[$dificultad] = [
                     'posicion' => $posicion,
                     'notaMedia' => $notaMedia,
                     'totalUsuarios' => count($ranking),
                 ];
             }
             
-            $rankingsPorMunicipio[$municipio->getId()] = [
-                'municipio' => $municipio,
-                'rankings' => $rankingsMunicipio,
-                'posiciones' => $posicionesMunicipio,
+            // Rankings por municipio dentro de la convocatoria (solo si tiene más de un municipio)
+            $rankingsPorMunicipioConvocatoria = [];
+            $municipiosConvocatoria = $convocatoria->getMunicipios();
+            
+            if ($municipiosConvocatoria->count() > 1) {
+                foreach ($municipiosConvocatoria as $municipio) {
+                    if (!$municipio->isActivo()) {
+                        continue;
+                    }
+                    
+                    $rankingsMunicipio = [];
+                    $posicionesMunicipio = [];
+                    
+                    foreach ($dificultades as $dificultad) {
+                        $ranking = $examenRepository->getRankingPorMunicipioYDificultad($municipio, $dificultad, $cantidadRanking);
+                        $rankingsMunicipio[$dificultad] = $ranking;
+                        $posicion = $examenRepository->getPosicionUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidadRanking);
+                        $notaMedia = $examenRepository->getNotaMediaUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidadRanking);
+                        $posicionesMunicipio[$dificultad] = [
+                            'posicion' => $posicion,
+                            'notaMedia' => $notaMedia,
+                            'totalUsuarios' => count($ranking),
+                        ];
+                    }
+                    
+                    $rankingsPorMunicipioConvocatoria[$municipio->getId()] = [
+                        'municipio' => $municipio,
+                        'rankings' => $rankingsMunicipio,
+                        'posiciones' => $posicionesMunicipio,
+                    ];
+                }
+            }
+            
+            $rankingsPorConvocatoria[$convocatoria->getId()] = [
+                'convocatoria' => $convocatoria,
+                'rankings' => $rankingsConvocatoria,
+                'posiciones' => $posicionesConvocatoria,
+                'rankingsPorMunicipio' => $rankingsPorMunicipioConvocatoria,
             ];
         }
 
@@ -352,7 +381,7 @@ class DashboardController extends AbstractController
             'proximasTareas' => $proximasTareas,
             'convocatorias' => $convocatorias,
             'posicionesUsuario' => $posicionesUsuario,
-            'rankingsPorMunicipio' => $rankingsPorMunicipio,
+            'rankingsPorConvocatoria' => $rankingsPorConvocatoria,
             'cantidadRanking' => $cantidadRanking,
         ]);
     }

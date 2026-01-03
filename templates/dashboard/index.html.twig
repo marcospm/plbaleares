@@ -26,7 +26,7 @@
             
             // Restaurar estado de las secciones desde localStorage
             // Secciones principales
-            const mainSections = ['convocatorias', 'ranking-general', 'mis-examenes', 'mis-tareas', 'historial-examenes'];
+            const mainSections = ['convocatorias', 'mis-examenes', 'mis-tareas', 'historial-examenes'];
             mainSections.forEach(sectionId => {
                 const savedState = localStorage.getItem(`dashboard_section_${sectionId}`);
                 if (savedState === 'collapsed') {
@@ -41,19 +41,71 @@
                 }
             });
             
-            // Rankings por municipio (IDs dinámicos)
-            const rankingMunicipioHeaders = document.querySelectorAll('[data-section^="ranking-municipio-"]');
-            rankingMunicipioHeaders.forEach(header => {
+            // Ranking general - PLEGADO POR DEFECTO
+            const rankingGeneralSection = document.getElementById('ranking-general');
+            const rankingGeneralHeader = document.querySelector('[data-section="ranking-general"]');
+            if (rankingGeneralSection && rankingGeneralHeader) {
+                const savedState = localStorage.getItem('dashboard_section_ranking-general');
+                const icon = rankingGeneralHeader.querySelector('.toggle-icon');
+                
+                // Si no hay estado guardado, plegar por defecto
+                // Si hay estado guardado, usar ese estado
+                if (savedState === null || savedState === 'collapsed') {
+                    rankingGeneralSection.style.display = 'none';
+                    if (icon) {
+                        icon.textContent = '▶';
+                    }
+                    // Guardar como colapsado si no había estado previo
+                    if (savedState === null) {
+                        localStorage.setItem('dashboard_section_ranking-general', 'collapsed');
+                    }
+                }
+            }
+            
+            // Rankings por convocatoria (IDs dinámicos) - PLEGADAS POR DEFECTO
+            const rankingConvocatoriaHeaders = document.querySelectorAll('[data-section^="ranking-convocatoria-"]');
+            rankingConvocatoriaHeaders.forEach(header => {
                 const sectionId = header.getAttribute('data-section');
                 const savedState = localStorage.getItem(`dashboard_section_${sectionId}`);
-                if (savedState === 'collapsed') {
-                    const section = document.getElementById(sectionId);
-                    const icon = header.querySelector('.toggle-icon');
+                const section = document.getElementById(sectionId);
+                const icon = header.querySelector('.toggle-icon');
+                
+                // Si no hay estado guardado, plegar por defecto
+                // Si hay estado guardado, usar ese estado
+                if (savedState === null || savedState === 'collapsed') {
                     if (section) {
                         section.style.display = 'none';
                     }
                     if (icon) {
                         icon.textContent = '▶';
+                    }
+                    // Guardar como colapsado si no había estado previo
+                    if (savedState === null) {
+                        localStorage.setItem(`dashboard_section_${sectionId}`, 'collapsed');
+                    }
+                }
+            });
+            
+            // Rankings por municipio dentro de convocatorias (IDs dinámicos) - PLEGADAS POR DEFECTO
+            const rankingMunicipioHeaders = document.querySelectorAll('[data-section^="ranking-municipio-"]');
+            rankingMunicipioHeaders.forEach(header => {
+                const sectionId = header.getAttribute('data-section');
+                const savedState = localStorage.getItem(`dashboard_section_${sectionId}`);
+                const section = document.getElementById(sectionId);
+                const icon = header.querySelector('.toggle-icon');
+                
+                // Si no hay estado guardado, plegar por defecto
+                // Si hay estado guardado, usar ese estado
+                if (savedState === null || savedState === 'collapsed') {
+                    if (section) {
+                        section.style.display = 'none';
+                    }
+                    if (icon) {
+                        icon.textContent = '▶';
+                    }
+                    // Guardar como colapsado si no había estado previo
+                    if (savedState === null) {
+                        localStorage.setItem(`dashboard_section_${sectionId}`, 'collapsed');
                     }
                 }
             });
@@ -551,17 +603,17 @@
         </div>
     {% endif %}
 
-    {# Rankings por municipio #}
-    {% if rankingsPorMunicipio|length > 0 %}
-        <div id="rankings-municipios-container">
-            {% for municipioId, datosMunicipio in rankingsPorMunicipio %}
-                <div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid #2196F3;">
-                    <div class="card-header" style="background-color: #e3f2fd; cursor: pointer;" data-section="ranking-municipio-{{ municipioId }}" onclick="toggleSection('ranking-municipio-{{ municipioId }}')">
+    {# Rankings por convocatoria #}
+    {% if rankingsPorConvocatoria|length > 0 %}
+        <div id="rankings-convocatorias-container">
+            {% for convocatoriaId, datosConvocatoria in rankingsPorConvocatoria %}
+                <div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid #9C27B0;">
+                    <div class="card-header" style="background-color: #f3e5f5; cursor: pointer;" data-section="ranking-convocatoria-{{ convocatoriaId }}" onclick="toggleSection('ranking-convocatoria-{{ convocatoriaId }}')">
                         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                            <h3 style="margin: 0;">🏆 Mi Ranking - {{ datosMunicipio.municipio.nombre }}</h3>
+                            <h3 style="margin: 0;">🏆 Ranking - {{ datosConvocatoria.convocatoria.nombre }}</h3>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <label for="cantidad-ranking-municipio-{{ municipioId }}-select" style="margin-right: 0.5rem; font-size: 0.9rem;">Últimos:</label>
-                                <select id="cantidad-ranking-municipio-{{ municipioId }}-select" class="form-control" style="display: inline-block; width: auto; font-size: 0.9rem;" onchange="window.location.href='{{ path('app_dashboard') }}?cantidad=' + this.value" onclick="event.stopPropagation();">
+                                <label for="cantidad-ranking-convocatoria-{{ convocatoriaId }}-select" style="margin-right: 0.5rem; font-size: 0.9rem;">Últimos:</label>
+                                <select id="cantidad-ranking-convocatoria-{{ convocatoriaId }}-select" class="form-control" style="display: inline-block; width: auto; font-size: 0.9rem;" onchange="window.location.href='{{ path('app_dashboard') }}?cantidad=' + this.value" onclick="event.stopPropagation();">
                                     <option value="2" {% if cantidadRanking == 2 %}selected{% endif %}>2 exámenes</option>
                                     <option value="3" {% if cantidadRanking == 3 %}selected{% endif %}>3 exámenes</option>
                                     <option value="4" {% if cantidadRanking == 4 %}selected{% endif %}>4 exámenes</option>
@@ -572,43 +624,97 @@
                             </div>
                         </div>
                     </div>
-                    <div class="card-body" id="ranking-municipio-{{ municipioId }}">
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
-                        {% for dificultad, datos in datosMunicipio.posiciones %}
-                            {% if datos.posicion %}
-                                <div style="text-align: center; padding: 0.75rem; background-color: #e3f2fd; border-radius: 4px;">
-                                    <div style="font-weight: bold; color: #1976D2; margin-bottom: 0.25rem;">
-                                        {% if dificultad == 'facil' %}Fácil
-                                        {% elseif dificultad == 'moderada' %}Moderada
-                                        {% else %}Difícil
-                                        {% endif %}
-                                    </div>
-                                    <div style="font-size: 1.2rem; font-weight: bold; color: var(--color-success);">
-                                        Posición {{ datos.posicion }}/{{ datos.totalUsuarios }}
-                                    </div>
-                                    {% if datos.notaMedia %}
-                                        <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
-                                            Media: {{ datos.notaMedia|number_format(2, ',', '.') }}
+                    <div class="card-body" id="ranking-convocatoria-{{ convocatoriaId }}">
+                        {# Ranking general de la convocatoria #}
+                        <h4 style="margin-bottom: 1rem; color: #9C27B0; font-size: 1rem;">Ranking General de la Convocatoria</h4>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                            {% for dificultad, datos in datosConvocatoria.posiciones %}
+                                {% if datos.posicion %}
+                                    <div style="text-align: center; padding: 0.75rem; background-color: #f3e5f5; border-radius: 4px;">
+                                        <div style="font-weight: bold; color: #9C27B0; margin-bottom: 0.25rem;">
+                                            {% if dificultad == 'facil' %}Fácil
+                                            {% elseif dificultad == 'moderada' %}Moderada
+                                            {% else %}Difícil
+                                            {% endif %}
                                         </div>
-                                    {% endif %}
-                                </div>
-                            {% else %}
-                                <div style="text-align: center; padding: 0.75rem; background-color: #e3f2fd; border-radius: 4px;">
-                                    <div style="font-weight: bold; color: #1976D2; margin-bottom: 0.25rem;">
-                                        {% if dificultad == 'facil' %}Fácil
-                                        {% elseif dificultad == 'moderada' %}Moderada
-                                        {% else %}Difícil
+                                        <div style="font-size: 1.2rem; font-weight: bold; color: var(--color-success);">
+                                            Posición {{ datos.posicion }}/{{ datos.totalUsuarios }}
+                                        </div>
+                                        {% if datos.notaMedia %}
+                                            <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+                                                Media: {{ datos.notaMedia|number_format(2, ',', '.') }}
+                                            </div>
                                         {% endif %}
                                     </div>
-                                    <div style="font-size: 0.9rem; color: #999;">
-                                        Sin exámenes
+                                {% else %}
+                                    <div style="text-align: center; padding: 0.75rem; background-color: #f3e5f5; border-radius: 4px;">
+                                        <div style="font-weight: bold; color: #9C27B0; margin-bottom: 0.25rem;">
+                                            {% if dificultad == 'facil' %}Fácil
+                                            {% elseif dificultad == 'moderada' %}Moderada
+                                            {% else %}Difícil
+                                            {% endif %}
+                                        </div>
+                                        <div style="font-size: 0.9rem; color: #999;">
+                                            Sin exámenes
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        
+                        {# Rankings por municipio dentro de la convocatoria (solo si tiene más de un municipio) #}
+                        {% if datosConvocatoria.rankingsPorMunicipio|length > 0 %}
+                            <hr style="margin: 1.5rem 0; border: 1px solid #ddd;">
+                            <h4 style="margin-bottom: 1rem; color: #9C27B0; font-size: 1rem;">Rankings por Municipio</h4>
+                            {% for municipioId, datosMunicipio in datosConvocatoria.rankingsPorMunicipio %}
+                                <div style="margin-bottom: 1.5rem; padding: 1rem; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid #2196F3;">
+                                    <div class="card-header" style="background-color: #e3f2fd; cursor: pointer; margin-bottom: 1rem;" data-section="ranking-municipio-{{ convocatoriaId }}-{{ municipioId }}" onclick="toggleSection('ranking-municipio-{{ convocatoriaId }}-{{ municipioId }}')">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                            <h5 style="margin: 0; color: #1976D2;">📍 {{ datosMunicipio.municipio.nombre }}</h5>
+                                            <span class="toggle-icon" style="font-size: 1rem; user-select: none;">▼</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-body" id="ranking-municipio-{{ convocatoriaId }}-{{ municipioId }}">
+                                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                                            {% for dificultad, datos in datosMunicipio.posiciones %}
+                                                {% if datos.posicion %}
+                                                    <div style="text-align: center; padding: 0.75rem; background-color: #e3f2fd; border-radius: 4px;">
+                                                        <div style="font-weight: bold; color: #1976D2; margin-bottom: 0.25rem;">
+                                                            {% if dificultad == 'facil' %}Fácil
+                                                            {% elseif dificultad == 'moderada' %}Moderada
+                                                            {% else %}Difícil
+                                                            {% endif %}
+                                                        </div>
+                                                        <div style="font-size: 1.2rem; font-weight: bold; color: var(--color-success);">
+                                                            Posición {{ datos.posicion }}/{{ datos.totalUsuarios }}
+                                                        </div>
+                                                        {% if datos.notaMedia %}
+                                                            <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">
+                                                                Media: {{ datos.notaMedia|number_format(2, ',', '.') }}
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                {% else %}
+                                                    <div style="text-align: center; padding: 0.75rem; background-color: #e3f2fd; border-radius: 4px;">
+                                                        <div style="font-weight: bold; color: #1976D2; margin-bottom: 0.25rem;">
+                                                            {% if dificultad == 'facil' %}Fácil
+                                                            {% elseif dificultad == 'moderada' %}Moderada
+                                                            {% else %}Difícil
+                                                            {% endif %}
+                                                        </div>
+                                                        <div style="font-size: 0.9rem; color: #999;">
+                                                            Sin exámenes
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
                                     </div>
                                 </div>
-                            {% endif %}
-                        {% endfor %}
+                            {% endfor %}
+                        {% endif %}
                     </div>
                 </div>
-            </div>
             {% endfor %}
         </div>
     {% endif %}
