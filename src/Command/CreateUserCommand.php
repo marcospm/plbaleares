@@ -44,6 +44,9 @@ class CreateUserCommand extends Command
         );
 
         $user->setPassword($hashedPassword);
+        
+        // El usuario se crea inactivo por defecto
+        $user->setActivo(false);
 
         $this->em->persist($user);
         $this->em->flush();
