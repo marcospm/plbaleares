@@ -814,7 +814,19 @@ class ExamenController extends AbstractController
     public function historial(Request $request, TemaRepository $temaRepository, TemaMunicipalRepository $temaMunicipalRepository): Response
     {
         $user = $this->getUser();
-        $examenes = $this->examenRepository->findBy(['usuario' => $user], ['fecha' => 'DESC']);
+        $todosExamenes = $this->examenRepository->findBy(['usuario' => $user], ['fecha' => 'DESC']);
+
+        // Separar exámenes: temario general (sin convocatoria) y por convocatoria
+        $examenesTemarioGeneral = [];
+        $examenesPorConvocatoria = [];
+        
+        foreach ($todosExamenes as $examen) {
+            if ($examen->getConvocatoria()) {
+                $examenesPorConvocatoria[] = $examen;
+            } else {
+                $examenesTemarioGeneral[] = $examen;
+            }
+        }
 
         // Obtener cantidad de exámenes para el ranking (por defecto 3)
         $cantidad = $request->query->getInt('cantidad', 3);
@@ -829,14 +841,13 @@ class ExamenController extends AbstractController
             $tema = $temaRepository->find($temaId);
         }
 
-        // Obtener tema municipal seleccionado (opcional)
-        $temaMunicipalId = $request->query->getInt('tema_municipal', 0);
-        $temaMunicipal = null;
-        if ($temaMunicipalId > 0) {
-            $temaMunicipal = $temaMunicipalRepository->find($temaMunicipalId);
+        // Obtener convocatoria y municipio seleccionados para filtrar
+        $convocatoriaId = $request->query->getInt('convocatoria', 0);
+        $convocatoriaSeleccionada = null;
+        if ($convocatoriaId > 0) {
+            $convocatoriaSeleccionada = $this->convocatoriaRepository->find($convocatoriaId);
         }
 
-        // Obtener municipio seleccionado para filtrar rankings municipales
         $municipioId = $request->query->getInt('municipio', 0);
         $municipioSeleccionado = null;
         if ($municipioId > 0) {
@@ -846,7 +857,10 @@ class ExamenController extends AbstractController
         // Obtener todos los temas activos para el filtro
         $temas = $temaRepository->findBy(['activo' => true], ['id' => 'ASC']);
 
-        // Calcular rankings por dificultad (temario general)
+        // Obtener convocatorias activas del usuario
+        $convocatorias = $this->convocatoriaRepository->findByUsuario($user);
+
+        // Calcular rankings por dificultad (temario general - solo exámenes sin convocatoria)
         $rankings = [];
         $posicionesUsuario = [];
         $dificultades = ['facil', 'moderada', 'dificil'];
@@ -863,61 +877,53 @@ class ExamenController extends AbstractController
             ];
         }
 
-        // Calcular rankings por municipio
-        $rankingsPorMunicipio = [];
-        $posicionesPorMunicipio = [];
-        $municipiosActivos = $user->getMunicipios();
+        // Calcular rankings por convocatoria
+        $rankingsPorConvocatoria = [];
         
-        foreach ($municipiosActivos as $municipio) {
-            if (!$municipio->isActivo()) {
+        foreach ($convocatorias as $convocatoria) {
+            // Si hay una convocatoria seleccionada y no es esta, saltarla
+            if ($convocatoriaSeleccionada && $convocatoriaSeleccionada->getId() !== $convocatoria->getId()) {
                 continue;
             }
 
-            // Si hay un municipio seleccionado y no es este, saltarlo
-            if ($municipioSeleccionado && $municipioSeleccionado->getId() !== $municipio->getId()) {
-                continue;
-            }
-
-            // Obtener temas municipales de este municipio
-            $temasMunicipales = $temaMunicipalRepository->findByMunicipio($municipio);
+            $municipiosConvocatoria = $convocatoria->getMunicipios()->toArray();
             
-            $rankingsMunicipio = [];
-            $posicionesMunicipio = [];
+            $rankingsConvocatoria = [];
+            $posicionesConvocatoria = [];
             
             foreach ($dificultades as $dificultad) {
-                // Si hay un tema municipal seleccionado, usarlo para filtrar
-                $temaMunicipalFiltro = ($temaMunicipal && in_array($temaMunicipal, $temasMunicipales)) ? $temaMunicipal : null;
-                
-                $ranking = $this->examenRepository->getRankingPorMunicipioYDificultad($municipio, $dificultad, $cantidad, $temaMunicipalFiltro);
-                $rankingsMunicipio[$dificultad] = $ranking;
-                $posicion = $this->examenRepository->getPosicionUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidad, $temaMunicipalFiltro);
-                $notaMedia = $this->examenRepository->getNotaMediaUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidad, $temaMunicipalFiltro);
-                $posicionesMunicipio[$dificultad] = [
+                $ranking = $this->examenRepository->getRankingPorConvocatoriaYDificultad($convocatoria, $dificultad, $cantidad, $municipioSeleccionado);
+                $rankingsConvocatoria[$dificultad] = $ranking;
+                $posicion = $this->examenRepository->getPosicionUsuarioPorConvocatoria($user, $convocatoria, $dificultad, $cantidad, $municipioSeleccionado);
+                $notaMedia = $this->examenRepository->getNotaMediaUsuarioPorConvocatoria($user, $convocatoria, $dificultad, $cantidad, $municipioSeleccionado);
+                $posicionesConvocatoria[$dificultad] = [
                     'posicion' => $posicion,
                     'notaMedia' => $notaMedia,
                     'totalUsuarios' => count($ranking),
                 ];
             }
             
-            $rankingsPorMunicipio[$municipio->getId()] = [
-                'municipio' => $municipio,
-                'rankings' => $rankingsMunicipio,
-                'posiciones' => $posicionesMunicipio,
-                'temasMunicipales' => $temasMunicipales,
+            $rankingsPorConvocatoria[$convocatoria->getId()] = [
+                'convocatoria' => $convocatoria,
+                'rankings' => $rankingsConvocatoria,
+                'posiciones' => $posicionesConvocatoria,
+                'municipios' => $municipiosConvocatoria,
             ];
         }
 
         return $this->render('examen/historial.html.twig', [
-            'examenes' => $examenes,
+            'examenesTemarioGeneral' => $examenesTemarioGeneral,
+            'examenesPorConvocatoria' => $examenesPorConvocatoria,
             'rankings' => $rankings,
             'posicionesUsuario' => $posicionesUsuario,
-            'rankingsPorMunicipio' => $rankingsPorMunicipio,
+            'rankingsPorConvocatoria' => $rankingsPorConvocatoria,
             'cantidad' => $cantidad,
             'usuarioActual' => $user,
             'temas' => $temas,
             'temaSeleccionado' => $tema,
+            'convocatorias' => $convocatorias,
+            'convocatoriaSeleccionada' => $convocatoriaSeleccionada,
             'municipioSeleccionado' => $municipioSeleccionado,
-            'temaMunicipalSeleccionado' => $temaMunicipal,
         ]);
     }
 

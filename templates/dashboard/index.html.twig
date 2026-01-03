@@ -5,7 +5,8 @@
 {% block javascripts %}
     {{ parent() }}
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        // Función para inicializar el estado de las secciones
+        function initializeDashboardSections() {
             // Función para plegar/desplegar secciones
             function toggleSection(sectionId) {
                 const section = document.getElementById(sectionId);
@@ -112,7 +113,11 @@
             
             // Hacer la función global para que pueda ser llamada desde onclick
             window.toggleSection = toggleSection;
-        });
+        }
+        
+        // Ejecutar tanto en carga inicial como en navegación Turbo
+        document.addEventListener('DOMContentLoaded', initializeDashboardSections);
+        document.addEventListener('turbo:load', initializeDashboardSections);
     </script>
 {% endblock %}
 
@@ -559,12 +564,12 @@
                                 <option value="5" {% if cantidadRanking == 5 %}selected{% endif %}>5 exámenes</option>
                                 <option value="10" {% if cantidadRanking == 10 %}selected{% endif %}>10 exámenes</option>
                             </select>
-                            <span class="toggle-icon" style="font-size: 1.2rem; user-select: none; margin-left: 0.5rem;">▼</span>
+                            <span class="toggle-icon" style="font-size: 1.2rem; user-select: none; margin-left: 0.5rem;">▶</span>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="card-body" id="ranking-general">
+            <div class="card-body" id="ranking-general" style="display: none;">
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
                     {% for dificultad, datos in posicionesUsuario %}
                         {% if datos.posicion %}
@@ -620,11 +625,11 @@
                                     <option value="5" {% if cantidadRanking == 5 %}selected{% endif %}>5 exámenes</option>
                                     <option value="10" {% if cantidadRanking == 10 %}selected{% endif %}>10 exámenes</option>
                                 </select>
-                                <span class="toggle-icon" style="font-size: 1.2rem; user-select: none; margin-left: 0.5rem;">▼</span>
+                                <span class="toggle-icon" style="font-size: 1.2rem; user-select: none; margin-left: 0.5rem;">▶</span>
                             </div>
                         </div>
                     </div>
-                    <div class="card-body" id="ranking-convocatoria-{{ convocatoriaId }}">
+                    <div class="card-body" id="ranking-convocatoria-{{ convocatoriaId }}" style="display: none;">
                         {# Ranking general de la convocatoria #}
                         <h4 style="margin-bottom: 1rem; color: #9C27B0; font-size: 1rem;">Ranking General de la Convocatoria</h4>
                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
@@ -671,10 +676,10 @@
                                     <div class="card-header" style="background-color: #e3f2fd; cursor: pointer; margin-bottom: 1rem;" data-section="ranking-municipio-{{ convocatoriaId }}-{{ municipioId }}" onclick="toggleSection('ranking-municipio-{{ convocatoriaId }}-{{ municipioId }}')">
                                         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                                             <h5 style="margin: 0; color: #1976D2;">📍 {{ datosMunicipio.municipio.nombre }}</h5>
-                                            <span class="toggle-icon" style="font-size: 1rem; user-select: none;">▼</span>
+                                            <span class="toggle-icon" style="font-size: 1rem; user-select: none;">▶</span>
                                         </div>
                                     </div>
-                                    <div class="card-body" id="ranking-municipio-{{ convocatoriaId }}-{{ municipioId }}">
+                                    <div class="card-body" id="ranking-municipio-{{ convocatoriaId }}-{{ municipioId }}" style="display: none;">
                                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
                                             {% for dificultad, datos in datosMunicipio.posiciones %}
                                                 {% if datos.posicion %}

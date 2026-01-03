@@ -337,7 +337,7 @@ class ExamenRepository extends ServiceEntityRepository
     /**
      * Obtiene la nota media de un usuario para los últimos N exámenes de una convocatoria específica
      */
-    public function getNotaMediaUsuarioPorConvocatoria(User $usuario, \App\Entity\Convocatoria $convocatoria, string $dificultad, int $cantidadExamenes): ?float
+    public function getNotaMediaUsuarioPorConvocatoria(User $usuario, \App\Entity\Convocatoria $convocatoria, string $dificultad, int $cantidadExamenes, ?\App\Entity\Municipio $municipio = null): ?float
     {
         $qb = $this->createQueryBuilder('e')
             ->where('e.usuario = :usuario')
@@ -345,9 +345,15 @@ class ExamenRepository extends ServiceEntityRepository
             ->andWhere('e.dificultad = :dificultad')
             ->setParameter('usuario', $usuario)
             ->setParameter('convocatoria', $convocatoria)
-            ->setParameter('dificultad', $dificultad)
-            ->orderBy('e.fecha', 'DESC')
-            ->setMaxResults($cantidadExamenes);
+            ->setParameter('dificultad', $dificultad);
+        
+        if ($municipio) {
+            $qb->andWhere('e.municipio = :municipio')
+               ->setParameter('municipio', $municipio);
+        }
+        
+        $qb->orderBy('e.fecha', 'DESC')
+           ->setMaxResults($cantidadExamenes);
 
         $examenes = $qb->getQuery()->getResult();
 
@@ -367,7 +373,7 @@ class ExamenRepository extends ServiceEntityRepository
      * Obtiene el ranking de usuarios según su nota media de los últimos N exámenes por convocatoria y dificultad
      * @return array Array con ['usuario' => User, 'notaMedia' => float, 'cantidadExamenes' => int]
      */
-    public function getRankingPorConvocatoriaYDificultad(\App\Entity\Convocatoria $convocatoria, string $dificultad, int $cantidadExamenes): array
+    public function getRankingPorConvocatoriaYDificultad(\App\Entity\Convocatoria $convocatoria, string $dificultad, int $cantidadExamenes, ?\App\Entity\Municipio $municipio = null): array
     {
         // Obtener usuarios que tienen esta convocatoria asignada
         $usuarios = $this->getEntityManager()
@@ -383,7 +389,7 @@ class ExamenRepository extends ServiceEntityRepository
 
         $ranking = [];
         foreach ($usuarios as $usuario) {
-            $notaMedia = $this->getNotaMediaUsuarioPorConvocatoria($usuario, $convocatoria, $dificultad, $cantidadExamenes);
+            $notaMedia = $this->getNotaMediaUsuarioPorConvocatoria($usuario, $convocatoria, $dificultad, $cantidadExamenes, $municipio);
             if ($notaMedia !== null) {
                 // Contar cuántos exámenes tiene realmente
                 $qb = $this->createQueryBuilder('e')
@@ -393,6 +399,11 @@ class ExamenRepository extends ServiceEntityRepository
                     ->setParameter('usuario', $usuario)
                     ->setParameter('convocatoria', $convocatoria)
                     ->setParameter('dificultad', $dificultad);
+                
+                if ($municipio) {
+                    $qb->andWhere('e.municipio = :municipio')
+                       ->setParameter('municipio', $municipio);
+                }
 
                 $examenesReales = $qb->orderBy('e.fecha', 'DESC')
                     ->setMaxResults($cantidadExamenes)
@@ -421,9 +432,9 @@ class ExamenRepository extends ServiceEntityRepository
     /**
      * Obtiene la posición de un usuario en el ranking por convocatoria y dificultad
      */
-    public function getPosicionUsuarioPorConvocatoria(User $usuario, \App\Entity\Convocatoria $convocatoria, string $dificultad, int $cantidadExamenes): ?int
+    public function getPosicionUsuarioPorConvocatoria(User $usuario, \App\Entity\Convocatoria $convocatoria, string $dificultad, int $cantidadExamenes, ?\App\Entity\Municipio $municipio = null): ?int
     {
-        $ranking = $this->getRankingPorConvocatoriaYDificultad($convocatoria, $dificultad, $cantidadExamenes);
+        $ranking = $this->getRankingPorConvocatoriaYDificultad($convocatoria, $dificultad, $cantidadExamenes, $municipio);
         
         foreach ($ranking as $index => $entry) {
             if ($entry['usuario']->getId() === $usuario->getId()) {
