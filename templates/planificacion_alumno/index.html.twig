@@ -90,13 +90,40 @@
                                             {% endif %}
                                         {% endfor %}
                                         
+                                        {% set tieneInfoAdicional = (franja.temas|default('') is not empty) or (franja.recursos|default('') is not empty) or (franja.enlaces|default('') is not empty) or (franja.notas|default('') is not empty) %}
                                         <div class="franja-horaria 
                                             {% if franja.tipoActividad == 'repaso_basico' %}franja-repaso{% else %}franja-estudio{% endif %}
                                             {% if tareasFranja|length > 0 %}franja-con-tareas{% endif %}"
-                                            style="padding: 0.5rem; margin-bottom: 0.5rem; border-radius: 4px; cursor: pointer;"
-                                            onclick="toggleFranja(this)">
-                                            <div style="font-weight: bold; font-size: 0.9rem;">
-                                                {{ franja.horaInicio|date('H:i') }}-{{ franja.horaFin|date('H:i') }}
+                                            style="padding: 0.5rem; margin-bottom: 0.5rem; border-radius: 4px; cursor: pointer; position: relative;"
+                                            onclick="toggleFranja(this)"
+                                            {% if tieneInfoAdicional %}
+                                                data-franja-id="{{ franja.id }}"
+                                                data-has-info="true"
+                                                onmouseover="this.style.backgroundColor='rgba(0,0,0,0.05)'"
+                                                onmouseout="this.style.backgroundColor=''"
+                                            {% endif %}>
+                                            <div style="font-weight: bold; font-size: 0.9rem; display: flex; align-items: center; justify-content: space-between;">
+                                                <span>{{ franja.horaInicio|date('H:i') }}-{{ franja.horaFin|date('H:i') }}</span>
+                                                {% if tieneInfoAdicional %}
+                                                    <span class="info-icon" 
+                                                          style="cursor: pointer; font-size: 1.2rem; margin-left: 0.5rem;"
+                                                          data-franja-data="{{ {
+                                                              'id': franja.id,
+                                                              'horaInicio': franja.horaInicio|date('H:i'),
+                                                              'horaFin': franja.horaFin|date('H:i'),
+                                                              'tipoActividad': franja.tipoActividad,
+                                                              'descripcionRepaso': franja.descripcionRepaso|default(''),
+                                                              'temas': franja.temas|default(''),
+                                                              'recursos': franja.recursos|default(''),
+                                                              'enlaces': franja.enlaces|default(''),
+                                                              'notas': franja.notas|default('')
+                                                          }|json_encode|e('html_attr') }}"
+                                                          data-tareas-data="{{ tareasFranja|map(t => {'id': t.id, 'nombre': t.tarea.nombre, 'descripcion': t.tarea.descripcion, 'completada': t.completada})|json_encode|e('html_attr') }}"
+                                                          onclick="event.stopPropagation(); mostrarInfoFranjaDesdeData(this);"
+                                                          title="Ver más información">
+                                                        ℹ️
+                                                    </span>
+                                                {% endif %}
                                             </div>
                                             <div style="font-size: 0.85rem;">
                                                 {% if franja.tipoActividad == 'repaso_basico' %}
@@ -218,6 +245,19 @@
     </div>
 </div>
 
+<!-- Modal para mostrar información completa de la franja -->
+<div id="modalInfoFranja" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);">
+    <div class="modal-content" style="background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 10px;">
+            <h2 style="margin: 0;">Información de la Actividad</h2>
+            <span class="close-modal" onclick="cerrarModalInfoFranja()" style="color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+        </div>
+        <div id="modalInfoFranjaContent" style="max-height: 70vh; overflow-y: auto;">
+            <!-- El contenido se llenará dinámicamente -->
+        </div>
+    </div>
+</div>
+
 <script>
 function toggleFranja(element) {
     const tareasContainer = element.querySelector('.tareas-container');
@@ -266,6 +306,129 @@ function marcarTarea(checkbox, tareaId) {
         checkbox.checked = !completada;
         alert('Error al actualizar la tarea');
     });
+}
+
+function mostrarInfoFranjaDesdeData(element) {
+    const franjaData = element.getAttribute('data-franja-data');
+    const tareasData = element.getAttribute('data-tareas-data');
+    
+    try {
+        const franja = JSON.parse(franjaData);
+        const tareas = tareasData ? JSON.parse(tareasData) : [];
+        mostrarInfoFranja(franja, tareas);
+    } catch (e) {
+        console.error('Error al parsear datos:', e);
+        alert('Error al cargar la información');
+    }
+}
+
+function mostrarInfoFranja(franja, tareas) {
+    const modal = document.getElementById('modalInfoFranja');
+    const content = document.getElementById('modalInfoFranjaContent');
+    
+    let html = '<div style="line-height: 1.6;">';
+    
+    // Información básica
+    html += '<div style="margin-bottom: 1.5rem;">';
+    html += '<h3 style="margin-bottom: 0.5rem; color: #333;">';
+    html += escapeHtml(franja.horaInicio) + ' - ' + escapeHtml(franja.horaFin);
+    html += ' <span class="badge" style="background-color: ' + (franja.tipoActividad === 'repaso_basico' ? '#2196F3' : '#4CAF50') + '; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">';
+    html += franja.tipoActividad === 'repaso_basico' ? 'Repaso' : 'Estudio';
+    html += '</span></h3>';
+    if (franja.descripcionRepaso) {
+        html += '<p style="margin: 0.5rem 0;"><strong>Descripción:</strong> ' + escapeHtml(franja.descripcionRepaso) + '</p>';
+    }
+    html += '</div>';
+    
+    // Temas
+    if (franja.temas) {
+        html += '<div style="margin: 1rem 0; padding: 1rem; background-color: #e3f2fd; border-radius: 4px; border-left: 4px solid #2196F3;">';
+        html += '<strong>📚 Temas:</strong>';
+        html += '<p style="white-space: pre-line; margin: 0.5rem 0;">' + escapeHtml(franja.temas) + '</p>';
+        html += '</div>';
+    }
+    
+    // Recursos
+    if (franja.recursos) {
+        html += '<div style="margin: 1rem 0; padding: 1rem; background-color: #f3e5f5; border-radius: 4px; border-left: 4px solid #9c27b0;">';
+        html += '<strong>📥 Recursos:</strong>';
+        html += '<p style="white-space: pre-line; margin: 0.5rem 0;">' + escapeHtml(franja.recursos) + '</p>';
+        html += '</div>';
+    }
+    
+    // Enlaces
+    if (franja.enlaces) {
+        html += '<div style="margin: 1rem 0; padding: 1rem; background-color: #e8f5e9; border-radius: 4px; border-left: 4px solid #4caf50;">';
+        html += '<strong>🔗 Enlaces:</strong>';
+        html += '<div style="margin: 0.5rem 0;">';
+        const enlaces = franja.enlaces.split('\n').filter(e => e.trim());
+        enlaces.forEach(function(enlace) {
+            const enlaceTrim = enlace.trim();
+            if (enlaceTrim) {
+                html += '<a href="' + escapeHtml(enlaceTrim) + '" target="_blank" rel="noopener noreferrer" style="display: block; margin: 0.25rem 0; color: #1976d2; text-decoration: underline;">' + escapeHtml(enlaceTrim) + '</a>';
+            }
+        });
+        html += '</div>';
+        html += '</div>';
+    }
+    
+    // Notas
+    if (franja.notas) {
+        html += '<div style="margin: 1rem 0; padding: 1rem; background-color: #fff3cd; border-radius: 4px; border-left: 4px solid #ffc107;">';
+        html += '<strong>📝 Notas del Profesor:</strong>';
+        html += '<p style="white-space: pre-line; margin: 0.5rem 0;">' + escapeHtml(franja.notas) + '</p>';
+        html += '</div>';
+    }
+    
+    // Tareas
+    if (tareas && tareas.length > 0) {
+        html += '<div style="margin: 1rem 0; padding: 1rem; background-color: #fff9e6; border-radius: 4px; border-left: 4px solid #ff9800;">';
+        html += '<strong>📋 Tareas Asignadas (' + tareas.length + '):</strong>';
+        html += '<div style="margin-top: 0.75rem;">';
+        tareas.forEach(function(tarea) {
+            html += '<div style="padding: 0.75rem; margin: 0.5rem 0; border: 1px solid #ddd; border-radius: 4px; background-color: white;">';
+            html += '<div style="display: flex; align-items: center; gap: 0.5rem;">';
+            html += '<input type="checkbox" disabled ' + (tarea.completada ? 'checked' : '') + '>';
+            html += '<strong style="' + (tarea.completada ? 'text-decoration: line-through; color: #999;' : '') + '">' + escapeHtml(tarea.nombre) + '</strong>';
+            html += '</div>';
+            if (tarea.descripcion) {
+                html += '<div style="font-size: 0.9rem; color: #666; margin-top: 0.5rem; margin-left: 1.5rem;">' + escapeHtml(tarea.descripcion) + '</div>';
+            }
+            html += '</div>';
+        });
+        html += '</div>';
+        html += '</div>';
+    }
+    
+    html += '</div>';
+    
+    content.innerHTML = html;
+    modal.style.display = 'block';
+}
+
+function cerrarModalInfoFranja() {
+    const modal = document.getElementById('modalInfoFranja');
+    modal.style.display = 'none';
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+// Cerrar modal al hacer clic fuera de él
+window.onclick = function(event) {
+    const modal = document.getElementById('modalInfoFranja');
+    if (event.target == modal) {
+        cerrarModalInfoFranja();
+    }
 }
 
 </script>
