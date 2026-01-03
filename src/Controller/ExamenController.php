@@ -508,6 +508,13 @@ class ExamenController extends AbstractController
 
             // Determinar siguiente acción
             $accion = $request->request->get('accion');
+            $numeroDestino = $request->request->getInt('numero_destino');
+            
+            // Si hay un número destino específico, redirigir allí
+            if ($numeroDestino > 0 && $numeroDestino >= 1 && $numeroDestino <= count($preguntasIds)) {
+                return $this->redirectToRoute('app_examen_pregunta', ['numero' => $numeroDestino]);
+            }
+            
             if ($accion === 'anterior' && $indice > 0) {
                 return $this->redirectToRoute('app_examen_pregunta', ['numero' => $numero - 1]);
             } elseif ($accion === 'siguiente' && $indice < count($preguntasIds) - 1) {
@@ -554,6 +561,17 @@ class ExamenController extends AbstractController
             }
         }
 
+        // Preparar información de respuestas para el listado de preguntas
+        $estadoPreguntas = [];
+        for ($i = 0; $i < count($preguntasIds); $i++) {
+            $preguntaId = $preguntasIds[$i];
+            $estadoPreguntas[$i + 1] = [
+                'numero' => $i + 1,
+                'tieneRespuesta' => isset($respuestas[$preguntaId]),
+                'esActual' => ($i + 1) === $numero,
+            ];
+        }
+
         return $this->render('examen/pregunta.html.twig', [
             'pregunta' => $pregunta,
             'numero' => $numero,
@@ -564,6 +582,7 @@ class ExamenController extends AbstractController
             'temas' => $esMunicipal ? [] : $this->temaRepository->findBy(['id' => $config['temas'] ?? []]),
             'esMunicipal' => $esMunicipal,
             'porcentajesPorTema' => $porcentajesPorTema,
+            'estadoPreguntas' => $estadoPreguntas,
         ]);
     }
 

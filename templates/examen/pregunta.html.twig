@@ -15,6 +15,61 @@
         </div>
     </div>
     <div class="card-body">
+        {# Listado de preguntas - Navegación rápida #}
+        <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 0.75rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.85rem; color: #666; font-weight: 500;">📋 Navegación rápida:</span>
+                <span style="font-size: 0.75rem; color: #999;">(Haz clic en cualquier número para ir a esa pregunta)</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: flex-start;">
+                {% for num, estado in estadoPreguntas %}
+                    <a href="#" 
+                       data-pregunta-num="{{ num }}"
+                       class="pregunta-link"
+                       style="display: inline-flex; align-items: center; justify-content: center; 
+                              min-width: 32px; height: 32px; 
+                              border-radius: 4px; 
+                              text-decoration: none; 
+                              font-weight: 500; 
+                              font-size: 0.8rem;
+                              transition: all 0.2s;
+                              cursor: pointer;
+                              {% if estado.esActual %}
+                                  background: var(--color-primary);
+                                  color: white;
+                                  border: 2px solid var(--color-primary);
+                                  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                                  transform: scale(1.1);
+                              {% elseif estado.tieneRespuesta %}
+                                  background: #28a745;
+                                  color: white;
+                                  border: 2px solid #28a745;
+                              {% else %}
+                                  background: white;
+                                  color: #666;
+                                  border: 2px solid #dee2e6;
+                              {% endif %}"
+                       onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 2px 6px rgba(0,0,0,0.15)';"
+                       onmouseout="this.style.transform='{% if estado.esActual %}scale(1.1){% else %}scale(1){% endif %}'; this.style.boxShadow='{% if estado.esActual %}0 2px 4px rgba(0,0,0,0.2){% else %}none{% endif %}';">
+                        {{ num }}
+                    </a>
+                {% endfor %}
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 0.5rem; font-size: 0.75rem; color: #666;">
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <span style="display: inline-block; width: 14px; height: 14px; background: var(--color-primary); border-radius: 3px; border: 2px solid var(--color-primary);"></span>
+                    <span>Actual</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <span style="display: inline-block; width: 14px; height: 14px; background: #28a745; border-radius: 3px; border: 2px solid #28a745;"></span>
+                    <span>Respondida</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <span style="display: inline-block; width: 14px; height: 14px; background: white; border-radius: 3px; border: 2px solid #dee2e6;"></span>
+                    <span>Sin responder</span>
+                </div>
+            </div>
+        </div>
         {% if esMunicipal is defined and esMunicipal %}
             <div class="mb-3" style="padding: 1rem; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-left: 4px solid #2196F3; border-radius: 4px;">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -65,7 +120,7 @@
             </div>
         </div>
 
-        <form method="post" action="{{ path('app_examen_pregunta', {'numero': numero}) }}">
+        <form method="post" action="{{ path('app_examen_pregunta', {'numero': numero}) }}" id="formPregunta">
             <div class="form-group">
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
                     <label style="display: flex; align-items: start; padding: 1rem; border: 2px solid var(--color-border); border-radius: 4px; cursor: pointer; transition: all 0.3s; {% if respuestaActual == 'A' %}background: #e3f2fd; border-color: var(--color-primary);{% endif %}">
@@ -499,6 +554,55 @@
         document.addEventListener('turbo:frame-load', inicializarBotonPorcentajes);
         </script>
         {% endif %}
+
+        {# Script para navegación rápida de preguntas #}
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const preguntaLinks = document.querySelectorAll('.pregunta-link');
+            const formPregunta = document.getElementById('formPregunta');
+            
+            preguntaLinks.forEach(function(link) {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const numeroDestino = parseInt(this.getAttribute('data-pregunta-num'));
+                    const numeroActual = {{ numero }};
+                    
+                    // Si es la misma pregunta, no hacer nada
+                    if (numeroDestino === numeroActual) {
+                        return;
+                    }
+                    
+                    // Guardar respuesta actual y navegar al destino
+                    const respuestaSeleccionada = formPregunta.querySelector('input[name="respuesta"]:checked');
+                    const formData = new FormData();
+                    
+                    if (respuestaSeleccionada) {
+                        formData.append('respuesta', respuestaSeleccionada.value);
+                    }
+                    
+                    // Indicar el número de destino
+                    formData.append('numero_destino', numeroDestino);
+                    
+                    // Enviar el formulario para guardar y navegar
+                    fetch('{{ path('app_examen_pregunta', {'numero': numero}) }}', {
+                        method: 'POST',
+                        body: formData,
+                        redirect: 'follow'
+                    })
+                    .then(function(response) {
+                        // El servidor redirigirá, pero fetch no sigue redirecciones automáticamente
+                        // Navegar manualmente al destino
+                        window.location.href = '{{ path('app_examen_pregunta', {'numero': '__NUM__'}) }}'.replace('__NUM__', numeroDestino);
+                    })
+                    .catch(function(error) {
+                        console.error('Error al guardar respuesta:', error);
+                        // Intentar navegar de todas formas
+                        window.location.href = '{{ path('app_examen_pregunta', {'numero': '__NUM__'}) }}'.replace('__NUM__', numeroDestino);
+                    });
+                });
+            });
+        });
+        </script>
     </div>
 </div>
 {% endblock %}

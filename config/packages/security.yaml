@@ -45,10 +45,11 @@ security:
 
     # Note: Only the *first* matching rule is applied
     access_control:
-        # Permitir acceso público solo a login, registro y home
+        # Permitir acceso público solo a login, registro, home y contacto
         - { path: ^/login, roles: PUBLIC_ACCESS }
         - { path: ^/register, roles: PUBLIC_ACCESS }
         - { path: ^/$, roles: PUBLIC_ACCESS }
+        - { path: ^/contacto, roles: PUBLIC_ACCESS }
         # Todas las demás rutas requieren autenticación
         - { path: ^/, roles: ROLE_USER }
 
