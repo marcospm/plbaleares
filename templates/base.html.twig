@@ -77,6 +77,17 @@
                     transform: translateY(-1px);
                     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
                 }
+
+                .dropdown-arrow {
+                    font-size: 0.7em;
+                    margin-left: 0.3rem;
+                    transition: transform 0.3s ease;
+                    display: inline-block;
+                }
+
+                .dropdown-toggle.active .dropdown-arrow {
+                    transform: rotate(180deg);
+                }
                 
                 /* Estilos responsive para móviles */
                 @media (max-width: 768px) {
@@ -272,18 +283,32 @@
                                     menu.classList.remove('show');
                                 }
                             });
+                            // Remover clase active de otros toggles
+                            parent.querySelectorAll('.dropdown-toggle').forEach(toggle => {
+                                if (toggle !== element) {
+                                    toggle.classList.remove('active');
+                                }
+                            });
                         } else {
                             // Cerrar todos los dropdowns principales
                             document.querySelectorAll('.dropdown-menu').forEach(menu => {
                                 menu.classList.remove('show');
+                            });
+                            // Remover clase active de todos los toggles
+                            document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
+                                if (toggle !== element) {
+                                    toggle.classList.remove('active');
+                                }
                             });
                         }
                         
                         // Abrir/cerrar el dropdown actual
                         if (!isOpen) {
                             dropdown.classList.add('show');
+                            element.classList.add('active');
                         } else {
                             dropdown.classList.remove('show');
+                            element.classList.remove('active');
                         }
                     };
                 })();
@@ -322,6 +347,9 @@
                         });
                         document.querySelectorAll('.submenu').forEach(menu => {
                             menu.classList.remove('show');
+                        });
+                        document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
+                            toggle.classList.remove('active');
                         });
                     }
                 });
@@ -520,7 +548,7 @@
                                                     <li><a href="{{ path('app_ley_index') }}" class="dropdown-item">Leyes</a></li>
                                                     <li><a href="{{ path('app_articulo_index') }}" class="dropdown-item">Artículos</a></li>
                                                     <li><a href="{{ path('app_pregunta_index') }}" class="dropdown-item">Preguntas</a></li>
-                                                    <li><a href="{{ path('app_recurso_index') }}" class="dropdown-item">Recursos</a></li>
+                                                    <li><a href="{{ path('app_recurso_index') }}" class="dropdown-item">Temario y Recursos</a></li>
                                                     <li><a href="{{ path('app_examen_pdf_index') }}" class="dropdown-item">Exámenes PDF</a></li>
                                                 </ul>
                                             </li>
@@ -639,12 +667,22 @@
                                 
                                 {# Menú para ALUMNOS (ROLE_USER sin ROLE_PROFESOR ni ROLE_ADMIN) #}
                                 {% if not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
-                                    <li><a href="{{ path('app_planificacion_alumno_index') }}" class="nav-link nav-link-alumno">Mi Planificación</a></li>
-                                    <li><a href="{{ path('app_examen_iniciar') }}" class="nav-link nav-link-alumno">Exámenes</a></li>
-                                    <li><a href="{{ path('app_examen_semanal_alumno_index') }}" class="nav-link nav-link-alumno">Exámenes Semanales</a></li>
-                                    <li><a href="{{ path('app_examen_historial') }}" class="nav-link nav-link-alumno">Historial</a></li>
+                                    <li><a href="{{ path('app_planificacion_alumno_index') }}" class="nav-link nav-link-alumno">Planificación</a></li>
+                                    <li style="position: relative;">
+                                        <div class="nav-dropdown" style="position: relative;">
+                                            <a href="#" class="nav-link nav-link-alumno dropdown-toggle" onclick="event.preventDefault(); toggleDropdown(this); return false;" style="cursor: pointer;">
+                                                Exámenes <span class="dropdown-arrow">▼</span>
+                                            </a>
+                                            <ul class="dropdown-menu" style="left: 0; right: auto;">
+                                                <li><a class="dropdown-item" href="{{ path('app_examen_iniciar') }}">📝 Exámenes</a></li>
+                                                <li><a class="dropdown-item" href="{{ path('app_examen_semanal_alumno_index') }}">📅 Exámenes Semanales</a></li>
+                                                <li><hr class="dropdown-divider" style="margin: 0.5rem 0; border-top: 1px solid #dee2e6;"></li>
+                                                <li><a class="dropdown-item" href="{{ path('app_examen_historial') }}">📊 Historial de Exámenes</a></li>
+                                            </ul>
+                                        </div>
+                                    </li>
                                     <li><a href="{{ path('app_articulo_publico_index') }}" class="nav-link nav-link-alumno">Artículos</a></li>
-                                    <li><a href="{{ path('app_recurso_publico_index') }}" class="nav-link nav-link-alumno">Recursos</a></li>
+                                    <li><a href="{{ path('app_recurso_publico_index') }}" class="nav-link nav-link-alumno">Temario y Recursos</a></li>
                                     <li><a href="{{ path('app_boib_index') }}" class="nav-link nav-link-alumno">BOIB</a></li>
                                     <li><a href="{{ path('app_contacto') }}" class="nav-link nav-link-alumno">Contacto</a></li>
                                 {% endif %}
@@ -714,6 +752,7 @@
                     cerrarModalTema();
                 }
             }
+
         </script>
     </body>
 </html>
