@@ -111,7 +111,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for examen in examenSemanal.examenes %}
+                        {% for examen in examenesOrdenados %}
                             <tr>
                                 <td>{{ examen.usuario.nombreDisplay }}</td>
                                 <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>

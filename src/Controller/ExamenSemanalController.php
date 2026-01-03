@@ -1274,9 +1274,17 @@ class ExamenSemanalController extends AbstractController
             $porcentajesPorTema = $this->calcularPorcentajesPorTema($examenSemanal);
         }
         
+        // Ordenar exámenes por nota (de mayor a menor)
+        $examenes = $examenSemanal->getExamenes()->toArray();
+        usort($examenes, function($a, $b) {
+            // Ordenar por nota descendente (mayor nota primero)
+            return (float)$b->getNota() <=> (float)$a->getNota();
+        });
+        
         return $this->render('examen_semanal/show.html.twig', [
             'examenSemanal' => $examenSemanal,
             'porcentajesPorTema' => $porcentajesPorTema,
+            'examenesOrdenados' => $examenes,
         ]);
     }
 }
