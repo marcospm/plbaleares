@@ -15,29 +15,61 @@
             <strong>Nota:</strong> Los temas municipales se filtrarán automáticamente según el municipio seleccionado.
         </div>
 
-        <div class="card" style="background-color: #fff3cd; border-left: 4px solid #ffc107; margin-bottom: 2rem;">
-            <div class="card-body">
-                <h4 style="margin-top: 0; color: #856404; font-weight: 600;">⚙️ Método de Creación</h4>
-                <p style="color: #666; margin-bottom: 1rem;">Selecciona cómo quieres crear el examen:</p>
-                <div class="d-flex gap-3 flex-wrap">
-                    <a href="{{ path('app_examen_semanal_new') }}" class="btn btn-primary">
-                        📚 Usar Preguntas Existentes (por Temas)
-                    </a>
-                    <a href="{{ path('app_examen_semanal_new_con_preguntas', {'tipo': 'general'}) }}" class="btn btn-success">
-                        ✏️ Crear Preguntas en Tiempo Real (General)
-                    </a>
-                    <a href="{{ path('app_examen_semanal_new_con_preguntas', {'tipo': 'municipal'}) }}" class="btn btn-info">
-                        🏛️ Crear Preguntas en Tiempo Real (Municipal)
-                    </a>
-                    <a href="{{ path('app_examen_semanal_new_con_preguntas_convocatoria') }}" class="btn btn-warning">
-                        🎯 Crear Preguntas en Tiempo Real (Convocatoria)
-                    </a>
-                </div>
-                <p style="color: #856404; margin-top: 1rem; font-size: 0.9rem;">
-                    <strong>Método actual:</strong> Usar Preguntas Existentes - Selecciona temas y el sistema elegirá preguntas aleatoriamente.
+        <div style="margin-bottom: 2.5rem;">
+            <h3 style="margin-bottom: 1.5rem; color: #333; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.5rem;">⚙️</span>
+                <span>Método de Creación</span>
+            </h3>
+            <p style="color: #666; margin-bottom: 1.5rem; font-size: 0.95rem;">Selecciona cómo quieres crear el examen:</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.25rem; margin-bottom: 1rem;">
+                <a href="{{ path('app_examen_semanal_new') }}" style="text-decoration: none; display: block;">
+                    <div class="method-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 1.5rem; color: white; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 100%;">
+                        <div style="font-size: 2.5rem; margin-bottom: 0.75rem; text-align: center;">📚</div>
+                        <h5 style="color: white; font-weight: 600; margin-bottom: 0.5rem; text-align: center; font-size: 1.1rem;">Usar Preguntas Existentes</h5>
+                        <p style="color: rgba(255,255,255,0.9); font-size: 0.85rem; text-align: center; margin: 0; line-height: 1.4;">Selecciona temas y el sistema elegirá preguntas aleatoriamente</p>
+                    </div>
+                </a>
+                
+                <a href="{{ path('app_examen_semanal_new_con_preguntas', {'tipo': 'general'}) }}" style="text-decoration: none; display: block;">
+                    <div class="method-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; padding: 1.5rem; color: white; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 100%;">
+                        <div style="font-size: 2.5rem; margin-bottom: 0.75rem; text-align: center;">✏️</div>
+                        <h5 style="color: white; font-weight: 600; margin-bottom: 0.5rem; text-align: center; font-size: 1.1rem;">Crear Preguntas (General)</h5>
+                        <p style="color: rgba(255,255,255,0.9); font-size: 0.85rem; text-align: center; margin: 0; line-height: 1.4;">Crea preguntas en tiempo real para el temario general</p>
+                    </div>
+                </a>
+                
+                <a href="{{ path('app_examen_semanal_new_con_preguntas', {'tipo': 'municipal'}) }}" style="text-decoration: none; display: block;">
+                    <div class="method-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 12px; padding: 1.5rem; color: white; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 100%;">
+                        <div style="font-size: 2.5rem; margin-bottom: 0.75rem; text-align: center;">🏛️</div>
+                        <h5 style="color: white; font-weight: 600; margin-bottom: 0.5rem; text-align: center; font-size: 1.1rem;">Crear Preguntas (Municipal)</h5>
+                        <p style="color: rgba(255,255,255,0.9); font-size: 0.85rem; text-align: center; margin: 0; line-height: 1.4;">Crea preguntas en tiempo real para un municipio específico</p>
+                    </div>
+                </a>
+                
+                <a href="{{ path('app_examen_semanal_new_con_preguntas_convocatoria') }}" style="text-decoration: none; display: block;">
+                    <div class="method-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); border-radius: 12px; padding: 1.5rem; color: white; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 100%;">
+                        <div style="font-size: 2.5rem; margin-bottom: 0.75rem; text-align: center;">🎯</div>
+                        <h5 style="color: white; font-weight: 600; margin-bottom: 0.5rem; text-align: center; font-size: 1.1rem;">Crear Preguntas (Convocatoria)</h5>
+                        <p style="color: rgba(255,255,255,0.9); font-size: 0.85rem; text-align: center; margin: 0; line-height: 1.4;">Crea preguntas en tiempo real para una convocatoria</p>
+                    </div>
+                </a>
+            </div>
+            
+            <div style="background: #f8f9fa; border-left: 4px solid #667eea; border-radius: 6px; padding: 1rem; margin-top: 1rem;">
+                <p style="margin: 0; color: #495057; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-weight: 600; color: #667eea;">💡 Método actual:</span>
+                    <span>Usar Preguntas Existentes - Selecciona temas y el sistema elegirá preguntas aleatoriamente.</span>
                 </p>
             </div>
         </div>
+        
+        <style>
+            .method-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 15px rgba(0,0,0,0.2) !important;
+            }
+        </style>
 
         {{ form_start(form, {'attr': {'data-turbo': 'false'}}) }}
             {# Ocultar campos básicos mapeados ya que se usan campos no mapeados para la creación #}
