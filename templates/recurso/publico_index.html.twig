@@ -56,7 +56,49 @@
                     </div>
                 </div>
 
-                {# Temarios Municipales #}
+                {# Temarios por Convocatoria #}
+                {% if temasPorConvocatoria|length > 0 %}
+                    {% for convocatoriaId, datosConvocatoria in temasPorConvocatoria %}
+                        <div class="card" style="margin-bottom: 1.5rem;">
+                            <div class="card-header" style="background-color: #9C27B0; color: white;">
+                                <h2 style="margin: 0; color: white;">Temario de la Convocatoria: {{ datosConvocatoria.convocatoria.nombre }}</h2>
+                            </div>
+                            <div class="card-body">
+                                {% for municipioId, datosMunicipio in datosConvocatoria.municipios %}
+                                    <div style="margin-bottom: 1.5rem; {% if not loop.last %}padding-bottom: 1.5rem; border-bottom: 2px solid #ddd;{% endif %}">
+                                        <h3 style="color: #7B1FA2; margin-bottom: 0.75rem; font-size: 1.1rem; font-weight: 600;">
+                                            📍 {{ datosMunicipio.municipio.nombre }}
+                                        </h3>
+                                        <div style="max-height: 300px; overflow-y: auto;">
+                                            <div style="display: grid; gap: 0.5rem;">
+                                                {% for tema in datosMunicipio.temas %}
+                                                    <div style="padding: 0.75rem; border: 1px solid #9C27B0; border-radius: 4px; background-color: {% if tema.rutaPdf %}#f3e5f5{% else %}#fff{% endif %};">
+                                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                            <div style="flex: 1;">
+                                                                <strong style="color: #7B1FA2; font-size: 0.95rem;">
+                                                                    {{ tema.nombre }}
+                                                                </strong>
+                                                            </div>
+                                                            {% if tema.rutaPdf %}
+                                                                <div style="margin-left: 1rem;">
+                                                                    <a href="{{ tema.rutaPdf }}" target="_blank" class="btn btn-sm" style="background-color: #9C27B0; color: white; border: none;" rel="noopener noreferrer">
+                                                                        Ver PDF
+                                                                    </a>
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                {# Temarios Municipales (municipios que no están en ninguna convocatoria) #}
                 {% if temasPorMunicipio|length > 0 %}
                     {% for municipioId, datos in temasPorMunicipio %}
                         <div class="card" style="margin-bottom: 1.5rem;">
