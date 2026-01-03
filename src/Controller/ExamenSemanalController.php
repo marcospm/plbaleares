@@ -18,6 +18,7 @@ use App\Repository\LeyRepository;
 use App\Repository\ArticuloRepository;
 use App\Repository\ConfiguracionExamenRepository;
 use App\Service\ConfiguracionExamenService;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -685,9 +686,21 @@ class ExamenSemanalController extends AbstractController
     public function delete(Request $request, ExamenSemanal $examenSemanal): Response
     {
         if ($this->isCsrfTokenValid('delete'.$examenSemanal->getId(), $request->getPayload()->getString('_token'))) {
-            $this->entityManager->remove($examenSemanal);
-            $this->entityManager->flush();
-            $this->addFlash('success', 'Examen semanal eliminado correctamente.');
+            // Verificar si hay exámenes asociados antes de intentar eliminar
+            if (!$examenSemanal->getExamenes()->isEmpty()) {
+                $this->addFlash('error', 'No se puede eliminar el examen semanal porque tiene exámenes realizados por alumnos asociados. Elimina primero los exámenes relacionados.');
+                return $this->redirectToRoute('app_examen_semanal_index', [], Response::HTTP_SEE_OTHER);
+            }
+
+            try {
+                $this->entityManager->remove($examenSemanal);
+                $this->entityManager->flush();
+                $this->addFlash('success', 'Examen semanal eliminado correctamente.');
+            } catch (ForeignKeyConstraintViolationException $e) {
+                $this->addFlash('error', 'No se puede eliminar el examen semanal porque tiene datos relacionados. Por favor, elimina primero los exámenes asociados.');
+            } catch (\Exception $e) {
+                $this->addFlash('error', 'Error al eliminar el examen semanal: ' . $e->getMessage());
+            }
         }
 
         return $this->redirectToRoute('app_examen_semanal_index', [], Response::HTTP_SEE_OTHER);
