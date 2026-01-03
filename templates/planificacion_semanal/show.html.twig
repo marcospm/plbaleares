@@ -14,7 +14,6 @@
                 <p>{{ planificacion.descripcion|nl2br }}</p>
             </div>
         {% endif %}
-
         <div class="d-flex justify-content-between align-items-center mt-4">
             <h3>Franjas Horarias</h3>
             <a href="{{ path('app_planificacion_semanal_franja_new', {'id': planificacion.id}) }}" class="btn btn-primary">+ Añadir Franja</a>
