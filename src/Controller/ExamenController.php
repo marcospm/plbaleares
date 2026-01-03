@@ -947,11 +947,18 @@ class ExamenController extends AbstractController
             }
         }
         
-        $usuarioId = $request->query->getInt('usuario');
+        // Obtener parámetros del request
+        $usuarioIdParam = $request->query->get('usuario');
+        $usuarioId = ($usuarioIdParam !== null && $usuarioIdParam !== '') ? (int)$usuarioIdParam : null;
+        
         $dificultad = $request->query->get('dificultad');
-        $temaId = $request->query->getInt('tema', 0);
+        $dificultad = ($dificultad !== null && $dificultad !== '') ? $dificultad : null;
+        
+        $temaIdParam = $request->query->get('tema');
+        $temaId = ($temaIdParam !== null && $temaIdParam !== '') ? (int)$temaIdParam : null;
+        
         $tema = null;
-        if ($temaId > 0) {
+        if ($temaId !== null && $temaId > 0) {
             $tema = $temaRepository->find($temaId);
         }
         
@@ -982,16 +989,19 @@ class ExamenController extends AbstractController
                         ->setParameter('alumnosIds', $alumnosIds);
         }
         
-        if ($usuarioId) {
+        if ($usuarioId !== null && $usuarioId > 0) {
             // Verificar que el usuario seleccionado está en los alumnos asignados (si no es admin)
             if (!$esAdmin && !in_array($usuarioId, $alumnosIds)) {
                 $this->addFlash('error', 'No tienes acceso a los exámenes de ese alumno.');
                 return $this->redirectToRoute('app_examen_profesor', [], Response::HTTP_SEE_OTHER);
             }
-            $qbGeneral->andWhere('e.usuario = :usuario')
-                       ->setParameter('usuario', $usuarioId);
-            $qbMunicipal->andWhere('e.usuario = :usuario')
-                        ->setParameter('usuario', $usuarioId);
+            $usuarioEntity = $userRepository->find($usuarioId);
+            if ($usuarioEntity) {
+                $qbGeneral->andWhere('e.usuario = :usuario')
+                           ->setParameter('usuario', $usuarioEntity);
+                $qbMunicipal->andWhere('e.usuario = :usuario')
+                            ->setParameter('usuario', $usuarioEntity);
+            }
         }
         
         if ($dificultad && in_array($dificultad, ['facil', 'moderada', 'dificil'])) {
@@ -1054,7 +1064,7 @@ class ExamenController extends AbstractController
             'examenesMunicipal' => $examenesMunicipal,
             'usuarios' => $usuarios,
             'temas' => $temas,
-            'usuarioSeleccionado' => $usuarioId,
+            'usuarioSeleccionado' => $usuarioId !== null && $usuarioId > 0 ? $usuarioId : null,
             'dificultadSeleccionada' => $dificultad,
             'temaSeleccionado' => $tema,
         ]);
