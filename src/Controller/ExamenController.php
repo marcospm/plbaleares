@@ -626,13 +626,15 @@ class ExamenController extends AbstractController
         }
 
         // Calcular nota solo con las preguntas respondidas
-        // (aciertos × (20/total)) - (errores/4)
+        // (aciertos × (20/total)) - (errores × ((20/total)/4))
+        // Cada 4 errores resta el equivalente a un acierto
         $total = count($preguntasIds);
         $preguntasRespondidas = $aciertos + $errores; // Solo las que tienen respuesta
         
-        if ($preguntasRespondidas > 0) {
+        if ($preguntasRespondidas > 0 && $total > 0) {
             $puntosPorAcierto = 20 / $total;
-            $nota = ($aciertos * $puntosPorAcierto) - ($errores / 4);
+            $puntosPorError = $puntosPorAcierto / 4; // Cada error resta 1/4 del valor de un acierto
+            $nota = ($aciertos * $puntosPorAcierto) - ($errores * $puntosPorError);
         } else {
             // Si no hay preguntas respondidas, la nota es 0
             $nota = 0;

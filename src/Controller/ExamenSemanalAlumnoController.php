@@ -667,9 +667,17 @@ class ExamenSemanalAlumnoController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Calcular la nota (aciertos / total * 10)
+            // Calcular la nota sobre 20: (aciertos × (20/total)) - (errores × ((20/total)/4))
+            // Cada 4 errores resta el equivalente a un acierto
             $numeroPreguntas = $examenSemanal->getNumeroPreguntas() ?? 1;
-            $nota = ($examen->getAciertos() / $numeroPreguntas) * 10;
+            if ($numeroPreguntas > 0) {
+                $puntosPorAcierto = 20 / $numeroPreguntas;
+                $puntosPorError = $puntosPorAcierto / 4; // Cada error resta 1/4 del valor de un acierto
+                $nota = ($examen->getAciertos() * $puntosPorAcierto) - ($examen->getErrores() * $puntosPorError);
+                $nota = max(0, min(20, round($nota, 2))); // Asegurar que esté entre 0 y 20
+            } else {
+                $nota = 0;
+            }
             $examen->setNota(number_format($nota, 2, '.', ''));
             
             $examen->setRealizadoEnPDF(true);
