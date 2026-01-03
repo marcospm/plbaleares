@@ -36,7 +36,7 @@
             {% if recursoEspecifico.alumnos|length > 0 %}
                 <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
                     {% for alumno in recursoEspecifico.alumnos %}
-                        <span class="badge" style="background-color: var(--color-primary); font-size: 0.9rem;">{{ alumno.username }}</span>
+                        <span class="badge" style="background-color: var(--color-primary); font-size: 0.9rem;">{{ alumno.nombreDisplay }}</span>
                     {% endfor %}
                 </div>
             {% else %}
@@ -47,7 +47,7 @@
         <div>
             <h3>Información</h3>
             <p>
-                <strong>Profesor:</strong> {{ recursoEspecifico.profesor.username }}<br>
+                <strong>Profesor:</strong> {{ recursoEspecifico.profesor.nombreDisplay }}<br>
                 <strong>Fecha de creación:</strong> {{ recursoEspecifico.fechaCreacion|date('d/m/Y H:i') }}
             </p>
         </div>

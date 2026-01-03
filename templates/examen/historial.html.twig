@@ -107,7 +107,7 @@
                                                         </span>
                                                         <span style="margin-left: 0.5rem;">
                                                             {% if esUsuarioActual %}
-                                                                {{ entry.usuario.username }}
+                                                                {{ entry.usuario.nombreDisplay }}
                                                             {% else %}
                                                                 {{ ofuscar_nombre(entry.usuario.id) }}
                                                             {% endif %}
@@ -272,7 +272,7 @@
                                                                 </span>
                                                                 <span style="margin-left: 0.5rem;">
                                                                     {% if esUsuarioActual %}
-                                                                        {{ entry.usuario.username }}
+                                                                        {{ entry.usuario.nombreDisplay }}
                                                                     {% else %}
                                                                         {{ ofuscar_nombre(entry.usuario.id) }}
                                                                     {% endif %}

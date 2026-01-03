@@ -155,7 +155,7 @@
                         {% for alumno in misAlumnos %}
                             <div style="padding: 1rem; border: 1px solid #ddd; border-radius: 4px; background-color: white;">
                                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                    <strong style="color: var(--color-primary);">{{ alumno.username }}</strong>
+                                    <strong style="color: var(--color-primary);">{{ alumno.nombreDisplay }}</strong>
                                     {% if not alumno.isActivo %}
                                         <span class="badge badge-danger" style="background-color: var(--color-danger); font-size: 0.7rem;">Inactivo</span>
                                     {% endif %}
@@ -254,7 +254,7 @@
                             <tbody>
                                 {% for examen in ultimosExamenes %}
                                     <tr>
-                                        <td><strong>{{ examen.usuario.username }}</strong></td>
+                                        <td><strong>{{ examen.usuario.nombreDisplay }}</strong></td>
                                         <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>
                                         <td>
                                             <span class="badge badge-{{ examen.dificultad }}">{{ examen.getDificultadLabel() }}</span>
@@ -421,7 +421,7 @@
                             <div style="margin-top: 0.5rem;">
                                 {% for profesor in app.user.profesores %}
                                     <span class="badge" style="background-color: var(--color-primary); color: white; padding: 0.5rem 1rem; font-size: 0.9rem; margin-right: 0.5rem;">
-                                        {{ profesor.username }}
+                                        {{ profesor.nombreDisplay }}
                                     </span>
                                 {% endfor %}
                             </div>

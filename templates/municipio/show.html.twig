@@ -32,7 +32,7 @@
             {% if municipio.usuarios|length > 0 %}
                 <ul>
                     {% for usuario in municipio.usuarios %}
-                        <li>{{ usuario.username }}</li>
+                        <li>{{ usuario.nombreDisplay }}</li>
                     {% endfor %}
                 </ul>
             {% endif %}

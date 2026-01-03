@@ -17,7 +17,7 @@
                             <input class="form-check-input" type="checkbox" name="usuarios[]" value="{{ usuario.id }}" id="usuario_{{ usuario.id }}"
                                    {% if municipio.usuarios.contains(usuario) %}checked{% endif %}>
                             <label class="form-check-label" for="usuario_{{ usuario.id }}">
-                                {{ usuario.username }}
+                                {{ usuario.nombreDisplay }}
                             </label>
                         </div>
                     {% endfor %}

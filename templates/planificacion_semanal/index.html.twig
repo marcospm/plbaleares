@@ -37,7 +37,7 @@
                     <option value="">Todos</option>
                     {% for usuario in usuarios %}
                         <option value="{{ usuario.id }}" {% if filtroUsuario == usuario.id %}selected{% endif %}>
-                            {{ usuario.username }}
+                            {{ usuario.nombreDisplay }}
                         </option>
                     {% endfor %}
                 </select>

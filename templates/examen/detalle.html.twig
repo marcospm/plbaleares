@@ -8,7 +8,7 @@
         <h1>Examen del {{ examen.fecha|date('d/m/Y H:i') }}</h1>
         {% if is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN') %}
             <p style="margin: 0.5rem 0 0 0; font-size: 1rem; opacity: 0.9;">
-                Alumno: <strong>{{ examen.usuario.username }}</strong>
+                Alumno: <strong>{{ examen.usuario.nombreDisplay }}</strong>
             </p>
         {% endif %}
     </div>

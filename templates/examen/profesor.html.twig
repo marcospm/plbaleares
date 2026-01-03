@@ -82,7 +82,7 @@
                             <option value="">Todos los alumnos</option>
                             {% for usuario in usuarios %}
                                 <option value="{{ usuario.id }}" {% if usuarioSeleccionado and usuarioSeleccionado == usuario.id %}selected{% endif %}>
-                                    {{ usuario.username }}
+                                    {{ usuario.nombreDisplay }}
                                 </option>
                             {% endfor %}
                         </select>
@@ -151,7 +151,7 @@
                                 <tr>
                                     <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>
                                     <td>
-                                        <strong>{{ examen.usuario.username }}</strong>
+                                        <strong>{{ examen.usuario.nombreDisplay }}</strong>
                                     </td>
                                     <td>
                                         {% if examen.examenSemanal %}
@@ -217,7 +217,7 @@
                                 <tr>
                                     <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>
                                     <td>
-                                        <strong>{{ examen.usuario.username }}</strong>
+                                        <strong>{{ examen.usuario.nombreDisplay }}</strong>
                                     </td>
                                     <td>
                                         {% if examen.examenSemanal %}

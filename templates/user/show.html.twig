@@ -1,10 +1,10 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Usuario: {{ user.username }}{% endblock %}
+{% block title %}Usuario: {{ user.nombreDisplay }}{% endblock %}
 
 {% block body %}
 <div class="d-flex justify-content-between mb-4">
-    <h1>Usuario: {{ user.username }}</h1>
+    <h1>Usuario: {{ user.nombreDisplay }}</h1>
     <div class="d-flex gap-2">
         <a href="{{ path('app_user_edit', {'id': user.id}) }}" class="btn btn-primary">Editar</a>
         <a href="{{ path('app_user_index') }}" class="btn btn-secondary">Volver</a>
@@ -24,9 +24,19 @@
                 <h4 style="color: var(--color-primary); margin-bottom: 1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">
                     👤 Información Básica
                 </h4>
+                {% if user.nombre %}
                 <div class="form-group">
-                    <label class="form-label"><strong>Nombre de Usuario:</strong></label>
+                    <label class="form-label"><strong>Nombre:</strong></label>
+                    <p>{{ user.nombre }}</p>
+                </div>
+                {% endif %}
+                <div class="form-group">
+                    <label class="form-label"><strong>Nombre de Usuario (para login):</strong></label>
                     <p>{{ user.username }}</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><strong>Nombre a mostrar:</strong></label>
+                    <p><strong style="color: var(--color-primary);">{{ user.nombreDisplay }}</strong></p>
                 </div>
                 <div class="form-group">
                     <label class="form-label"><strong>Email:</strong></label>

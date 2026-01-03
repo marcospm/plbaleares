@@ -41,7 +41,7 @@
                             </td>
                             <td>
                                 {% for alumno in recurso.alumnos %}
-                                    <span class="badge" style="background-color: var(--color-primary); margin-right: 0.25rem;">{{ alumno.username }}</span>
+                                    <span class="badge" style="background-color: var(--color-primary); margin-right: 0.25rem;">{{ alumno.nombreDisplay }}</span>
                                 {% endfor %}
                             </td>
                             <td>{{ recurso.fechaCreacion|date('d/m/Y H:i') }}</td>

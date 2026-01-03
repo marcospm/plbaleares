@@ -44,7 +44,7 @@
                 <tbody>
                     {% for asignacion in tarea.asignaciones %}
                         <tr>
-                            <td><strong>{{ asignacion.usuario.username }}</strong></td>
+                            <td><strong>{{ asignacion.usuario.nombreDisplay }}</strong></td>
                             <td>
                                 {% if asignacion.completada %}
                                     <span class="badge badge-success">Completada</span>

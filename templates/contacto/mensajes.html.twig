@@ -35,7 +35,7 @@
                         <td>{{ mensaje.asunto|default('Sin asunto') }}</td>
                         <td>
                             {% if mensaje.usuario %}
-                                <span class="badge badge-info">{{ mensaje.usuario.username }}</span>
+                                <span class="badge badge-info">{{ mensaje.usuario.nombreDisplay }}</span>
                             {% else %}
                                 <span class="badge badge-secondary">No registrado</span>
                             {% endif %}

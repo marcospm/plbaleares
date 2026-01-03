@@ -18,11 +18,11 @@ class RegistrationFormType extends AbstractType
     {
         $builder
             ->add('username', TextType::class, [
-                'label' => 'Nombre de Usuario',
+                'label' => 'Nombre de Usuario (para login)',
                 'required' => true,
                 'attr' => [
                     'class' => 'form-control',
-                    'placeholder' => 'Elige un nombre de usuario'
+                    'placeholder' => 'Elige un nombre de usuario para iniciar sesión'
                 ],
                 'constraints' => [
                     new NotBlank(message: 'Por favor, introduce un nombre de usuario'),
@@ -31,6 +31,14 @@ class RegistrationFormType extends AbstractType
                         minMessage: 'El nombre de usuario debe tener al menos {{ limit }} caracteres',
                         max: 50,
                     ),
+                ],
+            ])
+            ->add('nombre', TextType::class, [
+                'label' => 'Nombre',
+                'required' => false,
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'Tu nombre completo'
                 ],
             ])
             ->add('plainPassword', RepeatedType::class, [

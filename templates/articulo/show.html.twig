@@ -77,7 +77,7 @@
                             <div class="card-header" style="background-color: {% if esProfesorMensaje %}#f0f9f4{% else %}#fff{% endif %}; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center;">
                                 <div>
                                     <strong style="color: {% if esProfesorMensaje %}#28a745{% else %}var(--color-primary){% endif %};">
-                                        {{ mensaje.autor.username }}
+                                        {{ mensaje.autor.nombreDisplay }}
                                     </strong>
                                     {% if esProfesorMensaje %}
                                         <span class="badge bg-success" style="margin-left: 0.5rem;">Profesor</span>
@@ -100,7 +100,7 @@
                                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                                                         <div>
                                                             <strong style="color: {% if esProfesorRespuesta %}#28a745{% else %}var(--color-primary){% endif %}; font-size: 0.9rem;">
-                                                                {{ respuesta.autor.username }}
+                                                                {{ respuesta.autor.nombreDisplay }}
                                                             </strong>
                                                             {% if esProfesorRespuesta %}
                                                                 <span class="badge bg-success" style="font-size: 0.7rem; margin-left: 0.5rem;">Profesor</span>

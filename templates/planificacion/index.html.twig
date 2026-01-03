@@ -79,7 +79,7 @@
                 <select id="usuario" name="usuario" class="form-select">
                     <option value="">Todos los alumnos</option>
                     {% for usuario in usuarios %}
-                        <option value="{{ usuario.id }}" {% if filtroUsuario == usuario.id %}selected{% endif %}>{{ usuario.username }}</option>
+                        <option value="{{ usuario.id }}" {% if filtroUsuario == usuario.id %}selected{% endif %}>{{ usuario.nombreDisplay }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -120,7 +120,7 @@
                             </td>
                             <td style="padding: 1rem; vertical-align: middle;">
                                 <span class="badge" style="background-color: var(--color-primary, #007bff); color: white; padding: 0.5rem 0.75rem; border-radius: 4px; font-weight: 500;">
-                                    {{ planificacion.usuario.username }}
+                                    {{ planificacion.usuario.nombreDisplay }}
                                 </span>
                             </td>
                             <td style="padding: 1rem; vertical-align: middle;">
@@ -135,7 +135,7 @@
                                 </span>
                             </td>
                             <td style="padding: 1rem; vertical-align: middle;">
-                                <span style="color: #6c757d; font-size: 0.9rem;">{{ planificacion.creadoPor.username }}</span>
+                                <span style="color: #6c757d; font-size: 0.9rem;">{{ planificacion.creadoPor.nombreDisplay }}</span>
                             </td>
                             <td style="padding: 1rem; vertical-align: middle;">
                                 <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">

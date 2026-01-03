@@ -14,7 +14,7 @@
                 {% for usuario in usuarios %}
                     <div class="form-check">
                         <input type="checkbox" name="usuarios[]" value="{{ usuario.id }}" id="usuario_{{ usuario.id }}" class="form-check-input">
-                        <label for="usuario_{{ usuario.id }}" class="form-check-label">{{ usuario.username }}</label>
+                        <label for="usuario_{{ usuario.id }}" class="form-check-label">{{ usuario.nombreDisplay }}</label>
                     </div>
                 {% endfor %}
             </div>

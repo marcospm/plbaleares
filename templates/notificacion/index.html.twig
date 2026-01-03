@@ -46,7 +46,7 @@
                                 </div>
                                 <p style="margin: 0.5rem 0; color: #666;">{{ notificacion.mensaje }}</p>
                                 <small style="color: #999;">
-                                    {{ notificacion.fechaCreacion|date('d/m/Y H:i') }}{% if notificacion.alumno %} - Alumno: {{ notificacion.alumno.username }}{% endif %}
+                                    {{ notificacion.fechaCreacion|date('d/m/Y H:i') }}{% if notificacion.alumno %} - Alumno: {{ notificacion.alumno.nombreDisplay }}{% endif %}
                                 </small>
                                 {% if notificacion.articulo %}
                                     <div style="margin-top: 0.5rem;">

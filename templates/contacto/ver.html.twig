@@ -23,7 +23,7 @@
                 <p><strong>Asunto:</strong> {{ mensaje.asunto }}</p>
             {% endif %}
             {% if mensaje.usuario %}
-                <p><strong>Usuario:</strong> <span class="badge badge-info">{{ mensaje.usuario.username }}</span></p>
+                <p><strong>Usuario:</strong> <span class="badge badge-info">{{ mensaje.usuario.nombreDisplay }}</span></p>
             {% else %}
                 <p><strong>Usuario:</strong> <span class="badge badge-secondary">No registrado</span></p>
             {% endif %}

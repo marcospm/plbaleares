@@ -21,6 +21,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 180)]
     private ?string $username = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $nombre = null;
+
     /**
      * @var list<string> The user roles
      */
@@ -116,6 +119,26 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->username = $username;
 
         return $this;
+    }
+
+    public function getNombre(): ?string
+    {
+        return $this->nombre;
+    }
+
+    public function setNombre(?string $nombre): static
+    {
+        $this->nombre = $nombre;
+
+        return $this;
+    }
+
+    /**
+     * Obtiene el nombre a mostrar: nombre si existe, username si no
+     */
+    public function getNombreDisplay(): string
+    {
+        return $this->nombre ?? $this->username ?? '';
     }
 
     /**

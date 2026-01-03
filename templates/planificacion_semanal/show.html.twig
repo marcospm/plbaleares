@@ -86,10 +86,10 @@
                     <tbody>
                         {% for planificacionPersonalizada in usuariosConPlanificacion %}
                             <tr>
-                                <td><strong>{{ planificacionPersonalizada.usuario.username }}</strong></td>
+                                <td><strong>{{ planificacionPersonalizada.usuario.nombreDisplay }}</strong></td>
                                 <td>{{ planificacionPersonalizada.fechaCreacion|date('d/m/Y') }}</td>
                                 <td>
-                                    <form method="post" action="{{ path('app_planificacion_semanal_desasignar', {'id': planificacion.id, 'usuarioId': planificacionPersonalizada.usuario.id}) }}" style="display: inline-block;" onsubmit="return confirm('¿Estás seguro de que deseas desasignar a {{ planificacionPersonalizada.usuario.username }}?');">
+                                    <form method="post" action="{{ path('app_planificacion_semanal_desasignar', {'id': planificacion.id, 'usuarioId': planificacionPersonalizada.usuario.id}) }}" style="display: inline-block;" onsubmit="return confirm('¿Estás seguro de que deseas desasignar a {{ planificacionPersonalizada.usuario.nombreDisplay }}?');">
                                         <input type="hidden" name="_token" value="{{ csrf_token('desasignar' ~ planificacion.id ~ planificacionPersonalizada.usuario.id) }}">
                                         <button type="submit" class="btn btn-sm btn-danger">Desasignar</button>
                                     </form>

@@ -89,7 +89,7 @@
         {% endif %}
 
         <div class="mb-3">
-            <strong>Creado por:</strong> {{ examenSemanal.creadoPor.username }}
+            <strong>Creado por:</strong> {{ examenSemanal.creadoPor.nombreDisplay }}
         </div>
 
         <div class="mb-3">
@@ -113,7 +113,7 @@
                     <tbody>
                         {% for examen in examenSemanal.examenes %}
                             <tr>
-                                <td>{{ examen.usuario.username }}</td>
+                                <td>{{ examen.usuario.nombreDisplay }}</td>
                                 <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>
                                 <td><strong style="font-size: 1.2rem; color: {% if examen.nota >= 10 %}var(--color-success){% else %}var(--color-danger){% endif %};">{{ examen.nota|number_format(2, ',', '.') }}</strong></td>
                                 <td style="color: var(--color-success);"><strong>{{ examen.aciertos }}</strong></td>
