@@ -1,0 +1,469 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nuevo Examen Semanal - Crear Preguntas para Convocatoria{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Nuevo Examen Semanal - Crear Preguntas en Tiempo Real para Convocatoria</h1>
+        <p class="text-muted">Tipo: Convocatoria</p>
+    </div>
+    <div class="card-body">
+        <div id="examenForm" class="mb-4">
+            <h3>Datos del Examen</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Nombre del Examen *</label>
+                        <input type="text" id="nombreExamen" class="form-control" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Dificultad *</label>
+                        <select id="dificultadExamen" class="form-control" required>
+                            <option value="">Selecciona...</option>
+                            <option value="facil">Fácil</option>
+                            <option value="moderada">Moderada</option>
+                            <option value="dificil">Difícil</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Descripción (opcional)</label>
+                <textarea id="descripcionExamen" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Fecha de Apertura *</label>
+                        <input type="datetime-local" id="fechaApertura" class="form-control" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Fecha de Cierre *</label>
+                        <input type="datetime-local" id="fechaCierre" class="form-control" required>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Convocatoria *</label>
+                <select id="convocatoriaSelect" class="form-control" required>
+                    <option value="">Selecciona una convocatoria...</option>
+                    {% for convocatoria in convocatorias %}
+                        <option value="{{ convocatoria.id }}">{{ convocatoria.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="button" id="crearExamenBtn" class="btn btn-primary">Crear Examen</button>
+        </div>
+
+        <div id="preguntasSection" style="display: none;">
+            <hr>
+            <h3>Crear Preguntas</h3>
+            <div class="alert alert-info">
+                <strong>💡 Información:</strong> Al crear cada pregunta, podrás seleccionar el municipio de la convocatoria. 
+                Las preguntas que crees se guardarán en la base de datos y formarán parte del examen.
+            </div>
+            <div id="preguntaForm" class="card mb-4">
+                <div class="card-body">
+                    <h5>Nueva Pregunta</h5>
+                    <div class="form-group">
+                        <label>Municipio de la Convocatoria *</label>
+                        <select id="municipioSelect" class="form-control" required>
+                            <option value="">Selecciona un municipio...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Tema Municipal *</label>
+                        <select id="temaMunicipalSelect" class="form-control" required>
+                            <option value="">Primero selecciona un municipio...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Texto de la Pregunta *</label>
+                        <textarea id="textoPregunta" class="form-control" rows="3" required></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Opción A *</label>
+                                <textarea id="opcionA" class="form-control" rows="2" required></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Opción B *</label>
+                                <textarea id="opcionB" class="form-control" rows="2" required></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Opción C *</label>
+                                <textarea id="opcionC" class="form-control" rows="2" required></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Opción D *</label>
+                                <textarea id="opcionD" class="form-control" rows="2" required></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Respuesta Correcta *</label>
+                                <select id="respuestaCorrecta" class="form-control" required>
+                                    <option value="">Selecciona...</option>
+                                    <option value="A">A</option>
+                                    <option value="B">B</option>
+                                    <option value="C">C</option>
+                                    <option value="D">D</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Dificultad *</label>
+                                <select id="dificultadPregunta" class="form-control" required>
+                                    <option value="">Selecciona...</option>
+                                    <option value="facil">Fácil</option>
+                                    <option value="moderada">Moderada</option>
+                                    <option value="dificil">Difícil</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Retroalimentación (opcional)</label>
+                        <textarea id="retroalimentacion" class="form-control" rows="2"></textarea>
+                    </div>
+                    <button type="button" id="agregarPreguntaBtn" class="btn btn-success">Agregar Pregunta</button>
+                </div>
+            </div>
+
+            <div id="preguntasLista" class="card">
+                <div class="card-header">
+                    <h5>Preguntas Añadidas (<span id="contadorPreguntas">0</span>)</h5>
+                </div>
+                <div class="card-body">
+                    <div id="listaPreguntas">
+                        <p class="text-muted">Aún no hay preguntas añadidas. Crea la primera pregunta arriba.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button type="button" id="finalizarExamenBtn" class="btn btn-primary btn-lg">Finalizar Examen</button>
+                <a href="{{ path('app_examen_semanal_index') }}" class="btn btn-secondary btn-lg">Cancelar</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let examenId = null;
+let convocatoriaId = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Crear examen
+    const crearExamenBtn = document.getElementById('crearExamenBtn');
+    if (crearExamenBtn) {
+        crearExamenBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Botón crear examen clickeado');
+            crearExamen();
+        });
+    } else {
+        console.error('No se encontró el botón crearExamenBtn');
+    }
+    
+    // Agregar pregunta
+    const agregarPreguntaBtn = document.getElementById('agregarPreguntaBtn');
+    if (agregarPreguntaBtn) {
+        agregarPreguntaBtn.addEventListener('click', agregarPregunta);
+    }
+    
+    // Finalizar examen
+    const finalizarExamenBtn = document.getElementById('finalizarExamenBtn');
+    if (finalizarExamenBtn) {
+        finalizarExamenBtn.addEventListener('click', finalizarExamen);
+    }
+
+    // Cargar municipios cuando se selecciona una convocatoria
+    document.getElementById('convocatoriaSelect').addEventListener('change', function() {
+        const convId = this.value;
+        if (convId) {
+            convocatoriaId = convId;
+            cargarMunicipiosConvocatoria(convId);
+        } else {
+            document.getElementById('municipioSelect').innerHTML = '<option value="">Selecciona un municipio...</option>';
+            document.getElementById('temaMunicipalSelect').innerHTML = '<option value="">Primero selecciona un municipio...</option>';
+        }
+    });
+
+    // Cargar temas municipales cuando se selecciona un municipio
+    document.getElementById('municipioSelect').addEventListener('change', function() {
+        const municipioId = this.value;
+        if (municipioId) {
+            cargarTemasMunicipales(municipioId);
+        } else {
+            document.getElementById('temaMunicipalSelect').innerHTML = '<option value="">Primero selecciona un municipio...</option>';
+        }
+    });
+});
+
+function crearExamen() {
+    console.log('Función crearExamen llamada');
+    
+    const datos = {
+        nombre: document.getElementById('nombreExamen').value,
+        descripcion: document.getElementById('descripcionExamen').value,
+        fechaApertura: document.getElementById('fechaApertura').value,
+        fechaCierre: document.getElementById('fechaCierre').value,
+        dificultad: document.getElementById('dificultadExamen').value,
+        convocatoriaId: document.getElementById('convocatoriaSelect').value
+    };
+
+    console.log('Datos del examen:', datos);
+
+    if (!datos.nombre || !datos.fechaApertura || !datos.fechaCierre || !datos.dificultad || !datos.convocatoriaId) {
+        alert('Por favor completa todos los campos requeridos del examen');
+        return;
+    }
+
+    const url = '{{ path('app_examen_semanal_new_con_preguntas_convocatoria') }}';
+    console.log('URL:', url);
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(datos)
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error('HTTP error! status: ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
+            examenId = data.examenId;
+            document.getElementById('examenForm').style.display = 'none';
+            document.getElementById('preguntasSection').style.display = 'block';
+            alert('Examen creado correctamente. Ahora puedes agregar preguntas.');
+        } else {
+            alert('Error: ' + (data.error || 'No se pudo crear el examen'));
+        }
+    })
+    .catch(error => {
+        console.error('Error completo:', error);
+        alert('Error al crear el examen: ' + error.message);
+    });
+}
+
+function agregarPregunta() {
+    if (!examenId) {
+        alert('Primero debes crear el examen');
+        return;
+    }
+
+    const datos = {
+        texto: document.getElementById('textoPregunta').value,
+        opcionA: document.getElementById('opcionA').value,
+        opcionB: document.getElementById('opcionB').value,
+        opcionC: document.getElementById('opcionC').value,
+        opcionD: document.getElementById('opcionD').value,
+        respuestaCorrecta: document.getElementById('respuestaCorrecta').value,
+        dificultad: document.getElementById('dificultadPregunta').value,
+        retroalimentacion: document.getElementById('retroalimentacion').value || null,
+        municipioId: document.getElementById('municipioSelect').value,
+        temaMunicipalId: document.getElementById('temaMunicipalSelect').value
+    };
+
+    if (!datos.municipioId || !datos.temaMunicipalId) {
+        alert('Por favor selecciona un municipio y un tema municipal');
+        return;
+    }
+
+    // Validar campos requeridos
+    if (!datos.texto || !datos.opcionA || !datos.opcionB || !datos.opcionC || !datos.opcionD || !datos.respuestaCorrecta || !datos.dificultad) {
+        alert('Por favor completa todos los campos requeridos');
+        return;
+    }
+
+    fetch(`/examen-semanal/${examenId}/agregar-pregunta`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(datos)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const municipioNombre = document.getElementById('municipioSelect').options[document.getElementById('municipioSelect').selectedIndex].text;
+            agregarPreguntaALista(data.preguntaId, datos, municipioNombre);
+            limpiarFormularioPregunta();
+            actualizarContador();
+            alert('Pregunta agregada correctamente');
+        } else {
+            alert('Error: ' + (data.error || 'No se pudo agregar la pregunta'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al agregar la pregunta');
+    });
+}
+
+function agregarPreguntaALista(preguntaId, datos, municipioNombre) {
+    const lista = document.getElementById('listaPreguntas');
+    if (lista.querySelector('.text-muted')) {
+        lista.innerHTML = '';
+    }
+
+    const div = document.createElement('div');
+    div.className = 'card mb-2';
+    div.id = `pregunta-${preguntaId}`;
+    div.innerHTML = `
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                    <strong>Pregunta #${document.getElementById('listaPreguntas').children.length + 1}</strong>
+                    <p class="mb-1"><strong>Municipio:</strong> ${municipioNombre}</p>
+                    <p class="mb-1">${datos.texto.substring(0, 100)}${datos.texto.length > 100 ? '...' : ''}</p>
+                    <small class="text-muted">Respuesta correcta: ${datos.respuestaCorrecta} | Dificultad: ${datos.dificultad}</small>
+                </div>
+                <button type="button" class="btn btn-sm btn-danger" onclick="eliminarPregunta(${preguntaId})">Eliminar</button>
+            </div>
+        </div>
+    `;
+    lista.appendChild(div);
+}
+
+function eliminarPregunta(preguntaId) {
+    if (!confirm('¿Estás seguro de eliminar esta pregunta del examen?')) {
+        return;
+    }
+
+    fetch(`/examen-semanal/${examenId}/eliminar-pregunta/${preguntaId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById(`pregunta-${preguntaId}`).remove();
+            actualizarContador();
+            if (document.getElementById('listaPreguntas').children.length === 0) {
+                document.getElementById('listaPreguntas').innerHTML = '<p class="text-muted">Aún no hay preguntas añadidas. Crea la primera pregunta arriba.</p>';
+            }
+        } else {
+            alert('Error: ' + (data.error || 'No se pudo eliminar la pregunta'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al eliminar la pregunta');
+    });
+}
+
+function finalizarExamen() {
+    if (!examenId) {
+        alert('No hay un examen para finalizar');
+        return;
+    }
+
+    if (document.getElementById('contadorPreguntas').textContent === '0') {
+        alert('Debes agregar al menos una pregunta antes de finalizar');
+        return;
+    }
+
+    if (!confirm('¿Estás seguro de finalizar el examen? No podrás agregar más preguntas después.')) {
+        return;
+    }
+
+    fetch(`/examen-semanal/${examenId}/finalizar`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Examen finalizado correctamente');
+            window.location.href = data.redirect || '{{ path('app_examen_semanal_index') }}';
+        } else {
+            alert('Error: ' + (data.error || 'No se pudo finalizar el examen'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al finalizar el examen');
+    });
+}
+
+function limpiarFormularioPregunta() {
+    document.getElementById('textoPregunta').value = '';
+    document.getElementById('opcionA').value = '';
+    document.getElementById('opcionB').value = '';
+    document.getElementById('opcionC').value = '';
+    document.getElementById('opcionD').value = '';
+    document.getElementById('respuestaCorrecta').value = '';
+    document.getElementById('dificultadPregunta').value = '';
+    document.getElementById('retroalimentacion').value = '';
+    // No limpiar municipio ni tema, para facilitar crear varias preguntas del mismo municipio/tema
+}
+
+function actualizarContador() {
+    const contador = document.getElementById('listaPreguntas').querySelectorAll('.card').length;
+    document.getElementById('contadorPreguntas').textContent = contador;
+}
+
+function cargarMunicipiosConvocatoria(convocatoriaId) {
+    fetch(`/examen-semanal/municipios-convocatoria/${convocatoriaId}`)
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('municipioSelect');
+            select.innerHTML = '<option value="">Selecciona un municipio...</option>';
+            data.forEach(municipio => {
+                const option = document.createElement('option');
+                option.value = municipio.id;
+                option.textContent = municipio.nombre;
+                select.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error al cargar municipios:', error);
+        });
+}
+
+function cargarTemasMunicipales(municipioId) {
+    fetch(`/examen-semanal/temas-municipales/${municipioId}`)
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('temaMunicipalSelect');
+            select.innerHTML = '<option value="">Selecciona un tema...</option>';
+            data.forEach(tema => {
+                const option = document.createElement('option');
+                option.value = tema.id;
+                option.textContent = tema.nombre;
+                select.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error al cargar temas municipales:', error);
+        });
+}
+</script>
+{% endblock %}
+

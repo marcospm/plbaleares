@@ -19,7 +19,7 @@
             <div class="card-body">
                 <h4 style="margin-top: 0; color: #856404; font-weight: 600;">⚙️ Método de Creación</h4>
                 <p style="color: #666; margin-bottom: 1rem;">Selecciona cómo quieres crear el examen:</p>
-                <div class="d-flex gap-3">
+                <div class="d-flex gap-3 flex-wrap">
                     <a href="{{ path('app_examen_semanal_new') }}" class="btn btn-primary">
                         📚 Usar Preguntas Existentes (por Temas)
                     </a>
@@ -28,6 +28,9 @@
                     </a>
                     <a href="{{ path('app_examen_semanal_new_con_preguntas', {'tipo': 'municipal'}) }}" class="btn btn-info">
                         🏛️ Crear Preguntas en Tiempo Real (Municipal)
+                    </a>
+                    <a href="{{ path('app_examen_semanal_new_con_preguntas_convocatoria') }}" class="btn btn-warning">
+                        🎯 Crear Preguntas en Tiempo Real (Convocatoria)
                     </a>
                 </div>
                 <p style="color: #856404; margin-top: 1rem; font-size: 0.9rem;">

@@ -108,6 +108,26 @@ class ExamenSemanalController extends AbstractController
         return new JsonResponse($temasArray);
     }
 
+    #[Route('/municipios-convocatoria/{convocatoriaId}', name: 'app_examen_semanal_municipios_convocatoria', methods: ['GET'])]
+    public function municipiosConvocatoria(int $convocatoriaId): JsonResponse
+    {
+        $convocatoria = $this->convocatoriaRepository->find($convocatoriaId);
+        
+        if (!$convocatoria) {
+            return new JsonResponse(['error' => 'Convocatoria no encontrada'], 404);
+        }
+        
+        $municipios = $convocatoria->getMunicipios();
+        $municipiosArray = array_map(function($municipio) {
+            return [
+                'id' => $municipio->getId(),
+                'nombre' => $municipio->getNombre(),
+            ];
+        }, $municipios->toArray());
+        
+        return new JsonResponse($municipiosArray);
+    }
+
     #[Route('/articulos/{leyId}', name: 'app_examen_semanal_articulos', methods: ['GET'])]
     public function getArticulos(int $leyId): JsonResponse
     {
@@ -203,6 +223,63 @@ class ExamenSemanalController extends AbstractController
         ]);
     }
 
+    #[Route('/new-con-preguntas-convocatoria', name: 'app_examen_semanal_new_con_preguntas_convocatoria', methods: ['GET', 'POST'], priority: 10)]
+    public function newConPreguntasConvocatoria(Request $request): Response
+    {
+        if ($request->isMethod('POST')) {
+            try {
+                $content = $request->getContent();
+                $datos = json_decode($content, true);
+                
+                if (json_last_error() !== JSON_ERROR_NONE || !$datos) {
+                    $datos = $request->request->all();
+                }
+                
+                // Validar datos básicos del examen
+                if (empty($datos['nombre']) || empty($datos['fechaApertura']) || empty($datos['fechaCierre']) || empty($datos['dificultad']) || empty($datos['convocatoriaId'])) {
+                    return new JsonResponse(['error' => 'Faltan datos requeridos del examen'], 400);
+                }
+
+                $convocatoria = $this->convocatoriaRepository->find($datos['convocatoriaId']);
+                if (!$convocatoria) {
+                    return new JsonResponse(['error' => 'Convocatoria no encontrada'], 404);
+                }
+
+                // Crear examen semanal
+                $examenSemanal = new ExamenSemanal();
+                $examenSemanal->setNombre($datos['nombre']);
+                $examenSemanal->setDescripcion($datos['descripcion'] ?? null);
+                $examenSemanal->setFechaApertura(new \DateTime($datos['fechaApertura']));
+                $examenSemanal->setFechaCierre(new \DateTime($datos['fechaCierre']));
+                $examenSemanal->setDificultad($datos['dificultad']);
+                $examenSemanal->setCreadoPor($this->getUser());
+                $examenSemanal->setModoCreacion('preguntas_especificas');
+                $examenSemanal->setActivo(true);
+                $examenSemanal->setConvocatoria($convocatoria);
+
+                $this->entityManager->persist($examenSemanal);
+                $this->entityManager->flush();
+
+                return new JsonResponse([
+                    'success' => true,
+                    'examenId' => $examenSemanal->getId(),
+                    'message' => 'Examen creado correctamente'
+                ]);
+            } catch (\Exception $e) {
+                return new JsonResponse([
+                    'error' => 'Error al crear el examen: ' . $e->getMessage()
+                ], 500);
+            }
+        }
+
+        // GET: mostrar formulario
+        $convocatorias = $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']);
+
+        return $this->render('examen_semanal/new_con_preguntas_convocatoria.html.twig', [
+            'convocatorias' => $convocatorias,
+        ]);
+    }
+
     #[Route('/', name: 'app_examen_semanal_index', methods: ['GET'])]
     public function index(): Response
     {
@@ -215,7 +292,7 @@ class ExamenSemanalController extends AbstractController
         // Calcular porcentajes por tema para cada examen
         $porcentajesPorExamen = [];
         foreach ($examenes as $examen) {
-            if ($examen->getMunicipio() === null && $examen->getModoCreacion() !== 'preguntas_especificas') {
+            if ($examen->getMunicipio() === null && $examen->getConvocatoria() === null && $examen->getModoCreacion() !== 'preguntas_especificas') {
                 $porcentajesPorExamen[$examen->getId()] = $this->calcularPorcentajesPorTema($examen);
             }
         }
@@ -713,8 +790,42 @@ class ExamenSemanalController extends AbstractController
 
         $datos = json_decode($request->getContent(), true);
         
-        if ($examenSemanal->getMunicipio()) {
-            // Pregunta municipal
+        // Si es examen de convocatoria, puede tener preguntas municipales con municipio seleccionado por pregunta
+        if ($examenSemanal->getConvocatoria()) {
+            // Pregunta municipal para convocatoria (municipio se selecciona al crear la pregunta)
+            $errores = $this->preguntaService->validarDatosPreguntaMunicipal($datos);
+            if (!empty($errores)) {
+                return new JsonResponse(['error' => implode(', ', $errores)], 400);
+            }
+
+            if (empty($datos['municipioId'])) {
+                return new JsonResponse(['error' => 'Debes seleccionar un municipio'], 400);
+            }
+
+            $municipio = $this->municipioRepository->find($datos['municipioId']);
+            if (!$municipio) {
+                return new JsonResponse(['error' => 'Municipio no encontrado'], 404);
+            }
+
+            // Verificar que el municipio pertenece a la convocatoria
+            if (!$examenSemanal->getConvocatoria()->getMunicipios()->contains($municipio)) {
+                return new JsonResponse(['error' => 'El municipio seleccionado no pertenece a esta convocatoria'], 400);
+            }
+
+            $temaMunicipal = $this->temaMunicipalRepository->find($datos['temaMunicipalId']);
+            if (!$temaMunicipal || $temaMunicipal->getMunicipio()->getId() !== $municipio->getId()) {
+                return new JsonResponse(['error' => 'Tema municipal no válido'], 400);
+            }
+
+            $pregunta = $this->preguntaService->crearPreguntaMunicipal($datos, $temaMunicipal, $municipio);
+            $examenSemanal->addPreguntasMunicipale($pregunta);
+            
+            // Agregar el tema municipal al examen semanal si no está ya agregado
+            if (!$examenSemanal->getTemasMunicipales()->contains($temaMunicipal)) {
+                $examenSemanal->addTemasMunicipale($temaMunicipal);
+            }
+        } elseif ($examenSemanal->getMunicipio()) {
+            // Pregunta municipal (municipio fijo del examen)
             $errores = $this->preguntaService->validarDatosPreguntaMunicipal($datos);
             if (!empty($errores)) {
                 return new JsonResponse(['error' => implode(', ', $errores)], 400);
@@ -768,7 +879,8 @@ class ExamenSemanalController extends AbstractController
             return new JsonResponse(['error' => 'Este examen no permite eliminar preguntas específicas'], 400);
         }
 
-        if ($examenSemanal->getMunicipio()) {
+        // Si es examen de convocatoria o municipal, las preguntas son municipales
+        if ($examenSemanal->getConvocatoria() || $examenSemanal->getMunicipio()) {
             $pregunta = $this->preguntaMunicipalRepository->find($preguntaId);
             if (!$pregunta || !$examenSemanal->getPreguntasMunicipales()->contains($pregunta)) {
                 return new JsonResponse(['error' => 'Pregunta no encontrada en este examen'], 404);
@@ -798,7 +910,7 @@ class ExamenSemanalController extends AbstractController
         }
 
         // Validar que tenga al menos una pregunta
-        $totalPreguntas = $examenSemanal->getMunicipio() 
+        $totalPreguntas = ($examenSemanal->getConvocatoria() || $examenSemanal->getMunicipio())
             ? $examenSemanal->getPreguntasMunicipales()->count()
             : $examenSemanal->getPreguntas()->count();
 
@@ -1034,7 +1146,7 @@ class ExamenSemanalController extends AbstractController
     {
         $porcentajesPorTema = [];
         
-        if ($examenSemanal->getMunicipio() !== null || $examenSemanal->getModoCreacion() === 'preguntas_especificas') {
+        if ($examenSemanal->getMunicipio() !== null || $examenSemanal->getConvocatoria() !== null || $examenSemanal->getModoCreacion() === 'preguntas_especificas') {
             return $porcentajesPorTema;
         }
         
@@ -1081,7 +1193,8 @@ class ExamenSemanalController extends AbstractController
     {
         // Si el examen usa preguntas específicas, devolverlas directamente
         if ($examenSemanal->getModoCreacion() === 'preguntas_especificas') {
-            if ($examenSemanal->getMunicipio()) {
+            // Si es examen de convocatoria o municipal, las preguntas son municipales
+            if ($examenSemanal->getConvocatoria() || $examenSemanal->getMunicipio()) {
                 return $examenSemanal->getPreguntasMunicipales()->toArray();
             } else {
                 return $examenSemanal->getPreguntas()->toArray();
@@ -1090,7 +1203,7 @@ class ExamenSemanalController extends AbstractController
 
         // Método original: obtener preguntas por temas
         $preguntas = [];
-        $esMunicipal = $examenSemanal->getMunicipio() !== null;
+        $esMunicipal = $examenSemanal->getMunicipio() !== null || $examenSemanal->getConvocatoria() !== null;
         $temas = [];
 
         if ($esMunicipal) {
@@ -1144,7 +1257,7 @@ class ExamenSemanalController extends AbstractController
         
         // Calcular porcentajes por tema si es examen general
         $porcentajesPorTema = [];
-        if ($examenSemanal->getMunicipio() === null && $examenSemanal->getModoCreacion() !== 'preguntas_especificas') {
+        if ($examenSemanal->getMunicipio() === null && $examenSemanal->getConvocatoria() === null && $examenSemanal->getModoCreacion() !== 'preguntas_especificas') {
             $porcentajesPorTema = $this->calcularPorcentajesPorTema($examenSemanal);
         }
         
