@@ -6,6 +6,7 @@ use App\Entity\RecursoEspecifico;
 use App\Form\RecursoEspecificoType;
 use App\Repository\RecursoEspecificoRepository;
 use App\Repository\UserRepository;
+use App\Repository\GrupoRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
@@ -38,7 +39,7 @@ class RecursoEspecificoController extends AbstractController
     }
 
     #[Route('/new', name: 'app_recurso_especifico_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager, SluggerInterface $slugger, UserRepository $userRepository): Response
+    public function new(Request $request, EntityManagerInterface $entityManager, SluggerInterface $slugger, UserRepository $userRepository, GrupoRepository $grupoRepository): Response
     {
         $profesor = $this->getUser();
         $recursoEspecifico = new RecursoEspecifico();
@@ -56,7 +57,8 @@ class RecursoEspecificoController extends AbstractController
                     ->andWhere('u.activo = :activo')
                     ->setParameter('alumnosIds', $alumnosIds)
                     ->setParameter('activo', true)
-                    ->orderBy('u.username', 'ASC');
+                    ->orderBy('u.nombre', 'ASC')
+                    ->addOrderBy('u.username', 'ASC');
             }
         } else {
             // Si es admin, puede asignar a cualquier alumno activo
@@ -67,16 +69,65 @@ class RecursoEspecificoController extends AbstractController
                 ->setParameter('activo', true)
                 ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
                 ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
-                ->orderBy('u.username', 'ASC');
+                ->orderBy('u.nombre', 'ASC')
+                ->addOrderBy('u.username', 'ASC');
+        }
+
+        // Obtener grupos disponibles para el profesor
+        $gruposQueryBuilder = null;
+        if (!$esAdmin) {
+            // Obtener grupos que tengan alumnos asignados al profesor
+            $todosGrupos = $grupoRepository->findAll();
+            $gruposIds = [];
+            foreach ($todosGrupos as $grupo) {
+                $alumnosDelGrupo = $grupo->getAlumnos()->toArray();
+                $alumnosComunes = array_intersect(
+                    array_map(fn($a) => $a->getId(), $alumnosDelGrupo),
+                    $alumnosIds ?? []
+                );
+                if (!empty($alumnosComunes)) {
+                    $gruposIds[] = $grupo->getId();
+                }
+            }
+            if (!empty($gruposIds)) {
+                $gruposQueryBuilder = $grupoRepository->createQueryBuilder('g')
+                    ->where('g.id IN (:gruposIds)')
+                    ->setParameter('gruposIds', $gruposIds)
+                    ->orderBy('g.nombre', 'ASC');
+            }
+        } else {
+            // Admin puede ver todos los grupos
+            $gruposQueryBuilder = $grupoRepository->createQueryBuilder('g')
+                ->orderBy('g.nombre', 'ASC');
         }
 
         $form = $this->createForm(RecursoEspecificoType::class, $recursoEspecifico, [
             'require_file' => true,
             'alumnos_query_builder' => $alumnosQueryBuilder,
+            'grupos_query_builder' => $gruposQueryBuilder,
         ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Si hay grupo seleccionado, asignar automáticamente todos los alumnos del grupo
+            $grupo = $recursoEspecifico->getGrupo();
+            if ($grupo !== null) {
+                foreach ($grupo->getAlumnos() as $alumno) {
+                    if (!$recursoEspecifico->getAlumnos()->contains($alumno)) {
+                        $recursoEspecifico->addAlumno($alumno);
+                    }
+                }
+            }
+            
+            // Validar que hay al menos un alumno asignado o un grupo
+            if ($recursoEspecifico->getAlumnos()->isEmpty() && $grupo === null) {
+                $this->addFlash('error', 'Debes asignar el recurso a al menos un alumno o seleccionar un grupo.');
+                return $this->render('recurso_especifico/new.html.twig', [
+                    'recursoEspecifico' => $recursoEspecifico,
+                    'form' => $form,
+                ]);
+            }
+            
             /** @var UploadedFile|null $archivo */
             $archivo = $form->get('archivo')->getData();
             
@@ -148,7 +199,7 @@ class RecursoEspecificoController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'app_recurso_especifico_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, RecursoEspecifico $recursoEspecifico, EntityManagerInterface $entityManager, SluggerInterface $slugger, UserRepository $userRepository): Response
+    public function edit(Request $request, RecursoEspecifico $recursoEspecifico, EntityManagerInterface $entityManager, SluggerInterface $slugger, UserRepository $userRepository, GrupoRepository $grupoRepository): Response
     {
         // Verificar que el profesor tiene acceso a este recurso
         $profesor = $this->getUser();
@@ -169,7 +220,8 @@ class RecursoEspecificoController extends AbstractController
                     ->andWhere('u.activo = :activo')
                     ->setParameter('alumnosIds', $alumnosIds)
                     ->setParameter('activo', true)
-                    ->orderBy('u.username', 'ASC');
+                    ->orderBy('u.nombre', 'ASC')
+                    ->addOrderBy('u.username', 'ASC');
             }
         } else {
             $alumnosQueryBuilder = $userRepository->createQueryBuilder('u')
@@ -179,16 +231,64 @@ class RecursoEspecificoController extends AbstractController
                 ->setParameter('activo', true)
                 ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
                 ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
-                ->orderBy('u.username', 'ASC');
+                ->orderBy('u.nombre', 'ASC')
+                ->addOrderBy('u.username', 'ASC');
+        }
+
+        // Obtener grupos disponibles para el profesor
+        $gruposQueryBuilder = null;
+        if (!$esAdmin) {
+            $alumnosIds = $profesor->getAlumnos()->map(fn($alumno) => $alumno->getId())->toArray();
+            $todosGrupos = $grupoRepository->findAll();
+            $gruposIds = [];
+            foreach ($todosGrupos as $grupo) {
+                $alumnosDelGrupo = $grupo->getAlumnos()->toArray();
+                $alumnosComunes = array_intersect(
+                    array_map(fn($a) => $a->getId(), $alumnosDelGrupo),
+                    $alumnosIds ?? []
+                );
+                if (!empty($alumnosComunes)) {
+                    $gruposIds[] = $grupo->getId();
+                }
+            }
+            if (!empty($gruposIds)) {
+                $gruposQueryBuilder = $grupoRepository->createQueryBuilder('g')
+                    ->where('g.id IN (:gruposIds)')
+                    ->setParameter('gruposIds', $gruposIds)
+                    ->orderBy('g.nombre', 'ASC');
+            }
+        } else {
+            $gruposQueryBuilder = $grupoRepository->createQueryBuilder('g')
+                ->orderBy('g.nombre', 'ASC');
         }
 
         $form = $this->createForm(RecursoEspecificoType::class, $recursoEspecifico, [
             'require_file' => false,
             'alumnos_query_builder' => $alumnosQueryBuilder,
+            'grupos_query_builder' => $gruposQueryBuilder,
         ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Si hay grupo seleccionado, asignar automáticamente todos los alumnos del grupo
+            $grupo = $recursoEspecifico->getGrupo();
+            if ($grupo !== null) {
+                foreach ($grupo->getAlumnos() as $alumno) {
+                    if (!$recursoEspecifico->getAlumnos()->contains($alumno)) {
+                        $recursoEspecifico->addAlumno($alumno);
+                    }
+                }
+            }
+            
+            // Validar que hay al menos un alumno asignado o un grupo
+            if ($recursoEspecifico->getAlumnos()->isEmpty() && $grupo === null) {
+                $this->addFlash('error', 'Debes asignar el recurso a al menos un alumno o seleccionar un grupo.');
+                return $this->render('recurso_especifico/edit.html.twig', [
+                    'recursoEspecifico' => $recursoEspecifico,
+                    'form' => $form,
+                ]);
+            }
+            
             /** @var UploadedFile|null $archivo */
             $archivo = $form->get('archivo')->getData();
             

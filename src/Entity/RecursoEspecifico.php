@@ -39,6 +39,10 @@ class RecursoEspecifico
     #[ORM\JoinTable(name: 'recurso_especifico_alumno')]
     private Collection $alumnos;
 
+    #[ORM\ManyToOne(targetEntity: \App\Entity\Grupo::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?\App\Entity\Grupo $grupo = null;
+
     public function __construct()
     {
         $this->alumnos = new ArrayCollection();
@@ -142,6 +146,18 @@ class RecursoEspecifico
     public function removeAlumno(User $alumno): static
     {
         $this->alumnos->removeElement($alumno);
+
+        return $this;
+    }
+
+    public function getGrupo(): ?\App\Entity\Grupo
+    {
+        return $this->grupo;
+    }
+
+    public function setGrupo(?\App\Entity\Grupo $grupo): static
+    {
+        $this->grupo = $grupo;
 
         return $this;
     }
