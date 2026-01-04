@@ -29,35 +29,67 @@ class PreguntaMunicipalController extends AbstractController
         $temaId = $request->query->getInt('tema');
         $dificultad = $request->query->get('dificultad', '');
 
+        // Parámetros de paginación
+        $itemsPerPage = 20;
+        $page = max(1, $request->query->getInt('page', 1));
+
         $preguntas = $preguntaMunicipalRepository->findAll();
+        
+        // Convertir a array indexado numéricamente
+        $preguntas = array_values($preguntas);
 
         if ($municipioId > 0) {
             $municipio = $municipioRepository->find($municipioId);
             if ($municipio) {
-                $preguntas = array_filter($preguntas, function($p) use ($municipio) {
+                $preguntas = array_values(array_filter($preguntas, function($p) use ($municipio) {
                     return $p->getMunicipio()->getId() === $municipio->getId();
-                });
+                }));
             }
         }
 
         if ($temaId > 0) {
-            $preguntas = array_filter($preguntas, function($p) use ($temaId) {
+            $preguntas = array_values(array_filter($preguntas, function($p) use ($temaId) {
                 return $p->getTemaMunicipal() && $p->getTemaMunicipal()->getId() === $temaId;
-            });
+            }));
         }
 
         if (!empty($dificultad)) {
-            $preguntas = array_filter($preguntas, function($p) use ($dificultad) {
+            $preguntas = array_values(array_filter($preguntas, function($p) use ($dificultad) {
                 return $p->getDificultad() === $dificultad;
-            });
+            }));
+        }
+
+        // Calcular paginación
+        $totalItems = count($preguntas);
+        $totalPages = max(1, ceil($totalItems / $itemsPerPage));
+        $page = min($page, $totalPages);
+        
+        // Obtener los items de la página actual
+        $offset = ($page - 1) * $itemsPerPage;
+        $preguntasPaginated = array_slice($preguntas, $offset, $itemsPerPage);
+
+        // Obtener temas municipales para el filtro (si hay municipio seleccionado, solo de ese municipio)
+        $temasMunicipales = [];
+        if ($municipioId > 0) {
+            $municipio = $municipioRepository->find($municipioId);
+            if ($municipio) {
+                $temasMunicipales = $temaMunicipalRepository->findByMunicipio($municipio);
+            }
+        } else {
+            $temasMunicipales = $temaMunicipalRepository->findAll();
         }
 
         return $this->render('pregunta_municipal/index.html.twig', [
-            'preguntas' => $preguntas,
+            'preguntas' => $preguntasPaginated,
             'municipios' => $municipioRepository->findAll(),
+            'temasMunicipales' => $temasMunicipales,
             'municipioSeleccionado' => $municipioId,
             'temaSeleccionado' => $temaId,
             'dificultadSeleccionada' => $dificultad,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'totalItems' => $totalItems,
+            'itemsPerPage' => $itemsPerPage,
         ]);
     }
 
@@ -140,7 +172,23 @@ class PreguntaMunicipalController extends AbstractController
             $this->addFlash('success', "La pregunta municipal ha sido {$estado} correctamente.");
         }
 
-        return $this->redirectToRoute('app_pregunta_municipal_index', [], Response::HTTP_SEE_OTHER);
+        // Preservar filtros y página al redirigir (del POST)
+        $params = [];
+        $payload = $request->getPayload();
+        if ($payload->getInt('municipio') > 0) {
+            $params['municipio'] = $payload->getInt('municipio');
+        }
+        if ($payload->getInt('tema') > 0) {
+            $params['tema'] = $payload->getInt('tema');
+        }
+        if ($payload->get('dificultad')) {
+            $params['dificultad'] = $payload->get('dificultad');
+        }
+        if ($payload->getInt('page') > 1) {
+            $params['page'] = $payload->getInt('page');
+        }
+
+        return $this->redirectToRoute('app_pregunta_municipal_index', $params, Response::HTTP_SEE_OTHER);
     }
 }
 
