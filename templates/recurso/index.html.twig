@@ -1,39 +1,103 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Recurso index{% endblock %}
+{% block title %}Gestión de Temas - Temario General{% endblock %}
 
 {% block body %}
-    <h1>Recurso index</h1>
+<div class="d-flex justify-content-between mb-4">
+    <h1>Gestión de Temas del Temario General</h1>
+    <a href="{{ path('app_tema_new') }}" class="btn btn-primary">Nuevo Tema</a>
+</div>
 
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Id</th>
-                <th>Nombre</th>
-                <th>Enlace</th>
-                <th>FechaCreacion</th>
-                <th>actions</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for recurso in recursos %}
-            <tr>
-                <td>{{ recurso.id }}</td>
-                <td>{{ recurso.nombre }}</td>
-                <td>{{ recurso.enlace }}</td>
-                <td>{{ recurso.fechaCreacion ? recurso.fechaCreacion|date('Y-m-d H:i:s') : '' }}</td>
-                <td>
-                    <a href="{{ path('app_recurso_show', {'id': recurso.id}) }}">show</a>
-                    <a href="{{ path('app_recurso_edit', {'id': recurso.id}) }}">edit</a>
-                </td>
-            </tr>
-        {% else %}
-            <tr>
-                <td colspan="5">no records found</td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+<form method="get" action="{{ path('app_recurso_index') }}" style="margin-bottom: 2rem;">
+    <div class="card">
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Buscar:</label>
+                    <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Buscar por nombre o descripción...">
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ path('app_recurso_index') }}" class="btn btn-secondary">Limpiar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
 
-    <a href="{{ path('app_recurso_new') }}">Create new</a>
+{% if temas|length > 0 %}
+    <div class="card">
+        <div class="card-header">
+            <h3 style="margin: 0;">Temario General ({{ temas|length }} Temas)</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%;">ID</th>
+                            <th style="width: 25%;">Nombre</th>
+                            <th style="width: 30%;">Descripción</th>
+                            <th style="width: 10%;">PDF</th>
+                            <th style="width: 10%;">Leyes</th>
+                            <th style="width: 10%;">Estado</th>
+                            <th style="width: 10%;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tema in temas %}
+                            <tr>
+                                <td><strong>{{ tema.id }}</strong></td>
+                                <td><strong>{{ tema.nombre }}</strong></td>
+                                <td>{{ tema.descripcion|default('Sin descripción')|slice(0, 80) }}{% if tema.descripcion|length > 80 %}...{% endif %}</td>
+                                <td>
+                                    {% if tema.rutaPdf %}
+                                        <a href="{{ tema.rutaPdf }}" target="_blank" class="btn btn-sm btn-success" rel="noopener noreferrer">
+                                            Ver PDF
+                                        </a>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Sin PDF</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if tema.leyes|length > 0 %}
+                                        <span class="badge badge-facil">{{ tema.leyes|length }} ley(es)</span>
+                                    {% else %}
+                                        <span style="color: var(--color-text-light);">Sin leyes</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if tema.isActivo %}
+                                        <span class="badge badge-success" style="background-color: var(--color-success);">Activo</span>
+                                    {% else %}
+                                        <span class="badge badge-danger" style="background-color: var(--color-danger);">Inactivo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-2" style="flex-wrap: wrap;">
+                                        <a href="{{ path('app_tema_show', {'id': tema.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
+                                        <a href="{{ path('app_tema_edit', {'id': tema.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                        <form method="post" action="{{ path('app_tema_toggle_activo', {'id': tema.id}) }}" style="display: inline;">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ tema.id) }}">
+                                            <button type="submit" class="btn btn-sm {% if tema.isActivo %}btn-warning{% else %}btn-success{% endif %}">
+                                                {% if tema.isActivo %}Desactivar{% else %}Activar{% endif %}
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <p>No hay temas registrados aún.</p>
+            <a href="{{ path('app_tema_new') }}" class="btn btn-primary">Crear Primer Tema</a>
+        </div>
+    </div>
+{% endif %}
 {% endblock %}

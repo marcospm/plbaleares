@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Recurso;
 use App\Form\RecursoType;
 use App\Repository\RecursoRepository;
+use App\Repository\TemaRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,10 +18,23 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class RecursoController extends AbstractController
 {
     #[Route(name: 'app_recurso_index', methods: ['GET'])]
-    public function index(RecursoRepository $recursoRepository): Response
+    public function index(RecursoRepository $recursoRepository, TemaRepository $temaRepository, Request $request): Response
     {
+        $search = $request->query->get('search', '');
+        // Obtener todos los temas ordenados por ID (los 30 temas del temario general)
+        $temas = $temaRepository->findBy([], ['id' => 'ASC']);
+
+        if (!empty($search)) {
+            $temas = array_filter($temas, function($tema) use ($search) {
+                return stripos($tema->getNombre(), $search) !== false ||
+                       stripos($tema->getDescripcion() ?? '', $search) !== false;
+            });
+        }
+        
         return $this->render('recurso/index.html.twig', [
             'recursos' => $recursoRepository->findAll(),
+            'temas' => $temas,
+            'search' => $search,
         ]);
     }
 
