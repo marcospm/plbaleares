@@ -507,7 +507,236 @@
                 {% endif %}
             </div>
         </div>
+
+        {# Ranking de Alumnos #}
+        <div class="card" style="margin-top: 2rem;">
+            <div class="card-header" style="background-color: #4CAF50; color: white;">
+                <h2 style="margin: 0; color: white;">🏆 Ranking de Alumnos</h2>
+            </div>
+            <div class="card-body">
+                {# Filtros para el ranking #}
+                <div class="card" style="margin-bottom: 2rem; background-color: #f8f9fa;">
+                    <div class="card-body">
+                        <form method="GET" action="{{ path('app_examen_profesor') }}" id="filtrosRankingForm" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
+                            {# Preservar filtros existentes #}
+                            {% if grupoSeleccionado %}
+                                <input type="hidden" name="grupo" value="{{ grupoSeleccionado }}">
+                            {% endif %}
+                            {% if usuarioSeleccionado %}
+                                <input type="hidden" name="usuario" value="{{ usuarioSeleccionado }}">
+                            {% endif %}
+                            {% if dificultadSeleccionada %}
+                                <input type="hidden" name="dificultad" value="{{ dificultadSeleccionada }}">
+                            {% endif %}
+                            {% if temaSeleccionado %}
+                                <input type="hidden" name="tema" value="{{ temaSeleccionado.id }}">
+                            {% endif %}
+                            {% if currentPageGeneral > 1 %}
+                                <input type="hidden" name="page_general" value="{{ currentPageGeneral }}">
+                            {% endif %}
+                            {% if currentPageMunicipal > 1 %}
+                                <input type="hidden" name="page_municipal" value="{{ currentPageMunicipal }}">
+                            {% endif %}
+                            
+                            <div>
+                                <label for="tipo_ranking" class="form-label">Tipo de Ranking:</label>
+                                <select name="tipo_ranking" id="tipo_ranking" class="form-control" onchange="document.getElementById('filtrosRankingForm').submit();">
+                                    <option value="general" {% if tipoRanking == 'general' %}selected{% endif %}>Temario General</option>
+                                    <option value="convocatoria" {% if tipoRanking == 'convocatoria' %}selected{% endif %}>Por Convocatoria</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="convocatoria_ranking" class="form-label">Convocatoria:</label>
+                                <select name="convocatoria_ranking" id="convocatoria_ranking" class="form-control" onchange="document.getElementById('filtrosRankingForm').submit();" {% if tipoRanking != 'convocatoria' %}disabled{% endif %}>
+                                    <option value="">Selecciona una convocatoria</option>
+                                    {% for convocatoria in convocatorias %}
+                                        <option value="{{ convocatoria.id }}" {% if convocatoriaRankingSeleccionada and convocatoriaRankingSeleccionada == convocatoria.id %}selected{% endif %}>
+                                            {{ convocatoria.nombre }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <button type="submit" class="btn btn-primary">Actualizar Ranking</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                {% if ranking|length > 0 %}
+                    <div style="margin-bottom: 1rem; padding: 0.75rem; background-color: #e3f2fd; border-radius: 4px; border-left: 4px solid #4CAF50;">
+                        <strong>ℹ️ Nota:</strong> El ranking muestra la nota media de los últimos 10 exámenes{% if tipoRanking == 'convocatoria' and convocatoriaRankingSeleccionada %} de la convocatoria seleccionada{% elseif tipoRanking == 'general' and temaSeleccionado %} del tema {{ temaSeleccionado.nombre }}{% endif %}{% if dificultadSeleccionada %} con dificultad {{ dificultadSeleccionada|capitalize }}{% endif %}.
+                    </div>
+                    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">Pos.</th>
+                                <th>Alumno</th>
+                                <th>Nota Media</th>
+                                <th>Exámenes</th>
+                                {% if tipoRanking == 'convocatoria' and convocatoriaRankingSeleccionada %}
+                                    <th>Convocatoria</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in ranking %}
+                                {% set posicion = ((currentPageRanking - 1) * 20) + loop.index %}
+                                <tr>
+                                    <td>
+                                        <strong style="font-size: 1.2rem; color: {% if posicion == 1 %}#FFD700{% elseif posicion == 2 %}#C0C0C0{% elseif posicion == 3 %}#CD7F32{% else %}var(--color-primary){% endif %};">
+                                            {% if posicion == 1 %}🥇
+                                            {% elseif posicion == 2 %}🥈
+                                            {% elseif posicion == 3 %}🥉
+                                            {% else %}#{{ posicion }}{% endif %}
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        <strong>{{ entry.usuario.nombreDisplay }}</strong>
+                                        <br>
+                                        <small style="color: #666;">{{ entry.usuario.username }}</small>
+                                    </td>
+                                    <td>
+                                        <strong style="font-size: 1.3rem; color: {% if entry.notaMedia >= 10 %}var(--color-success){% else %}var(--color-danger){% endif %};">
+                                            {{ entry.notaMedia|number_format(2, ',', '.') }}
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-moderada">{{ entry.cantidadExamenes }} examen{{ entry.cantidadExamenes != 1 ? 'es' : '' }}</span>
+                                    </td>
+                                    {% if tipoRanking == 'convocatoria' and convocatoriaRankingSeleccionada %}
+                                        <td>
+                                            {% for convocatoria in convocatorias %}
+                                                {% if convocatoria.id == convocatoriaRankingSeleccionada %}
+                                                    <span class="badge" style="background-color: #2196F3;">{{ convocatoria.nombre }}</span>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    {% if totalPagesRanking > 1 %}
+                        <div class="card-footer" style="background-color: #f8f9fa; border-top: 1px solid #dee2e6; padding: 1rem;">
+                            <nav aria-label="Paginación del ranking">
+                                <ul class="pagination justify-content-center mb-0" style="flex-wrap: wrap;">
+                                    {% set paramsBaseRanking = {
+                                        'grupo': grupoSeleccionado ? grupoSeleccionado : '',
+                                        'usuario': usuarioSeleccionado ? usuarioSeleccionado : '',
+                                        'dificultad': dificultadSeleccionada ? dificultadSeleccionada : '',
+                                        'tema': temaSeleccionado ? temaSeleccionado.id : '',
+                                        'tipo_ranking': tipoRanking,
+                                        'convocatoria_ranking': convocatoriaRankingSeleccionada ? convocatoriaRankingSeleccionada : '',
+                                        'page_general': currentPageGeneral > 1 ? currentPageGeneral : '',
+                                        'page_municipal': currentPageMunicipal > 1 ? currentPageMunicipal : ''
+                                    } %}
+                                    {% set paramsBaseRanking = paramsBaseRanking|filter(v => v != '' and v != 0) %}
+                                    
+                                    {# Botón Anterior #}
+                                    <li class="page-item {% if currentPageRanking == 1 %}disabled{% endif %}">
+                                        {% if currentPageRanking > 1 %}
+                                            {% set pageAnteriorRanking = currentPageRanking - 1 %}
+                                            {% set paramsAnteriorRanking = paramsBaseRanking|merge({'page_ranking': pageAnteriorRanking > 1 ? pageAnteriorRanking : ''}) %}
+                                            {% set paramsAnteriorRanking = paramsAnteriorRanking|filter(v => v != '') %}
+                                            <a class="page-link" href="{{ path('app_examen_profesor', paramsAnteriorRanking) }}">
+                                        {% else %}
+                                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                                        {% endif %}
+                                            ← Anterior
+                                        </a>
+                                    </li>
+                                    
+                                    {# Números de página #}
+                                    {% set startPageRanking = max(1, currentPageRanking - 2) %}
+                                    {% set endPageRanking = min(totalPagesRanking, currentPageRanking + 2) %}
+                                    
+                                    {% if startPageRanking > 1 %}
+                                        <li class="page-item">
+                                            {% set paramsFirst = paramsBaseRanking|filter(v => v != '' and v != 'page_ranking') %}
+                                            <a class="page-link" href="{{ path('app_examen_profesor', paramsFirst) }}">1</a>
+                                        </li>
+                                        {% if startPageRanking > 2 %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        {% endif %}
+                                    {% endif %}
+                                    
+                                    {% for p in startPageRanking..endPageRanking %}
+                                        <li class="page-item {% if p == currentPageRanking %}active{% endif %}">
+                                            {% if p > 1 %}
+                                                {% set paramsPage = paramsBaseRanking|merge({'page_ranking': p})|filter(v => v != '') %}
+                                                <a class="page-link" href="{{ path('app_examen_profesor', paramsPage) }}">{{ p }}</a>
+                                            {% else %}
+                                                {% set paramsPage = paramsBaseRanking|filter(v => v != '' and v != 'page_ranking') %}
+                                                <a class="page-link" href="{{ path('app_examen_profesor', paramsPage) }}">{{ p }}</a>
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                    
+                                    {% if endPageRanking < totalPagesRanking %}
+                                        {% if endPageRanking < totalPagesRanking - 1 %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        {% endif %}
+                                        <li class="page-item">
+                                            {% set paramsLast = paramsBaseRanking|merge({'page_ranking': totalPagesRanking})|filter(v => v != '') %}
+                                            <a class="page-link" href="{{ path('app_examen_profesor', paramsLast) }}">{{ totalPagesRanking }}</a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {# Botón Siguiente #}
+                                    <li class="page-item {% if currentPageRanking == totalPagesRanking %}disabled{% endif %}">
+                                        {% if currentPageRanking < totalPagesRanking %}
+                                            {% set paramsNext = paramsBaseRanking|merge({'page_ranking': currentPageRanking + 1})|filter(v => v != '') %}
+                                            <a class="page-link" href="{{ path('app_examen_profesor', paramsNext) }}">
+                                        {% else %}
+                                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                                        {% endif %}
+                                            Siguiente →
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                            <div style="text-align: center; margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
+                                Mostrando {{ ((currentPageRanking - 1) * 20) + 1 }} - {{ min(currentPageRanking * 20, totalItemsRanking) }} de {{ totalItemsRanking }} alumnos
+                            </div>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center" style="padding: 2rem;">
+                        <p style="font-size: 1.1rem; color: #666;">
+                            {% if tipoRanking == 'convocatoria' and not convocatoriaRankingSeleccionada %}
+                                Por favor, selecciona una convocatoria para ver el ranking.
+                            {% else %}
+                                No se encontraron alumnos con exámenes para el ranking con los filtros seleccionados.
+                                {% if not dificultadSeleccionada %}
+                                    <br><small style="color: #999;">Nota: El ranking muestra solo alumnos con exámenes de dificultad "Moderada" por defecto. Prueba a seleccionar una dificultad específica o verifica que tus alumnos tengan exámenes de temario general.</small>
+                                {% endif %}
+                            {% endif %}
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
+
+<script>
+// Habilitar/deshabilitar selector de convocatoria según el tipo de ranking
+document.getElementById('tipo_ranking').addEventListener('change', function() {
+    const convocatoriaSelect = document.getElementById('convocatoria_ranking');
+    if (this.value === 'convocatoria') {
+        convocatoriaSelect.disabled = false;
+    } else {
+        convocatoriaSelect.disabled = true;
+        convocatoriaSelect.value = '';
+    }
+});
+</script>
 {% endblock %}
 
