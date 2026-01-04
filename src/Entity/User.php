@@ -93,11 +93,19 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'profesores')]
     private Collection $alumnos;
 
+    /**
+     * Grupos a los que pertenece este usuario
+     * @var Collection<int, \App\Entity\Grupo>
+     */
+    #[ORM\ManyToMany(targetEntity: \App\Entity\Grupo::class, mappedBy: 'alumnos')]
+    private Collection $grupos;
+
     public function __construct()
     {
         $this->convocatorias = new ArrayCollection();
         $this->profesores = new ArrayCollection();
         $this->alumnos = new ArrayCollection();
+        $this->grupos = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -469,6 +477,33 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         if ($this->alumnos->removeElement($alumno)) {
             $alumno->removeProfesore($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, \App\Entity\Grupo>
+     */
+    public function getGrupos(): Collection
+    {
+        return $this->grupos;
+    }
+
+    public function addGrupo(\App\Entity\Grupo $grupo): static
+    {
+        if (!$this->grupos->contains($grupo)) {
+            $this->grupos->add($grupo);
+            $grupo->addAlumno($this);
+        }
+
+        return $this;
+    }
+
+    public function removeGrupo(\App\Entity\Grupo $grupo): static
+    {
+        if ($this->grupos->removeElement($grupo)) {
+            $grupo->removeAlumno($this);
         }
 
         return $this;

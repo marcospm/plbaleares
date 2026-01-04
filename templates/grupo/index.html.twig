@@ -1,0 +1,59 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Grupos{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4">
+    <h1>Grupos</h1>
+    <a href="{{ path('app_grupo_new') }}" class="btn btn-primary">Nuevo Grupo</a>
+</div>
+
+{% if grupos|length > 0 %}
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Alumnos</th>
+                    <th>Fecha Creación</th>
+                    <th>Última Actualización</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for grupo in grupos %}
+                    <tr>
+                        <td>{{ grupo.id }}</td>
+                        <td><strong>{{ grupo.nombre }}</strong></td>
+                        <td>
+                            <span class="badge badge-moderada">{{ grupo.alumnos|length }} alumno(s)</span>
+                        </td>
+                        <td>{{ grupo.fechaCreacion|date('d/m/Y H:i') }}</td>
+                        <td>{{ grupo.fechaActualizacion|date('d/m/Y H:i') }}</td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="{{ path('app_grupo_show', {'id': grupo.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
+                                <a href="{{ path('app_grupo_edit', {'id': grupo.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                <a href="{{ path('app_grupo_gestionar_alumnos', {'id': grupo.id}) }}" class="btn btn-info btn-sm">Gestionar Alumnos</a>
+                                <form method="post" action="{{ path('app_grupo_delete', {'id': grupo.id}) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de eliminar este grupo?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ grupo.id) }}">
+                                    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <p>No hay grupos registrados aún.</p>
+            <a href="{{ path('app_grupo_new') }}" class="btn btn-primary">Crear Primer Grupo</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+

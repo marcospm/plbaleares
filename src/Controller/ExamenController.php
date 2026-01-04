@@ -944,7 +944,7 @@ class ExamenController extends AbstractController
 
     #[Route('/profesor', name: 'app_examen_profesor', methods: ['GET'])]
     #[IsGranted('ROLE_PROFESOR')]
-    public function profesor(Request $request, UserRepository $userRepository, TemaRepository $temaRepository): Response
+    public function profesor(Request $request, UserRepository $userRepository, TemaRepository $temaRepository, \App\Repository\GrupoRepository $grupoRepository): Response
     {
         $usuarioActual = $this->getUser();
         $esAdmin = $this->isGranted('ROLE_ADMIN');
@@ -977,8 +977,49 @@ class ExamenController extends AbstractController
             $tema = $temaRepository->find($temaId);
         }
         
+        // Obtener parámetro de grupo
+        $grupoIdParam = $request->query->get('grupo');
+        $grupoId = ($grupoIdParam !== null && $grupoIdParam !== '') ? (int)$grupoIdParam : null;
+        
+        $grupo = null;
+        $alumnosGrupoIds = [];
+        if ($grupoId !== null && $grupoId > 0) {
+            $grupo = $grupoRepository->find($grupoId);
+            if ($grupo) {
+                // Obtener IDs de alumnos del grupo
+                $alumnosGrupoIds = array_map(function($alumno) {
+                    return $alumno->getId();
+                }, $grupo->getAlumnos()->toArray());
+                
+                // Si no es admin, verificar que el grupo contiene alumnos asignados al profesor
+                if (!$esAdmin && !empty($alumnosIds)) {
+                    $alumnosGrupoIds = array_intersect($alumnosGrupoIds, $alumnosIds);
+                }
+            }
+        }
+        
         // Obtener todos los temas activos para el filtro
         $temas = $temaRepository->findBy(['activo' => true], ['id' => 'ASC']);
+        
+        // Obtener grupos disponibles para el filtro
+        $todosGrupos = $grupoRepository->findAll();
+        $gruposDisponibles = [];
+        foreach ($todosGrupos as $g) {
+            $alumnosDelGrupo = $g->getAlumnos()->toArray();
+            // Si no es admin, solo mostrar grupos que tengan alumnos asignados al profesor
+            if (!$esAdmin && !empty($alumnosIds)) {
+                $alumnosComunes = array_intersect(
+                    array_map(fn($a) => $a->getId(), $alumnosDelGrupo),
+                    $alumnosIds
+                );
+                if (!empty($alumnosComunes)) {
+                    $gruposDisponibles[] = $g;
+                }
+            } else {
+                // Si es admin o no hay restricciones, mostrar todos los grupos
+                $gruposDisponibles[] = $g;
+            }
+        }
         
         // Query para exámenes generales (sin municipio)
         $qbGeneral = $this->examenRepository->createQueryBuilder('e')
@@ -1002,6 +1043,18 @@ class ExamenController extends AbstractController
                       ->setParameter('alumnosIds', $alumnosIds);
             $qbMunicipal->andWhere('u.id IN (:alumnosIds)')
                         ->setParameter('alumnosIds', $alumnosIds);
+        }
+        
+        // Filtrar por grupo si está seleccionado
+        if (!empty($alumnosGrupoIds)) {
+            $qbGeneral->andWhere('u.id IN (:alumnosGrupoIds)')
+                      ->setParameter('alumnosGrupoIds', $alumnosGrupoIds);
+            $qbMunicipal->andWhere('u.id IN (:alumnosGrupoIds)')
+                        ->setParameter('alumnosGrupoIds', $alumnosGrupoIds);
+        } elseif ($grupoId !== null && $grupoId > 0 && empty($alumnosGrupoIds)) {
+            // Si se selecciona un grupo pero no tiene alumnos (o no tiene alumnos asignados al profesor), no mostrar nada
+            $qbGeneral->andWhere('1 = 0');
+            $qbMunicipal->andWhere('1 = 0');
         }
         
         if ($usuarioId !== null && $usuarioId > 0) {
@@ -1069,20 +1122,39 @@ class ExamenController extends AbstractController
         $examenesMunicipalPaginated = array_slice($examenesMunicipal, $offsetMunicipal, $itemsPerPage);
         
         // Obtener usuarios para el filtro (solo alumnos asignados si no es admin)
+        // Si hay un grupo seleccionado, solo mostrar alumnos de ese grupo
+        $idsParaFiltro = $alumnosIds;
+        if (!empty($alumnosGrupoIds)) {
+            // Si hay grupo seleccionado, usar solo los alumnos del grupo
+            $idsParaFiltro = $alumnosGrupoIds;
+        }
+        
         if ($esAdmin) {
-            $todosUsuarios = $userRepository->createQueryBuilder('u')
-                ->where('u.activo = :activo')
-                ->setParameter('activo', true)
-                ->orderBy('u.username', 'ASC')
-                ->getQuery()
-                ->getResult();
-        } else {
-            if (!empty($alumnosIds)) {
+            if (!empty($alumnosGrupoIds)) {
+                // Si es admin pero hay grupo seleccionado, filtrar por grupo
                 $todosUsuarios = $userRepository->createQueryBuilder('u')
                     ->where('u.activo = :activo')
-                    ->andWhere('u.id IN (:alumnosIds)')
+                    ->andWhere('u.id IN (:alumnosGrupoIds)')
                     ->setParameter('activo', true)
-                    ->setParameter('alumnosIds', $alumnosIds)
+                    ->setParameter('alumnosGrupoIds', $alumnosGrupoIds)
+                    ->orderBy('u.username', 'ASC')
+                    ->getQuery()
+                    ->getResult();
+            } else {
+                $todosUsuarios = $userRepository->createQueryBuilder('u')
+                    ->where('u.activo = :activo')
+                    ->setParameter('activo', true)
+                    ->orderBy('u.username', 'ASC')
+                    ->getQuery()
+                    ->getResult();
+            }
+        } else {
+            if (!empty($idsParaFiltro)) {
+                $todosUsuarios = $userRepository->createQueryBuilder('u')
+                    ->where('u.activo = :activo')
+                    ->andWhere('u.id IN (:idsParaFiltro)')
+                    ->setParameter('activo', true)
+                    ->setParameter('idsParaFiltro', $idsParaFiltro)
                     ->orderBy('u.username', 'ASC')
                     ->getQuery()
                     ->getResult();
@@ -1102,9 +1174,11 @@ class ExamenController extends AbstractController
             'examenesMunicipal' => $examenesMunicipalPaginated,
             'usuarios' => $usuarios,
             'temas' => $temas,
+            'grupos' => $gruposDisponibles,
             'usuarioSeleccionado' => $usuarioId !== null && $usuarioId > 0 ? $usuarioId : null,
             'dificultadSeleccionada' => $dificultad,
             'temaSeleccionado' => $tema,
+            'grupoSeleccionado' => $grupoId !== null && $grupoId > 0 ? $grupoId : null,
             // Paginación general
             'currentPageGeneral' => $pageGeneral,
             'totalPagesGeneral' => $totalPagesGeneral,

@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Grupo: {{ grupo.nombre }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>{{ grupo.nombre }}</h1>
+    </div>
+    <div class="card-body">
+        <div class="form-group">
+            <label class="form-label"><strong>Alumnos en el Grupo:</strong></label>
+            <p>
+                <span class="badge badge-moderada">{{ grupo.alumnos|length }} alumno(s)</span>
+            </p>
+            {% if grupo.alumnos|length > 0 %}
+                <div class="table-responsive" style="margin-top: 1rem;">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alumno in grupo.alumnos %}
+                                <tr>
+                                    <td>{{ alumno.id }}</td>
+                                    <td>{{ alumno.nombreDisplay }}</td>
+                                    <td>{{ alumno.username }}</td>
+                                    <td>{{ alumno.email|default('-') }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p style="color: #999; font-style: italic;">No hay alumnos asignados a este grupo.</p>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><strong>Fecha de Creación:</strong></label>
+            <p>{{ grupo.fechaCreacion|date('d/m/Y H:i') }}</p>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"><strong>Última Actualización:</strong></label>
+            <p>{{ grupo.fechaActualizacion|date('d/m/Y H:i') }}</p>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <a href="{{ path('app_grupo_edit', {'id': grupo.id}) }}" class="btn btn-primary">Editar</a>
+            <a href="{{ path('app_grupo_gestionar_alumnos', {'id': grupo.id}) }}" class="btn btn-info">Gestionar Alumnos</a>
+            <a href="{{ path('app_grupo_index') }}" class="btn btn-secondary">Volver</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

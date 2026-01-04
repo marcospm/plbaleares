@@ -136,13 +136,24 @@
     </div>
     <div class="card-body">
         <p style="margin-bottom: 2rem; color: var(--color-text-light);">
-            Visualiza y gestiona todos los exámenes realizados por los alumnos. Puedes filtrar por alumno y dificultad.
+            Visualiza y gestiona todos los exámenes realizados por los alumnos. Puedes filtrar por grupo, alumno, dificultad y tema.
         </p>
 
         {# Filtros #}
         <div class="card" style="margin-bottom: 2rem; background-color: #f8f9fa;">
             <div class="card-body">
-                <form method="GET" action="{{ path('app_examen_profesor') }}" id="filtrosForm" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+                <form method="GET" action="{{ path('app_examen_profesor') }}" id="filtrosForm" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+                    <div>
+                        <label for="grupo" class="form-label">Filtrar por Grupo:</label>
+                        <select name="grupo" id="grupo" class="form-control" onchange="document.getElementById('filtrosForm').submit();">
+                            <option value="">Todos los grupos</option>
+                            {% for grupo in grupos %}
+                                <option value="{{ grupo.id }}" {% if grupoSeleccionado and grupoSeleccionado == grupo.id %}selected{% endif %}>
+                                    {{ grupo.nombre }} ({{ grupo.alumnos|length }} alumno{{ grupo.alumnos|length != 1 ? 's' : '' }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <div>
                         <label for="usuario" class="form-label">Filtrar por Alumno:</label>
                         <select name="usuario" id="usuario" class="form-control" onchange="document.getElementById('filtrosForm').submit();">
@@ -254,6 +265,7 @@
                             <nav aria-label="Paginación de exámenes generales">
                                 <ul class="pagination justify-content-center mb-0" style="flex-wrap: wrap;">
                                     {% set paramsBaseGeneral = {
+                                        'grupo': grupoSeleccionado ? grupoSeleccionado : '',
                                         'usuario': usuarioSeleccionado ? usuarioSeleccionado : '',
                                         'dificultad': dificultadSeleccionada ? dificultadSeleccionada : '',
                                         'tema': temaSeleccionado ? temaSeleccionado.id : '',
@@ -408,6 +420,7 @@
                             <nav aria-label="Paginación de exámenes municipales">
                                 <ul class="pagination justify-content-center mb-0" style="flex-wrap: wrap;">
                                     {% set paramsBaseMunicipal = {
+                                        'grupo': grupoSeleccionado ? grupoSeleccionado : '',
                                         'usuario': usuarioSeleccionado ? usuarioSeleccionado : '',
                                         'dificultad': dificultadSeleccionada ? dificultadSeleccionada : '',
                                         'tema': temaSeleccionado ? temaSeleccionado.id : '',
