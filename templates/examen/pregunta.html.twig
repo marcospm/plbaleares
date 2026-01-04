@@ -564,6 +564,7 @@
             preguntaLinks.forEach(function(link) {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
+                    e.stopPropagation();
                     const numeroDestino = parseInt(this.getAttribute('data-pregunta-num'));
                     const numeroActual = {{ numero }};
                     
@@ -574,31 +575,19 @@
                     
                     // Guardar respuesta actual y navegar al destino
                     const respuestaSeleccionada = formPregunta.querySelector('input[name="respuesta"]:checked');
-                    const formData = new FormData();
                     
-                    if (respuestaSeleccionada) {
-                        formData.append('respuesta', respuestaSeleccionada.value);
+                    // Crear un input oculto para el número destino
+                    let inputDestino = formPregunta.querySelector('input[name="numero_destino"]');
+                    if (!inputDestino) {
+                        inputDestino = document.createElement('input');
+                        inputDestino.type = 'hidden';
+                        inputDestino.name = 'numero_destino';
+                        formPregunta.appendChild(inputDestino);
                     }
+                    inputDestino.value = numeroDestino;
                     
-                    // Indicar el número de destino
-                    formData.append('numero_destino', numeroDestino);
-                    
-                    // Enviar el formulario para guardar y navegar
-                    fetch('{{ path('app_examen_pregunta', {'numero': numero}) }}', {
-                        method: 'POST',
-                        body: formData,
-                        redirect: 'follow'
-                    })
-                    .then(function(response) {
-                        // El servidor redirigirá, pero fetch no sigue redirecciones automáticamente
-                        // Navegar manualmente al destino
-                        window.location.href = '{{ path('app_examen_pregunta', {'numero': '__NUM__'}) }}'.replace('__NUM__', numeroDestino);
-                    })
-                    .catch(function(error) {
-                        console.error('Error al guardar respuesta:', error);
-                        // Intentar navegar de todas formas
-                        window.location.href = '{{ path('app_examen_pregunta', {'numero': '__NUM__'}) }}'.replace('__NUM__', numeroDestino);
-                    });
+                    // Enviar el formulario directamente
+                    formPregunta.submit();
                 });
             });
         });
