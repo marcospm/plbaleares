@@ -269,6 +269,22 @@ class DashboardController extends AbstractController
         $lunesSemana = new \DateTime('monday this week');
         $resumenTareas = $planificacionService->calcularResumenSemanal($user, $lunesSemana);
         
+        // Obtener actividades de hoy y mañana
+        $hoy = new \DateTime('today');
+        $manana = clone $hoy;
+        $manana->modify('+1 day');
+        
+        $franjasHoy = $planificacionService->obtenerFranjasDelDia($user, $hoy);
+        $franjasManana = $planificacionService->obtenerFranjasDelDia($user, $manana);
+        
+        // Ordenar por hora de inicio
+        usort($franjasHoy, function($a, $b) {
+            return $a->getHoraInicio() <=> $b->getHoraInicio();
+        });
+        usort($franjasManana, function($a, $b) {
+            return $a->getHoraInicio() <=> $b->getHoraInicio();
+        });
+        
         // Obtener próximas tareas (próximas 3 semanas)
         $proximasTareas = [];
         for ($i = 0; $i < 3; $i++) {
@@ -383,6 +399,10 @@ class DashboardController extends AbstractController
             'posicionesUsuario' => $posicionesUsuario,
             'rankingsPorConvocatoria' => $rankingsPorConvocatoria,
             'cantidadRanking' => $cantidadRanking,
+            'franjasHoy' => $franjasHoy,
+            'franjasManana' => $franjasManana,
+            'hoy' => $hoy,
+            'manana' => $manana,
         ]);
     }
 }

@@ -54,11 +54,11 @@ class AppCustomAuthenticator extends AbstractLoginFormAuthenticator
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?RedirectResponse
     {
-        // Limpiar cualquier targetPath guardado para asegurar redirección a inicio
+        // Limpiar cualquier targetPath guardado para asegurar redirección al dashboard
         $this->removeTargetPath($request->getSession(), $firewallName);
         
-        // Siempre redirigir a inicio después del login exitoso
-        return new RedirectResponse($this->urlGenerator->generate('app_home'));
+        // Siempre redirigir al dashboard después del login exitoso
+        return new RedirectResponse($this->urlGenerator->generate('app_dashboard'));
     }
 
     protected function getLoginUrl(Request $request): string
