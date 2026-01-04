@@ -108,6 +108,27 @@ class PreguntaMunicipalController extends AbstractController
         ]);
     }
 
+    #[Route('/{id}', name: 'app_pregunta_municipal_show', methods: ['GET'], requirements: ['id' => '\d+'], priority: -1)]
+    public function show(PreguntaMunicipal $preguntaMunicipal, Request $request): Response
+    {
+        // Obtener parámetros de filtro de la query string para mantenerlos al volver
+        $filtros = [];
+        if ($request->query->getInt('municipio') > 0) {
+            $filtros['municipio'] = $request->query->getInt('municipio');
+        }
+        if ($request->query->getInt('tema') > 0) {
+            $filtros['tema'] = $request->query->getInt('tema');
+        }
+        if ($request->query->get('dificultad')) {
+            $filtros['dificultad'] = $request->query->get('dificultad');
+        }
+
+        return $this->render('pregunta_municipal/show.html.twig', [
+            'pregunta_municipal' => $preguntaMunicipal,
+            'filtros' => $filtros,
+        ]);
+    }
+
     #[Route('/{id}/toggle-activo', name: 'app_pregunta_municipal_toggle_activo', methods: ['POST'])]
     public function toggleActivo(PreguntaMunicipal $preguntaMunicipal, EntityManagerInterface $entityManager, Request $request): Response
     {

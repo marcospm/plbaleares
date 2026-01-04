@@ -83,7 +83,13 @@
                         </td>
                         <td>
                             <div class="d-flex gap-2">
-                                <a href="{{ path('app_pregunta_municipal_edit', {'id': pregunta.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                {% set paramsFiltros = {
+                                    'municipio': municipioSeleccionado > 0 ? municipioSeleccionado : 0,
+                                    'tema': temaSeleccionado > 0 ? temaSeleccionado : 0,
+                                    'dificultad': dificultadSeleccionada
+                                } %}
+                                <a href="{{ path('app_pregunta_municipal_show', {'id': pregunta.id}|merge(paramsFiltros)) }}" class="btn btn-secondary btn-sm">Ver</a>
+                                <a href="{{ path('app_pregunta_municipal_edit', {'id': pregunta.id}|merge(paramsFiltros)) }}" class="btn btn-primary btn-sm">Editar</a>
                                 <form method="post" action="{{ path('app_pregunta_municipal_toggle_activo', {'id': pregunta.id}) }}" style="display: inline;">
                                     <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ pregunta.id) }}">
                                     <button type="submit" class="btn btn-sm {% if pregunta.isActivo %}btn-warning{% else %}btn-success{% endif %}">
