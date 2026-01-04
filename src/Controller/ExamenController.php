@@ -939,6 +939,243 @@ class ExamenController extends AbstractController
             'totalPagesGeneral' => $totalPagesGeneral,
             'totalItemsGeneral' => $totalItemsGeneral,
             'itemsPerPageGeneral' => $itemsPerPageGeneral,
+            // Información del grupo (siempre null para historial normal)
+            'grupo' => null,
+            'esHistorialGrupo' => false,
+            'alumnosGrupo' => [],
+        ]);
+    }
+
+    #[Route('/historial-grupo', name: 'app_examen_historial_grupo', methods: ['GET'])]
+    public function historialGrupo(Request $request, TemaRepository $temaRepository, TemaMunicipalRepository $temaMunicipalRepository): Response
+    {
+        $user = $this->getUser();
+        
+        // Verificar que el usuario pertenece a algún grupo
+        $gruposUsuario = $user->getGrupos();
+        if ($gruposUsuario->isEmpty()) {
+            $this->addFlash('error', 'No perteneces a ningún grupo.');
+            return $this->redirectToRoute('app_examen_historial', [], Response::HTTP_SEE_OTHER);
+        }
+        
+        // Usar el primer grupo (en el futuro se podría permitir seleccionar)
+        $grupo = $gruposUsuario->first();
+        $alumnosGrupo = $grupo->getAlumnos()->toArray();
+        
+        // Obtener todos los exámenes de los alumnos del grupo
+        $alumnosIds = array_map(fn($alumno) => $alumno->getId(), $alumnosGrupo);
+        $todosExamenes = $this->examenRepository->createQueryBuilder('e')
+            ->where('e.usuario IN (:alumnosIds)')
+            ->setParameter('alumnosIds', $alumnosIds)
+            ->orderBy('e.fecha', 'DESC')
+            ->getQuery()
+            ->getResult();
+
+        // Separar exámenes: temario general (sin convocatoria) y por convocatoria
+        $examenesTemarioGeneral = [];
+        $examenesPorConvocatoria = [];
+        
+        foreach ($todosExamenes as $examen) {
+            if ($examen->getConvocatoria()) {
+                $examenesPorConvocatoria[] = $examen;
+            } else {
+                $examenesTemarioGeneral[] = $examen;
+            }
+        }
+
+        // Paginación para exámenes del temario general
+        $itemsPerPageGeneral = 20;
+        $pageGeneral = max(1, $request->query->getInt('page_general', 1));
+        $totalItemsGeneral = count($examenesTemarioGeneral);
+        $totalPagesGeneral = max(1, ceil($totalItemsGeneral / $itemsPerPageGeneral));
+        $pageGeneral = min($pageGeneral, $totalPagesGeneral);
+        
+        // Obtener los items de la página actual
+        $offsetGeneral = ($pageGeneral - 1) * $itemsPerPageGeneral;
+        $examenesTemarioGeneralPaginated = array_slice($examenesTemarioGeneral, $offsetGeneral, $itemsPerPageGeneral);
+
+        // Obtener cantidad de exámenes para el ranking (por defecto 3)
+        $cantidad = $request->query->getInt('cantidad', 3);
+        if ($cantidad < 2) {
+            $cantidad = 2;
+        }
+
+        // Obtener tema seleccionado para temario general (opcional)
+        $temaId = $request->query->getInt('tema', 0);
+        $tema = null;
+        if ($temaId > 0) {
+            $tema = $temaRepository->find($temaId);
+        }
+
+        // Obtener convocatoria y municipio seleccionados para filtrar
+        $convocatoriaId = $request->query->getInt('convocatoria', 0);
+        $convocatoriaSeleccionada = null;
+        if ($convocatoriaId > 0) {
+            $convocatoriaSeleccionada = $this->convocatoriaRepository->find($convocatoriaId);
+        }
+
+        $municipioId = $request->query->getInt('municipio', 0);
+        $municipioSeleccionado = null;
+        if ($municipioId > 0) {
+            $municipioSeleccionado = $this->municipioRepository->find($municipioId);
+        }
+
+        // Obtener todos los temas activos para el filtro
+        $temas = $temaRepository->findBy(['activo' => true], ['id' => 'ASC']);
+
+        // Obtener convocatorias activas de los alumnos del grupo
+        $convocatorias = [];
+        foreach ($alumnosGrupo as $alumno) {
+            $convocatoriasAlumno = $this->convocatoriaRepository->findByUsuario($alumno);
+            foreach ($convocatoriasAlumno as $conv) {
+                if (!in_array($conv, $convocatorias, true)) {
+                    $convocatorias[] = $conv;
+                }
+            }
+        }
+
+        // Calcular rankings por dificultad solo para alumnos del grupo
+        $rankings = [];
+        $posicionesUsuario = [];
+        $dificultades = ['facil', 'moderada', 'dificil'];
+        
+        // Para el ranking del grupo, calcular solo con los alumnos del grupo
+        foreach ($dificultades as $dificultad) {
+            $rankingGrupo = [];
+            foreach ($alumnosGrupo as $alumno) {
+                $notaMedia = $this->examenRepository->getNotaMediaUsuario($alumno, $dificultad, $cantidad, $tema);
+                if ($notaMedia !== null) {
+                    // Contar cuántos exámenes tiene realmente
+                    $qb = $this->examenRepository->createQueryBuilder('e')
+                        ->where('e.usuario = :usuario')
+                        ->andWhere('e.dificultad = :dificultad')
+                        ->andWhere('e.municipio IS NULL')
+                        ->setParameter('usuario', $alumno)
+                        ->setParameter('dificultad', $dificultad);
+                    
+                    if ($tema !== null) {
+                        $qb->innerJoin('e.temas', 't')
+                           ->andWhere('t.id = :temaId')
+                           ->setParameter('temaId', $tema->getId())
+                           ->groupBy('e.id')
+                           ->having('COUNT(t.id) = 1');
+                    }
+                    
+                    $examenesReales = $qb->orderBy('e.fecha', 'DESC')
+                        ->setMaxResults($cantidad)
+                        ->getQuery()
+                        ->getResult();
+                    
+                    // Filtrar en PHP para asegurar que solo sean exámenes íntegramente del tema
+                    if ($tema !== null) {
+                        $examenesReales = array_filter($examenesReales, function($examen) use ($tema) {
+                            return $examen->getTemas()->count() === 1 && $examen->getTemas()->contains($tema);
+                        });
+                    }
+                    
+                    $rankingGrupo[] = [
+                        'usuario' => $alumno,
+                        'notaMedia' => $notaMedia,
+                        'cantidadExamenes' => count($examenesReales),
+                    ];
+                }
+            }
+            
+            // Ordenar por nota media descendente
+            usort($rankingGrupo, function($a, $b) {
+                return $b['notaMedia'] <=> $a['notaMedia'];
+            });
+            
+            $rankings[$dificultad] = $rankingGrupo;
+            
+            // Encontrar posición del usuario actual
+            $posicion = null;
+            foreach ($rankingGrupo as $index => $entry) {
+                if ($entry['usuario']->getId() === $user->getId()) {
+                    $posicion = $index + 1;
+                    break;
+                }
+            }
+            
+            $notaMedia = $this->examenRepository->getNotaMediaUsuario($user, $dificultad, $cantidad, $tema);
+            $posicionesUsuario[$dificultad] = [
+                'posicion' => $posicion,
+                'notaMedia' => $notaMedia,
+                'totalUsuarios' => count($rankingGrupo),
+            ];
+        }
+
+        // Calcular rankings por convocatoria solo para alumnos del grupo
+        $rankingsPorConvocatoria = [];
+        
+        foreach ($convocatorias as $convocatoria) {
+            // Si hay una convocatoria seleccionada y no es esta, saltarla
+            if ($convocatoriaSeleccionada && $convocatoriaSeleccionada->getId() !== $convocatoria->getId()) {
+                continue;
+            }
+
+            $municipiosConvocatoria = $convocatoria->getMunicipios()->toArray();
+            
+            $rankingsConvocatoria = [];
+            $posicionesConvocatoria = [];
+            
+            foreach ($dificultades as $dificultad) {
+                // Obtener ranking completo y filtrar solo alumnos del grupo
+                $rankingCompleto = $this->examenRepository->getRankingPorConvocatoriaYDificultad($convocatoria, $dificultad, $cantidad, $municipioSeleccionado);
+                $rankingGrupo = array_filter($rankingCompleto, function($entry) use ($alumnosIds) {
+                    return in_array($entry['usuario']->getId(), $alumnosIds);
+                });
+                $rankingGrupo = array_values($rankingGrupo);
+                
+                $rankingsConvocatoria[$dificultad] = $rankingGrupo;
+                
+                // Encontrar posición del usuario actual
+                $posicion = null;
+                foreach ($rankingGrupo as $index => $entry) {
+                    if ($entry['usuario']->getId() === $user->getId()) {
+                        $posicion = $index + 1;
+                        break;
+                    }
+                }
+                
+                $notaMedia = $this->examenRepository->getNotaMediaUsuarioPorConvocatoria($user, $convocatoria, $dificultad, $cantidad, $municipioSeleccionado);
+                $posicionesConvocatoria[$dificultad] = [
+                    'posicion' => $posicion,
+                    'notaMedia' => $notaMedia,
+                    'totalUsuarios' => count($rankingGrupo),
+                ];
+            }
+            
+            $rankingsPorConvocatoria[$convocatoria->getId()] = [
+                'convocatoria' => $convocatoria,
+                'rankings' => $rankingsConvocatoria,
+                'posiciones' => $posicionesConvocatoria,
+                'municipios' => $municipiosConvocatoria,
+            ];
+        }
+
+        return $this->render('examen/historial.html.twig', [
+            'examenesTemarioGeneral' => $examenesTemarioGeneralPaginated,
+            'examenesPorConvocatoria' => $examenesPorConvocatoria,
+            'rankings' => $rankings,
+            'posicionesUsuario' => $posicionesUsuario,
+            'rankingsPorConvocatoria' => $rankingsPorConvocatoria,
+            'cantidad' => $cantidad,
+            'usuarioActual' => $user,
+            'temas' => $temas,
+            'temaSeleccionado' => $tema,
+            'convocatorias' => $convocatorias,
+            'convocatoriaSeleccionada' => $convocatoriaSeleccionada,
+            'municipioSeleccionado' => $municipioSeleccionado,
+            // Datos de paginación para temario general
+            'currentPageGeneral' => $pageGeneral,
+            'totalPagesGeneral' => $totalPagesGeneral,
+            'totalItemsGeneral' => $totalItemsGeneral,
+            'itemsPerPageGeneral' => $itemsPerPageGeneral,
+            // Información del grupo
+            'grupo' => $grupo,
+            'esHistorialGrupo' => true,
+            'alumnosGrupo' => $alumnosGrupo,
         ]);
     }
 

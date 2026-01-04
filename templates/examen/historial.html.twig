@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Historial de Exámenes{% endblock %}
+{% block title %}{% if esHistorialGrupo %}Historial de Exámenes del Grupo{% else %}Historial de Exámenes{% endif %}{% endblock %}
 
 {% block stylesheets %}
     {{ parent() }}
@@ -108,7 +108,17 @@
 
 {% block body %}
 <div class="d-flex justify-content-between mb-4">
-    <h1>Historial de Exámenes</h1>
+    <div>
+        <h1>{% if esHistorialGrupo %}Historial de Exámenes del Grupo{% else %}Historial de Exámenes{% endif %}</h1>
+        {% if esHistorialGrupo and grupo %}
+            <div style="margin-top: 0.5rem; padding: 0.75rem; background-color: #e3f2fd; border-left: 4px solid var(--color-primary); border-radius: 4px;">
+                <strong>Grupo:</strong> {{ grupo.nombre }} 
+                <span style="color: #666; margin-left: 1rem;">
+                    ({{ alumnosGrupo|length }} alumno{{ alumnosGrupo|length != 1 ? 's' : '' }})
+                </span>
+            </div>
+        {% endif %}
+    </div>
     <a href="{{ path('app_examen_iniciar') }}" class="btn btn-primary">Nuevo Examen</a>
 </div>
 
@@ -241,6 +251,9 @@
                     <table class="table">
                         <thead>
                             <tr>
+                                {% if esHistorialGrupo %}
+                                    <th>Alumno</th>
+                                {% endif %}
                                 <th>Fecha</th>
                                 <th>Dificultad</th>
                                 <th>Preguntas</th>
@@ -254,6 +267,13 @@
                         <tbody>
                             {% for examen in examenesTemarioGeneral %}
                                 <tr>
+                                    {% if esHistorialGrupo %}
+                                        <td>
+                                            <strong>{{ examen.usuario.getNombreDisplay() }}</strong>
+                                            <br>
+                                            <small style="color: #666;">{{ examen.usuario.username }}</small>
+                                        </td>
+                                    {% endif %}
                                     <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>
                                     <td>
                                         <span class="badge badge-{{ examen.dificultad }}">{{ examen.getDificultadLabel() }}</span>
@@ -285,6 +305,7 @@
                                 } %}
                                 {% set paramsBaseGeneral = paramsBaseGeneral|filter(v => v != '' and v != 0) %}
                                 
+                                {% set rutaHistorial = esHistorialGrupo ? 'app_examen_historial_grupo' : 'app_examen_historial' %}
                                 {# Botón Anterior #}
                                 <li class="page-item {% if currentPageGeneral == 1 %}disabled{% endif %}">
                                     {% if currentPageGeneral > 1 %}
@@ -294,7 +315,7 @@
                                         {% else %}
                                             {% set paramsAnteriorGeneral = paramsBaseGeneral %}
                                         {% endif %}
-                                        <a class="page-link" href="{{ path('app_examen_historial', paramsAnteriorGeneral) }}">
+                                        <a class="page-link" href="{{ path(rutaHistorial, paramsAnteriorGeneral) }}">
                                     {% else %}
                                         <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
                                     {% endif %}
@@ -308,7 +329,7 @@
                                 
                                 {% if startPageGeneral > 1 %}
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ path('app_examen_historial', paramsBaseGeneral) }}">1</a>
+                                        <a class="page-link" href="{{ path(rutaHistorial, paramsBaseGeneral) }}">1</a>
                                     </li>
                                     {% if startPageGeneral > 2 %}
                                         <li class="page-item disabled">
@@ -320,9 +341,9 @@
                                 {% for p in startPageGeneral..endPageGeneral %}
                                     <li class="page-item {% if p == currentPageGeneral %}active{% endif %}">
                                         {% if p > 1 %}
-                                            <a class="page-link" href="{{ path('app_examen_historial', paramsBaseGeneral|merge({'page_general': p})) }}">{{ p }}</a>
+                                            <a class="page-link" href="{{ path(rutaHistorial, paramsBaseGeneral|merge({'page_general': p})) }}">{{ p }}</a>
                                         {% else %}
-                                            <a class="page-link" href="{{ path('app_examen_historial', paramsBaseGeneral) }}">{{ p }}</a>
+                                            <a class="page-link" href="{{ path(rutaHistorial, paramsBaseGeneral) }}">{{ p }}</a>
                                         {% endif %}
                                     </li>
                                 {% endfor %}
@@ -334,14 +355,14 @@
                                         </li>
                                     {% endif %}
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ path('app_examen_historial', paramsBaseGeneral|merge({'page_general': totalPagesGeneral})) }}">{{ totalPagesGeneral }}</a>
+                                        <a class="page-link" href="{{ path(rutaHistorial, paramsBaseGeneral|merge({'page_general': totalPagesGeneral})) }}">{{ totalPagesGeneral }}</a>
                                     </li>
                                 {% endif %}
                                 
                                 {# Botón Siguiente #}
                                 <li class="page-item {% if currentPageGeneral == totalPagesGeneral %}disabled{% endif %}">
                                     {% if currentPageGeneral < totalPagesGeneral %}
-                                        <a class="page-link" href="{{ path('app_examen_historial', paramsBaseGeneral|merge({'page_general': currentPageGeneral + 1})) }}">
+                                        <a class="page-link" href="{{ path(rutaHistorial, paramsBaseGeneral|merge({'page_general': currentPageGeneral + 1})) }}">
                                     {% else %}
                                         <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
                                     {% endif %}
@@ -358,7 +379,7 @@
             </div>
         {% else %}
             <div style="padding: 2rem; text-align: center; color: #999;">
-                <p>No has realizado ningún examen del temario general aún.</p>
+                <p>{% if esHistorialGrupo %}Ningún alumno del grupo ha realizado{% else %}No has realizado{% endif %} ningún examen del temario general aún.</p>
             </div>
         {% endif %}
     </div>
@@ -489,11 +510,14 @@
                 {# Tabla de Exámenes de la Convocatoria #}
                 {% if examenesConvocatoria|length > 0 %}
                     <div style="margin-top: 2rem;">
-                        <h3 style="margin-bottom: 1rem;">📋 Lista de Exámenes de la Convocatoria</h3>
+                        <h3 style="margin-bottom: 1rem;">📋 Lista de Exámenes de la Convocatoria{% if esHistorialGrupo %} (del Grupo){% endif %}</h3>
                         <div class="table-responsive">
                             <table class="table">
                                 <thead>
                                     <tr>
+                                        {% if esHistorialGrupo %}
+                                            <th>Alumno</th>
+                                        {% endif %}
                                         <th>Fecha</th>
                                         <th>Dificultad</th>
                                         <th>Municipio</th>
@@ -508,6 +532,13 @@
                                 <tbody>
                                     {% for examen in examenesConvocatoria %}
                                         <tr>
+                                            {% if esHistorialGrupo %}
+                                                <td>
+                                                    <strong>{{ examen.usuario.getNombreDisplay() }}</strong>
+                                                    <br>
+                                                    <small style="color: #666;">{{ examen.usuario.username }}</small>
+                                                </td>
+                                            {% endif %}
                                             <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>
                                             <td>
                                                 <span class="badge badge-{{ examen.dificultad }}">{{ examen.getDificultadLabel() }}</span>
@@ -535,7 +566,7 @@
                     </div>
                 {% else %}
                     <div style="padding: 2rem; text-align: center; color: #999;">
-                        <p>No has realizado ningún examen de esta convocatoria aún.</p>
+                        <p>{% if esHistorialGrupo %}Ningún alumno del grupo ha realizado{% else %}No has realizado{% endif %} ningún examen de esta convocatoria aún.</p>
                     </div>
                 {% endif %}
             </div>
@@ -572,7 +603,7 @@ function actualizarRankingGeneral() {
 function actualizarRankingConvocatoria(convocatoriaId) {
     const cantidad = document.getElementById('cantidad-select-convocatoria-' + convocatoriaId).value;
     const municipio = document.getElementById('municipio-select-convocatoria-' + convocatoriaId).value;
-    let url = '{{ path('app_examen_historial') }}?cantidad=' + cantidad + '&convocatoria=' + convocatoriaId;
+    let url = '{{ path(esHistorialGrupo ? 'app_examen_historial_grupo' : 'app_examen_historial') }}?cantidad=' + cantidad + '&convocatoria=' + convocatoriaId;
     if (municipio) {
         url += '&municipio=' + municipio;
     }
