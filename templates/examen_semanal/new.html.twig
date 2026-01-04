@@ -82,6 +82,17 @@
                 {{ form_row(form.numeroPreguntas) }}
             </div>
             
+            {# Campo grupo común para todos los tipos de examen #}
+            <div class="card" style="background-color: #e3f2fd; border-left: 4px solid #2196F3; margin-bottom: 1.5rem;">
+                <div class="card-header" style="background-color: #e3f2fd; border-bottom: 1px solid #2196F3;">
+                    <h4 style="margin: 0; color: #1976D2; font-weight: 600;">👥 Asignación de Grupo (Opcional)</h4>
+                </div>
+                <div class="card-body">
+                    <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem;">Si seleccionas un grupo, solo los alumnos de ese grupo podrán ver y realizar este examen. Si no seleccionas ningún grupo, el examen será visible para todos los alumnos.</p>
+                    {{ form_row(form.grupo) }}
+                </div>
+            </div>
+            
             <div class="card" style="background-color: #f1f8f4; border-left: 4px solid #4CAF50; margin-bottom: 1.5rem;">
                 <div class="card-header" style="cursor: pointer; background-color: #f1f8f4; border-bottom: 1px solid #4CAF50;" onclick="toggleSection('generalSection')">
                     <h4 style="margin: 0; color: #2E7D32; font-weight: 600; display: flex; align-items: center; justify-content: space-between;">

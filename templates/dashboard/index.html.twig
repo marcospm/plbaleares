@@ -409,29 +409,50 @@
 {% else %}
     {# Dashboard Usuario Normal #}
     
-    {# Información del Profesor Asignado #}
-    {% if app.user.profesores|length > 0 %}
+    {# Información del Profesor Asignado y Grupo #}
+    {% if app.user.profesores|length > 0 or app.user.grupos|length > 0 %}
         <div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--color-primary); background-color: #e3f2fd;">
             <div class="card-body">
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <div style="font-size: 2rem;">👨‍🏫</div>
-                        <div>
-                            <h3 style="margin: 0; color: var(--color-primary); font-size: 1.1rem;">Profesor Asignado</h3>
-                            <div style="margin-top: 0.5rem;">
-                                {% for profesor in app.user.profesores %}
-                                    <span class="badge" style="background-color: var(--color-primary); color: white; padding: 0.5rem 1rem; font-size: 0.9rem; margin-right: 0.5rem;">
-                                        {{ profesor.nombreDisplay }}
-                                    </span>
-                                {% endfor %}
+                    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                        {% if app.user.profesores|length > 0 %}
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div style="font-size: 1.2rem;">👨‍🏫</div>
+                                <div>
+                                    <div style="font-size: 0.75rem; color: #666; margin-bottom: 0.25rem;">Profesor</div>
+                                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                        {% for profesor in app.user.profesores %}
+                                            <span class="badge" style="background-color: var(--color-primary); color: white; padding: 0.25rem 0.75rem; font-size: 0.8rem;">
+                                                {{ profesor.nombreDisplay }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        {% endif %}
+                        {% if app.user.grupos|length > 0 %}
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div style="font-size: 1.2rem;">👥</div>
+                                <div>
+                                    <div style="font-size: 0.75rem; color: #666; margin-bottom: 0.25rem;">Grupo</div>
+                                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                        {% for grupo in app.user.grupos %}
+                                            <span class="badge" style="background-color: #28a745; color: white; padding: 0.25rem 0.75rem; font-size: 0.8rem;">
+                                                {{ grupo.nombre }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
                     </div>
-                    <a href="{{ path('app_mensaje_alumno_index') }}" 
-                       class="btn btn-primary" 
-                       style="background-color: var(--color-primary); color: white; padding: 0.5rem 1.5rem; border-radius: 4px; text-decoration: none; border: none; cursor: pointer; font-size: 0.9rem; white-space: nowrap;">
-                        💬 Enviar Mensaje
-                    </a>
+                    {% if app.user.profesores|length > 0 %}
+                        <a href="{{ path('app_mensaje_alumno_index') }}" 
+                           class="btn btn-primary" 
+                           style="background-color: var(--color-primary); color: white; padding: 0.5rem 1.5rem; border-radius: 4px; text-decoration: none; border: none; cursor: pointer; font-size: 0.9rem; white-space: nowrap;">
+                            💬 Enviar Mensaje
+                        </a>
+                    {% endif %}
                 </div>
             </div>
         </div>

@@ -53,16 +53,23 @@ class ExamenSemanalAlumnoController extends AbstractController
 
         $alumno = $this->getUser();
         $ahora = new \DateTime();
+        
+        // Obtener grupos del alumno
+        $gruposAlumno = $alumno->getGrupos();
+        $gruposIds = array_map(fn($g) => $g->getId(), $gruposAlumno->toArray());
 
         // Obtener todos los exámenes semanales activos que aún no han cerrado
-        $todosExamenes = $this->examenSemanalRepository->createQueryBuilder('e')
+        // Filtrar: mostrar exámenes sin grupo (para todos) o exámenes del grupo del alumno
+        $qb = $this->examenSemanalRepository->createQueryBuilder('e')
             ->where('e.activo = :activo')
             ->andWhere('e.fechaCierre >= :ahora')
+            ->andWhere('(e.grupo IS NULL OR e.grupo IN (:gruposIds))')
             ->setParameter('activo', true)
             ->setParameter('ahora', $ahora)
-            ->orderBy('e.fechaApertura', 'DESC')
-            ->getQuery()
-            ->getResult();
+            ->setParameter('gruposIds', !empty($gruposIds) ? $gruposIds : [-1]) // Si no tiene grupos, usar ID inexistente
+            ->orderBy('e.fechaApertura', 'DESC');
+        
+        $todosExamenes = $qb->getQuery()->getResult();
 
         // Obtener exámenes semanales ya realizados por el alumno
         $examenesCompletados = $this->examenRepository->createQueryBuilder('e')

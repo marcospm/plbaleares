@@ -184,6 +184,15 @@ class ExamenSemanalController extends AbstractController
                 $examenSemanal->setCreadoPor($this->getUser());
                 $examenSemanal->setModoCreacion('preguntas_especificas');
                 $examenSemanal->setActivo(true);
+                
+                // Asignar grupo si se ha proporcionado
+                if (!empty($datos['grupoId'])) {
+                    $grupoRepository = $this->entityManager->getRepository(\App\Entity\Grupo::class);
+                    $grupo = $grupoRepository->find($datos['grupoId']);
+                    if ($grupo) {
+                        $examenSemanal->setGrupo($grupo);
+                    }
+                }
 
                 if ($tipoExamen === 'municipal') {
                     if (empty($datos['municipioId'])) {
@@ -257,6 +266,15 @@ class ExamenSemanalController extends AbstractController
                 $examenSemanal->setModoCreacion('preguntas_especificas');
                 $examenSemanal->setActivo(true);
                 $examenSemanal->setConvocatoria($convocatoria);
+                
+                // Asignar grupo si se ha proporcionado
+                if (!empty($datos['grupoId'])) {
+                    $grupoRepository = $this->entityManager->getRepository(\App\Entity\Grupo::class);
+                    $grupo = $grupoRepository->find($datos['grupoId']);
+                    if ($grupo) {
+                        $examenSemanal->setGrupo($grupo);
+                    }
+                }
 
                 $this->entityManager->persist($examenSemanal);
                 $this->entityManager->flush();
@@ -445,6 +463,12 @@ class ExamenSemanalController extends AbstractController
                 $examenGeneral->setCreadoPor($profesor);
                 $examenGeneral->setActivo(true);
                 
+                // Asignar grupo si se ha seleccionado
+                $grupo = $form->get('grupo')->getData();
+                if ($grupo) {
+                    $examenGeneral->setGrupo($grupo);
+                }
+                
                 foreach ($examenSemanal->getTemas() as $tema) {
                     $examenGeneral->addTema($tema);
                 }
@@ -513,6 +537,12 @@ class ExamenSemanalController extends AbstractController
                 $examenMunicipal->setCreadoPor($profesor);
                 $examenMunicipal->setActivo(true);
                 $examenMunicipal->setMunicipio($examenSemanal->getMunicipio());
+                
+                // Asignar grupo si se ha seleccionado
+                $grupo = $form->get('grupo')->getData();
+                if ($grupo) {
+                    $examenMunicipal->setGrupo($grupo);
+                }
                 
                 foreach ($examenSemanal->getTemasMunicipales() as $temaMunicipal) {
                     $examenMunicipal->addTemasMunicipale($temaMunicipal);
@@ -583,6 +613,12 @@ class ExamenSemanalController extends AbstractController
                 $examenConvocatoria->setActivo(true);
                 $examenConvocatoria->setConvocatoria($examenSemanal->getConvocatoria());
                 
+                // Asignar grupo si se ha seleccionado
+                $grupo = $form->get('grupo')->getData();
+                if ($grupo) {
+                    $examenConvocatoria->setGrupo($grupo);
+                }
+                
                 // Añadir todos los temas municipales de todos los municipios de la convocatoria
                 // Obtener todos los municipios de la convocatoria
                 $convocatoria = $examenSemanal->getConvocatoria();
@@ -610,22 +646,30 @@ class ExamenSemanalController extends AbstractController
 
             $this->entityManager->flush();
 
-            // Crear notificaciones para todos los alumnos
+            // Crear notificaciones para todos los alumnos (filtrando por grupo si el examen tiene uno)
             try {
-                $alumnos = $this->userRepository->createQueryBuilder('u')
-                    ->where('u.roles LIKE :role')
-                    ->andWhere('u.activo = :activo')
-                    ->setParameter('role', '%ROLE_USER%')
-                    ->setParameter('activo', true)
-                    ->getQuery()
-                    ->getResult();
+                foreach ($examenesCreados as $examenCreado) {
+                    $grupoExamen = $examenCreado->getGrupo();
+                    
+                    if ($grupoExamen) {
+                        // Si el examen tiene grupo, solo notificar a alumnos de ese grupo
+                        $alumnos = $grupoExamen->getAlumnos();
+                    } else {
+                        // Si no tiene grupo, notificar a todos los alumnos
+                        $alumnos = $this->userRepository->createQueryBuilder('u')
+                            ->where('u.roles LIKE :role')
+                            ->andWhere('u.activo = :activo')
+                            ->setParameter('role', '%ROLE_USER%')
+                            ->setParameter('activo', true)
+                            ->getQuery()
+                            ->getResult();
+                    }
 
-                foreach ($alumnos as $alumno) {
-                    // Verificar que no sea profesor ni admin, y que no sea el mismo que el profesor que crea el examen
-                    if (!in_array('ROLE_PROFESOR', $alumno->getRoles()) 
-                        && !in_array('ROLE_ADMIN', $alumno->getRoles())
-                        && $alumno->getId() !== $profesor->getId()) {
-                        foreach ($examenesCreados as $examenCreado) {
+                    foreach ($alumnos as $alumno) {
+                        // Verificar que no sea profesor ni admin, y que no sea el mismo que el profesor que crea el examen
+                        if (!in_array('ROLE_PROFESOR', $alumno->getRoles()) 
+                            && !in_array('ROLE_ADMIN', $alumno->getRoles())
+                            && $alumno->getId() !== $profesor->getId()) {
                             $this->notificacionService->crearNotificacionExamenSemanal($examenCreado, $alumno, $profesor);
                         }
                     }
@@ -935,15 +979,23 @@ class ExamenSemanalController extends AbstractController
         $examenSemanal->setNumeroPreguntas($totalPreguntas);
         $this->entityManager->flush();
 
-        // Crear notificaciones para todos los alumnos
+        // Crear notificaciones para todos los alumnos (filtrando por grupo si el examen tiene uno)
         try {
-            $alumnos = $this->userRepository->createQueryBuilder('u')
-                ->where('u.roles LIKE :role')
-                ->andWhere('u.activo = :activo')
-                ->setParameter('role', '%ROLE_USER%')
-                ->setParameter('activo', true)
-                ->getQuery()
-                ->getResult();
+            $grupoExamen = $examenSemanal->getGrupo();
+            
+            if ($grupoExamen) {
+                // Si el examen tiene grupo, solo notificar a alumnos de ese grupo
+                $alumnos = $grupoExamen->getAlumnos();
+            } else {
+                // Si no tiene grupo, notificar a todos los alumnos
+                $alumnos = $this->userRepository->createQueryBuilder('u')
+                    ->where('u.roles LIKE :role')
+                    ->andWhere('u.activo = :activo')
+                    ->setParameter('role', '%ROLE_USER%')
+                    ->setParameter('activo', true)
+                    ->getQuery()
+                    ->getResult();
+            }
 
             $profesor = $this->getUser();
             foreach ($alumnos as $alumno) {

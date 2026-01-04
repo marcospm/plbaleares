@@ -74,6 +74,10 @@ class ExamenSemanal
     #[ORM\JoinTable(name: 'examen_semanal_pregunta_municipal')]
     private Collection $preguntasMunicipales;
 
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Grupo $grupo = null;
+
     public function __construct()
     {
         $this->temas = new ArrayCollection();
@@ -389,6 +393,18 @@ class ExamenSemanal
     public function setConvocatoria(?Convocatoria $convocatoria): static
     {
         $this->convocatoria = $convocatoria;
+
+        return $this;
+    }
+
+    public function getGrupo(): ?Grupo
+    {
+        return $this->grupo;
+    }
+
+    public function setGrupo(?Grupo $grupo): static
+    {
+        $this->grupo = $grupo;
 
         return $this;
     }

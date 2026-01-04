@@ -7,6 +7,7 @@ use App\Entity\Tema;
 use App\Entity\TemaMunicipal;
 use App\Entity\Municipio;
 use App\Entity\Convocatoria;
+use App\Entity\Grupo;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
@@ -66,6 +67,16 @@ class ExamenSemanalType extends AbstractType
                     'type' => 'datetime-local'
                 ]
             ])
+            ->add('grupo', EntityType::class, [
+                'class' => Grupo::class,
+                'choice_label' => 'nombre',
+                'required' => false,
+                'label' => 'Grupo (opcional)',
+                'placeholder' => 'Todos los alumnos',
+                'help' => 'Si seleccionas un grupo, solo los alumnos de ese grupo podrán ver y realizar este examen.',
+                'attr' => ['class' => 'form-control'],
+                'mapped' => $isEditMode, // Solo mapear en modo edición
+            ])
         ;
         
         // Solo agregar dificultad si NO está en modo edición
@@ -90,6 +101,16 @@ class ExamenSemanalType extends AbstractType
             // Modo creación: incluir todos los campos (se ocultan en el template)
             // Estos campos no se mapean porque se usan campos separados (nombreGeneral, fechaAperturaGeneral, etc.)
             $builder
+                ->add('grupo', EntityType::class, [
+                    'class' => Grupo::class,
+                    'choice_label' => 'nombre',
+                    'required' => false,
+                    'label' => 'Grupo (opcional)',
+                    'placeholder' => 'Todos los alumnos',
+                    'help' => 'Si seleccionas un grupo, solo los alumnos de ese grupo podrán ver y realizar este examen.',
+                    'attr' => ['class' => 'form-control'],
+                    'mapped' => false, // No mapear en modo creación
+                ])
                 ->add('numeroPreguntas', IntegerType::class, [
                     'label' => 'Número de Preguntas (opcional)',
                     'required' => false,
