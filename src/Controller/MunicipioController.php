@@ -6,6 +6,7 @@ use App\Entity\Municipio;
 use App\Form\MunicipioType;
 use App\Repository\MunicipioRepository;
 use App\Repository\UserRepository;
+use App\Repository\ConvocatoriaRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,10 +19,25 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class MunicipioController extends AbstractController
 {
     #[Route('/', name: 'app_municipio_index', methods: ['GET'])]
-    public function index(MunicipioRepository $municipioRepository): Response
+    public function index(MunicipioRepository $municipioRepository, ConvocatoriaRepository $convocatoriaRepository): Response
     {
+        $municipios = $municipioRepository->findAll();
+        
+        // Obtener convocatorias para cada municipio
+        $convocatoriasPorMunicipio = [];
+        foreach ($municipios as $municipio) {
+            $convocatoriasPorMunicipio[$municipio->getId()] = $convocatoriaRepository->createQueryBuilder('c')
+                ->innerJoin('c.municipios', 'm')
+                ->where('m.id = :municipioId')
+                ->setParameter('municipioId', $municipio->getId())
+                ->orderBy('c.nombre', 'ASC')
+                ->getQuery()
+                ->getResult();
+        }
+        
         return $this->render('municipio/index.html.twig', [
-            'municipios' => $municipioRepository->findAll(),
+            'municipios' => $municipios,
+            'convocatoriasPorMunicipio' => $convocatoriasPorMunicipio,
         ]);
     }
 
@@ -47,10 +63,20 @@ class MunicipioController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_municipio_show', methods: ['GET'])]
-    public function show(Municipio $municipio): Response
+    public function show(Municipio $municipio, ConvocatoriaRepository $convocatoriaRepository): Response
     {
+        // Obtener convocatorias que contienen este municipio
+        $convocatorias = $convocatoriaRepository->createQueryBuilder('c')
+            ->innerJoin('c.municipios', 'm')
+            ->where('m.id = :municipioId')
+            ->setParameter('municipioId', $municipio->getId())
+            ->orderBy('c.nombre', 'ASC')
+            ->getQuery()
+            ->getResult();
+        
         return $this->render('municipio/show.html.twig', [
             'municipio' => $municipio,
+            'convocatorias' => $convocatorias,
         ]);
     }
 
@@ -88,50 +114,28 @@ class MunicipioController extends AbstractController
     }
 
     #[Route('/{id}/asignar-alumnos', name: 'app_municipio_asignar_alumnos', methods: ['GET', 'POST'])]
-    public function asignarAlumnos(Request $request, Municipio $municipio, UserRepository $userRepository, EntityManagerInterface $entityManager): Response
+    public function asignarAlumnos(Request $request, Municipio $municipio, UserRepository $userRepository, EntityManagerInterface $entityManager, ConvocatoriaRepository $convocatoriaRepository): Response
     {
-        if ($request->isMethod('POST')) {
-            $usuariosIds = $request->request->all('usuarios') ?? [];
-            
-            // Obtener todos los usuarios activos que no son profesores
-            $todosUsuarios = $userRepository->createQueryBuilder('u')
-                ->where('u.activo = :activo')
-                ->andWhere('u.roles NOT LIKE :role')
-                ->setParameter('activo', true)
-                ->setParameter('role', '%"ROLE_PROFESOR"%')
-                ->getQuery()
-                ->getResult();
-
-            // Limpiar relaciones existentes
-            foreach ($municipio->getUsuarios() as $usuario) {
-                $municipio->removeUsuario($usuario);
-            }
-
-            // Añadir usuarios seleccionados
-            foreach ($todosUsuarios as $usuario) {
-                if (in_array($usuario->getId(), $usuariosIds)) {
-                    $municipio->addUsuario($usuario);
-                }
-            }
-
-            $entityManager->flush();
-            $this->addFlash('success', 'Alumnos asignados correctamente al municipio.');
-            return $this->redirectToRoute('app_municipio_index', [], Response::HTTP_SEE_OTHER);
-        }
-
-        // Obtener todos los usuarios activos que no son profesores
-        $usuarios = $userRepository->createQueryBuilder('u')
-            ->where('u.activo = :activo')
-            ->andWhere('u.roles NOT LIKE :role')
+        // Esta funcionalidad está deshabilitada. Los alumnos ahora se asignan a través de convocatorias.
+        // Si un alumno está asignado a una convocatoria, automáticamente tiene acceso a todos los municipios de esa convocatoria.
+        
+        $this->addFlash('info', 'La asignación directa de alumnos a municipios está deshabilitada. Los alumnos deben asignarse a convocatorias, y automáticamente tendrán acceso a todos los municipios de esas convocatorias.');
+        
+        // Obtener las convocatorias que contienen este municipio
+        $convocatorias = $convocatoriaRepository->createQueryBuilder('c')
+            ->innerJoin('c.municipios', 'm')
+            ->where('m.id = :municipioId')
+            ->andWhere('c.activo = :activo')
+            ->setParameter('municipioId', $municipio->getId())
             ->setParameter('activo', true)
-            ->setParameter('role', '%"ROLE_PROFESOR"%')
-            ->orderBy('u.username', 'ASC')
+            ->orderBy('c.nombre', 'ASC')
             ->getQuery()
             ->getResult();
-
+        
         return $this->render('municipio/asignar_alumnos.html.twig', [
             'municipio' => $municipio,
-            'usuarios' => $usuarios,
+            'convocatorias' => $convocatorias,
+            'deshabilitado' => true,
         ]);
     }
 }

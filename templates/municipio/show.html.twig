@@ -25,16 +25,31 @@
         </div>
 
         <div class="form-group">
-            <label class="form-label"><strong>Alumnos Asignados:</strong></label>
-            <p>
-                <span class="badge badge-moderada">{{ municipio.usuarios|length }} alumno(s)</span>
-            </p>
-            {% if municipio.usuarios|length > 0 %}
+            <label class="form-label"><strong>Convocatorias:</strong></label>
+            {% if convocatorias|length > 0 %}
+                <p>
+                    <span class="badge badge-moderada">{{ convocatorias|length }} convocatoria(s)</span>
+                </p>
                 <ul>
-                    {% for usuario in municipio.usuarios %}
-                        <li>{{ usuario.nombreDisplay }}</li>
+                    {% for convocatoria in convocatorias %}
+                        <li>
+                            <a href="{{ path('app_convocatoria_show', {'id': convocatoria.id}) }}">{{ convocatoria.nombre }}</a>
+                            {% if not convocatoria.isActivo %}
+                                <span class="badge bg-secondary">Inactiva</span>
+                            {% endif %}
+                        </li>
                     {% endfor %}
                 </ul>
+                <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--color-text-light);">
+                    <em>Los alumnos asignados a estas convocatorias tienen acceso automáticamente a este municipio.</em>
+                </p>
+            {% else %}
+                <p>
+                    <span class="badge bg-secondary">Sin convocatorias</span>
+                </p>
+                <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--color-text-light);">
+                    <em>Este municipio no está asignado a ninguna convocatoria. Para que los alumnos tengan acceso, asigna este municipio a una convocatoria.</em>
+                </p>
             {% endif %}
         </div>
 
@@ -54,7 +69,6 @@
 
         <div class="d-flex gap-2 mt-4">
             <a href="{{ path('app_municipio_edit', {'id': municipio.id}) }}" class="btn btn-primary">Editar</a>
-            <a href="{{ path('app_municipio_asignar_alumnos', {'id': municipio.id}) }}" class="btn btn-info">Asignar Alumnos</a>
             <a href="{{ path('app_municipio_index') }}" class="btn btn-secondary">Volver</a>
         </div>
     </div>

@@ -233,15 +233,20 @@ class ExamenRepository extends ServiceEntityRepository
      */
     public function getRankingPorMunicipioYDificultad(Municipio $municipio, string $dificultad, int $cantidadExamenes, ?TemaMunicipal $temaMunicipal = null): array
     {
-        // Obtener usuarios que tienen este municipio activado
+        // Obtener usuarios que tienen acceso a este municipio a través de sus convocatorias
+        // Un usuario tiene acceso si está asignado a una convocatoria que contiene este municipio
         $usuarios = $this->getEntityManager()
             ->getRepository(\App\Entity\User::class)
             ->createQueryBuilder('u')
-            ->innerJoin('u.municipios', 'm')
+            ->innerJoin('u.convocatorias', 'c')
+            ->innerJoin('c.municipios', 'm')
             ->where('u.activo = :activo')
+            ->andWhere('c.activo = :convocatoriaActiva')
             ->andWhere('m.id = :municipioId')
             ->setParameter('activo', true)
+            ->setParameter('convocatoriaActiva', true)
             ->setParameter('municipioId', $municipio->getId())
+            ->distinct() // Eliminar duplicados si un usuario está en múltiples convocatorias con el mismo municipio
             ->getQuery()
             ->getResult();
 

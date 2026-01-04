@@ -15,7 +15,7 @@
                 <tr>
                     <th>ID</th>
                     <th>Nombre</th>
-                    <th>Alumnos Asignados</th>
+                    <th>Convocatorias</th>
                     <th>Temas</th>
                     <th>Preguntas</th>
                     <th>Estado</th>
@@ -28,7 +28,14 @@
                         <td>{{ municipio.id }}</td>
                         <td><strong>{{ municipio.nombre }}</strong></td>
                         <td>
-                            <span class="badge badge-moderada">{{ municipio.usuarios|length }} alumno(s)</span>
+                            {% set convocatorias = convocatoriasPorMunicipio[municipio.id] ?? [] %}
+                            {% if convocatorias|length > 0 %}
+                                <span class="badge badge-moderada" title="{% for convocatoria in convocatorias %}{{ convocatoria.nombre }}{% if not loop.last %}, {% endif %}{% endfor %}">
+                                    {{ convocatorias|length }} convocatoria(s)
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">Sin convocatorias</span>
+                            {% endif %}
                         </td>
                         <td>
                             <span class="badge badge-success">{{ municipio.temasMunicipales|length }} tema(s)</span>
@@ -47,7 +54,6 @@
                             <div class="d-flex gap-2">
                                 <a href="{{ path('app_municipio_show', {'id': municipio.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
                                 <a href="{{ path('app_municipio_edit', {'id': municipio.id}) }}" class="btn btn-primary btn-sm">Editar</a>
-                                <a href="{{ path('app_municipio_asignar_alumnos', {'id': municipio.id}) }}" class="btn btn-info btn-sm">Asignar Alumnos</a>
                                 <form method="post" action="{{ path('app_municipio_toggle_activo', {'id': municipio.id}) }}" style="display: inline;">
                                     <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ municipio.id) }}">
                                     <button type="submit" class="btn btn-sm {% if municipio.isActivo %}btn-warning{% else %}btn-success{% endif %}">

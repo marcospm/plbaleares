@@ -75,9 +75,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $notas = null;
 
-    #[ORM\ManyToMany(targetEntity: Municipio::class, mappedBy: 'usuarios')]
-    private Collection $municipios;
-
     #[ORM\ManyToMany(targetEntity: Convocatoria::class, mappedBy: 'usuarios')]
     private Collection $convocatorias;
 
@@ -98,7 +95,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function __construct()
     {
-        $this->municipios = new ArrayCollection();
         $this->convocatorias = new ArrayCollection();
         $this->profesores = new ArrayCollection();
         $this->alumnos = new ArrayCollection();
@@ -366,30 +362,35 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
+     * Obtiene los municipios accesibles a través de las convocatorias del usuario
+     * Si un usuario está asignado a una convocatoria, tiene acceso a todos los municipios de esa convocatoria
+     * 
      * @return Collection<int, Municipio>
      */
-    public function getMunicipios(): Collection
+    public function getMunicipiosAccesibles(): Collection
     {
-        return $this->municipios;
+        $municipiosAccesibles = new ArrayCollection();
+        
+        // Obtener todos los municipios de las convocatorias activas del usuario
+        foreach ($this->convocatorias as $convocatoria) {
+            if ($convocatoria->isActivo()) {
+                foreach ($convocatoria->getMunicipios() as $municipio) {
+                    if ($municipio->isActivo() && !$municipiosAccesibles->contains($municipio)) {
+                        $municipiosAccesibles->add($municipio);
+                    }
+                }
+            }
+        }
+        
+        return $municipiosAccesibles;
     }
 
-    public function addMunicipio(Municipio $municipio): static
+    /**
+     * Verifica si el usuario tiene acceso a un municipio a través de sus convocatorias
+     */
+    public function tieneAccesoAMunicipio(Municipio $municipio): bool
     {
-        if (!$this->municipios->contains($municipio)) {
-            $this->municipios->add($municipio);
-            $municipio->addUsuario($this);
-        }
-
-        return $this;
-    }
-
-    public function removeMunicipio(Municipio $municipio): static
-    {
-        if ($this->municipios->removeElement($municipio)) {
-            $municipio->removeUsuario($this);
-        }
-
-        return $this;
+        return $this->getMunicipiosAccesibles()->contains($municipio);
     }
 
     /**

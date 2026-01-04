@@ -59,13 +59,9 @@ class RecursoPublicoController extends AbstractController
                 $temasPorMunicipioConvocatoria = [];
                 
                 // Obtener municipios de la convocatoria
+                // Si el usuario está asignado a la convocatoria, tiene acceso a todos sus municipios
                 foreach ($convocatoria->getMunicipios() as $municipio) {
                     if (!$municipio->isActivo()) {
-                        continue;
-                    }
-                    
-                    // Verificar que el usuario tenga acceso a este municipio
-                    if (!$user->getMunicipios()->contains($municipio)) {
                         continue;
                     }
                     
@@ -89,19 +85,8 @@ class RecursoPublicoController extends AbstractController
                 }
             }
             
-            // Obtener municipios que NO están en ninguna convocatoria
-            $municipiosActivos = $user->getMunicipios();
-            foreach ($municipiosActivos as $municipio) {
-                if ($municipio->isActivo() && !in_array($municipio->getId(), $municipiosEnConvocatorias)) {
-                    $temasMunicipales = $temaMunicipalRepository->findByMunicipio($municipio);
-                    if (count($temasMunicipales) > 0) {
-                        $temasPorMunicipio[$municipio->getId()] = [
-                            'municipio' => $municipio,
-                            'temas' => $temasMunicipales,
-                        ];
-                    }
-                }
-            }
+            // Ya no se muestran municipios que no están en ninguna convocatoria
+            // Todos los municipios deben pertenecer a una convocatoria para que los alumnos tengan acceso
         }
         
         return $this->render('recurso/publico_index.html.twig', [

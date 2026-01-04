@@ -63,9 +63,16 @@ class ExamenIniciarType extends AbstractType
                         ->where('m.activo = :activo')
                         ->setParameter('activo', true);
                     if ($user) {
-                        $qb->innerJoin('m.usuarios', 'u')
-                           ->andWhere('u.id = :userId')
-                           ->setParameter('userId', $user->getId());
+                        // Obtener municipios accesibles a través de las convocatorias del usuario
+                        $municipiosAccesibles = $user->getMunicipiosAccesibles();
+                        if ($municipiosAccesibles->count() > 0) {
+                            $municipiosIds = array_map(fn($m) => $m->getId(), $municipiosAccesibles->toArray());
+                            $qb->andWhere('m.id IN (:municipiosIds)')
+                               ->setParameter('municipiosIds', $municipiosIds);
+                        } else {
+                            // Si no hay municipios accesibles, no mostrar ninguno
+                            $qb->andWhere('1 = 0');
+                        }
                     }
                     return $qb->orderBy('m.nombre', 'ASC');
                 },

@@ -57,12 +57,11 @@ class ExamenController extends AbstractController
         $user = $this->getUser();
         
         // Verificar si el usuario tiene municipios activos
+        // Los municipios accesibles se obtienen a través de las convocatorias
         $tieneMunicipiosActivos = false;
         if ($user) {
-            $municipiosActivos = $user->getMunicipios()->filter(function($municipio) {
-                return $municipio->isActivo();
-            });
-            $tieneMunicipiosActivos = $municipiosActivos->count() > 0;
+            $municipiosAccesibles = $user->getMunicipiosAccesibles();
+            $tieneMunicipiosActivos = $municipiosAccesibles->count() > 0;
         }
         
         // Verificar si el usuario tiene convocatorias activas
@@ -76,7 +75,7 @@ class ExamenController extends AbstractController
         $formData = null;
         if ($municipioId > 0 && $tieneMunicipiosActivos) {
             $municipio = $this->municipioRepository->find($municipioId);
-            if ($municipio && $user->getMunicipios()->contains($municipio) && $municipio->isActivo()) {
+            if ($municipio && $user->tieneAccesoAMunicipio($municipio) && $municipio->isActivo()) {
                 $formData = [
                     'tipoExamen' => 'municipal',
                     'municipio' => $municipio,
@@ -244,10 +243,10 @@ class ExamenController extends AbstractController
                         return $this->redirectToRoute('app_examen_iniciar');
                     }
 
-                    // Verificar que el usuario tenga acceso al municipio
+                    // Verificar que el usuario tenga acceso al municipio a través de sus convocatorias
                     $user = $this->getUser();
-                    if (!$user->getMunicipios()->contains($municipio)) {
-                        $this->addFlash('error', 'No tienes acceso a este municipio.');
+                    if (!$user->tieneAccesoAMunicipio($municipio)) {
+                        $this->addFlash('error', 'No tienes acceso a este municipio. Debes estar asignado a la convocatoria que contiene este municipio.');
                         return $this->redirectToRoute('app_examen_iniciar');
                     }
 

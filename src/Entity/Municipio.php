@@ -26,9 +26,6 @@ class Municipio
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $fechaCreacion = null;
 
-    #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'municipios')]
-    #[ORM\JoinTable(name: 'user_municipio')]
-    private Collection $usuarios;
 
     #[ORM\OneToMany(targetEntity: TemaMunicipal::class, mappedBy: 'municipio', cascade: ['persist', 'remove'])]
     private Collection $temasMunicipales;
@@ -38,7 +35,6 @@ class Municipio
 
     public function __construct()
     {
-        $this->usuarios = new ArrayCollection();
         $this->temasMunicipales = new ArrayCollection();
         $this->preguntasMunicipales = new ArrayCollection();
         $this->fechaCreacion = new \DateTime();
@@ -81,30 +77,6 @@ class Municipio
     public function setFechaCreacion(\DateTimeInterface $fechaCreacion): static
     {
         $this->fechaCreacion = $fechaCreacion;
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, User>
-     */
-    public function getUsuarios(): Collection
-    {
-        return $this->usuarios;
-    }
-
-    public function addUsuario(User $usuario): static
-    {
-        if (!$this->usuarios->contains($usuario)) {
-            $this->usuarios->add($usuario);
-        }
-
-        return $this;
-    }
-
-    public function removeUsuario(User $usuario): static
-    {
-        $this->usuarios->removeElement($usuario);
 
         return $this;
     }
