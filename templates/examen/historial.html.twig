@@ -390,7 +390,8 @@
     {% for convocatoria in convocatorias %}
         {% set convocatoriaId = convocatoria.id %}
         {% set datosConvocatoria = rankingsPorConvocatoria[convocatoriaId] ?? null %}
-        {% set examenesConvocatoria = examenesPorConvocatoria|filter(e => e.convocatoria.id == convocatoriaId) %}
+        {% set examenesConvocatoria = examenesPaginatedPorConvocatoria[convocatoriaId] ?? [] %}
+        {% set paginacionConvocatoria = paginacionPorConvocatoria[convocatoriaId] ?? null %}
         
         <div class="card" style="margin-bottom: 2rem; border-left: 4px solid #9C27B0;">
             <div class="card-header" style="background-color: #9C27B0; color: white;">
@@ -508,9 +509,16 @@
                 {% endif %}
 
                 {# Tabla de Exámenes de la Convocatoria #}
-                {% if examenesConvocatoria|length > 0 %}
+                {% if paginacionConvocatoria and paginacionConvocatoria.totalItems > 0 %}
                     <div style="margin-top: 2rem;">
-                        <h3 style="margin-bottom: 1rem;">📋 Lista de Exámenes de la Convocatoria{% if esHistorialGrupo %} (del Grupo){% endif %}</h3>
+                        <h3 style="margin-bottom: 1rem;">
+                            📋 Lista de Exámenes de la Convocatoria{% if esHistorialGrupo %} (del Grupo){% endif %}
+                            {% if paginacionConvocatoria.totalPages > 1 %}
+                                <span style="font-size: 0.9rem; color: #666; font-weight: normal;">
+                                    (Página {{ paginacionConvocatoria.currentPage }} de {{ paginacionConvocatoria.totalPages }})
+                                </span>
+                            {% endif %}
+                        </h3>
                         <div class="table-responsive">
                             <table class="table">
                                 <thead>
@@ -563,6 +571,92 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        {# Paginación #}
+                        {% if paginacionConvocatoria.totalPages > 1 %}
+                            <div style="margin-top: 1.5rem; padding: 1rem; background-color: #f8f9fa; border-radius: 4px;">
+                                <nav aria-label="Paginación de exámenes de la convocatoria">
+                                    <ul class="pagination justify-content-center mb-0" style="flex-wrap: wrap;">
+                                        {% set paramsBaseConvocatoria = {
+                                            'cantidad': cantidad > 3 ? cantidad : '',
+                                            'tema': temaSeleccionado ? temaSeleccionado.id : '',
+                                            'convocatoria': convocatoriaSeleccionada ? convocatoriaSeleccionada.id : '',
+                                            'municipio': municipioSeleccionado ? municipioSeleccionado.id : '',
+                                            'page_general': currentPageGeneral > 1 ? currentPageGeneral : ''
+                                        } %}
+                                        {% set paramsBaseConvocatoria = paramsBaseConvocatoria|filter(v => v != '' and v != 0) %}
+                                        
+                                        {% set rutaHistorial = esHistorialGrupo ? 'app_examen_historial_grupo' : 'app_examen_historial' %}
+                                        {% set pageKeyConvocatoria = 'page_convocatoria_' ~ convocatoriaId %}
+                                        
+                                        {# Botón Anterior #}
+                                        <li class="page-item {% if paginacionConvocatoria.currentPage == 1 %}disabled{% endif %}">
+                                            {% if paginacionConvocatoria.currentPage > 1 %}
+                                                {% set pageAnteriorConvocatoria = paginacionConvocatoria.currentPage - 1 %}
+                                                {% if pageAnteriorConvocatoria > 1 %}
+                                                    {% set paramsAnteriorConvocatoria = paramsBaseConvocatoria|merge({(pageKeyConvocatoria): pageAnteriorConvocatoria}) %}
+                                                {% else %}
+                                                    {% set paramsAnteriorConvocatoria = paramsBaseConvocatoria %}
+                                                {% endif %}
+                                                <a class="page-link" href="{{ path(rutaHistorial, paramsAnteriorConvocatoria) }}">
+                                            {% else %}
+                                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                                            {% endif %}
+                                                ← Anterior
+                                            </a>
+                                        </li>
+                                        
+                                        {# Números de página #}
+                                        {% set startPageConvocatoria = max(1, paginacionConvocatoria.currentPage - 2) %}
+                                        {% set endPageConvocatoria = min(paginacionConvocatoria.totalPages, paginacionConvocatoria.currentPage + 2) %}
+                                        
+                                        {% if startPageConvocatoria > 1 %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="{{ path(rutaHistorial, paramsBaseConvocatoria) }}">1</a>
+                                            </li>
+                                            {% if startPageConvocatoria > 2 %}
+                                                <li class="page-item disabled">
+                                                    <span class="page-link">...</span>
+                                                </li>
+                                            {% endif %}
+                                        {% endif %}
+                                        
+                                        {% for p in startPageConvocatoria..endPageConvocatoria %}
+                                            <li class="page-item {% if p == paginacionConvocatoria.currentPage %}active{% endif %}">
+                                                {% if p > 1 %}
+                                                    <a class="page-link" href="{{ path(rutaHistorial, paramsBaseConvocatoria|merge({(pageKeyConvocatoria): p})) }}">{{ p }}</a>
+                                                {% else %}
+                                                    <a class="page-link" href="{{ path(rutaHistorial, paramsBaseConvocatoria) }}">{{ p }}</a>
+                                                {% endif %}
+                                            </li>
+                                        {% endfor %}
+                                        
+                                        {% if endPageConvocatoria < paginacionConvocatoria.totalPages %}
+                                            {% if endPageConvocatoria < paginacionConvocatoria.totalPages - 1 %}
+                                                <li class="page-item disabled">
+                                                    <span class="page-link">...</span>
+                                                </li>
+                                            {% endif %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="{{ path(rutaHistorial, paramsBaseConvocatoria|merge({(pageKeyConvocatoria): paginacionConvocatoria.totalPages})) }}">{{ paginacionConvocatoria.totalPages }}</a>
+                                            </li>
+                                        {% endif %}
+                                        
+                                        {# Botón Siguiente #}
+                                        <li class="page-item {% if paginacionConvocatoria.currentPage == paginacionConvocatoria.totalPages %}disabled{% endif %}">
+                                            {% if paginacionConvocatoria.currentPage < paginacionConvocatoria.totalPages %}
+                                                {% set pageSiguienteConvocatoria = paginacionConvocatoria.currentPage + 1 %}
+                                                <a class="page-link" href="{{ path(rutaHistorial, paramsBaseConvocatoria|merge({(pageKeyConvocatoria): pageSiguienteConvocatoria})) }}">
+                                            {% else %}
+                                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                                            {% endif %}
+                                                Siguiente →
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        {% endif %}
                     </div>
                 {% else %}
                     <div style="padding: 2rem; text-align: center; color: #999;">

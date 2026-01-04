@@ -818,10 +818,16 @@ class ExamenController extends AbstractController
         // Separar exámenes: temario general (sin convocatoria) y por convocatoria
         $examenesTemarioGeneral = [];
         $examenesPorConvocatoria = [];
+        $examenesAgrupadosPorConvocatoria = [];
         
         foreach ($todosExamenes as $examen) {
             if ($examen->getConvocatoria()) {
                 $examenesPorConvocatoria[] = $examen;
+                $convocatoriaId = $examen->getConvocatoria()->getId();
+                if (!isset($examenesAgrupadosPorConvocatoria[$convocatoriaId])) {
+                    $examenesAgrupadosPorConvocatoria[$convocatoriaId] = [];
+                }
+                $examenesAgrupadosPorConvocatoria[$convocatoriaId][] = $examen;
             } else {
                 $examenesTemarioGeneral[] = $examen;
             }
@@ -837,6 +843,29 @@ class ExamenController extends AbstractController
         // Obtener los items de la página actual
         $offsetGeneral = ($pageGeneral - 1) * $itemsPerPageGeneral;
         $examenesTemarioGeneralPaginated = array_slice($examenesTemarioGeneral, $offsetGeneral, $itemsPerPageGeneral);
+
+        // Paginación para exámenes por convocatoria
+        $itemsPerPageConvocatoria = 20;
+        $examenesPaginatedPorConvocatoria = [];
+        $paginacionPorConvocatoria = [];
+        
+        foreach ($examenesAgrupadosPorConvocatoria as $convocatoriaId => $examenesConvocatoria) {
+            $pageKey = 'page_convocatoria_' . $convocatoriaId;
+            $pageConvocatoria = max(1, $request->query->getInt($pageKey, 1));
+            $totalItemsConvocatoria = count($examenesConvocatoria);
+            $totalPagesConvocatoria = max(1, ceil($totalItemsConvocatoria / $itemsPerPageConvocatoria));
+            $pageConvocatoria = min($pageConvocatoria, $totalPagesConvocatoria);
+            
+            $offsetConvocatoria = ($pageConvocatoria - 1) * $itemsPerPageConvocatoria;
+            $examenesPaginatedPorConvocatoria[$convocatoriaId] = array_slice($examenesConvocatoria, $offsetConvocatoria, $itemsPerPageConvocatoria);
+            
+            $paginacionPorConvocatoria[$convocatoriaId] = [
+                'currentPage' => $pageConvocatoria,
+                'totalPages' => $totalPagesConvocatoria,
+                'totalItems' => $totalItemsConvocatoria,
+                'itemsPerPage' => $itemsPerPageConvocatoria,
+            ];
+        }
 
         // Obtener cantidad de exámenes para el ranking (por defecto 3)
         $cantidad = $request->query->getInt('cantidad', 3);
@@ -924,6 +953,8 @@ class ExamenController extends AbstractController
         return $this->render('examen/historial.html.twig', [
             'examenesTemarioGeneral' => $examenesTemarioGeneralPaginated,
             'examenesPorConvocatoria' => $examenesPorConvocatoria,
+            'examenesPaginatedPorConvocatoria' => $examenesPaginatedPorConvocatoria,
+            'paginacionPorConvocatoria' => $paginacionPorConvocatoria,
             'rankings' => $rankings,
             'posicionesUsuario' => $posicionesUsuario,
             'rankingsPorConvocatoria' => $rankingsPorConvocatoria,
@@ -974,10 +1005,16 @@ class ExamenController extends AbstractController
         // Separar exámenes: temario general (sin convocatoria) y por convocatoria
         $examenesTemarioGeneral = [];
         $examenesPorConvocatoria = [];
+        $examenesAgrupadosPorConvocatoria = [];
         
         foreach ($todosExamenes as $examen) {
             if ($examen->getConvocatoria()) {
                 $examenesPorConvocatoria[] = $examen;
+                $convocatoriaId = $examen->getConvocatoria()->getId();
+                if (!isset($examenesAgrupadosPorConvocatoria[$convocatoriaId])) {
+                    $examenesAgrupadosPorConvocatoria[$convocatoriaId] = [];
+                }
+                $examenesAgrupadosPorConvocatoria[$convocatoriaId][] = $examen;
             } else {
                 $examenesTemarioGeneral[] = $examen;
             }
@@ -993,6 +1030,29 @@ class ExamenController extends AbstractController
         // Obtener los items de la página actual
         $offsetGeneral = ($pageGeneral - 1) * $itemsPerPageGeneral;
         $examenesTemarioGeneralPaginated = array_slice($examenesTemarioGeneral, $offsetGeneral, $itemsPerPageGeneral);
+
+        // Paginación para exámenes por convocatoria
+        $itemsPerPageConvocatoria = 20;
+        $examenesPaginatedPorConvocatoria = [];
+        $paginacionPorConvocatoria = [];
+        
+        foreach ($examenesAgrupadosPorConvocatoria as $convocatoriaId => $examenesConvocatoria) {
+            $pageKey = 'page_convocatoria_' . $convocatoriaId;
+            $pageConvocatoria = max(1, $request->query->getInt($pageKey, 1));
+            $totalItemsConvocatoria = count($examenesConvocatoria);
+            $totalPagesConvocatoria = max(1, ceil($totalItemsConvocatoria / $itemsPerPageConvocatoria));
+            $pageConvocatoria = min($pageConvocatoria, $totalPagesConvocatoria);
+            
+            $offsetConvocatoria = ($pageConvocatoria - 1) * $itemsPerPageConvocatoria;
+            $examenesPaginatedPorConvocatoria[$convocatoriaId] = array_slice($examenesConvocatoria, $offsetConvocatoria, $itemsPerPageConvocatoria);
+            
+            $paginacionPorConvocatoria[$convocatoriaId] = [
+                'currentPage' => $pageConvocatoria,
+                'totalPages' => $totalPagesConvocatoria,
+                'totalItems' => $totalItemsConvocatoria,
+                'itemsPerPage' => $itemsPerPageConvocatoria,
+            ];
+        }
 
         // Obtener cantidad de exámenes para el ranking (por defecto 3)
         $cantidad = $request->query->getInt('cantidad', 3);
@@ -1157,6 +1217,8 @@ class ExamenController extends AbstractController
         return $this->render('examen/historial.html.twig', [
             'examenesTemarioGeneral' => $examenesTemarioGeneralPaginated,
             'examenesPorConvocatoria' => $examenesPorConvocatoria,
+            'examenesPaginatedPorConvocatoria' => $examenesPaginatedPorConvocatoria,
+            'paginacionPorConvocatoria' => $paginacionPorConvocatoria,
             'rankings' => $rankings,
             'posicionesUsuario' => $posicionesUsuario,
             'rankingsPorConvocatoria' => $rankingsPorConvocatoria,
