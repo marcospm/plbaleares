@@ -33,6 +33,76 @@
             border-color: var(--color-primary);
             box-shadow: 0 0 0 3px rgba(0, 113, 181, 0.15);
         }
+
+        /* Estilos para paginación */
+        .pagination {
+            display: flex;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            gap: 0.25rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .page-item {
+            margin: 0;
+        }
+        
+        .page-link {
+            display: block;
+            padding: 0.5rem 0.75rem;
+            color: var(--color-primary);
+            text-decoration: none;
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            transition: all 0.2s;
+            min-width: 40px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .page-link:hover:not(.disabled):not([aria-disabled="true"]) {
+            background-color: #e9ecef;
+            border-color: #dee2e6;
+            color: var(--color-primary);
+            transform: translateY(-1px);
+        }
+        
+        .page-item.active .page-link {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+            color: #fff;
+            font-weight: 600;
+        }
+        
+        .page-item.disabled .page-link,
+        .page-link[aria-disabled="true"] {
+            color: #6c757d;
+            pointer-events: none;
+            cursor: not-allowed;
+            background-color: #fff;
+            border-color: #dee2e6;
+            opacity: 0.6;
+        }
+        
+        .page-link:focus {
+            outline: none;
+            box-shadow: 0 0 0 0.2rem rgba(0, 113, 181, 0.25);
+        }
+        
+        @media (max-width: 768px) {
+            .pagination {
+                gap: 0.15rem;
+            }
+            
+            .page-link {
+                padding: 0.4rem 0.6rem;
+                font-size: 0.875rem;
+                min-width: 35px;
+            }
+        }
     </style>
 {% endblock %}
 
@@ -157,9 +227,16 @@
         {% endif %}
 
         {# Tabla de Exámenes del Temario General #}
-        {% if examenesTemarioGeneral|length > 0 %}
+        {% if totalItemsGeneral > 0 %}
             <div style="margin-top: 2rem;">
-                <h3 style="margin-bottom: 1rem;">📋 Lista de Exámenes del Temario General</h3>
+                <h3 style="margin-bottom: 1rem;">
+                    📋 Lista de Exámenes del Temario General
+                    {% if totalPagesGeneral > 1 %}
+                        <span style="font-size: 0.9rem; color: #666; font-weight: normal;">
+                            (Página {{ currentPageGeneral }} de {{ totalPagesGeneral }})
+                        </span>
+                    {% endif %}
+                </h3>
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
@@ -194,6 +271,90 @@
                         </tbody>
                     </table>
                 </div>
+
+                {# Paginación #}
+                {% if totalPagesGeneral > 1 %}
+                    <div style="margin-top: 1.5rem; padding: 1rem; background-color: #f8f9fa; border-radius: 4px;">
+                        <nav aria-label="Paginación de exámenes del temario general">
+                            <ul class="pagination justify-content-center mb-0" style="flex-wrap: wrap;">
+                                {% set paramsBaseGeneral = {
+                                    'cantidad': cantidad > 3 ? cantidad : '',
+                                    'tema': temaSeleccionado ? temaSeleccionado.id : '',
+                                    'convocatoria': convocatoriaSeleccionada ? convocatoriaSeleccionada.id : '',
+                                    'municipio': municipioSeleccionado ? municipioSeleccionado.id : ''
+                                } %}
+                                {% set paramsBaseGeneral = paramsBaseGeneral|filter(v => v != '' and v != 0) %}
+                                
+                                {# Botón Anterior #}
+                                <li class="page-item {% if currentPageGeneral == 1 %}disabled{% endif %}">
+                                    {% if currentPageGeneral > 1 %}
+                                        {% set pageAnteriorGeneral = currentPageGeneral - 1 %}
+                                        {% if pageAnteriorGeneral > 1 %}
+                                            {% set paramsAnteriorGeneral = paramsBaseGeneral|merge({'page_general': pageAnteriorGeneral}) %}
+                                        {% else %}
+                                            {% set paramsAnteriorGeneral = paramsBaseGeneral %}
+                                        {% endif %}
+                                        <a class="page-link" href="{{ path('app_examen_historial', paramsAnteriorGeneral) }}">
+                                    {% else %}
+                                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                                    {% endif %}
+                                        ← Anterior
+                                    </a>
+                                </li>
+                                
+                                {# Números de página #}
+                                {% set startPageGeneral = max(1, currentPageGeneral - 2) %}
+                                {% set endPageGeneral = min(totalPagesGeneral, currentPageGeneral + 2) %}
+                                
+                                {% if startPageGeneral > 1 %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ path('app_examen_historial', paramsBaseGeneral) }}">1</a>
+                                    </li>
+                                    {% if startPageGeneral > 2 %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    {% endif %}
+                                {% endif %}
+                                
+                                {% for p in startPageGeneral..endPageGeneral %}
+                                    <li class="page-item {% if p == currentPageGeneral %}active{% endif %}">
+                                        {% if p > 1 %}
+                                            <a class="page-link" href="{{ path('app_examen_historial', paramsBaseGeneral|merge({'page_general': p})) }}">{{ p }}</a>
+                                        {% else %}
+                                            <a class="page-link" href="{{ path('app_examen_historial', paramsBaseGeneral) }}">{{ p }}</a>
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                                
+                                {% if endPageGeneral < totalPagesGeneral %}
+                                    {% if endPageGeneral < totalPagesGeneral - 1 %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    {% endif %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ path('app_examen_historial', paramsBaseGeneral|merge({'page_general': totalPagesGeneral})) }}">{{ totalPagesGeneral }}</a>
+                                    </li>
+                                {% endif %}
+                                
+                                {# Botón Siguiente #}
+                                <li class="page-item {% if currentPageGeneral == totalPagesGeneral %}disabled{% endif %}">
+                                    {% if currentPageGeneral < totalPagesGeneral %}
+                                        <a class="page-link" href="{{ path('app_examen_historial', paramsBaseGeneral|merge({'page_general': currentPageGeneral + 1})) }}">
+                                    {% else %}
+                                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
+                                    {% endif %}
+                                        Siguiente →
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                        <div style="text-align: center; margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
+                            Mostrando {{ ((currentPageGeneral - 1) * itemsPerPageGeneral) + 1 }} - {{ min(currentPageGeneral * itemsPerPageGeneral, totalItemsGeneral) }} de {{ totalItemsGeneral }} exámenes
+                        </div>
+                    </div>
+                {% endif %}
             </div>
         {% else %}
             <div style="padding: 2rem; text-align: center; color: #999;">
@@ -398,6 +559,12 @@ function actualizarRankingGeneral() {
     let url = '{{ path('app_examen_historial') }}?cantidad=' + cantidad;
     if (tema) {
         url += '&tema=' + tema;
+    }
+    // Preservar página actual si existe
+    const urlParams = new URLSearchParams(window.location.search);
+    const pageGeneral = urlParams.get('page_general');
+    if (pageGeneral && pageGeneral > 1) {
+        url += '&page_general=' + pageGeneral;
     }
     window.location.href = url;
 }

@@ -828,6 +828,17 @@ class ExamenController extends AbstractController
             }
         }
 
+        // Paginación para exámenes del temario general
+        $itemsPerPageGeneral = 20;
+        $pageGeneral = max(1, $request->query->getInt('page_general', 1));
+        $totalItemsGeneral = count($examenesTemarioGeneral);
+        $totalPagesGeneral = max(1, ceil($totalItemsGeneral / $itemsPerPageGeneral));
+        $pageGeneral = min($pageGeneral, $totalPagesGeneral);
+        
+        // Obtener los items de la página actual
+        $offsetGeneral = ($pageGeneral - 1) * $itemsPerPageGeneral;
+        $examenesTemarioGeneralPaginated = array_slice($examenesTemarioGeneral, $offsetGeneral, $itemsPerPageGeneral);
+
         // Obtener cantidad de exámenes para el ranking (por defecto 3)
         $cantidad = $request->query->getInt('cantidad', 3);
         if ($cantidad < 2) {
@@ -912,7 +923,7 @@ class ExamenController extends AbstractController
         }
 
         return $this->render('examen/historial.html.twig', [
-            'examenesTemarioGeneral' => $examenesTemarioGeneral,
+            'examenesTemarioGeneral' => $examenesTemarioGeneralPaginated,
             'examenesPorConvocatoria' => $examenesPorConvocatoria,
             'rankings' => $rankings,
             'posicionesUsuario' => $posicionesUsuario,
@@ -924,6 +935,11 @@ class ExamenController extends AbstractController
             'convocatorias' => $convocatorias,
             'convocatoriaSeleccionada' => $convocatoriaSeleccionada,
             'municipioSeleccionado' => $municipioSeleccionado,
+            // Datos de paginación para temario general
+            'currentPageGeneral' => $pageGeneral,
+            'totalPagesGeneral' => $totalPagesGeneral,
+            'totalItemsGeneral' => $totalItemsGeneral,
+            'itemsPerPageGeneral' => $itemsPerPageGeneral,
         ]);
     }
 
