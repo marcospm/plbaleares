@@ -29,10 +29,19 @@
             background: white;
             transition: background-color 0.2s ease;
             user-select: none;
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+            touch-action: manipulation;
         }
         
-        .tutorial-section-header:hover {
+        .tutorial-section-header:hover,
+        .tutorial-section-header:active {
             background-color: #f8f9fa;
+        }
+        
+        @media (hover: none) {
+            .tutorial-section-header:active {
+                background-color: #e9ecef;
+            }
         }
         
         .tutorial-section-header h2 {
@@ -232,10 +241,19 @@
             transition: background-color 0.2s ease;
             user-select: none;
             border-bottom: 1px solid #e0e0e0;
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+            touch-action: manipulation;
         }
         
-        .subsection-header:hover {
+        .subsection-header:hover,
+        .subsection-header:active {
             background-color: #f5f5f5;
+        }
+        
+        @media (hover: none) {
+            .subsection-header:active {
+                background-color: #e9ecef;
+            }
         }
         
         .subsection-header h3,
@@ -1221,21 +1239,27 @@
 <script>
 function toggleSection(sectionId) {
     const section = document.getElementById(sectionId);
-    section.classList.toggle('active');
+    if (section) {
+        section.classList.toggle('active');
+    }
 }
 
 function toggleSubsection(subsectionId) {
     const subsection = document.getElementById(subsectionId);
-    subsection.classList.toggle('active');
+    if (subsection) {
+        subsection.classList.toggle('active');
+    }
 }
 
 function openSection(sectionId) {
     const section = document.getElementById(sectionId);
-    if (!section.classList.contains('active')) {
-        section.classList.add('active');
+    if (section) {
+        if (!section.classList.contains('active')) {
+            section.classList.add('active');
+        }
+        // Scroll suave a la sección
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    // Scroll suave a la sección
-    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function toggleAllSections() {
@@ -1261,12 +1285,94 @@ function toggleAllSections() {
     });
 }
 
+// Función para manejar eventos táctiles y clics
+function setupAccordionHandlers() {
+    // Secciones principales
+    document.querySelectorAll('.tutorial-section-header').forEach(header => {
+        // Prevenir doble activación
+        let isHandling = false;
+        let touchStartTime = 0;
+        
+        const handleToggle = (e) => {
+            // En móvil, verificar que no sea un scroll
+            if (e.type === 'touchend') {
+                const touchDuration = Date.now() - touchStartTime;
+                if (touchDuration > 300) return; // Probablemente un scroll
+            }
+            
+            if (isHandling) return;
+            isHandling = true;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const section = header.closest('.tutorial-section');
+            if (section) {
+                const sectionId = section.id;
+                toggleSection(sectionId);
+            }
+            
+            setTimeout(() => {
+                isHandling = false;
+            }, 300);
+        };
+        
+        // Capturar inicio del touch
+        header.addEventListener('touchstart', (e) => {
+            touchStartTime = Date.now();
+        }, { passive: true });
+        
+        // Añadir listeners para compatibilidad
+        header.addEventListener('click', handleToggle, { passive: false });
+        header.addEventListener('touchend', handleToggle, { passive: false });
+    });
+    
+    // Subsecciones
+    document.querySelectorAll('.subsection-header').forEach(header => {
+        let isHandling = false;
+        let touchStartTime = 0;
+        
+        const handleToggle = (e) => {
+            if (e.type === 'touchend') {
+                const touchDuration = Date.now() - touchStartTime;
+                if (touchDuration > 300) return;
+            }
+            
+            if (isHandling) return;
+            isHandling = true;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const subsection = header.closest('.subsection');
+            if (subsection) {
+                const subsectionId = subsection.id;
+                toggleSubsection(subsectionId);
+            }
+            
+            setTimeout(() => {
+                isHandling = false;
+            }, 300);
+        };
+        
+        header.addEventListener('touchstart', (e) => {
+            touchStartTime = Date.now();
+        }, { passive: true });
+        
+        header.addEventListener('click', handleToggle, { passive: false });
+        header.addEventListener('touchend', handleToggle, { passive: false });
+    });
+}
+
 // Abrir la primera sección por defecto al cargar
 document.addEventListener('DOMContentLoaded', function() {
     const firstSection = document.getElementById('seccion-1');
     if (firstSection) {
         firstSection.classList.add('active');
     }
+    
+    // Configurar handlers para móvil
+    setupAccordionHandlers();
 });
 </script>
 {% endblock %}
