@@ -23,7 +23,7 @@
             </div>
             <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: flex-start;">
                 {% for num, estado in estadoPreguntas %}
-                    <a href="#" 
+                    <a href="javascript:void(0);" 
                        data-pregunta-num="{{ num }}"
                        class="pregunta-link"
                        style="display: inline-flex; align-items: center; justify-content: center; 
@@ -34,6 +34,7 @@
                               font-size: 0.8rem;
                               transition: all 0.2s;
                               cursor: pointer;
+                              user-select: none;
                               {% if estado.esActual %}
                                   background: var(--color-primary);
                                   color: white;
@@ -561,33 +562,51 @@
             const preguntaLinks = document.querySelectorAll('.pregunta-link');
             const formPregunta = document.getElementById('formPregunta');
             
+            if (!formPregunta) {
+                console.error('No se encontró el formulario formPregunta');
+                return;
+            }
+            
             preguntaLinks.forEach(function(link) {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    
                     const numeroDestino = parseInt(this.getAttribute('data-pregunta-num'));
                     const numeroActual = {{ numero }};
                     
                     // Si es la misma pregunta, no hacer nada
-                    if (numeroDestino === numeroActual) {
-                        return;
+                    if (numeroDestino === numeroActual || isNaN(numeroDestino)) {
+                        return false;
                     }
                     
-                    // Guardar respuesta actual y navegar al destino
+                    // Guardar respuesta actual si hay alguna seleccionada
                     const respuestaSeleccionada = formPregunta.querySelector('input[name="respuesta"]:checked');
                     
-                    // Crear un input oculto para el número destino
-                    let inputDestino = formPregunta.querySelector('input[name="numero_destino"]');
-                    if (!inputDestino) {
-                        inputDestino = document.createElement('input');
-                        inputDestino.type = 'hidden';
-                        inputDestino.name = 'numero_destino';
-                        formPregunta.appendChild(inputDestino);
+                    // Eliminar cualquier input destino existente
+                    const inputDestinoExistente = formPregunta.querySelector('input[name="numero_destino"]');
+                    if (inputDestinoExistente) {
+                        inputDestinoExistente.remove();
                     }
+                    
+                    // Crear un input oculto para el número destino
+                    const inputDestino = document.createElement('input');
+                    inputDestino.type = 'hidden';
+                    inputDestino.name = 'numero_destino';
                     inputDestino.value = numeroDestino;
+                    formPregunta.appendChild(inputDestino);
                     
                     // Enviar el formulario directamente
-                    formPregunta.submit();
+                    try {
+                        formPregunta.submit();
+                    } catch (error) {
+                        console.error('Error al enviar el formulario:', error);
+                        // Si falla el submit, redirigir directamente
+                        window.location.href = '{{ path('app_examen_pregunta', {'numero': '__NUM__'}) }}'.replace('__NUM__', numeroDestino);
+                    }
+                    
+                    return false;
                 });
             });
         });
