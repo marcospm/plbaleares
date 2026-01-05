@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Planificación Mensual - {{ usuario.nombreDisplay }} - {{ primerDiaMes|date('F Y') }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 10pt;
+            color: #333;
+            line-height: 1.4;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #007bff;
+        }
+        
+        .header h1 {
+            font-size: 20pt;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+        
+        .header .subtitle {
+            font-size: 12pt;
+            color: #666;
+        }
+        
+        .info-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .info-box strong {
+            color: #007bff;
+        }
+        
+        .calendar {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        .calendar th {
+            background: #007bff;
+            color: white;
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #0056b3;
+        }
+        
+        .calendar td {
+            border: 1px solid #dee2e6;
+            padding: 5px;
+            vertical-align: top;
+            width: 14.28%;
+            height: 100px;
+        }
+        
+        .calendar .day-number {
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 5px;
+            font-size: 11pt;
+        }
+        
+        .calendar .other-month {
+            background: #f8f9fa;
+            color: #999;
+        }
+        
+        .calendar .today {
+            background: #e7f3ff;
+            border: 2px solid #007bff;
+        }
+        
+        .activity {
+            font-size: 8pt;
+            margin-bottom: 3px;
+            padding: 2px 4px;
+            border-radius: 3px;
+            border-left: 3px solid;
+        }
+        
+        .activity.repaso {
+            background: #e3f2fd;
+            border-color: #2196F3;
+        }
+        
+        .activity.estudio {
+            background: #e8f5e9;
+            border-color: #4CAF50;
+        }
+        
+        .activity.examenes {
+            background: #fff3e0;
+            border-color: #FF9800;
+        }
+        
+        .activity-time {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .activity-type {
+            font-size: 7pt;
+            color: #666;
+        }
+        
+        .tasks-section {
+            margin-top: 20px;
+            page-break-inside: avoid;
+        }
+        
+        .tasks-section h2 {
+            color: #007bff;
+            font-size: 14pt;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+        }
+        
+        .task-item {
+            margin-bottom: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+        }
+        
+        .task-item.completed {
+            border-left-color: #28a745;
+            opacity: 0.7;
+        }
+        
+        .task-title {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .task-date {
+            font-size: 9pt;
+            color: #666;
+            margin-top: 3px;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            font-size: 8pt;
+            color: #666;
+        }
+        
+        @page {
+            margin: 1.5cm;
+        }
+        
+        .page-break {
+            page-break-after: always;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📅 Planificación Mensual</h1>
+        <div class="subtitle">
+            <strong>{{ usuario.nombreDisplay }}</strong><br>
+            {% set meses = {1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'} %}
+            {{ meses[mes] }} {{ anio }}
+        </div>
+    </div>
+    
+    <div class="info-box">
+        <strong>Información:</strong> Este documento contiene tu planificación personalizada para el mes de 
+        {% set meses = {1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'} %}
+        {{ meses[mes] }} {{ anio }}.
+        {% if planificaciones|length > 1 %}
+            Tienes {{ planificaciones|length }} planificaciones activas.
+        {% endif %}
+    </div>
+    
+    <table class="calendar">
+        <thead>
+            <tr>
+                <th>Lunes</th>
+                <th>Martes</th>
+                <th>Miércoles</th>
+                <th>Jueves</th>
+                <th>Viernes</th>
+                <th>Sábado</th>
+                <th>Domingo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set hoy = 'now'|date('Y-m-d') %}
+            {% set primerDiaSemana = primerDiaMes|date('N') %}
+            
+            {# Calcular el primer día de la semana (lunes) para mostrar #}
+            {% set fechaInicio = primerDiaMes %}
+            {% if primerDiaSemana > 1 %}
+                {% set diasRetroceso = primerDiaSemana - 1 %}
+                {% set fechaInicio = primerDiaMes|date_modify('-' ~ diasRetroceso ~ ' days') %}
+            {% endif %}
+            
+            {# Generar 6 semanas máximo #}
+            {% for semana in 0..5 %}
+                <tr>
+                    {% for diaSemana in 0..6 %}
+                        {% set diasOffset = semana * 7 + diaSemana %}
+                        {% set fechaActual = fechaInicio|date_modify('+' ~ diasOffset ~ ' days') %}
+                        {% set fechaDiaStr = fechaActual|date('Y-m-d') %}
+                        {% set esDelMes = fechaActual >= primerDiaMes and fechaActual <= ultimoDiaMes %}
+                        
+                        <td {% if not esDelMes %}class="other-month"{% elseif fechaDiaStr == hoy %}class="today"{% endif %}>
+                            <div class="day-number">{{ fechaActual|date('d') }}</div>
+                            {% if esDelMes and franjasPorDia[fechaDiaStr] is defined %}
+                                {% for franja in franjasPorDia[fechaDiaStr] %}
+                                    <div class="activity {% if franja.tipoActividad == 'repaso_basico' %}repaso{% elseif franja.tipoActividad == 'realizar_examenes' %}examenes{% else %}estudio{% endif %}">
+                                        <div class="activity-time">{{ franja.horaInicio|date('H:i') }} - {{ franja.horaFin|date('H:i') }}</div>
+                                        <div class="activity-type">
+                                            {% if franja.tipoActividad == 'repaso_basico' %}
+                                                📚 Repaso
+                                            {% elseif franja.tipoActividad == 'realizar_examenes' %}
+                                                📝 Exámenes
+                                            {% else %}
+                                                📖 Estudio
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    {% if tareasDelMes|length > 0 %}
+        <div class="tasks-section">
+            <h2>📋 Tareas del Mes</h2>
+            {% for tareaAsignada in tareasDelMes %}
+                <div class="task-item {% if tareaAsignada.isCompletada() %}completed{% endif %}">
+                    <div class="task-title">
+                        {% if tareaAsignada.isCompletada() %}✓ {% endif %}{{ tareaAsignada.tarea.nombre }}
+                    </div>
+                    {% if tareaAsignada.tarea.descripcion %}
+                        <div style="font-size: 9pt; color: #555; margin-top: 3px;">
+                            {{ tareaAsignada.tarea.descripcion }}
+                        </div>
+                    {% endif %}
+                    <div class="task-date">
+                        Semana: {{ tareaAsignada.tarea.semanaAsignacion|date('d/m/Y') }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    <div class="footer">
+        <p>Generado el {{ 'now'|date('d/m/Y H:i') }} - {{ usuario.nombreDisplay }}</p>
+    </div>
+</body>
+</html>
+

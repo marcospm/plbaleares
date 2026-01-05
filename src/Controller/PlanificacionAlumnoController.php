@@ -8,6 +8,8 @@ use App\Repository\TareaAsignadaRepository;
 use App\Service\NotificacionService;
 use App\Service\PlanificacionService;
 use Doctrine\ORM\EntityManagerInterface;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -225,6 +227,123 @@ class PlanificacionAlumnoController extends AbstractController
         $entityManager->flush();
 
         return new JsonResponse(['success' => true, 'message' => 'Tarea marcada como pendiente.']);
+    }
+
+    #[Route('/pdf-mensual', name: 'app_planificacion_alumno_pdf_mensual', methods: ['GET'])]
+    public function pdfMensual(
+        Request $request,
+        PlanificacionPersonalizadaRepository $planificacionRepository,
+        PlanificacionService $planificacionService
+    ): Response {
+        $usuario = $this->getUser();
+        $planificaciones = $planificacionRepository->findAllByUsuario($usuario);
+
+        if (empty($planificaciones)) {
+            $this->addFlash('error', 'No tienes planificaciones asignadas.');
+            return $this->redirectToRoute('app_planificacion_alumno_index');
+        }
+
+        $mes = $request->query->getInt('mes');
+        $anio = $request->query->getInt('anio');
+
+        if ($mes < 1 || $mes > 12) {
+            $this->addFlash('error', 'Mes inválido.');
+            return $this->redirectToRoute('app_planificacion_alumno_index');
+        }
+
+        if ($anio < 2000 || $anio > 2100) {
+            $this->addFlash('error', 'Año inválido.');
+            return $this->redirectToRoute('app_planificacion_alumno_index');
+        }
+
+        // Obtener primer y último día del mes
+        $primerDiaMes = new \DateTime("$anio-$mes-01");
+        $ultimoDiaMes = clone $primerDiaMes;
+        $ultimoDiaMes->modify('last day of this month');
+
+        // Obtener todas las franjas del mes
+        $franjasPorDia = [];
+        $fechaActual = clone $primerDiaMes;
+        
+        while ($fechaActual <= $ultimoDiaMes) {
+            $franjasDelDia = $planificacionService->obtenerFranjasDelDia($usuario, $fechaActual);
+            
+            // Ordenar por hora de inicio
+            usort($franjasDelDia, function($a, $b) {
+                return $a->getHoraInicio() <=> $b->getHoraInicio();
+            });
+            
+            $franjasPorDia[$fechaActual->format('Y-m-d')] = $franjasDelDia;
+            $fechaActual->modify('+1 day');
+        }
+
+        // Obtener tareas del mes
+        $tareasPendientes = $planificacionService->obtenerTareasPendientes($usuario);
+        $tareasDelMes = [];
+        foreach ($tareasPendientes as $tareaAsignada) {
+            $fechaTarea = $tareaAsignada->getTarea()->getSemanaAsignacion();
+            // Obtener lunes de la semana de la tarea
+            $lunesTarea = clone $fechaTarea;
+            if ($lunesTarea->format('N') != '1') {
+                $lunesTarea->modify('monday this week');
+            }
+            // Obtener domingo de la semana de la tarea
+            $domingoTarea = clone $lunesTarea;
+            $domingoTarea->modify('+6 days');
+            
+            // Si la semana de la tarea se solapa con el mes, incluirla
+            if (($lunesTarea >= $primerDiaMes && $lunesTarea <= $ultimoDiaMes) ||
+                ($domingoTarea >= $primerDiaMes && $domingoTarea <= $ultimoDiaMes) ||
+                ($lunesTarea < $primerDiaMes && $domingoTarea > $ultimoDiaMes)) {
+                $tareasDelMes[] = $tareaAsignada;
+            }
+        }
+
+        // Generar HTML para el PDF
+        $html = $this->renderView('planificacion_alumno/pdf_mensual.html.twig', [
+            'usuario' => $usuario,
+            'mes' => $mes,
+            'anio' => $anio,
+            'primerDiaMes' => $primerDiaMes,
+            'ultimoDiaMes' => $ultimoDiaMes,
+            'franjasPorDia' => $franjasPorDia,
+            'tareasDelMes' => $tareasDelMes,
+            'planificaciones' => $planificaciones,
+        ]);
+
+        // Configurar DomPDF
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'Helvetica');
+        $options->set('isPhpEnabled', true);
+        $options->set('isFontSubsettingEnabled', false);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html, 'UTF-8');
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        // Generar nombre del archivo
+        $meses = [
+            1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+            5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+            9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
+        ];
+        $nombreMes = $meses[$mes] ?? 'Mes';
+        $nombreArchivo = "Planificacion_{$nombreMes}_{$anio}.pdf";
+
+        // Retornar PDF
+        $response = new Response(
+            $dompdf->output(),
+            200,
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $nombreArchivo . '"',
+            ]
+        );
+        
+        return $response;
     }
 }
 
