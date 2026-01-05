@@ -7,11 +7,13 @@ use App\Entity\ExamenSemanal;
 use App\Entity\Pregunta;
 use App\Repository\ExamenSemanalRepository;
 use App\Repository\ExamenRepository;
+use App\Repository\ExamenBorradorRepository;
 use App\Repository\PreguntaRepository;
 use App\Repository\PreguntaMunicipalRepository;
 use App\Repository\TemaRepository;
 use App\Repository\TemaMunicipalRepository;
 use App\Repository\MunicipioRepository;
+use App\Entity\ExamenBorrador;
 use App\Form\ExamenSemanalPDFType;
 use App\Repository\ConfiguracionExamenRepository;
 use App\Service\NotificacionService;
@@ -31,6 +33,7 @@ class ExamenSemanalAlumnoController extends AbstractController
     public function __construct(
         private ExamenSemanalRepository $examenSemanalRepository,
         private ExamenRepository $examenRepository,
+        private ExamenBorradorRepository $examenBorradorRepository,
         private PreguntaRepository $preguntaRepository,
         private PreguntaMunicipalRepository $preguntaMunicipalRepository,
         private TemaRepository $temaRepository,
@@ -179,6 +182,20 @@ class ExamenSemanalAlumnoController extends AbstractController
             return $this->redirectToRoute('app_examen_semanal_alumno_index');
         }
 
+        // Verificar si hay un borrador para este examen semanal
+        $borrador = $this->examenBorradorRepository->findOneByUsuarioAndExamenSemanal($alumno, $examenSemanal);
+        
+        // Si hay borrador, restaurar desde él
+        if ($borrador) {
+            $session->set('examen_preguntas', $borrador->getPreguntasIds());
+            $session->set('examen_respuestas', $borrador->getRespuestas());
+            $session->set('examen_config', $borrador->getConfig());
+            $session->set('examen_pregunta_actual', $borrador->getPreguntaActual());
+            $session->set('examen_tiempo_restante', $borrador->getTiempoRestante());
+            
+            return $this->redirectToRoute('app_examen_pregunta', ['numero' => $borrador->getPreguntaActual()]);
+        }
+        
         // Limpiar sesión de examen anterior si existe
         $session->remove('examen_preguntas');
         $session->remove('examen_respuestas');

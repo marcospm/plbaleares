@@ -46,7 +46,20 @@
                                         </div>
                                     {% elseif examenGeneral.estaDisponible() %}
                                         <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                                            <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenGeneral.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;">Realizar Examen Online</a>
+                                            {% if borradoresSemanales[examenGeneral.id] is defined %}
+                                                <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 0.75rem; margin-bottom: 0.5rem;">
+                                                    <small style="display: block; color: #856404; margin-bottom: 0.5rem;">
+                                                        <strong>📝 Examen guardado en borrador</strong><br>
+                                                        Pregunta: {{ borradoresSemanales[examenGeneral.id].preguntaActual }}/{{ borradoresSemanales[examenGeneral.id].preguntasIds|length }} | 
+                                                        Respondidas: {{ borradoresSemanales[examenGeneral.id].respuestas|length }}
+                                                        {% if borradoresSemanales[examenGeneral.id].tiempoRestante %}
+                                                            | Tiempo restante: {{ (borradoresSemanales[examenGeneral.id].tiempoRestante / 60)|round }} min
+                                                        {% endif %}
+                                                    </small>
+                                                    <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenGeneral.id}) }}" class="btn btn-warning btn-sm" style="width: 100%;">▶️ Continuar Examen</a>
+                                                </div>
+                                            {% endif %}
+                                            <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenGeneral.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;">{{ borradoresSemanales[examenGeneral.id] is defined ? 'Iniciar Nuevo' : 'Realizar Examen Online' }}</a>
                                             {% if examenesPDFPorSemanal[examenGeneral.id] is defined %}
                                                 <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examenGeneral.id}) }}" class="btn btn-warning" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Editar Resultados PDF</a>
                                             {% else %}
@@ -103,7 +116,20 @@
                                         </div>
                                     {% elseif examenMunicipal.estaDisponible() %}
                                         <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                                            <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenMunicipal.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;">Realizar Examen Online</a>
+                                            {% if borradoresSemanales[examenMunicipal.id] is defined %}
+                                                <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 0.75rem; margin-bottom: 0.5rem;">
+                                                    <small style="display: block; color: #856404; margin-bottom: 0.5rem;">
+                                                        <strong>📝 Examen guardado en borrador</strong><br>
+                                                        Pregunta: {{ borradoresSemanales[examenMunicipal.id].preguntaActual }}/{{ borradoresSemanales[examenMunicipal.id].preguntasIds|length }} | 
+                                                        Respondidas: {{ borradoresSemanales[examenMunicipal.id].respuestas|length }}
+                                                        {% if borradoresSemanales[examenMunicipal.id].tiempoRestante %}
+                                                            | Tiempo restante: {{ (borradoresSemanales[examenMunicipal.id].tiempoRestante / 60)|round }} min
+                                                        {% endif %}
+                                                    </small>
+                                                    <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenMunicipal.id}) }}" class="btn btn-warning btn-sm" style="width: 100%;">▶️ Continuar Examen</a>
+                                                </div>
+                                            {% endif %}
+                                            <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenMunicipal.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;">{{ borradoresSemanales[examenMunicipal.id] is defined ? 'Iniciar Nuevo' : 'Realizar Examen Online' }}</a>
                                             {% if examenesPDFPorSemanal[examenMunicipal.id] is defined %}
                                                 <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examenMunicipal.id}) }}" class="btn btn-warning" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Editar Resultados PDF</a>
                                             {% else %}
@@ -162,7 +188,20 @@
                                 <div>
                                     {% if examenConvocatoria.estaDisponible() %}
                                         <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                                            <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenConvocatoria.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;">Realizar Examen Online</a>
+                                            {% if borradoresSemanales[examenConvocatoria.id] is defined %}
+                                                <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 0.75rem; margin-bottom: 0.5rem;">
+                                                    <small style="display: block; color: #856404; margin-bottom: 0.5rem;">
+                                                        <strong>📝 Examen guardado en borrador</strong><br>
+                                                        Pregunta: {{ borradoresSemanales[examenConvocatoria.id].preguntaActual }}/{{ borradoresSemanales[examenConvocatoria.id].preguntasIds|length }} | 
+                                                        Respondidas: {{ borradoresSemanales[examenConvocatoria.id].respuestas|length }}
+                                                        {% if borradoresSemanales[examenConvocatoria.id].tiempoRestante %}
+                                                            | Tiempo restante: {{ (borradoresSemanales[examenConvocatoria.id].tiempoRestante / 60)|round }} min
+                                                        {% endif %}
+                                                    </small>
+                                                    <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenConvocatoria.id}) }}" class="btn btn-warning btn-sm" style="width: 100%;">▶️ Continuar Examen</a>
+                                                </div>
+                                            {% endif %}
+                                            <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenConvocatoria.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;">{{ borradoresSemanales[examenConvocatoria.id] is defined ? 'Iniciar Nuevo' : 'Realizar Examen Online' }}</a>
                                             {% if examenesPDFPorSemanal[examenConvocatoria.id] is defined %}
                                                 <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examenConvocatoria.id}) }}" class="btn btn-warning" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Editar Resultados PDF</a>
                                             {% else %}

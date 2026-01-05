@@ -6,6 +6,7 @@ use App\Entity\Examen;
 use App\Entity\Pregunta;
 use App\Form\ExamenIniciarType;
 use App\Repository\ExamenRepository;
+use App\Repository\ExamenBorradorRepository;
 use App\Repository\PreguntaRepository;
 use App\Repository\PreguntaMunicipalRepository;
 use App\Repository\TemaRepository;
@@ -14,6 +15,7 @@ use App\Repository\MunicipioRepository;
 use App\Repository\UserRepository;
 use App\Repository\ConvocatoriaRepository;
 use App\Repository\ConfiguracionExamenRepository;
+use App\Entity\ExamenBorrador;
 use App\Service\NotificacionService;
 use App\Service\ConfiguracionExamenService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -36,6 +38,7 @@ class ExamenController extends AbstractController
         private MunicipioRepository $municipioRepository,
         private ConvocatoriaRepository $convocatoriaRepository,
         private ExamenRepository $examenRepository,
+        private ExamenBorradorRepository $examenBorradorRepository,
         private ConfiguracionExamenRepository $configuracionExamenRepository,
         private ConfiguracionExamenService $configuracionExamenService,
         private EntityManagerInterface $entityManager,
@@ -461,16 +464,27 @@ class ExamenController extends AbstractController
             }
         }
 
+        // Obtener borradores del usuario (excluyendo exámenes semanales que tienen su propia lista)
+        $borradores = $this->examenBorradorRepository->createQueryBuilder('b')
+            ->where('b.usuario = :usuario')
+            ->andWhere('b.examenSemanal IS NULL')
+            ->setParameter('usuario', $user)
+            ->orderBy('b.fechaActualizacion', 'DESC')
+            ->getQuery()
+            ->getResult();
+
         return $this->render('examen/iniciar.html.twig', [
             'form' => $form,
             'preguntasDisponibles' => $preguntasDisponibles,
             'mostrarOpcionMunicipal' => $mostrarOpcionMunicipal,
+            'borradores' => $borradores,
         ]);
     }
 
     #[Route('/pregunta/{numero}', name: 'app_examen_pregunta', methods: ['GET', 'POST'])]
     public function pregunta(int $numero, Request $request, SessionInterface $session): Response
     {
+        $user = $this->getUser();
         $preguntasIds = $session->get('examen_preguntas', []);
         $respuestas = $session->get('examen_respuestas', []);
         $config = $session->get('examen_config', []);
@@ -512,6 +526,21 @@ class ExamenController extends AbstractController
             // Determinar siguiente acción
             $accion = $request->request->get('accion');
             $numeroDestino = $request->request->getInt('numero_destino');
+            
+            // Si la acción es guardar borrador
+            if ($accion === 'guardar_borrador') {
+                $tiempoRestante = $request->request->getInt('tiempo_restante');
+                $examenSemanalId = $config['examen_semanal_id'] ?? null;
+                $this->guardarBorrador($session, $user, $tiempoRestante, $examenSemanalId);
+                
+                if ($examenSemanalId) {
+                    $this->addFlash('success', 'Examen guardado en borrador. Puedes continuarlo más tarde desde la lista de exámenes semanales.');
+                    return $this->redirectToRoute('app_examen_semanal_alumno_index');
+                } else {
+                    $this->addFlash('success', 'Examen guardado en borrador. Puedes continuarlo más tarde desde la página de inicio.');
+                    return $this->redirectToRoute('app_examen_iniciar');
+                }
+            }
             
             // Si hay un número destino específico, redirigir allí
             if ($numeroDestino > 0 && $numeroDestino >= 1 && $numeroDestino <= count($preguntasIds)) {
@@ -573,6 +602,13 @@ class ExamenController extends AbstractController
                 'tieneRespuesta' => isset($respuestas[$preguntaId]),
                 'esActual' => ($i + 1) === $numero,
             ];
+        }
+        
+        // Obtener tiempo restante de la sesión si existe (viene de un borrador)
+        $tiempoRestante = $session->get('examen_tiempo_restante');
+        if ($tiempoRestante) {
+            $config['tiempo_restante'] = $tiempoRestante;
+            $session->remove('examen_tiempo_restante'); // Limpiar después de usarlo
         }
 
         return $this->render('examen/pregunta.html.twig', [
@@ -769,6 +805,37 @@ class ExamenController extends AbstractController
 
         $this->entityManager->persist($examen);
         $this->entityManager->flush();
+
+        // Eliminar borrador si existe
+        $user = $this->getUser();
+        $examenSemanalId = $config['examen_semanal_id'] ?? null;
+        
+        if ($examenSemanalId) {
+            // Si es examen semanal, buscar por examen semanal
+            $examenSemanal = $this->entityManager->getRepository(\App\Entity\ExamenSemanal::class)->find($examenSemanalId);
+            if ($examenSemanal) {
+                $borrador = $this->examenBorradorRepository->findOneByUsuarioAndExamenSemanal($user, $examenSemanal);
+                if ($borrador) {
+                    $this->entityManager->remove($borrador);
+                    $this->entityManager->flush();
+                }
+            }
+        } else {
+            // Determinar tipo de examen
+            $tipoExamen = 'general';
+            if (isset($config['convocatoria_id'])) {
+                $tipoExamen = 'convocatoria';
+            } elseif (isset($config['municipio_id'])) {
+                $tipoExamen = 'municipal';
+            }
+            
+            // Buscar y eliminar borrador
+            $borrador = $this->examenBorradorRepository->findOneByUsuarioAndTipo($user, $tipoExamen);
+            if ($borrador) {
+                $this->entityManager->remove($borrador);
+                $this->entityManager->flush();
+            }
+        }
 
         // Recargar el examen con todas sus relaciones para asegurar que estén disponibles en el template
         $examen = $this->examenRepository->createQueryBuilder('e')
@@ -2231,6 +2298,90 @@ class ExamenController extends AbstractController
         }
         
         return $preguntasSeleccionadas;
+    }
+
+    /**
+     * Guarda el examen actual en borrador
+     */
+    private function guardarBorrador(SessionInterface $session, $user, ?int $tiempoRestante = null, ?int $examenSemanalId = null): void
+    {
+        $preguntasIds = $session->get('examen_preguntas', []);
+        $respuestas = $session->get('examen_respuestas', []);
+        $config = $session->get('examen_config', []);
+        $preguntaActual = $session->get('examen_pregunta_actual', 1);
+        
+        if (empty($preguntasIds)) {
+            return;
+        }
+        
+        // Si es examen semanal, buscar por examen semanal
+        if ($examenSemanalId) {
+            $examenSemanal = $this->entityManager->getRepository(\App\Entity\ExamenSemanal::class)->find($examenSemanalId);
+            if ($examenSemanal) {
+                $borrador = $this->examenBorradorRepository->findOneByUsuarioAndExamenSemanal($user, $examenSemanal);
+                if (!$borrador) {
+                    $borrador = new ExamenBorrador();
+                    $borrador->setUsuario($user);
+                    $borrador->setTipoExamen('semanal');
+                    $borrador->setExamenSemanal($examenSemanal);
+                }
+            } else {
+                return; // No se encontró el examen semanal
+            }
+        } else {
+            // Determinar tipo de examen
+            $tipoExamen = 'general';
+            if (isset($config['convocatoria_id'])) {
+                $tipoExamen = 'convocatoria';
+            } elseif (isset($config['municipio_id'])) {
+                $tipoExamen = 'municipal';
+            }
+            
+            // Buscar borrador existente o crear uno nuevo
+            $borrador = $this->examenBorradorRepository->findOneByUsuarioAndTipo($user, $tipoExamen);
+            
+            if (!$borrador) {
+                $borrador = new ExamenBorrador();
+                $borrador->setUsuario($user);
+                $borrador->setTipoExamen($tipoExamen);
+            }
+        }
+        
+        // Actualizar datos del borrador
+        $borrador->setConfig($config);
+        $borrador->setPreguntasIds($preguntasIds);
+        $borrador->setRespuestas($respuestas);
+        $borrador->setPreguntaActual($preguntaActual);
+        $borrador->setTiempoRestante($tiempoRestante);
+        $borrador->setFechaActualizacion(new \DateTime());
+        
+        $this->entityManager->persist($borrador);
+        $this->entityManager->flush();
+    }
+
+    /**
+     * Continúa un examen desde un borrador
+     */
+    #[Route('/continuar/{id}', name: 'app_examen_continuar', methods: ['GET'])]
+    public function continuar(int $id, SessionInterface $session): Response
+    {
+        $user = $this->getUser();
+        $borrador = $this->examenBorradorRepository->find($id);
+        
+        if (!$borrador || $borrador->getUsuario() !== $user) {
+            $this->addFlash('error', 'Borrador no encontrado.');
+            return $this->redirectToRoute('app_examen_iniciar');
+        }
+        
+        // Restaurar sesión desde el borrador
+        $session->set('examen_preguntas', $borrador->getPreguntasIds());
+        $session->set('examen_respuestas', $borrador->getRespuestas());
+        $session->set('examen_config', $borrador->getConfig());
+        $session->set('examen_pregunta_actual', $borrador->getPreguntaActual());
+        $session->set('examen_tiempo_restante', $borrador->getTiempoRestante());
+        
+        // Redirigir a la pregunta actual
+        return $this->redirectToRoute('app_examen_pregunta', ['numero' => $borrador->getPreguntaActual()]);
     }
 }
 

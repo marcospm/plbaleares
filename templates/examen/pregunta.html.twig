@@ -172,6 +172,7 @@
                 {% else %}
                     <button type="submit" name="accion" value="finalizar" class="btn btn-success" id="btnFinalizarExamen" onclick="return confirm('¿Estás seguro de finalizar el examen?');">Finalizar Examen</button>
                 {% endif %}
+                <button type="submit" name="accion" value="guardar_borrador" class="btn btn-secondary" id="btnGuardarBorrador" style="margin-left: auto;">💾 Guardar y continuar más tarde</button>
             </div>
         </form>
 
@@ -579,8 +580,17 @@
             let estaPausado = false;
             
             // Obtener tiempo límite de la configuración (en minutos, convertir a segundos)
+            // Obtener tiempo límite o tiempo restante del borrador
+            const tiempoRestanteBorrador = {{ (config.tiempo_restante ?? null)|default('null') }};
             const tiempoLimiteMinutos = {{ (config.tiempo_limite ?? 60)|default(60) }};
-            tiempoLimite = tiempoLimiteMinutos * 60;
+            
+            if (tiempoRestanteBorrador !== null && tiempoRestanteBorrador > 0) {
+                // Si hay tiempo restante del borrador, usarlo
+                tiempoLimite = tiempoRestanteBorrador;
+            } else {
+                // Si no, usar el tiempo límite configurado
+                tiempoLimite = tiempoLimiteMinutos * 60;
+            }
             
             // Función para formatear el tiempo
             function formatearTiempo(segundos) {
@@ -818,6 +828,18 @@
                         const accion = document.querySelector('button[name="accion"][value="finalizar"]');
                         if (accion && accion.form === formPregunta) {
                             limpiarTemporizador();
+                        }
+                        
+                        // Si es guardar borrador, añadir tiempo restante
+                        const btnGuardar = document.getElementById('btnGuardarBorrador');
+                        if (btnGuardar && btnGuardar.form === formPregunta && document.querySelector('button[name="accion"][value="guardar_borrador"]:focus')) {
+                            // Calcular tiempo restante
+                            const tiempoRestante = tiempoLimite - (Date.now() - tiempoInicio) / 1000 + tiempoPausado;
+                            const inputTiempo = document.createElement('input');
+                            inputTiempo.type = 'hidden';
+                            inputTiempo.name = 'tiempo_restante';
+                            inputTiempo.value = Math.max(0, Math.floor(tiempoRestante));
+                            formPregunta.appendChild(inputTiempo);
                         }
                     });
                     
