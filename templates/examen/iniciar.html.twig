@@ -96,6 +96,10 @@
                 {{ form_row(form.numeroPreguntas) }}
             </div>
 
+            <div class="form-group mb-3">
+                {{ form_row(form.tiempoLimite) }}
+            </div>
+
             {% if preguntasDisponibles is defined and preguntasDisponibles is not null %}
                 {% if preguntasDisponibles > 0 %}
                     <div class="alert alert-info">
@@ -549,6 +553,12 @@ select[name="examen_iniciar[convocatoria]"]:focus {
         // DOM ya está listo
         inicializarFormulario();
     }
+    // Limpiar temporizador al iniciar un nuevo examen
+    localStorage.removeItem('examen_tiempo_inicio');
+    localStorage.removeItem('examen_tiempo_limite');
+    localStorage.removeItem('examen_tiempo_pausado_total');
+    localStorage.removeItem('examen_timer_pausado');
+    localStorage.removeItem('examen_timer_ultima_pausa');
 })();
 </script>
 {% endblock %}

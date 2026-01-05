@@ -349,11 +349,15 @@ class ExamenController extends AbstractController
                 
                 $preguntasIds = array_map(fn($p) => $p->getId(), $preguntasSeleccionadas);
 
+                // Obtener tiempo límite del formulario (por defecto 60 minutos)
+                $tiempoLimite = $data['tiempoLimite'] ?? 60;
+                
                 // Guardar en sesión
                 $config = [
                     'dificultad' => $dificultad,
                     'numero_preguntas' => $preguntasAUsar,
                     'es_municipal' => $esMunicipal,
+                    'tiempo_limite' => $tiempoLimite, // Tiempo en minutos
                 ];
                 
                 if ($esMunicipal) {
@@ -582,6 +586,7 @@ class ExamenController extends AbstractController
             'esMunicipal' => $esMunicipal,
             'porcentajesPorTema' => $porcentajesPorTema,
             'estadoPreguntas' => $estadoPreguntas,
+            'config' => $config,
         ]);
     }
 

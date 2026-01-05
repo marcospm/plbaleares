@@ -188,6 +188,21 @@ class ExamenIniciarType extends AbstractType
                 'required' => true,
                 'attr' => ['class' => 'form-control']
             ])
+            ->add('tiempoLimite', ChoiceType::class, [
+                'label' => 'Tiempo del Temporizador (minutos)',
+                'choices' => [
+                    '30 minutos' => 30,
+                    '45 minutos' => 45,
+                    '60 minutos' => 60,
+                    '75 minutos' => 75,
+                    '90 minutos' => 90,
+                    '120 minutos' => 120,
+                ],
+                'required' => true,
+                'data' => 60, // Valor por defecto: 60 minutos
+                'attr' => ['class' => 'form-control'],
+                'help' => 'Puedes pausar el temporizador en cualquier momento durante el examen.'
+            ])
         ;
 
         // Agregar validación condicional para municipio y temas municipales

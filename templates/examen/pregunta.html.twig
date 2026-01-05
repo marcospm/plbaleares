@@ -5,11 +5,20 @@
 {% block body %}
 <div class="card">
     <div class="card-header">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h2>Pregunta {{ numero }} de {{ total }}</h2>
-            <div style="flex: 1; margin: 0 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <h2 style="margin: 0;">Pregunta {{ numero }} de {{ total }}</h2>
+            <div id="examen-timer-container" style="display: flex; align-items: center; gap: 0.75rem;">
+                <div id="examen-timer" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; font-weight: bold; font-size: 1.1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                    <span style="font-size: 1.3rem;">⏱️</span>
+                    <span id="timer-display">--:--</span>
+                </div>
+                <button id="timer-pause-btn" type="button" style="padding: 0.5rem 1rem; background: #6c757d; color: white; border: none; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s; font-size: 0.9rem;" title="Pausar/Reanudar temporizador">
+                    ⏸️ Pausar
+                </button>
+            </div>
+            <div style="flex: 1; min-width: 200px; margin: 0;">
                 <div style="background: #e0e0e0; height: 20px; border-radius: 10px; overflow: hidden;">
-                    <div style="background: var(--color-primary); height: 100%; width: {{ (numero / total * 100) }}%; transition: width 0.3s;"></div>
+                    <div id="progress-bar" style="background: var(--color-primary); height: 100%; width: {{ (numero / total * 100) }}%; transition: width 0.3s;"></div>
                 </div>
             </div>
         </div>
@@ -161,7 +170,7 @@
                 {% if not esUltima %}
                     <button type="submit" name="accion" value="siguiente" class="btn btn-primary">Siguiente</button>
                 {% else %}
-                    <button type="submit" name="accion" value="finalizar" class="btn btn-success" onclick="return confirm('¿Estás seguro de finalizar el examen?');">Finalizar Examen</button>
+                    <button type="submit" name="accion" value="finalizar" class="btn btn-success" id="btnFinalizarExamen" onclick="return confirm('¿Estás seguro de finalizar el examen?');">Finalizar Examen</button>
                 {% endif %}
             </div>
         </form>
@@ -556,61 +565,344 @@
         </script>
         {% endif %}
 
-        {# Script para navegación rápida de preguntas #}
+        {# Script para temporizador y navegación rápida de preguntas #}
         <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const preguntaLinks = document.querySelectorAll('.pregunta-link');
-            const formPregunta = document.getElementById('formPregunta');
+        (function() {
+            'use strict';
             
-            if (!formPregunta) {
-                console.error('No se encontró el formulario formPregunta');
-                return;
+            // Variables del temporizador
+            let tiempoInicio = null;
+            let tiempoLimite = null; // En segundos
+            let tiempoPausado = 0; // Tiempo acumulado en pausa
+            let tiempoUltimaPausa = null; // Timestamp de cuando se pausó
+            let intervalo = null;
+            let estaPausado = false;
+            
+            // Obtener tiempo límite de la configuración (en minutos, convertir a segundos)
+            const tiempoLimiteMinutos = {{ (config.tiempo_limite ?? 60)|default(60) }};
+            tiempoLimite = tiempoLimiteMinutos * 60;
+            
+            // Función para formatear el tiempo
+            function formatearTiempo(segundos) {
+                const horas = Math.floor(segundos / 3600);
+                const minutos = Math.floor((segundos % 3600) / 60);
+                const segs = segundos % 60;
+                
+                if (horas > 0) {
+                    return `${horas}:${String(minutos).padStart(2, '0')}:${String(segs).padStart(2, '0')}`;
+                }
+                return `${String(minutos).padStart(2, '0')}:${String(segs).padStart(2, '0')}`;
             }
             
-            preguntaLinks.forEach(function(link) {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.stopImmediatePropagation();
+            // Función para actualizar el temporizador
+            function actualizarTemporizador() {
+                if (!tiempoInicio || !tiempoLimite || estaPausado) return;
+                
+                const ahora = Date.now();
+                const tiempoTranscurrido = Math.floor((ahora - tiempoInicio - tiempoPausado) / 1000);
+                const tiempoRestante = Math.max(0, tiempoLimite - tiempoTranscurrido);
+                
+                const timerDisplay = document.getElementById('timer-display');
+                if (timerDisplay) {
+                    timerDisplay.textContent = formatearTiempo(tiempoRestante);
                     
-                    const numeroDestino = parseInt(this.getAttribute('data-pregunta-num'));
-                    const numeroActual = {{ numero }};
+                    // Cambiar color cuando quedan menos de 5 minutos
+                    const timerContainer = document.getElementById('examen-timer');
+                    if (timerContainer) {
+                        if (tiempoRestante <= 300 && tiempoRestante > 0) {
+                            timerContainer.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+                            timerContainer.style.animation = tiempoRestante <= 60 ? 'pulse 1s infinite' : 'none';
+                        } else if (tiempoRestante === 0) {
+                            timerContainer.style.background = 'linear-gradient(135deg, #ff0000 0%, #cc0000 100%)';
+                            // Finalizar examen automáticamente
+                            finalizarExamenPorTiempo();
+                        } else {
+                            timerContainer.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                            timerContainer.style.animation = 'none';
+                        }
+                    }
+                }
+            }
+            
+            // Función para finalizar examen por tiempo
+            function finalizarExamenPorTiempo() {
+                if (intervalo) {
+                    clearInterval(intervalo);
+                    intervalo = null;
+                }
+                
+                if (window.confirm) {
+                    if (confirm('⏱️ Se ha agotado el tiempo del examen. El examen se finalizará automáticamente.')) {
+            const formPregunta = document.getElementById('formPregunta');
+                        if (formPregunta) {
+                            const inputFinalizar = document.createElement('input');
+                            inputFinalizar.type = 'hidden';
+                            inputFinalizar.name = 'accion';
+                            inputFinalizar.value = 'finalizar';
+                            formPregunta.appendChild(inputFinalizar);
+                            formPregunta.submit();
+                        }
+                    }
+                }
+            }
+            
+            // Función para pausar/reanudar
+            function togglePausa() {
+                const btnPausa = document.getElementById('timer-pause-btn');
+                const timerDisplay = document.getElementById('timer-display');
+                
+                if (!btnPausa) {
+                    console.error('No se encontró el botón timer-pause-btn en togglePausa');
+                    return;
+                }
+                
+                if (estaPausado) {
+                    // Reanudar
+                    if (tiempoUltimaPausa) {
+                        const tiempoEnPausa = Date.now() - tiempoUltimaPausa;
+                        tiempoPausado += tiempoEnPausa;
+                        tiempoUltimaPausa = null;
+                        localStorage.setItem('examen_tiempo_pausado_total', tiempoPausado.toString());
+                    }
+                    estaPausado = false;
+                    btnPausa.textContent = '⏸️ Pausar';
+                    btnPausa.style.background = '#6c757d';
+                    btnPausa.title = 'Pausar temporizador';
+                    if (timerDisplay) {
+                        timerDisplay.style.opacity = '1';
+                    }
+                    // Guardar estado en localStorage
+                    localStorage.setItem('examen_timer_pausado', 'false');
+                    localStorage.removeItem('examen_timer_ultima_pausa');
+                } else {
+                    // Pausar
+                    tiempoUltimaPausa = Date.now();
+                    estaPausado = true;
+                    btnPausa.textContent = '▶️ Reanudar';
+                    btnPausa.style.background = '#28a745';
+                    btnPausa.title = 'Reanudar temporizador';
+                    if (timerDisplay) {
+                        timerDisplay.style.opacity = '0.6';
+                    }
+                    // Guardar estado en localStorage
+                    localStorage.setItem('examen_timer_pausado', 'true');
+                    localStorage.setItem('examen_timer_ultima_pausa', tiempoUltimaPausa.toString());
+                }
+                
+                // Actualizar el temporizador inmediatamente
+                actualizarTemporizador();
+            }
+            
+            // Inicializar temporizador
+            function inicializarTemporizador() {
+                // Limpiar intervalo anterior si existe
+                if (intervalo) {
+                    clearInterval(intervalo);
+                    intervalo = null;
+                }
+                
+                // Obtener tiempo de inicio desde localStorage o crear uno nuevo
+                const tiempoInicioStorage = localStorage.getItem('examen_tiempo_inicio');
+                const tiempoPausadoStorage = localStorage.getItem('examen_tiempo_pausado_total');
+                const estaPausadoStorage = localStorage.getItem('examen_timer_pausado');
+                const ultimaPausaStorage = localStorage.getItem('examen_timer_ultima_pausa');
+                
+                if (tiempoInicioStorage) {
+                    tiempoInicio = parseInt(tiempoInicioStorage);
+                    tiempoPausado = tiempoPausadoStorage ? parseInt(tiempoPausadoStorage) : 0;
+                    estaPausado = estaPausadoStorage === 'true';
                     
-                    // Si es la misma pregunta, no hacer nada
-                    if (numeroDestino === numeroActual || isNaN(numeroDestino)) {
+                    if (estaPausado && ultimaPausaStorage) {
+                        tiempoUltimaPausa = parseInt(ultimaPausaStorage);
+                    }
+                    
+                    // Verificar si el tiempo ha expirado
+                    const ahora = Date.now();
+                    // Si está pausado, calcular el tiempo pausado hasta ahora
+                    let tiempoPausadoActual = tiempoPausado;
+                    if (estaPausado && tiempoUltimaPausa) {
+                        tiempoPausadoActual += (ahora - tiempoUltimaPausa);
+                    }
+                    const tiempoTranscurrido = Math.floor((ahora - tiempoInicio - tiempoPausadoActual) / 1000);
+                    if (tiempoTranscurrido >= tiempoLimite) {
+                        finalizarExamenPorTiempo();
+                        return;
+                    }
+                } else {
+                    // Primera vez: establecer tiempo de inicio
+                    tiempoInicio = Date.now();
+                    tiempoPausado = 0;
+                    estaPausado = false;
+                    localStorage.setItem('examen_tiempo_inicio', tiempoInicio.toString());
+                    localStorage.setItem('examen_tiempo_limite', tiempoLimite.toString());
+                    localStorage.setItem('examen_tiempo_pausado_total', '0');
+                    localStorage.setItem('examen_timer_pausado', 'false');
+                }
+                
+                // Actualizar botón de pausa
+                const btnPausa = document.getElementById('timer-pause-btn');
+                if (btnPausa) {
+                    if (estaPausado) {
+                        btnPausa.textContent = '▶️ Reanudar';
+                        btnPausa.style.background = '#28a745';
+                        btnPausa.title = 'Reanudar temporizador';
+                    } else {
+                        btnPausa.textContent = '⏸️ Pausar';
+                        btnPausa.style.background = '#6c757d';
+                        btnPausa.title = 'Pausar temporizador';
+                    }
+                }
+                
+                // Actualizar cada segundo
+                intervalo = setInterval(function() {
+                    if (!estaPausado) {
+                        actualizarTemporizador();
+                    } else {
+                        // Si está pausado, actualizar el tiempo pausado acumulado
+                        if (tiempoUltimaPausa) {
+                            const tiempoEnPausa = Date.now() - tiempoUltimaPausa;
+                            localStorage.setItem('examen_tiempo_pausado_total', (tiempoPausado + tiempoEnPausa).toString());
+                        }
+                    }
+                }, 1000);
+                
+                actualizarTemporizador(); // Llamar inmediatamente
+            }
+            
+            // Limpiar temporizador al finalizar examen
+            function limpiarTemporizador() {
+                if (intervalo) {
+                    clearInterval(intervalo);
+                    intervalo = null;
+                }
+                localStorage.removeItem('examen_tiempo_inicio');
+                localStorage.removeItem('examen_tiempo_limite');
+                localStorage.removeItem('examen_tiempo_pausado_total');
+                localStorage.removeItem('examen_timer_pausado');
+                localStorage.removeItem('examen_timer_ultima_pausa');
+            }
+            
+            // Inicializar cuando el DOM esté listo
+            function inicializarTodo() {
+                // Inicializar temporizador
+                inicializarTemporizador();
+                
+                // Botón de pausa/reanudar
+                const btnPausa = document.getElementById('timer-pause-btn');
+                if (btnPausa) {
+                    // Usar onclick directamente para evitar problemas con múltiples listeners
+                    btnPausa.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        console.log('Botón de pausa clickeado');
+                        togglePausa();
                         return false;
-                    }
+                    };
+                } else {
+                    console.error('No se encontró el botón timer-pause-btn');
+                }
+                
+                // Limpiar temporizador al hacer clic en "Finalizar Examen"
+                const btnFinalizar = document.getElementById('btnFinalizarExamen') || document.querySelector('button[name="accion"][value="finalizar"]');
+                if (btnFinalizar) {
+                    btnFinalizar.addEventListener('click', function() {
+                        limpiarTemporizador();
+                    });
+                }
+                
+                // También limpiar al enviar el formulario con acción finalizar
+                const formPregunta = document.getElementById('formPregunta');
+                if (formPregunta) {
+                    formPregunta.addEventListener('submit', function(e) {
+                        const accion = document.querySelector('button[name="accion"][value="finalizar"]');
+                        if (accion && accion.form === formPregunta) {
+                            limpiarTemporizador();
+                        }
+                    });
                     
-                    // Guardar respuesta actual si hay alguna seleccionada
-                    const respuestaSeleccionada = formPregunta.querySelector('input[name="respuesta"]:checked');
+                    // Navegación rápida de preguntas
+                    const preguntaLinks = document.querySelectorAll('.pregunta-link');
                     
-                    // Eliminar cualquier input destino existente
-                    const inputDestinoExistente = formPregunta.querySelector('input[name="numero_destino"]');
-                    if (inputDestinoExistente) {
-                        inputDestinoExistente.remove();
-                    }
-                    
-                    // Crear un input oculto para el número destino
-                    const inputDestino = document.createElement('input');
-                    inputDestino.type = 'hidden';
-                    inputDestino.name = 'numero_destino';
-                    inputDestino.value = numeroDestino;
-                    formPregunta.appendChild(inputDestino);
-                    
-                    // Enviar el formulario directamente
-                    try {
-                        formPregunta.submit();
-                    } catch (error) {
-                        console.error('Error al enviar el formulario:', error);
-                        // Si falla el submit, redirigir directamente
+                    preguntaLinks.forEach(function(link) {
+                        link.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.stopImmediatePropagation();
+                            
+                            const numeroDestino = parseInt(this.getAttribute('data-pregunta-num'));
+                            const numeroActual = {{ numero }};
+                            
+                            // Si es la misma pregunta, no hacer nada
+                            if (numeroDestino === numeroActual || isNaN(numeroDestino)) {
+                                return false;
+                            }
+                            
+                            // Guardar respuesta actual si hay alguna seleccionada
+                            const respuestaSeleccionada = formPregunta.querySelector('input[name="respuesta"]:checked');
+                            
+                            // Eliminar cualquier input destino existente
+                            const inputDestinoExistente = formPregunta.querySelector('input[name="numero_destino"]');
+                            if (inputDestinoExistente) {
+                                inputDestinoExistente.remove();
+                            }
+                            
+                            // Crear un input oculto para el número destino
+                            const inputDestino = document.createElement('input');
+                            inputDestino.type = 'hidden';
+                            inputDestino.name = 'numero_destino';
+                            inputDestino.value = numeroDestino;
+                            formPregunta.appendChild(inputDestino);
+                            
+                            // Enviar el formulario directamente
+                            try {
+                                formPregunta.submit();
+                            } catch (error) {
+                                console.error('Error al enviar el formulario:', error);
+                                // Si falla el submit, redirigir directamente
                         window.location.href = '{{ path('app_examen_pregunta', {'numero': '__NUM__'}) }}'.replace('__NUM__', numeroDestino);
-                    }
-                    
-                    return false;
-                });
+                            }
+                            
+                            return false;
+                        });
+                    });
+                } else {
+                    console.error('No se encontró el formulario formPregunta');
+                }
+            }
+            
+            // Inicializar cuando el DOM esté listo
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', inicializarTodo);
+            } else {
+                inicializarTodo();
+            }
+            
+            // También inicializar en eventos de Turbo
+            document.addEventListener('turbo:load', inicializarTodo);
+            document.addEventListener('turbo:frame-load', function() {
+                if (document.getElementById('formPregunta')) {
+                    inicializarTodo();
+                }
             });
-        });
+        })();
         </script>
+        
+        <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        #timer-pause-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        #timer-pause-btn:active {
+            transform: scale(0.98);
+        }
+        </style>
     </div>
 </div>
 {% endblock %}
