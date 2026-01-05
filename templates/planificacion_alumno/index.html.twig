@@ -92,7 +92,7 @@
                                         
                                         {% set tieneInfoAdicional = (franja.temas|default('') is not empty) or (franja.recursos|default('') is not empty) or (franja.enlaces|default('') is not empty) or (franja.notas|default('') is not empty) %}
                                         <div class="franja-horaria 
-                                            {% if franja.tipoActividad == 'repaso_basico' %}franja-repaso{% else %}franja-estudio{% endif %}
+                                            {% if franja.tipoActividad == 'repaso_basico' %}franja-repaso{% elseif franja.tipoActividad == 'realizar_examenes' %}franja-examenes{% else %}franja-estudio{% endif %}
                                             {% if tareasFranja|length > 0 %}franja-con-tareas{% endif %}"
                                             style="padding: 0.5rem; margin-bottom: 0.5rem; border-radius: 4px; cursor: pointer; position: relative;"
                                             onclick="toggleFranja(this)"
@@ -129,6 +129,11 @@
                                                 {% if franja.tipoActividad == 'repaso_basico' %}
                                                     <span class="badge badge-info">Repaso</span>
                                                     <div>{{ franja.descripcionRepaso }}</div>
+                                                {% elseif franja.tipoActividad == 'realizar_examenes' %}
+                                                    <span class="badge" style="background-color: #FF9800; color: white;">📝 Realizar Exámenes</span>
+                                                    {% if franja.descripcionRepaso %}
+                                                        <div>{{ franja.descripcionRepaso }}</div>
+                                                    {% endif %}
                                                 {% else %}
                                                     <span class="badge badge-success">Estudio</span>
                                                     {% if franja.descripcionRepaso %}
@@ -332,7 +337,16 @@ function mostrarInfoFranja(franja, tareas) {
     html += '<div style="margin-bottom: 1.5rem;">';
     html += '<h3 style="margin-bottom: 0.5rem; color: #333;">';
     html += escapeHtml(franja.horaInicio) + ' - ' + escapeHtml(franja.horaFin);
-    html += ' <span class="badge" style="background-color: ' + (franja.tipoActividad === 'repaso_basico' ? '#2196F3' : '#4CAF50') + '; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">';
+    let colorBadge = '#4CAF50'; // Por defecto Estudio
+    let textoBadge = 'Estudio';
+    if (franja.tipoActividad === 'repaso_basico') {
+        colorBadge = '#2196F3';
+        textoBadge = 'Repaso';
+    } else if (franja.tipoActividad === 'realizar_examenes') {
+        colorBadge = '#FF9800';
+        textoBadge = '📝 Realizar Exámenes';
+    }
+    html += ' <span class="badge" style="background-color: ' + colorBadge + '; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">' + textoBadge + '</span>';
     html += franja.tipoActividad === 'repaso_basico' ? 'Repaso' : 'Estudio';
     html += '</span></h3>';
     if (franja.descripcionRepaso) {
@@ -442,6 +456,11 @@ window.onclick = function(event) {
 .franja-estudio {
     background-color: #e8f5e9;
     border-left: 4px solid #4caf50;
+}
+
+.franja-examenes {
+    background-color: #fff3e0;
+    border-left: 4px solid #ff9800;
 }
 
 .franja-con-tareas {

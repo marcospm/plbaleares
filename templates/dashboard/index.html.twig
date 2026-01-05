@@ -764,13 +764,13 @@
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                                 {% for franja in franjasHoy %}
-                                    <div style="padding: 0.75rem; background-color: white; border-radius: 4px; border-left: 3px solid {% if franja.tipoActividad == 'repaso_basico' %}#2196F3{% else %}#4CAF50{% endif %};">
+                                    <div style="padding: 0.75rem; background-color: white; border-radius: 4px; border-left: 3px solid {% if franja.tipoActividad == 'repaso_basico' %}#2196F3{% elseif franja.tipoActividad == 'realizar_examenes' %}#FF9800{% else %}#4CAF50{% endif %};">
                                         <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
                                             <div style="font-weight: 600; color: #333; min-width: 100px;">
                                                 🕐 {{ franja.horaInicio|date('H:i') }} - {{ franja.horaFin|date('H:i') }}
                                             </div>
-                                            <span class="badge" style="background-color: {% if franja.tipoActividad == 'repaso_basico' %}#2196F3{% else %}#4CAF50{% endif %}; color: white; font-size: 0.8rem;">
-                                                {% if franja.tipoActividad == 'repaso_basico' %}📚 Repaso{% else %}📖 Estudio{% endif %}
+                                            <span class="badge" style="background-color: {% if franja.tipoActividad == 'repaso_basico' %}#2196F3{% elseif franja.tipoActividad == 'realizar_examenes' %}#FF9800{% else %}#4CAF50{% endif %}; color: white; font-size: 0.8rem;">
+                                                {% if franja.tipoActividad == 'repaso_basico' %}📚 Repaso{% elseif franja.tipoActividad == 'realizar_examenes' %}📝 Realizar Exámenes{% else %}📖 Estudio{% endif %}
                                             </span>
                                             {% if franja.descripcionRepaso %}
                                                 <span style="color: #666; font-size: 0.9rem; flex: 1; min-width: 200px;">{{ franja.descripcionRepaso }}</span>
@@ -799,13 +799,13 @@
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                                 {% for franja in franjasManana %}
-                                    <div style="padding: 0.75rem; background-color: white; border-radius: 4px; border-left: 3px solid {% if franja.tipoActividad == 'repaso_basico' %}#2196F3{% else %}#4CAF50{% endif %};">
+                                    <div style="padding: 0.75rem; background-color: white; border-radius: 4px; border-left: 3px solid {% if franja.tipoActividad == 'repaso_basico' %}#2196F3{% elseif franja.tipoActividad == 'realizar_examenes' %}#FF9800{% else %}#4CAF50{% endif %};">
                                         <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
                                             <div style="font-weight: 600; color: #333; min-width: 100px;">
                                                 🕐 {{ franja.horaInicio|date('H:i') }} - {{ franja.horaFin|date('H:i') }}
                                             </div>
-                                            <span class="badge" style="background-color: {% if franja.tipoActividad == 'repaso_basico' %}#2196F3{% else %}#4CAF50{% endif %}; color: white; font-size: 0.8rem;">
-                                                {% if franja.tipoActividad == 'repaso_basico' %}📚 Repaso{% else %}📖 Estudio{% endif %}
+                                            <span class="badge" style="background-color: {% if franja.tipoActividad == 'repaso_basico' %}#2196F3{% elseif franja.tipoActividad == 'realizar_examenes' %}#FF9800{% else %}#4CAF50{% endif %}; color: white; font-size: 0.8rem;">
+                                                {% if franja.tipoActividad == 'repaso_basico' %}📚 Repaso{% elseif franja.tipoActividad == 'realizar_examenes' %}📝 Realizar Exámenes{% else %}📖 Estudio{% endif %}
                                             </span>
                                             {% if franja.descripcionRepaso %}
                                                 <span style="color: #666; font-size: 0.9rem; flex: 1; min-width: 200px;">{{ franja.descripcionRepaso }}</span>

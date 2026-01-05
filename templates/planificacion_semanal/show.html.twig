@@ -46,6 +46,8 @@
                                             <td>
                                                 {% if franja.tipoActividad == 'repaso_basico' %}
                                                     <span class="badge bg-info">Repaso Básico</span>
+                                                {% elseif franja.tipoActividad == 'realizar_examenes' %}
+                                                    <span class="badge" style="background-color: #FF9800;">📝 Realizar Exámenes</span>
                                                 {% else %}
                                                     <span class="badge bg-success">Estudio</span>
                                                 {% endif %}

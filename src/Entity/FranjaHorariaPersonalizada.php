@@ -34,7 +34,7 @@ class FranjaHorariaPersonalizada
     private ?\DateTimeInterface $horaFin = null;
 
     #[ORM\Column(length: 50)]
-    private ?string $tipoActividad = null; // 'repaso_basico' o 'estudio_tareas'
+    private ?string $tipoActividad = null; // 'repaso_basico', 'estudio_tareas' o 'realizar_examenes'
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $descripcionRepaso = null;

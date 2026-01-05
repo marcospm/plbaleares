@@ -49,6 +49,7 @@ class FranjaHorariaType extends AbstractType
                 'choices' => [
                     'Repaso Básico' => 'repaso_basico',
                     'Estudio' => 'estudio_tareas',
+                    'Realizar Exámenes' => 'realizar_examenes',
                 ],
                 'required' => true,
                 'attr' => ['class' => 'form-control']

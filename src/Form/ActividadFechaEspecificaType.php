@@ -45,6 +45,7 @@ class ActividadFechaEspecificaType extends AbstractType
                 'choices' => [
                     'Repaso Básico' => 'repaso_basico',
                     'Estudio' => 'estudio_tareas',
+                    'Realizar Exámenes' => 'realizar_examenes',
                 ],
                 'attr' => [
                     'class' => 'tipo-actividad'

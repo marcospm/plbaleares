@@ -50,15 +50,15 @@
                     </div>
                     <div class="card-body">
                         {% for franja in franjas %}
-                            <div class="mb-3" style="padding: 1rem; border-left: 4px solid {% if franja.tipoActividad == 'repaso_basico' %}#2196F3{% else %}#4CAF50{% endif %}; background-color: #f8f9fa;">
+                            <div class="mb-3" style="padding: 1rem; border-left: 4px solid {% if franja.tipoActividad == 'repaso_basico' %}#2196F3{% elseif franja.tipoActividad == 'realizar_examenes' %}#FF9800{% else %}#4CAF50{% endif %}; background-color: #f8f9fa;">
                                 <div style="display: flex; justify-content: space-between; align-items: start;">
                                     <div style="flex: 1;">
                                         <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
                                             <strong style="font-size: 1.1rem;">
                                                 {{ franja.horaInicio|date('H:i') }} - {{ franja.horaFin|date('H:i') }}
                                             </strong>
-                                            <span class="badge" style="background-color: {% if franja.tipoActividad == 'repaso_basico' %}#2196F3{% else %}#4CAF50{% endif %};">
-                                                {% if franja.tipoActividad == 'repaso_basico' %}Repaso Básico{% else %}Estudio{% endif %}
+                                            <span class="badge" style="background-color: {% if franja.tipoActividad == 'repaso_basico' %}#2196F3{% elseif franja.tipoActividad == 'realizar_examenes' %}#FF9800{% else %}#4CAF50{% endif %};">
+                                                {% if franja.tipoActividad == 'repaso_basico' %}Repaso Básico{% elseif franja.tipoActividad == 'realizar_examenes' %}📝 Realizar Exámenes{% else %}Estudio{% endif %}
                                             </span>
                                         </div>
                                         
