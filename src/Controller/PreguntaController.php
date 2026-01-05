@@ -32,13 +32,20 @@ class PreguntaController extends AbstractController
         $leyId = $request->query->getInt('ley', 0);
         $dificultad = trim($request->query->get('dificultad', ''));
         $numeroArticulo = $request->query->getInt('articulo', 0);
+        $mostrarDescartadas = $request->query->getBoolean('mostrar_descartadas', false);
         
         // Parámetros de paginación
         $itemsPerPage = 20; // Número de preguntas por página
         $page = max(1, $request->query->getInt('page', 1));
 
-        // Obtener todas las preguntas
-        $preguntas = $preguntaRepository->findAll();
+        // Obtener preguntas según el filtro de activas/descartadas
+        if ($mostrarDescartadas) {
+            // Mostrar todas las preguntas (activas y descartadas)
+            $preguntas = $preguntaRepository->findAll();
+        } else {
+            // Por defecto, solo mostrar preguntas activas
+            $preguntas = $preguntaRepository->findBy(['activo' => true]);
+        }
         
         // Convertir a array indexado numéricamente
         $preguntas = array_values($preguntas);
@@ -100,6 +107,7 @@ class PreguntaController extends AbstractController
             'leySeleccionada' => $leyId,
             'dificultadSeleccionada' => $dificultad,
             'numeroArticuloSeleccionado' => $numeroArticulo,
+            'mostrarDescartadas' => $mostrarDescartadas,
             'currentPage' => $page,
             'totalPages' => $totalPages,
             'totalItems' => $totalItems,

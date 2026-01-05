@@ -28,12 +28,20 @@ class PreguntaMunicipalController extends AbstractController
         $municipioId = $request->query->getInt('municipio');
         $temaId = $request->query->getInt('tema');
         $dificultad = $request->query->get('dificultad', '');
+        $mostrarDescartadas = $request->query->getBoolean('mostrar_descartadas', false);
 
         // Parámetros de paginación
         $itemsPerPage = 20;
         $page = max(1, $request->query->getInt('page', 1));
 
-        $preguntas = $preguntaMunicipalRepository->findAll();
+        // Obtener preguntas según el filtro de activas/descartadas
+        if ($mostrarDescartadas) {
+            // Mostrar todas las preguntas (activas y descartadas)
+            $preguntas = $preguntaMunicipalRepository->findAll();
+        } else {
+            // Por defecto, solo mostrar preguntas activas
+            $preguntas = $preguntaMunicipalRepository->findBy(['activo' => true]);
+        }
         
         // Convertir a array indexado numéricamente
         $preguntas = array_values($preguntas);
@@ -86,6 +94,7 @@ class PreguntaMunicipalController extends AbstractController
             'municipioSeleccionado' => $municipioId,
             'temaSeleccionado' => $temaId,
             'dificultadSeleccionada' => $dificultad,
+            'mostrarDescartadas' => $mostrarDescartadas,
             'currentPage' => $page,
             'totalPages' => $totalPages,
             'totalItems' => $totalItems,
