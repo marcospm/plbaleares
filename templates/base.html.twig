@@ -654,6 +654,9 @@
                                         </div>
                                     </div>
                                 {% endif %}
+                                {% if not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
+                                    <a href="{{ path('app_tutorial') }}" style="border: 1px solid rgba(255,255,255,0.5); padding: 0.4rem 0.8rem; border-radius: 4px; color: white; text-decoration: none; font-size: 0.85rem; background-color: rgba(255,255,255,0.1); transition: background-color 0.2s; white-space: nowrap; margin-right: 0.5rem;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.1)'">📖 Tutorial</a>
+                                {% endif %}
                                 <a href="{{ path('app_logout') }}" style="border: 1px solid rgba(255,255,255,0.5); padding: 0.4rem 0.8rem; border-radius: 4px; color: white; text-decoration: none; font-size: 0.85rem; background-color: rgba(255,255,255,0.1); transition: background-color 0.2s; white-space: nowrap;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.1)'">Cerrar Sesión</a>
                             </div>
                         {% endif %}
