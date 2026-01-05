@@ -14,18 +14,55 @@
         .tutorial-section {
             background: white;
             border-radius: 8px;
-            padding: 2rem;
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             border-left: 4px solid var(--color-primary);
+            overflow: hidden;
         }
         
-        .tutorial-section h2 {
+        .tutorial-section-header {
+            padding: 1.25rem 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            transition: background-color 0.2s ease;
+            user-select: none;
+        }
+        
+        .tutorial-section-header:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .tutorial-section-header h2 {
+            margin: 0;
+            flex: 1;
             color: var(--color-primary);
-            margin-bottom: 1.5rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid #e0e0e0;
-            font-size: 1.8rem;
+            font-size: 1.5rem;
+        }
+        
+        .tutorial-section-content {
+            padding: 0 1.5rem;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+        }
+        
+        .tutorial-section.active .tutorial-section-content {
+            padding: 1.5rem;
+            max-height: 10000px;
+        }
+        
+        .accordion-icon {
+            font-size: 1.2rem;
+            color: var(--color-primary);
+            transition: transform 0.3s ease;
+            margin-left: 1rem;
+        }
+        
+        .tutorial-section.active .accordion-icon {
+            transform: rotate(180deg);
         }
         
         .tutorial-section h3 {
@@ -159,13 +196,90 @@
         .toc a:hover {
             text-decoration: underline;
         }
+        
+        .expand-all-btn {
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 1rem;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+        }
+        
+        .expand-all-btn:hover {
+            background: #1976d2;
+        }
+        
+        /* Estilos para subsecciones plegables */
+        .subsection {
+            margin: 1rem 0;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #fafafa;
+        }
+        
+        .subsection-header {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            transition: background-color 0.2s ease;
+            user-select: none;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .subsection-header:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .subsection-header h3,
+        .subsection-header h4 {
+            margin: 0;
+            flex: 1;
+            color: #333;
+            font-size: 1.2rem;
+        }
+        
+        .subsection-header h4 {
+            font-size: 1rem;
+        }
+        
+        .subsection-content {
+            padding: 0 1rem;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+            background: white;
+        }
+        
+        .subsection.active .subsection-content {
+            padding: 1rem;
+            max-height: 10000px;
+        }
+        
+        .subsection-icon {
+            font-size: 0.9rem;
+            color: #666;
+            transition: transform 0.3s ease;
+            margin-left: 0.5rem;
+        }
+        
+        .subsection.active .subsection-icon {
+            transform: rotate(180deg);
+        }
     </style>
 {% endblock %}
 
 {% block body %}
 <div class="tutorial-container">
     {# INTRODUCCIÓN #}
-    <div class="tutorial-section">
+    <div class="tutorial-section" style="border: none; box-shadow: none; background: transparent;">
         <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">
             <span class="icon-large">📚</span>
             Tutorial de la Plataforma
@@ -174,29 +288,39 @@
             Bienvenido a la plataforma de preparación para oposiciones de Policía Local de Illes Balears. 
             Este tutorial te guiará paso a paso para que puedas aprovechar al máximo todas las funcionalidades disponibles.
         </p>
+        <p style="font-size: 0.95rem; color: #888; font-style: italic;">
+            💡 Haz clic en cada sección para desplegarla y leer el contenido. Puedes expandir o colapsar las secciones según necesites.
+        </p>
     </div>
 
     {# TABLA DE CONTENIDOS #}
     <div class="toc">
-        <h3>📑 Tabla de Contenidos</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="margin: 0;">📑 Tabla de Contenidos</h3>
+            <button class="expand-all-btn" onclick="toggleAllSections()">Expandir/Colapsar Todo</button>
+        </div>
         <ul>
-            <li><a href="#seccion-1">1. El Menú de Navegación</a></li>
-            <li><a href="#seccion-2">2. Dashboard (Inicio)</a></li>
-            <li><a href="#seccion-3">3. Planificación</a></li>
-            <li><a href="#seccion-4">4. Exámenes</a></li>
-            <li><a href="#seccion-5">5. Artículos</a></li>
-            <li><a href="#seccion-6">6. Temario y Recursos</a></li>
-            <li><a href="#seccion-7">7. BOIB</a></li>
-            <li><a href="#seccion-8">8. Notificaciones</a></li>
-            <li><a href="#seccion-9">9. Mensajes al Profesor</a></li>
-            <li><a href="#seccion-10">10. Contacto</a></li>
-            <li><a href="#seccion-11">11. Consejos y Preguntas Frecuentes</a></li>
+            <li><a href="#" onclick="openSection('seccion-1'); return false;">1. El Menú de Navegación</a></li>
+            <li><a href="#" onclick="openSection('seccion-2'); return false;">2. Dashboard (Inicio)</a></li>
+            <li><a href="#" onclick="openSection('seccion-3'); return false;">3. Planificación</a></li>
+            <li><a href="#" onclick="openSection('seccion-4'); return false;">4. Exámenes</a></li>
+            <li><a href="#" onclick="openSection('seccion-5'); return false;">5. Artículos</a></li>
+            <li><a href="#" onclick="openSection('seccion-6'); return false;">6. Temario y Recursos</a></li>
+            <li><a href="#" onclick="openSection('seccion-7'); return false;">7. BOIB</a></li>
+            <li><a href="#" onclick="openSection('seccion-8'); return false;">8. Notificaciones</a></li>
+            <li><a href="#" onclick="openSection('seccion-9'); return false;">9. Mensajes al Profesor</a></li>
+            <li><a href="#" onclick="openSection('seccion-10'); return false;">10. Contacto</a></li>
+            <li><a href="#" onclick="openSection('seccion-11'); return false;">11. Consejos y Preguntas Frecuentes</a></li>
         </ul>
     </div>
 
     {# SECCIÓN 1: MENÚ DE NAVEGACIÓN #}
     <div class="tutorial-section" id="seccion-1">
-        <h2><span class="icon-large">🧭</span> 1. El Menú de Navegación</h2>
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-1')">
+            <h2><span class="icon-large">🧭</span> 1. El Menú de Navegación</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
         <p>
             En la parte superior de la página encontrarás el menú principal con todas las secciones disponibles. 
             El menú está organizado de la siguiente manera:
@@ -230,335 +354,437 @@
                 <li>Botón para cerrar sesión</li>
             </ul>
         </div>
+        </div>
     </div>
 
     {# SECCIÓN 2: DASHBOARD #}
     <div class="tutorial-section" id="seccion-2">
-        <h2><span class="icon-large">🏠</span> 2. Dashboard (Inicio)</h2>
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-2')">
+            <h2><span class="icon-large">🏠</span> 2. Dashboard (Inicio)</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
         <p>
             El Dashboard es tu página principal al iniciar sesión. Es tu centro de control donde encontrarás 
             un resumen completo de toda tu actividad y estado en la plataforma.
         </p>
         
-        <h3>2.1. Profesor Asignado y Grupos</h3>
-        <div class="feature-card">
-            <p>
-                En la parte superior del Dashboard verás información sobre tu profesor asignado. 
-                Si perteneces a un grupo, también verás el nombre de tu grupo.
-            </p>
-            <ul class="feature-list">
-                <li>Nombre del profesor asignado</li>
-                <li>Nombre del grupo (si perteneces a uno)</li>
-                <li>Botón "Enviar Mensaje" para contactar con tu profesor</li>
-            </ul>
+        <div class="subsection" id="sub-2-1">
+            <div class="subsection-header" onclick="toggleSubsection('sub-2-1')">
+                <h3>2.1. Profesor Asignado y Grupos</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <p>
+                        En la parte superior del Dashboard verás información sobre tu profesor asignado. 
+                        Si perteneces a un grupo, también verás el nombre de tu grupo.
+                    </p>
+                    <ul class="feature-list">
+                        <li>Nombre del profesor asignado</li>
+                        <li>Nombre del grupo (si perteneces a uno)</li>
+                        <li>Botón "Enviar Mensaje" para contactar con tu profesor</li>
+                    </ul>
+                </div>
+                
+                <div class="warning">
+                    <strong>⚠️ Sin Profesor:</strong> Si no tienes profesor asignado, verás un aviso. 
+                    Contacta con el administrador para que te asigne uno. Muchas funcionalidades requieren un profesor asignado.
+                </div>
+            </div>
         </div>
         
-        <div class="warning">
-            <strong>⚠️ Sin Profesor:</strong> Si no tienes profesor asignado, verás un aviso. 
-            Contacta con el administrador para que te asigne uno. Muchas funcionalidades requieren un profesor asignado.
+        <div class="subsection" id="sub-2-2">
+            <div class="subsection-header" onclick="toggleSubsection('sub-2-2')">
+                <h3>2.2. Mi Planificación (Resumen)</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <h4>Actividades de Hoy y Mañana</h4>
+                    <p>
+                        Esta sección muestra un resumen de las actividades programadas para <strong>hoy</strong> y <strong>mañana</strong>:
+                    </p>
+                    <ul class="feature-list">
+                        <li>Franjas horarias de estudio o repaso</li>
+                        <li>Horarios específicos (hora de inicio y fin)</li>
+                        <li>Tipo de actividad (Estudio o Repaso)</li>
+                        <li>Descripción de qué estudiar (si está disponible)</li>
+                        <li>Enlace para ver tu planificación completa</li>
+                    </ul>
+                </div>
+                
+                <div class="step-box">
+                    <strong>Para ver tu planificación completa:</strong> Haz clic en "Ver Planificación Completa" 
+                    o ve al menú "Planificación".
+                </div>
+            </div>
         </div>
         
-        <h3>2.2. Mi Planificación (Resumen)</h3>
-        <div class="feature-card">
-            <h4>Actividades de Hoy y Mañana</h4>
-            <p>
-                Esta sección muestra un resumen de las actividades programadas para <strong>hoy</strong> y <strong>mañana</strong>:
-            </p>
-            <ul class="feature-list">
-                <li>Franjas horarias de estudio o repaso</li>
-                <li>Horarios específicos (hora de inicio y fin)</li>
-                <li>Tipo de actividad (Estudio o Repaso)</li>
-                <li>Descripción de qué estudiar (si está disponible)</li>
-                <li>Enlace para ver tu planificación completa</li>
-            </ul>
+        <div class="subsection" id="sub-2-3">
+            <div class="subsection-header" onclick="toggleSubsection('sub-2-3')">
+                <h3>2.3. Mis Tareas</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <p>
+                        Aquí verás las tareas que tu profesor te ha asignado. Puedes:
+                    </p>
+                    <ul class="feature-list">
+                        <li>Ver todas tus tareas pendientes</li>
+                        <li>Ver tareas completadas</li>
+                        <li>Marcar tareas como completadas cuando las termines</li>
+                        <li>Ver detalles de cada tarea</li>
+                    </ul>
+                </div>
+            </div>
         </div>
         
-        <div class="step-box">
-            <strong>Para ver tu planificación completa:</strong> Haz clic en "Ver Planificación Completa" 
-            o ve al menú "Planificación".
+        <div class="subsection" id="sub-2-4">
+            <div class="subsection-header" onclick="toggleSubsection('sub-2-4')">
+                <h3>2.4. Rankings y Estadísticas</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <h4>Rankings del Temario General</h4>
+                    <p>
+                        Puedes ver rankings por dificultad (Fácil, Moderada, Difícil) calculados con los últimos N exámenes. 
+                        Puedes configurar cuántos exámenes se usan para el cálculo.
+                    </p>
+                    <ul class="feature-list">
+                        <li>Ver tu posición en cada ranking</li>
+                        <li>Ver tu nota media</li>
+                        <li>Filtrar por tema específico</li>
+                        <li>Ver el ranking completo con otros opositores (nombres ofuscados para privacidad)</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>Rankings por Convocatoria</h4>
+                    <p>
+                        Si estás asignado a una convocatoria, también verás rankings específicos de esa convocatoria:
+                    </p>
+                    <ul class="feature-list">
+                        <li>Rankings por dificultad dentro de la convocatoria</li>
+                        <li>Filtrar por municipio específico</li>
+                        <li>Ver tu posición en cada ranking</li>
+                    </ul>
+                </div>
+            </div>
         </div>
         
-        <h3>2.3. Mis Tareas</h3>
-        <div class="feature-card">
-            <p>
-                Aquí verás las tareas que tu profesor te ha asignado. Puedes:
-            </p>
-            <ul class="feature-list">
-                <li>Ver todas tus tareas pendientes</li>
-                <li>Ver tareas completadas</li>
-                <li>Marcar tareas como completadas cuando las termines</li>
-                <li>Ver detalles de cada tarea</li>
-            </ul>
-        </div>
-        
-        <h3>2.4. Rankings y Estadísticas</h3>
-        <div class="feature-card">
-            <h4>Rankings del Temario General</h4>
-            <p>
-                Puedes ver rankings por dificultad (Fácil, Moderada, Difícil) calculados con los últimos N exámenes. 
-                Puedes configurar cuántos exámenes se usan para el cálculo.
-            </p>
-            <ul class="feature-list">
-                <li>Ver tu posición en cada ranking</li>
-                <li>Ver tu nota media</li>
-                <li>Filtrar por tema específico</li>
-                <li>Ver el ranking completo con otros opositores (nombres ofuscados para privacidad)</li>
-            </ul>
-        </div>
-        
-        <div class="feature-card">
-            <h4>Rankings por Convocatoria</h4>
-            <p>
-                Si estás asignado a una convocatoria, también verás rankings específicos de esa convocatoria:
-            </p>
-            <ul class="feature-list">
-                <li>Rankings por dificultad dentro de la convocatoria</li>
-                <li>Filtrar por municipio específico</li>
-                <li>Ver tu posición en cada ranking</li>
-            </ul>
-        </div>
-        
-        <h3>2.5. Mis Convocatorias</h3>
-        <div class="feature-card">
-            <p>
-                Si estás asignado a alguna convocatoria, verás información detallada:
-            </p>
-            <ul class="feature-list">
-                <li>Nombre de la convocatoria</li>
-                <li>Municipios incluidos</li>
-                <li>Fecha del examen teórico y días restantes</li>
-                <li>Fecha de las pruebas físicas y días restantes</li>
-                <li>Fecha del psicotécnico y días restantes</li>
-                <li>Estado de la convocatoria (Activa/Inactiva)</li>
-            </ul>
+        <div class="subsection" id="sub-2-5">
+            <div class="subsection-header" onclick="toggleSubsection('sub-2-5')">
+                <h3>2.5. Mis Convocatorias</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <p>
+                        Si estás asignado a alguna convocatoria, verás información detallada:
+                    </p>
+                    <ul class="feature-list">
+                        <li>Nombre de la convocatoria</li>
+                        <li>Municipios incluidos</li>
+                        <li>Fecha del examen teórico y días restantes</li>
+                        <li>Fecha de las pruebas físicas y días restantes</li>
+                        <li>Fecha del psicotécnico y días restantes</li>
+                        <li>Estado de la convocatoria (Activa/Inactiva)</li>
+                    </ul>
+                </div>
+            </div>
         </div>
         
         <div class="tip">
             <strong>💡 Tip:</strong> Las secciones del Dashboard se pueden expandir y colapsar haciendo clic en el encabezado. 
             Tu preferencia se guarda automáticamente.
         </div>
+        </div>
     </div>
 
     {# SECCIÓN 3: PLANIFICACIÓN #}
     <div class="tutorial-section" id="seccion-3">
-        <h2><span class="icon-large">📋</span> 3. Planificación</h2>
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-3')">
+            <h2><span class="icon-large">📋</span> 3. Planificación</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
         <p>
             La planificación te ayuda a organizar tu tiempo de estudio de forma eficiente. 
             Tu profesor crea planificaciones personalizadas para ti con horarios y actividades específicas.
         </p>
         
-        <h3>3.1. Acceder a tu Planificación</h3>
-        <div class="step-box">
-            <strong>Paso 1:</strong> Ve al menú y selecciona "Planificación"<br>
-            <strong>Paso 2:</strong> Verás un calendario semanal con todas tus actividades<br>
-            <strong>Paso 3:</strong> Puedes navegar entre semanas usando las flechas de navegación<br>
-            <strong>Paso 4:</strong> Haz clic en un día específico para ver más detalles
+        <div class="subsection" id="sub-3-1">
+            <div class="subsection-header" onclick="toggleSubsection('sub-3-1')">
+                <h3>3.1. Acceder a tu Planificación</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="step-box">
+                    <strong>Paso 1:</strong> Ve al menú y selecciona "Planificación"<br>
+                    <strong>Paso 2:</strong> Verás un calendario semanal con todas tus actividades<br>
+                    <strong>Paso 3:</strong> Puedes navegar entre semanas usando las flechas de navegación<br>
+                    <strong>Paso 4:</strong> Haz clic en un día específico para ver más detalles
+                </div>
+            </div>
         </div>
         
-        <h3>3.2. Tipos de Actividades en la Planificación</h3>
-        
-        <div class="feature-card">
-            <h4>📅 Franjas Horarias</h4>
-            <p>
-                Son períodos de tiempo asignados para diferentes actividades. Cada franja tiene:
-            </p>
-            <ul class="feature-list">
-                <li><strong>Hora de inicio y fin:</strong> El período específico del día</li>
-                <li><strong>Tipo de actividad:</strong> Puede ser uno de tres tipos:
-                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
-                        <li><strong>📚 Repaso Básico</strong> (color azul): Para repasar conceptos específicos</li>
-                        <li><strong>📖 Estudio</strong> (color verde): Para estudiar nuevos temas o realizar tareas</li>
-                        <li><strong>📝 Realizar Exámenes</strong> (color naranja): Tiempo dedicado específicamente a realizar exámenes de práctica</li>
+        <div class="subsection" id="sub-3-2">
+            <div class="subsection-header" onclick="toggleSubsection('sub-3-2')">
+                <h3>3.2. Tipos de Actividades en la Planificación</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <h4>📅 Franjas Horarias</h4>
+                    <p>
+                        Son períodos de tiempo asignados para diferentes actividades. Cada franja tiene:
+                    </p>
+                    <ul class="feature-list">
+                        <li><strong>Hora de inicio y fin:</strong> El período específico del día</li>
+                        <li><strong>Tipo de actividad:</strong> Puede ser uno de tres tipos:
+                            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                                <li><strong>📚 Repaso Básico</strong> (color azul): Para repasar conceptos específicos</li>
+                                <li><strong>📖 Estudio</strong> (color verde): Para estudiar nuevos temas o realizar tareas</li>
+                                <li><strong>📝 Realizar Exámenes</strong> (color naranja): Tiempo dedicado específicamente a realizar exámenes de práctica</li>
+                            </ul>
+                        </li>
+                        <li><strong>Descripción:</strong> Qué estudiar, repasar o qué tipo de examen realizar (opcional)</li>
                     </ul>
-                </li>
-                <li><strong>Descripción:</strong> Qué estudiar, repasar o qué tipo de examen realizar (opcional)</li>
-            </ul>
+                </div>
+                
+                <div class="tip">
+                    <strong>💡 Colores en el Calendario:</strong>
+                    <ul class="feature-list">
+                        <li><span style="color: #2196F3; font-weight: bold;">Azul</span> = Repaso Básico</li>
+                        <li><span style="color: #4CAF50; font-weight: bold;">Verde</span> = Estudio</li>
+                        <li><span style="color: #FF9800; font-weight: bold;">Naranja</span> = Realizar Exámenes</li>
+                    </ul>
+                    Estos colores te ayudan a identificar rápidamente qué tipo de actividad tienes programada.
+                </div>
+                
+                <div class="feature-card">
+                    <h4>📝 Tareas Asignadas</h4>
+                    <p>
+                        Son tareas específicas que tu profesor te asigna. Pueden ser:
+                    </p>
+                    <ul class="feature-list">
+                        <li>Estudiar un tema específico</li>
+                        <li>Realizar un examen</li>
+                        <li>Revisar un artículo</li>
+                        <li>Cualquier otra actividad de estudio</li>
+                    </ul>
+                    <p style="margin-top: 0.5rem;">
+                        <strong>Gestión de tareas:</strong> Puedes marcar las tareas como completadas cuando las termines. 
+                        Esto ayuda a tu profesor a hacer seguimiento de tu progreso.
+                    </p>
+                </div>
+                
+                <div class="highlight">
+                    <strong>📌 Importante:</strong> La planificación en el Dashboard solo muestra hoy y mañana. 
+                    Para ver tu planificación completa de todas las semanas, ve a la sección "Planificación" del menú.
+                </div>
+                
+                <div class="tip">
+                    <strong>💡 Consejo:</strong> Intenta seguir tu planificación lo más fielmente posible. 
+                    Está diseñada para optimizar tu tiempo de estudio y ayudarte a prepararte de forma eficiente.
+                </div>
+            </div>
         </div>
-        
-        <div class="tip">
-            <strong>💡 Colores en el Calendario:</strong>
-            <ul class="feature-list">
-                <li><span style="color: #2196F3; font-weight: bold;">Azul</span> = Repaso Básico</li>
-                <li><span style="color: #4CAF50; font-weight: bold;">Verde</span> = Estudio</li>
-                <li><span style="color: #FF9800; font-weight: bold;">Naranja</span> = Realizar Exámenes</li>
-            </ul>
-            Estos colores te ayudan a identificar rápidamente qué tipo de actividad tienes programada.
-        </div>
-        
-        <div class="feature-card">
-            <h4>📝 Tareas Asignadas</h4>
-            <p>
-                Son tareas específicas que tu profesor te asigna. Pueden ser:
-            </p>
-            <ul class="feature-list">
-                <li>Estudiar un tema específico</li>
-                <li>Realizar un examen</li>
-                <li>Revisar un artículo</li>
-                <li>Cualquier otra actividad de estudio</li>
-            </ul>
-            <p style="margin-top: 0.5rem;">
-                <strong>Gestión de tareas:</strong> Puedes marcar las tareas como completadas cuando las termines. 
-                Esto ayuda a tu profesor a hacer seguimiento de tu progreso.
-            </p>
-        </div>
-        
-        <div class="highlight">
-            <strong>📌 Importante:</strong> La planificación en el Dashboard solo muestra hoy y mañana. 
-            Para ver tu planificación completa de todas las semanas, ve a la sección "Planificación" del menú.
-        </div>
-        
-        <div class="tip">
-            <strong>💡 Consejo:</strong> Intenta seguir tu planificación lo más fielmente posible. 
-            Está diseñada para optimizar tu tiempo de estudio y ayudarte a prepararte de forma eficiente.
         </div>
     </div>
 
     {# SECCIÓN 4: EXÁMENES #}
     <div class="tutorial-section" id="seccion-4">
-        <h2><span class="icon-large">📝</span> 4. Exámenes</h2>
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-4')">
+            <h2><span class="icon-large">📝</span> 4. Exámenes</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
         <p>
             Los exámenes son una de las funcionalidades más importantes de la plataforma. Te permiten practicar 
             y evaluar tu conocimiento de forma similar a como será el examen real.
         </p>
         
-        <h3>4.1. Exámenes Normales</h3>
-        <p>
-            Los exámenes normales son pruebas que puedes realizar cuando quieras, sin restricciones de tiempo 
-            (excepto el tiempo que tardes en completarlos).
-        </p>
-        
-        <div class="step-box">
-            <strong>Paso 1:</strong> Ve al menú "Exámenes" → "Exámenes"<br>
-            <strong>Paso 2:</strong> Elige el tipo de examen:
-            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
-                <li><strong>Temario General:</strong> Exámenes sobre todos los temas del temario</li>
-                <li><strong>Municipal:</strong> Exámenes específicos de un municipio</li>
-                <li><strong>Convocatoria:</strong> Exámenes relacionados con una convocatoria específica</li>
-            </ul>
-            <strong>Paso 3:</strong> Configura el examen:
-            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
-                <li>Selecciona la dificultad (Fácil, Moderada, Difícil)</li>
-                <li>Elige el número de preguntas</li>
-                <li>Si es temario general, puedes seleccionar temas específicos</li>
-                <li>Si es municipal, selecciona el municipio</li>
-                <li>Si es convocatoria, selecciona la convocatoria</li>
-            </ul>
-            <strong>Paso 4:</strong> Haz clic en "Iniciar Examen"<br>
-            <strong>Paso 5:</strong> Responde las preguntas. Puedes navegar entre ellas usando los números pequeños en la parte superior<br>
-            <strong>Paso 6:</strong> Al finalizar, verás tus resultados: nota, aciertos, errores y preguntas en blanco<br>
-            <strong>Paso 7:</strong> Puedes ver el detalle de cada pregunta, tu respuesta y la respuesta correcta
+        <div class="subsection" id="sub-4-1">
+            <div class="subsection-header" onclick="toggleSubsection('sub-4-1')">
+                <h3>4.1. Exámenes Normales</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <p>
+                    Los exámenes normales son pruebas que puedes realizar cuando quieras, sin restricciones de tiempo 
+                    (excepto el tiempo que tardes en completarlos).
+                </p>
+                
+                <div class="step-box">
+                    <strong>Paso 1:</strong> Ve al menú "Exámenes" → "Exámenes"<br>
+                    <strong>Paso 2:</strong> Elige el tipo de examen:
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li><strong>Temario General:</strong> Exámenes sobre todos los temas del temario</li>
+                        <li><strong>Municipal:</strong> Exámenes específicos de un municipio</li>
+                        <li><strong>Convocatoria:</strong> Exámenes relacionados con una convocatoria específica</li>
+                    </ul>
+                    <strong>Paso 3:</strong> Configura el examen:
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>Selecciona la dificultad (Fácil, Moderada, Difícil)</li>
+                        <li>Elige el número de preguntas</li>
+                        <li>Si es temario general, puedes seleccionar temas específicos</li>
+                        <li>Si es municipal, selecciona el municipio</li>
+                        <li>Si es convocatoria, selecciona la convocatoria</li>
+                    </ul>
+                    <strong>Paso 4:</strong> Haz clic en "Iniciar Examen"<br>
+                    <strong>Paso 5:</strong> Responde las preguntas. Puedes navegar entre ellas usando los números pequeños en la parte superior<br>
+                    <strong>Paso 6:</strong> Al finalizar, verás tus resultados: nota, aciertos, errores y preguntas en blanco<br>
+                    <strong>Paso 7:</strong> Puedes ver el detalle de cada pregunta, tu respuesta y la respuesta correcta
+                </div>
+                
+                <div class="tip">
+                    <strong>💡 Sistema de Puntuación:</strong>
+                    <ul class="feature-list">
+                        <li>Las preguntas en blanco no suman ni restan puntos</li>
+                        <li>Cada acierto suma puntos (20 dividido entre el número total de preguntas)</li>
+                        <li>Cada 4 errores restan el equivalente a 1 acierto</li>
+                        <li>La nota máxima es 20</li>
+                    </ul>
+                </div>
+            </div>
         </div>
         
-        <div class="tip">
-            <strong>💡 Sistema de Puntuación:</strong>
-            <ul class="feature-list">
-                <li>Las preguntas en blanco no suman ni restan puntos</li>
-                <li>Cada acierto suma puntos (20 dividido entre el número total de preguntas)</li>
-                <li>Cada 4 errores restan el equivalente a 1 acierto</li>
-                <li>La nota máxima es 20</li>
-            </ul>
+        <div class="subsection" id="sub-4-2">
+            <div class="subsection-header" onclick="toggleSubsection('sub-4-2')">
+                <h3>4.2. Exámenes Semanales</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <p>
+                    Los exámenes semanales son pruebas programadas por tu profesor con fechas de apertura y cierre específicas.
+                </p>
+                
+                <div class="feature-card">
+                    <h4>Características de los Exámenes Semanales:</h4>
+                    <ul class="feature-list">
+                        <li>Tienen una fecha de apertura (cuándo se pueden empezar a realizar)</li>
+                        <li>Tienen una fecha de cierre (hasta cuándo se pueden realizar)</li>
+                        <li>Pueden ser de tipo general, municipal o de convocatoria</li>
+                        <li>Algunos exámenes pueden estar asignados a grupos específicos</li>
+                        <li>Puedes realizarlos en cualquier momento dentro del período de apertura</li>
+                        <li>Tienen su propio ranking con todos los alumnos que lo han realizado</li>
+                    </ul>
+                </div>
+                
+                <div class="step-box">
+                    <strong>Para realizar un examen semanal:</strong>
+                    <ol style="padding-left: 1.5rem;">
+                        <li>Ve a "Exámenes" → "Exámenes Semanales"</li>
+                        <li>Verás los exámenes disponibles (los que están dentro de su período de apertura)</li>
+                        <li>Haz clic en "Realizar Examen Online"</li>
+                        <li>Completa el examen igual que un examen normal</li>
+                        <li>Al finalizar, tus resultados se guardan automáticamente</li>
+                    </ol>
+                </div>
+            </div>
         </div>
         
-        <h3>4.2. Exámenes Semanales</h3>
-        <p>
-            Los exámenes semanales son pruebas programadas por tu profesor con fechas de apertura y cierre específicas.
-        </p>
-        
-        <div class="feature-card">
-            <h4>Características de los Exámenes Semanales:</h4>
-            <ul class="feature-list">
-                <li>Tienen una fecha de apertura (cuándo se pueden empezar a realizar)</li>
-                <li>Tienen una fecha de cierre (hasta cuándo se pueden realizar)</li>
-                <li>Pueden ser de tipo general, municipal o de convocatoria</li>
-                <li>Algunos exámenes pueden estar asignados a grupos específicos</li>
-                <li>Puedes realizarlos en cualquier momento dentro del período de apertura</li>
-                <li>Tienen su propio ranking con todos los alumnos que lo han realizado</li>
-
-            </ul>
+        <div class="subsection" id="sub-4-3">
+            <div class="subsection-header" onclick="toggleSubsection('sub-4-3')">
+                <h3>4.3. Exámenes PDF</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <p>
+                    Si has realizado un examen en formato PDF (impreso), puedes introducir tus resultados manualmente 
+                    para que se registren en tu historial.
+                </p>
+                
+                <div class="step-box">
+                    <strong>Para introducir resultados de un PDF:</strong>
+                    <ol style="padding-left: 1.5rem;">
+                        <li>Ve al examen semanal correspondiente</li>
+                        <li>Haz clic en "Introducir Resultados PDF" o "Editar Resultados PDF"</li>
+                        <li>Introduce tu nota, aciertos, errores y preguntas en blanco</li>
+                        <li>Guarda los resultados</li>
+                    </ol>
+                </div>
+                
+                <div class="tip">
+                    <strong>💡 Tip:</strong> Los resultados de exámenes PDF también se incluyen en tu historial y 
+                    en los cálculos de rankings y estadísticas.
+                </div>
+            </div>
         </div>
         
-        <div class="step-box">
-            <strong>Para realizar un examen semanal:</strong>
-            <ol style="padding-left: 1.5rem;">
-                <li>Ve a "Exámenes" → "Exámenes Semanales"</li>
-                <li>Verás los exámenes disponibles (los que están dentro de su período de apertura)</li>
-                <li>Haz clic en "Realizar Examen Online"</li>
-                <li>Completa el examen igual que un examen normal</li>
-                <li>Al finalizar, tus resultados se guardan automáticamente</li>
-            </ol>
+        <div class="subsection" id="sub-4-4">
+            <div class="subsection-header" onclick="toggleSubsection('sub-4-4')">
+                <h3>4.4. Historial de Exámenes</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <p>
+                    En el historial puedes ver todos los exámenes que has realizado, con sus resultados detallados.
+                </p>
+                
+                <div class="feature-card">
+                    <h4>Funcionalidades del Historial:</h4>
+                    <ul class="feature-list">
+                        <li>Ver todos tus exámenes ordenados por fecha (más recientes primero)</li>
+                        <li>Filtrar por tema (para exámenes del temario general)</li>
+                        <li>Filtrar por convocatoria y municipio</li>
+                        <li>Ver rankings y tu posición en ellos</li>
+                        <li>Ver detalles de cada examen (preguntas, respuestas, resultados)</li>
+                        <li>Paginación para navegar entre muchos exámenes</li>
+                    </ul>
+                </div>
+                
+                <div class="step-box">
+                    <strong>Para acceder al historial:</strong>
+                    <ol style="padding-left: 1.5rem;">
+                        <li>Ve a "Exámenes" → "Historial de Exámenes"</li>
+                        <li>Verás tus exámenes separados por tipo (Temario General y por Convocatoria)</li>
+                        <li>Puedes filtrar y configurar los rankings</li>
+                        <li>Haz clic en "Ver Detalle" de cualquier examen para ver todas las preguntas y respuestas</li>
+                    </ol>
+                </div>
+            </div>
         </div>
         
-        <h3>4.3. Exámenes PDF</h3>
-        <p>
-            Si has realizado un examen en formato PDF (impreso), puedes introducir tus resultados manualmente 
-            para que se registren en tu historial.
-        </p>
-        
-        <div class="step-box">
-            <strong>Para introducir resultados de un PDF:</strong>
-            <ol style="padding-left: 1.5rem;">
-                <li>Ve al examen semanal correspondiente</li>
-                <li>Haz clic en "Introducir Resultados PDF" o "Editar Resultados PDF"</li>
-                <li>Introduce tu nota, aciertos, errores y preguntas en blanco</li>
-                <li>Guarda los resultados</li>
-            </ol>
+        <div class="subsection" id="sub-4-5">
+            <div class="subsection-header" onclick="toggleSubsection('sub-4-5')">
+                <h3>4.5. Historial de Exámenes del Grupo</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <p>
+                        Si perteneces a un grupo, también puedes ver el historial completo de todos los alumnos del grupo:
+                    </p>
+                    <ul class="feature-list">
+                        <li>Ver todos los exámenes realizados por los miembros del grupo</li>
+                        <li>Comparar resultados con tus compañeros</li>
+                        <li>Ver rankings del grupo</li>
+                        <li>Identificar a cada alumno por su nombre</li>
+                    </ul>
+                </div>
+                
+                <div class="tip">
+                    <strong>💡 Tip:</strong> Los rankings se calculan con los últimos N exámenes (puedes elegir cuántos: 2, 3, 5, 10, etc.). 
+                    Esto te permite ver tu evolución y compararte con otros opositores. Puedes filtrar por tema o municipio 
+                    para rankings más específicos.
+                </div>
+            </div>
         </div>
-        
-        <div class="tip">
-            <strong>💡 Tip:</strong> Los resultados de exámenes PDF también se incluyen en tu historial y 
-            en los cálculos de rankings y estadísticas.
-        </div>
-        
-        <h3>4.4. Historial de Exámenes</h3>
-        <p>
-            En el historial puedes ver todos los exámenes que has realizado, con sus resultados detallados.
-        </p>
-        
-        <div class="feature-card">
-            <h4>Funcionalidades del Historial:</h4>
-            <ul class="feature-list">
-                <li>Ver todos tus exámenes ordenados por fecha (más recientes primero)</li>
-                <li>Filtrar por tema (para exámenes del temario general)</li>
-                <li>Filtrar por convocatoria y municipio</li>
-                <li>Ver rankings y tu posición en ellos</li>
-                <li>Ver detalles de cada examen (preguntas, respuestas, resultados)</li>
-                <li>Paginación para navegar entre muchos exámenes</li>
-            </ul>
-        </div>
-        
-        <div class="step-box">
-            <strong>Para acceder al historial:</strong>
-            <ol style="padding-left: 1.5rem;">
-                <li>Ve a "Exámenes" → "Historial de Exámenes"</li>
-                <li>Verás tus exámenes separados por tipo (Temario General y por Convocatoria)</li>
-                <li>Puedes filtrar y configurar los rankings</li>
-                <li>Haz clic en "Ver Detalle" de cualquier examen para ver todas las preguntas y respuestas</li>
-            </ol>
-        </div>
-        
-        <h3>4.5. Historial de Exámenes del Grupo</h3>
-        <div class="feature-card">
-            <p>
-                Si perteneces a un grupo, también puedes ver el historial completo de todos los alumnos del grupo:
-            </p>
-            <ul class="feature-list">
-                <li>Ver todos los exámenes realizados por los miembros del grupo</li>
-                <li>Comparar resultados con tus compañeros</li>
-                <li>Ver rankings del grupo</li>
-                <li>Identificar a cada alumno por su nombre</li>
-            </ul>
-        </div>
-        
-        <div class="tip">
-            <strong>💡 Tip:</strong> Los rankings se calculan con los últimos N exámenes (puedes elegir cuántos: 2, 3, 5, 10, etc.). 
-            Esto te permite ver tu evolución y compararte con otros opositores. Puedes filtrar por tema o municipio 
-            para rankings más específicos.
         </div>
     </div>
 
     {# SECCIÓN 5: ARTÍCULOS #}
     <div class="tutorial-section" id="seccion-5">
-        <h2><span class="icon-large">📄</span> 5. Artículos</h2>
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-5')">
+            <h2><span class="icon-large">📄</span> 5. Artículos</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
         <p>
             Los artículos son recursos de estudio adicionales que pueden ayudarte a entender mejor los temas 
             o estar al día con novedades relacionadas con las oposiciones.
@@ -589,11 +815,16 @@
             <strong>💡 Consejo:</strong> Los artículos pueden contener información muy valiosa. 
             Revísalos regularmente para estar al día y mejorar tu comprensión de los temas.
         </div>
+        </div>
     </div>
 
     {# SECCIÓN 6: TEMARIO Y RECURSOS #}
     <div class="tutorial-section" id="seccion-6">
-        <h2><span class="icon-large">📚</span> 6. Temario y Recursos</h2>
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-6')">
+            <h2><span class="icon-large">📚</span> 6. Temario y Recursos</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
         <p>
             En esta sección encontrarás todo el material de estudio organizado por temas. Es tu biblioteca completa 
             de recursos para la preparación.
@@ -673,11 +904,16 @@
             <strong>💡 Consejo:</strong> Combina el estudio del temario con la práctica de exámenes. 
             No solo hagas exámenes, dedica tiempo a estudiar los temas en profundidad.
         </div>
+        </div>
     </div>
 
     {# SECCIÓN 7: BOIB #}
     <div class="tutorial-section" id="seccion-7">
-        <h2><span class="icon-large">📰</span> 7. BOIB (Butlletí Oficial de les Illes Balears)</h2>
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-7')">
+            <h2><span class="icon-large">📰</span> 7. BOIB (Butlletí Oficial de les Illes Balears)</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
         <p>
             El BOIB es el boletín oficial donde se publican las leyes y normativas de las Islas Baleares. 
             En la plataforma puedes acceder a información relevante del BOIB relacionada con las oposiciones.
@@ -696,11 +932,16 @@
             <strong>💡 Importante:</strong> El BOIB contiene información oficial sobre normativas y leyes 
             que pueden ser relevantes para las oposiciones. Revísalo periódicamente para estar al día.
         </div>
+        </div>
     </div>
 
     {# SECCIÓN 8: NOTIFICACIONES #}
     <div class="tutorial-section" id="seccion-8">
-        <h2><span class="icon-large">🔔</span> 8. Notificaciones</h2>
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-8')">
+            <h2><span class="icon-large">🔔</span> 8. Notificaciones</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
         <p>
             Las notificaciones te mantienen informado sobre eventos importantes en la plataforma. 
             Recibirás notificaciones automáticas cuando ocurran ciertos eventos.
@@ -747,11 +988,16 @@
             <strong>💡 Tip:</strong> Revisa tus notificaciones regularmente para no perderte información importante 
             sobre nuevos exámenes, tareas o mensajes de tu profesor.
         </div>
+        </div>
     </div>
 
     {# SECCIÓN 9: MENSAJES AL PROFESOR #}
     <div class="tutorial-section" id="seccion-9">
-        <h2><span class="icon-large">💬</span> 9. Mensajes al Profesor</h2>
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-9')">
+            <h2><span class="icon-large">💬</span> 9. Mensajes al Profesor</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
         <p>
             Puedes comunicarte directamente con tu profesor asignado a través del sistema de mensajes integrado.
         </p>
@@ -794,11 +1040,16 @@
             <strong>⚠️ Importante:</strong> Si no tienes profesor asignado, no podrás enviar mensajes. 
             Contacta con el administrador para que te asigne un profesor.
         </div>
+        </div>
     </div>
 
     {# SECCIÓN 10: CONTACTO #}
     <div class="tutorial-section" id="seccion-10">
-        <h2><span class="icon-large">📧</span> 10. Contacto</h2>
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-10')">
+            <h2><span class="icon-large">📧</span> 10. Contacto</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
         <p>
             Si necesitas contactar con el administrador de la plataforma o tienes dudas generales, 
             puedes usar la sección de contacto.
@@ -826,13 +1077,18 @@
         
         <div class="tip">
             <strong>💡 Diferencia:</strong> Los mensajes al profesor son para temas relacionados con tu preparación 
-            y estudio. El contacto es para temas administrativos o técnicos de la plataforma.
+            y estudio.             El contacto es para temas administrativos o técnicos de la plataforma.
+        </div>
         </div>
     </div>
 
     {# SECCIÓN 11: CONSEJOS Y FAQ #}
     <div class="tutorial-section" id="seccion-11">
-        <h2><span class="icon-large">💡</span> 11. Consejos y Preguntas Frecuentes</h2>
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-11')">
+            <h2><span class="icon-large">💡</span> 11. Consejos y Preguntas Frecuentes</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
         
         <h3>11.1. Consejos para Aprovechar la Plataforma</h3>
         
@@ -957,7 +1213,60 @@
             de preparación. Úsala de forma constante y organizada, y verás cómo mejoras día a día. 
             La constancia y el trabajo diario son la clave del éxito.
         </div>
+        </div>
     </div>
 
 </div>
+
+<script>
+function toggleSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    section.classList.toggle('active');
+}
+
+function toggleSubsection(subsectionId) {
+    const subsection = document.getElementById(subsectionId);
+    subsection.classList.toggle('active');
+}
+
+function openSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (!section.classList.contains('active')) {
+        section.classList.add('active');
+    }
+    // Scroll suave a la sección
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function toggleAllSections() {
+    const sections = document.querySelectorAll('.tutorial-section');
+    const subsections = document.querySelectorAll('.subsection');
+    const allExpanded = Array.from(sections).every(s => s.classList.contains('active'));
+    
+    sections.forEach(section => {
+        if (allExpanded) {
+            section.classList.remove('active');
+        } else {
+            section.classList.add('active');
+        }
+    });
+    
+    // También expandir/colapsar todas las subsecciones
+    subsections.forEach(subsection => {
+        if (allExpanded) {
+            subsection.classList.remove('active');
+        } else {
+            subsection.classList.add('active');
+        }
+    });
+}
+
+// Abrir la primera sección por defecto al cargar
+document.addEventListener('DOMContentLoaded', function() {
+    const firstSection = document.getElementById('seccion-1');
+    if (firstSection) {
+        firstSection.classList.add('active');
+    }
+});
+</script>
 {% endblock %}

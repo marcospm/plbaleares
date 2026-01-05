@@ -4,22 +4,57 @@
 
 {% block body %}
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h1>{% if sinPlanificacion is defined and sinPlanificacion %}Mi Planificación Semanal{% else %}Mi Planificación Semanal - Semana del {{ lunesSemana|date('d/m/Y') }}{% endif %}</h1>
-        {% if sinPlanificacion is not defined or not sinPlanificacion %}
-        <div class="d-flex gap-2 align-items-center">
-            {% if semanaAnterior %}
-                <a href="{{ path('app_planificacion_alumno_index', {'semana': semanaAnterior|date('Y-m-d')}) }}" class="btn btn-sm btn-secondary">← Semana Anterior</a>
-            {% else %}
-                <button class="btn btn-sm btn-secondary" disabled>← Semana Anterior</button>
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <h1 class="mb-0">{% if sinPlanificacion is defined and sinPlanificacion %}Mi Planificación Semanal{% else %}Mi Planificación Semanal{% endif %}</h1>
+            {% if sinPlanificacion is not defined or not sinPlanificacion %}
+            <div class="week-navigation-wrapper">
+                {# Botón Semana Anterior #}
+                {% if semanaAnterior %}
+                    <a href="{{ path('app_planificacion_alumno_index', {'semana': semanaAnterior|date('Y-m-d')}) }}" 
+                       class="week-nav-btn week-nav-btn-prev" 
+                       title="Semana anterior">
+                        <span class="week-nav-icon">‹</span>
+                    </a>
+                {% else %}
+                    <button type="button" class="week-nav-btn week-nav-btn-prev" disabled title="No hay semana anterior">
+                        <span class="week-nav-icon">‹</span>
+                    </button>
+                {% endif %}
+                
+                {# Información de la semana #}
+                <div class="week-info">
+                    {% set domingoSemana = lunesSemana|date_modify('+6 days') %}
+                    <div class="week-date-range">
+                        {{ lunesSemana|date('d/m') }} - {{ domingoSemana|date('d/m/Y') }}
+                    </div>
+                    <div class="week-label">
+                        {% if esSemanaActual %}
+                            <span class="week-badge week-badge-current">📅 Semana Actual</span>
+                        {% else %}
+                            <span class="week-badge">Semana del {{ lunesSemana|date('d') }} al {{ domingoSemana|date('d') }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {# Botón Semana Siguiente #}
+                <a href="{{ path('app_planificacion_alumno_index', {'semana': semanaSiguiente|date('Y-m-d')}) }}" 
+                   class="week-nav-btn week-nav-btn-next" 
+                   title="Semana siguiente">
+                    <span class="week-nav-icon">›</span>
+                </a>
+                
+                {# Botón Hoy #}
+                {% if not esSemanaActual %}
+                    <a href="{{ path('app_planificacion_alumno_index') }}" 
+                       class="week-nav-btn-today" 
+                       title="Ir a la semana actual">
+                        Hoy
+                    </a>
+                {% endif %}
+            </div>
             {% endif %}
-            {% if esSemanaActual %}
-                <span class="badge badge-info" style="padding: 0.5rem 1rem;">Semana Actual</span>
-            {% endif %}
-            <a href="{{ path('app_planificacion_alumno_index', {'semana': semanaSiguiente|date('Y-m-d')}) }}" class="btn btn-sm btn-secondary">Semana Siguiente →</a>
-            <a href="{{ path('app_planificacion_alumno_index') }}" class="btn btn-sm btn-primary">Hoy</a>
         </div>
-        {% endif %}
     </div>
     <div class="card-body">
         {% if sinPlanificacion is defined and sinPlanificacion %}
@@ -466,6 +501,172 @@ window.onclick = function(event) {
 .franja-con-tareas {
     border: 2px solid #ff9800;
     font-weight: bold;
+}
+
+/* Estilos para la navegación de semanas */
+.week-navigation-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #dee2e6;
+}
+
+.week-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    margin: 0;
+    border: 2px solid #ced4da;
+    background-color: white;
+    border-radius: 50%;
+    color: #495057;
+    text-decoration: none;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    outline: none;
+    position: relative;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.week-nav-btn:hover:not(:disabled) {
+    background-color: #2196F3;
+    border-color: #2196F3;
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.35);
+}
+
+.week-nav-btn:focus,
+.week-nav-btn:focus-visible {
+    outline: none !important;
+    border-color: #2196F3 !important;
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.3) !important;
+    background-color: #2196F3 !important;
+    color: white !important;
+}
+
+.week-nav-btn:active:not(:disabled) {
+    transform: scale(1.05);
+}
+
+.week-nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #f8f9fa;
+    border-color: #e9ecef;
+}
+
+.week-nav-icon {
+    display: block;
+    font-size: 2rem;
+    font-weight: 300;
+    line-height: 1;
+    user-select: none;
+    pointer-events: none;
+    color: inherit;
+}
+
+.week-info {
+    text-align: center;
+    min-width: 180px;
+    padding: 0 0.5rem;
+}
+
+.week-date-range {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 0.25rem;
+    letter-spacing: 0.3px;
+}
+
+.week-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.week-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background-color: #e9ecef;
+    color: #495057;
+}
+
+.week-badge-current {
+    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+    color: white;
+    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
+}
+
+.week-nav-btn-today {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    margin-left: 0.5rem;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.25);
+}
+
+.week-nav-btn-today:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.35);
+    background: linear-gradient(135deg, #218838 0%, #1ea080 100%);
+}
+
+.week-nav-btn-today:focus,
+.week-nav-btn-today:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3), 0 4px 8px rgba(40, 167, 69, 0.35);
+}
+
+.week-nav-btn-today:active {
+    transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+    .week-navigation-wrapper {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .week-info {
+        min-width: 100%;
+        margin: 0.5rem 0;
+    }
+    
+    .card-header h1 {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    
+    .week-nav-btn-today {
+        margin-left: 0;
+        margin-top: 0.5rem;
+    }
 }
 </style>
 {% endblock %}
