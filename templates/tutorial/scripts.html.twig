@@ -1,0 +1,81 @@
+<script>
+// Asegurar que las funciones estén disponibles globalmente
+window.toggleSection = function(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.classList.toggle('active');
+        // Forzar reflow para asegurar que la animación se ejecute
+        section.offsetHeight;
+    }
+};
+
+window.toggleSubsection = function(subsectionId) {
+    const subsection = document.getElementById(subsectionId);
+    if (subsection) {
+        subsection.classList.toggle('active');
+        // Forzar reflow para asegurar que la animación se ejecute
+        subsection.offsetHeight;
+    }
+};
+
+window.openSection = function(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+        if (!section.classList.contains('active')) {
+            section.classList.add('active');
+        }
+        // Scroll suave a la sección
+        setTimeout(() => {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+    }
+};
+
+window.toggleAllSections = function() {
+    const sections = document.querySelectorAll('.tutorial-section');
+    const subsections = document.querySelectorAll('.subsection');
+    const allExpanded = Array.from(sections).every(s => s.classList.contains('active'));
+    
+    sections.forEach(section => {
+        if (allExpanded) {
+            section.classList.remove('active');
+        } else {
+            section.classList.add('active');
+        }
+    });
+    
+    // También expandir/colapsar todas las subsecciones
+    subsections.forEach(subsection => {
+        if (allExpanded) {
+            subsection.classList.remove('active');
+        } else {
+            subsection.classList.add('active');
+        }
+    });
+};
+
+// Abrir la primera sección por defecto al cargar
+document.addEventListener('DOMContentLoaded', function() {
+    const firstSection = document.getElementById('seccion-1');
+    if (firstSection) {
+        firstSection.classList.add('active');
+    }
+});
+
+// También ejecutar inmediatamente si el DOM ya está cargado
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        const firstSection = document.getElementById('seccion-1');
+        if (firstSection) {
+            firstSection.classList.add('active');
+        }
+    });
+} else {
+    // DOM ya está cargado
+    const firstSection = document.getElementById('seccion-1');
+    if (firstSection) {
+        firstSection.classList.add('active');
+    }
+}
+</script>
+

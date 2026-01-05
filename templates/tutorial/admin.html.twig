@@ -1,0 +1,691 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tutorial para Administradores{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    {% include 'tutorial/styles.html.twig' %}
+{% endblock %}
+
+{% block body %}
+<div class="tutorial-container">
+    {# INTRODUCCIÓN #}
+    <div class="tutorial-section" style="border: none; box-shadow: none; background: transparent;">
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">
+            <span class="icon-large">👑</span>
+            Tutorial para Administradores
+        </h1>
+        <p style="font-size: 1.1rem; color: #666; margin-bottom: 1rem;">
+            Bienvenido al tutorial para administradores de la plataforma de preparación para oposiciones de Policía Local de Illes Balears. 
+            Como administrador, tienes acceso completo a todas las funcionalidades de la plataforma, incluyendo todas las de profesor 
+            más las funciones de administración del sistema.
+        </p>
+        <p style="font-size: 0.95rem; color: #888; font-style: italic;">
+            💡 Haz clic en cada sección para desplegarla y leer el contenido. Puedes expandir o colapsar las secciones según necesites.
+        </p>
+        <div class="warning" style="margin-top: 1rem;">
+            <strong>⚠️ Importante:</strong> Como administrador, tienes acceso a funciones críticas del sistema. 
+            Usa estas funciones con responsabilidad y asegúrate de entender las consecuencias de cada acción.
+        </div>
+    </div>
+
+    {# TABLA DE CONTENIDOS #}
+    <div class="toc">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="margin: 0;">📑 Tabla de Contenidos</h3>
+            <button class="expand-all-btn" onclick="toggleAllSections()">Expandir/Colapsar Todo</button>
+        </div>
+        <ul>
+            <li><a href="#" onclick="openSection('seccion-1'); return false;">1. El Menú de Navegación</a></li>
+            <li><a href="#" onclick="openSection('seccion-2'); return false;">2. Dashboard (Inicio)</a></li>
+            <li><a href="#" onclick="openSection('seccion-3'); return false;">3. Gestión de Usuarios</a></li>
+            <li><a href="#" onclick="openSection('seccion-4'); return false;">4. Gestión de Grupos</a></li>
+            <li><a href="#" onclick="openSection('seccion-5'); return false;">5. Gestión de Convocatorias</a></li>
+            <li><a href="#" onclick="openSection('seccion-6'); return false;">6. Funcionalidades de Profesor</a></li>
+            <li><a href="#" onclick="openSection('seccion-7'); return false;">7. Gestión de Contenido</a></li>
+            <li><a href="#" onclick="openSection('seccion-8'); return false;">8. Mensajes de Contacto</a></li>
+            <li><a href="#" onclick="openSection('seccion-9'); return false;">9. Configuración y Mantenimiento</a></li>
+            <li><a href="#" onclick="openSection('seccion-10'); return false;">10. Consejos y Buenas Prácticas</a></li>
+        </ul>
+    </div>
+
+    {# SECCIÓN 1: MENÚ DE NAVEGACIÓN #}
+    <div class="tutorial-section" id="seccion-1">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-1')">
+            <h2><span class="icon-large">🧭</span> 1. El Menú de Navegación</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            Como administrador, tienes acceso a todas las funcionalidades de profesor más las funciones administrativas exclusivas.
+        </p>
+        
+        <div class="menu-structure">
+            <h4>Estructura del Menú Principal:</h4>
+            <ul>
+                <li><strong>Inicio:</strong> Dashboard con estadísticas globales</li>
+                <li><strong>Gestión:</strong> Menú desplegable con:
+                    <ul>
+                        <li>📚 30 Temas (gestión de recursos del temario general)</li>
+                        <li>📋 Planificaciones (crear y gestionar planificaciones)</li>
+                        <li>📝 Tareas (asignar y gestionar tareas)</li>
+                        <li>📅 Exámenes Semanales (crear y gestionar exámenes programados)</li>
+                        <li>📁 Recursos Específicos (subir recursos personalizados)</li>
+                    </ul>
+                </li>
+                <li><strong>Administración:</strong> Menú desplegable con:
+                    <ul>
+                        <li>👤 Usuarios (gestión completa de usuarios)</li>
+                        <li>📧 Mensajes de Contacto (gestionar mensajes recibidos)</li>
+                    </ul>
+                </li>
+                <li><strong>Municipal:</strong> Gestión de temas municipales</li>
+                <li><strong>Contacto:</strong> Para enviar mensajes generales</li>
+            </ul>
+        </div>
+        
+        <div class="tip">
+            <strong>💡 Tip:</strong> Como administrador, puedes ver y gestionar TODOS los usuarios y datos del sistema, 
+            no solo los asignados a ti como profesor.
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 2: DASHBOARD #}
+    <div class="tutorial-section" id="seccion-2">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-2')">
+            <h2><span class="icon-large">🏠</span> 2. Dashboard (Inicio)</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            El Dashboard de administrador muestra estadísticas globales de toda la plataforma, no solo de tus alumnos asignados.
+        </p>
+        
+        <div class="subsection" id="sub-2-1">
+            <div class="subsection-header" onclick="toggleSubsection('sub-2-1')">
+                <h3>2.1. Estadísticas Globales</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <h4>Estadísticas Disponibles:</h4>
+                    <ul class="feature-list">
+                        <li><strong>Alumnos Activos:</strong> Total de todos los alumnos activos en la plataforma</li>
+                        <li><strong>Total Exámenes:</strong> Número total de exámenes realizados por todos los alumnos</li>
+                        <li><strong>Promedio General:</strong> Nota media de todos los exámenes de la plataforma</li>
+                        <li><strong>Exámenes Hoy:</strong> Exámenes realizados hoy por todos los alumnos</li>
+                        <li><strong>Esta Semana:</strong> Exámenes realizados esta semana</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-2-2">
+            <div class="subsection-header" onclick="toggleSubsection('sub-2-2')">
+                <h3>2.2. Todos los Alumnos</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <p>
+                        Como administrador, puedes ver TODOS los alumnos de la plataforma, no solo los asignados a ti. 
+                        También puedes gestionar las asignaciones de alumnos a profesores.
+                    </p>
+                    <ul class="feature-list">
+                        <li>Ver lista completa de todos los alumnos</li>
+                        <li>Ver exámenes de cualquier alumno</li>
+                        <li>Gestionar asignaciones de alumnos a profesores</li>
+                        <li>Acceso completo a toda la información</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 3: GESTIÓN DE USUARIOS #}
+    <div class="tutorial-section" id="seccion-3">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-3')">
+            <h2><span class="icon-large">👤</span> 3. Gestión de Usuarios</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            La gestión de usuarios es una de las funciones más importantes del administrador. Aquí puedes gestionar todos los usuarios del sistema.
+        </p>
+        
+        <div class="subsection" id="sub-3-1">
+            <div class="subsection-header" onclick="toggleSubsection('sub-3-1')">
+                <h3>3.1. Ver Lista de Usuarios</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="step-box">
+                    <strong>Para acceder a la gestión de usuarios:</strong>
+                    <ol style="padding-left: 1.5rem;">
+                        <li>Ve a "Administración" → "Usuarios"</li>
+                        <li>Verás una lista completa de todos los usuarios</li>
+                        <li>Puedes filtrar por búsqueda o estado (activo/inactivo)</li>
+                        <li>Cada usuario muestra su nombre, rol y estado</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-3-2">
+            <div class="subsection-header" onclick="toggleSubsection('sub-3-2')">
+                <h3>3.2. Asignar Alumnos a Profesores</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="step-box">
+                    <strong>Para asignar alumnos a un profesor:</strong>
+                    <ol style="padding-left: 1.5rem;">
+                        <li>Ve a "Administración" → "Usuarios"</li>
+                        <li>Busca el profesor al que quieres asignar alumnos</li>
+                        <li>Haz clic en "Asignar Alumnos"</li>
+                        <li>Selecciona los alumnos que quieres asignar (puedes seleccionar múltiples)</li>
+                        <li>Guarda los cambios</li>
+                    </ol>
+                </div>
+                
+                <div class="warning">
+                    <strong>⚠️ Importante:</strong> Un alumno puede estar asignado a varios profesores si es necesario. 
+                    Las asignaciones determinan qué profesores pueden ver y gestionar a cada alumno.
+                </div>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-3-3">
+            <div class="subsection-header" onclick="toggleSubsection('sub-3-3')">
+                <h3>3.3. Activar/Desactivar Usuarios</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <p>
+                        Puedes activar o desactivar usuarios del sistema:
+                    </p>
+                    <ul class="feature-list">
+                        <li>Los usuarios inactivos no pueden iniciar sesión</li>
+                        <li>Sus datos se mantienen en el sistema</li>
+                        <li>Puedes reactivarlos en cualquier momento</li>
+                        <li>Útil para gestionar usuarios temporales o suspendidos</li>
+                    </ul>
+                </div>
+                
+                <div class="step-box">
+                    <strong>Para activar/desactivar un usuario:</strong>
+                    <ol style="padding-left: 1.5rem;">
+                        <li>Ve a la lista de usuarios</li>
+                        <li>Haz clic en el botón "Activar" o "Desactivar" junto al usuario</li>
+                        <li>Confirma la acción</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-3-4">
+            <div class="subsection-header" onclick="toggleSubsection('sub-3-4')">
+                <h3>3.4. Ver Detalles de Usuario</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <h4>Información Disponible:</h4>
+                    <ul class="feature-list">
+                        <li>Nombre de usuario y datos personales</li>
+                        <li>Rol (Alumno, Profesor, Admin)</li>
+                        <li>Estado (Activo/Inactivo)</li>
+                        <li>Alumnos asignados (si es profesor)</li>
+                        <li>Profesor asignado (si es alumno)</li>
+                        <li>Grupos a los que pertenece (si es alumno)</li>
+                        <li>Historial de actividad</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 4: GESTIÓN DE GRUPOS #}
+    <div class="tutorial-section" id="seccion-4">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-4')">
+            <h2><span class="icon-large">👥</span> 4. Gestión de Grupos</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            Los grupos permiten organizar a los alumnos y crear exámenes específicos para grupos determinados.
+        </p>
+        
+        <div class="step-box">
+            <strong>Para gestionar grupos:</strong>
+            <ol style="padding-left: 1.5rem;">
+                <li>Ve a la sección de grupos (si está disponible en el menú)</li>
+                <li>Puedes crear nuevos grupos</li>
+                <li>Asignar alumnos a grupos</li>
+                <li>Gestionar grupos existentes</li>
+                <li>Eliminar grupos si es necesario</li>
+            </ol>
+        </div>
+        
+        <div class="feature-card">
+            <h4>Funcionalidades de Grupos:</h4>
+            <ul class="feature-list">
+                <li>Crear grupos de alumnos</li>
+                <li>Asignar alumnos a grupos</li>
+                <li>Crear exámenes específicos para grupos</li>
+                <li>Ver historial de exámenes por grupo</li>
+                <li>Comparar resultados entre grupos</li>
+            </ul>
+        </div>
+        
+        <div class="tip">
+            <strong>💡 Tip:</strong> Los grupos son útiles para organizar alumnos por convocatoria, nivel, o cualquier otro criterio. 
+            Los exámenes pueden asignarse a grupos específicos para que solo esos alumnos los vean.
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 5: GESTIÓN DE CONVOCATORIAS #}
+    <div class="tutorial-section" id="seccion-5">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-5')">
+            <h2><span class="icon-large">📢</span> 5. Gestión de Convocatorias</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            Las convocatorias representan procesos de oposición específicos. Puedes crear y gestionar convocatorias completas.
+        </p>
+        
+        <div class="subsection" id="sub-5-1">
+            <div class="subsection-header" onclick="toggleSubsection('sub-5-1')">
+                <h3>5.1. Crear una Convocatoria</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="step-box">
+                    <strong>Para crear una convocatoria:</strong>
+                    <ol style="padding-left: 1.5rem;">
+                        <li>Ve a la sección de convocatorias</li>
+                        <li>Haz clic en "Nueva Convocatoria"</li>
+                        <li>Completa la información:
+                            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                                <li>Nombre de la convocatoria</li>
+                                <li>Municipios incluidos</li>
+                                <li>Fechas de las pruebas (teórico, físicas, psicotécnico)</li>
+                                <li>Estado (Activa/Inactiva)</li>
+                            </ul>
+                        </li>
+                        <li>Asigna alumnos a la convocatoria</li>
+                        <li>Guarda la convocatoria</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-5-2">
+            <div class="subsection-header" onclick="toggleSubsection('sub-5-2')">
+                <h3>5.2. Gestionar Convocatorias</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <h4>Funcionalidades:</h4>
+                    <ul class="feature-list">
+                        <li>Ver todas las convocatorias</li>
+                        <li>Editar convocatorias existentes</li>
+                        <li>Activar o desactivar convocatorias</li>
+                        <li>Gestionar municipios incluidos</li>
+                        <li>Actualizar fechas de pruebas</li>
+                        <li>Asignar alumnos a convocatorias</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 6: FUNCIONALIDADES DE PROFESOR #}
+    <div class="tutorial-section" id="seccion-6">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-6')">
+            <h2><span class="icon-large">👨‍🏫</span> 6. Funcionalidades de Profesor</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            Como administrador, tienes acceso a TODAS las funcionalidades de profesor. Puedes hacer todo lo que un profesor puede hacer, 
+            pero con acceso completo a todos los usuarios y datos.
+        </p>
+        
+        <div class="subsection" id="sub-6-1">
+            <div class="subsection-header" onclick="toggleSubsection('sub-6-1')">
+                <h3>6.1. Exámenes Semanales</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <p>
+                    Puedes crear y gestionar exámenes semanales igual que un profesor, pero puedes ver y gestionar 
+                    TODOS los exámenes de la plataforma, no solo los tuyos.
+                </p>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-6-2">
+            <div class="subsection-header" onclick="toggleSubsection('sub-6-2')">
+                <h3>6.2. Planificaciones</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <p>
+                    Puedes crear planificaciones para cualquier alumno, no solo los asignados a ti. 
+                    Tienes acceso completo a todas las planificaciones del sistema.
+                </p>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-6-3">
+            <div class="subsection-header" onclick="toggleSubsection('sub-6-3')">
+                <h3>6.3. Tareas</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <p>
+                    Puedes asignar tareas a cualquier alumno y ver todas las tareas del sistema.
+                </p>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-6-4">
+            <div class="subsection-header" onclick="toggleSubsection('sub-6-4')">
+                <h3>6.4. Recursos Específicos</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <p>
+                    Puedes crear recursos específicos y asignarlos a cualquier alumno. También puedes ver todos los recursos 
+                    creados por otros profesores.
+                </p>
+            </div>
+        </div>
+        
+        <div class="highlight">
+            <strong>📌 Diferencia Clave:</strong> Como administrador, no estás limitado a "tus alumnos asignados". 
+            Puedes gestionar y ver información de TODOS los usuarios del sistema.
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 7: GESTIÓN DE CONTENIDO #}
+    <div class="tutorial-section" id="seccion-7">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-7')">
+            <h2><span class="icon-large">📚</span> 7. Gestión de Contenido</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            Como administrador, puedes gestionar todo el contenido de la plataforma: temas, preguntas, artículos, recursos, etc.
+        </p>
+        
+        <div class="subsection" id="sub-7-1">
+            <div class="subsection-header" onclick="toggleSubsection('sub-7-1')">
+                <h3>7.1. Gestión de Temas</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <h4>Funcionalidades:</h4>
+                    <ul class="feature-list">
+                        <li>Crear y editar temas del temario general</li>
+                        <li>Asociar recursos PDF a cada tema</li>
+                        <li>Organizar y estructurar el temario</li>
+                        <li>Gestionar temas municipales</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-7-2">
+            <div class="subsection-header" onclick="toggleSubsection('sub-7-2')">
+                <h3>7.2. Gestión de Preguntas</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <h4>Funcionalidades:</h4>
+                    <ul class="feature-list">
+                        <li>Crear nuevas preguntas</li>
+                        <li>Editar preguntas existentes</li>
+                        <li>Gestionar preguntas municipales</li>
+                        <li>Revisar reportes de errores en preguntas</li>
+                        <li>Validar y aprobar correcciones</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-7-3">
+            <div class="subsection-header" onclick="toggleSubsection('sub-7-3')">
+                <h3>7.3. Gestión de Artículos</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <h4>Funcionalidades:</h4>
+                    <ul class="feature-list">
+                        <li>Crear y publicar artículos</li>
+                        <li>Editar artículos existentes</li>
+                        <li>Gestionar contenido de la plataforma</li>
+                        <li>Revisar reportes de errores en artículos</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-7-4">
+            <div class="subsection-header" onclick="toggleSubsection('sub-7-4')">
+                <h3>7.4. Gestión de Recursos</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <h4>Funcionalidades:</h4>
+                    <ul class="feature-list">
+                        <li>Subir recursos públicos (PDFs del temario)</li>
+                        <li>Gestionar recursos municipales</li>
+                        <li>Organizar recursos por tema</li>
+                        <li>Gestionar exámenes PDF</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 8: MENSAJES DE CONTACTO #}
+    <div class="tutorial-section" id="seccion-8">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-8')">
+            <h2><span class="icon-large">📧</span> 8. Mensajes de Contacto</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            Los usuarios pueden enviar mensajes de contacto a través de la sección "Contacto". Como administrador, 
+            puedes gestionar todos estos mensajes.
+        </p>
+        
+        <div class="step-box">
+            <strong>Para gestionar mensajes de contacto:</strong>
+            <ol style="padding-left: 1.5rem;">
+                <li>Ve a "Administración" → "Mensajes de Contacto"</li>
+                <li>Verás todos los mensajes recibidos</li>
+                <li>Puedes ver detalles de cada mensaje</li>
+                <li>Responder a los mensajes si es necesario</li>
+                <li>Marcar mensajes como leídos o gestionados</li>
+            </ol>
+        </div>
+        
+        <div class="feature-card">
+            <h4>Funcionalidades:</h4>
+            <ul class="feature-list">
+                <li>Ver todos los mensajes de contacto</li>
+                <li>Filtrar por estado (leído/no leído)</li>
+                <li>Ver información del remitente</li>
+                <li>Responder a mensajes</li>
+                <li>Gestionar y organizar mensajes</li>
+            </ul>
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 9: CONFIGURACIÓN Y MANTENIMIENTO #}
+    <div class="tutorial-section" id="seccion-9">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-9')">
+            <h2><span class="icon-large">⚙️</span> 9. Configuración y Mantenimiento</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            Como administrador, eres responsable del mantenimiento y configuración general de la plataforma.
+        </p>
+        
+        <div class="subsection" id="sub-9-1">
+            <div class="subsection-header" onclick="toggleSubsection('sub-9-1')">
+                <h3>9.1. Gestión de Roles</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <p>
+                        Puedes gestionar los roles de los usuarios:
+                    </p>
+                    <ul class="feature-list">
+                        <li>Asignar rol de Profesor a usuarios</li>
+                        <li>Asignar rol de Administrador (con precaución)</li>
+                        <li>Gestionar permisos y accesos</li>
+                    </ul>
+                </div>
+                
+                <div class="warning">
+                    <strong>⚠️ Importante:</strong> El rol de Administrador otorga acceso completo al sistema. 
+                    Solo asigna este rol a usuarios de confianza que realmente lo necesiten.
+                </div>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-9-2">
+            <div class="subsection-header" onclick="toggleSubsection('sub-9-2')">
+                <h3>9.2. Mantenimiento de Datos</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <h4>Tareas de Mantenimiento:</h4>
+                    <ul class="feature-list">
+                        <li>Revisar y limpiar usuarios inactivos</li>
+                        <li>Gestionar asignaciones de alumnos a profesores</li>
+                        <li>Verificar integridad de datos</li>
+                        <li>Gestionar convocatorias y fechas</li>
+                        <li>Supervisar el uso de la plataforma</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-9-3">
+            <div class="subsection-header" onclick="toggleSubsection('sub-9-3')">
+                <h3>9.3. Supervisión y Estadísticas</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <h4>Información Disponible:</h4>
+                    <ul class="feature-list">
+                        <li>Estadísticas globales de la plataforma</li>
+                        <li>Actividad de todos los usuarios</li>
+                        <li>Rendimiento general</li>
+                        <li>Uso de funcionalidades</li>
+                        <li>Reportes y análisis</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 10: CONSEJOS Y BUENAS PRÁCTICAS #}
+    <div class="tutorial-section" id="seccion-10">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-10')">
+            <h2><span class="icon-large">💡</span> 10. Consejos y Buenas Prácticas</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        
+        <div class="feature-card">
+            <h4>🔐 Seguridad y Permisos</h4>
+            <p>
+                Como administrador, eres responsable de la seguridad del sistema. Asigna roles con cuidado, 
+                especialmente el rol de Administrador. Revisa regularmente los usuarios activos y sus permisos.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <h4>👥 Gestión de Asignaciones</h4>
+            <p>
+                Mantén las asignaciones de alumnos a profesores organizadas y actualizadas. Asegúrate de que cada alumno 
+                tenga un profesor asignado para que pueda aprovechar todas las funcionalidades.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <h4>📊 Supervisión Regular</h4>
+            <p>
+                Revisa regularmente el Dashboard y las estadísticas para identificar problemas o áreas de mejora. 
+                Supervisa la actividad de la plataforma y el rendimiento general.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <h4>🔄 Mantenimiento Proactivo</h4>
+            <p>
+                Realiza tareas de mantenimiento de forma regular: revisar usuarios inactivos, actualizar convocatorias, 
+                gestionar contenido, etc. Un mantenimiento proactivo mantiene la plataforma funcionando correctamente.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <h4>💬 Comunicación</h4>
+            <p>
+                Responde a los mensajes de contacto de forma oportuna. Mantén una comunicación fluida con profesores 
+                y alumnos para resolver problemas y mejorar la experiencia de uso.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <h4>📚 Gestión de Contenido</h4>
+            <p>
+                Mantén el contenido de la plataforma actualizado y organizado. Revisa regularmente temas, preguntas, 
+                artículos y recursos para asegurar que estén completos y correctos.
+            </p>
+        </div>
+        
+        <div class="highlight">
+            <strong>🎯 Objetivo Final:</strong> Como administrador, tu objetivo es mantener la plataforma funcionando 
+            de forma eficiente y segura, asegurando que todos los usuarios (alumnos y profesores) puedan aprovechar 
+            al máximo todas las funcionalidades disponibles.
+        </div>
+        
+        <div class="warning">
+            <strong>⚠️ Responsabilidad:</strong> Con el rol de administrador vienen grandes responsabilidades. 
+            Usa tus privilegios con cuidado y siempre piensa en el impacto de tus acciones en el sistema y los usuarios.
+        </div>
+        </div>
+    </div>
+
+</div>
+
+{% include 'tutorial/scripts.html.twig' %}
+{% endblock %}
+

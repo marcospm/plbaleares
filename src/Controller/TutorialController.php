@@ -15,5 +15,19 @@ class TutorialController extends AbstractController
     {
         return $this->render('tutorial/index.html.twig');
     }
+
+    #[Route('/tutorial-profesor', name: 'app_tutorial_profesor')]
+    #[IsGranted('ROLE_PROFESOR')]
+    public function profesor(): Response
+    {
+        return $this->render('tutorial/profesor.html.twig');
+    }
+
+    #[Route('/tutorial-admin', name: 'app_tutorial_admin')]
+    #[IsGranted('ROLE_ADMIN')]
+    public function admin(): Response
+    {
+        return $this->render('tutorial/admin.html.twig');
+    }
 }
 

@@ -1,0 +1,625 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tutorial para Profesores{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    {% include 'tutorial/styles.html.twig' %}
+{% endblock %}
+
+{% block body %}
+<div class="tutorial-container">
+    {# INTRODUCCIÓN #}
+    <div class="tutorial-section" style="border: none; box-shadow: none; background: transparent;">
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">
+            <span class="icon-large">👨‍🏫</span>
+            Tutorial para Profesores
+        </h1>
+        <p style="font-size: 1.1rem; color: #666; margin-bottom: 1rem;">
+            Bienvenido al tutorial para profesores de la plataforma de preparación para oposiciones de Policía Local de Illes Balears. 
+            Este tutorial te guiará paso a paso para que puedas aprovechar al máximo todas las funcionalidades disponibles como profesor.
+        </p>
+        <p style="font-size: 0.95rem; color: #888; font-style: italic;">
+            💡 Haz clic en cada sección para desplegarla y leer el contenido. Puedes expandir o colapsar las secciones según necesites.
+        </p>
+    </div>
+
+    {# TABLA DE CONTENIDOS #}
+    <div class="toc">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="margin: 0;">📑 Tabla de Contenidos</h3>
+            <button class="expand-all-btn" onclick="toggleAllSections()">Expandir/Colapsar Todo</button>
+        </div>
+        <ul>
+            <li><a href="#" onclick="openSection('seccion-1'); return false;">1. El Menú de Navegación</a></li>
+            <li><a href="#" onclick="openSection('seccion-2'); return false;">2. Dashboard (Inicio)</a></li>
+            <li><a href="#" onclick="openSection('seccion-3'); return false;">3. Gestión de Alumnos</a></li>
+            <li><a href="#" onclick="openSection('seccion-4'); return false;">4. Exámenes Semanales</a></li>
+            <li><a href="#" onclick="openSection('seccion-5'); return false;">5. Planificaciones</a></li>
+            <li><a href="#" onclick="openSection('seccion-6'); return false;">6. Tareas</a></li>
+            <li><a href="#" onclick="openSection('seccion-7'); return false;">7. Recursos Específicos</a></li>
+            <li><a href="#" onclick="openSection('seccion-8'); return false;">8. Mensajes de Alumnos</a></li>
+            <li><a href="#" onclick="openSection('seccion-9'); return false;">9. Temas Municipales</a></li>
+            <li><a href="#" onclick="openSection('seccion-10'); return false;">10. Consejos y Buenas Prácticas</a></li>
+        </ul>
+    </div>
+
+    {# SECCIÓN 1: MENÚ DE NAVEGACIÓN #}
+    <div class="tutorial-section" id="seccion-1">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-1')">
+            <h2><span class="icon-large">🧭</span> 1. El Menú de Navegación</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            Como profesor, tienes acceso a un menú específico con funcionalidades de gestión y seguimiento de tus alumnos.
+        </p>
+        
+        <div class="menu-structure">
+            <h4>Estructura del Menú Principal:</h4>
+            <ul>
+                <li><strong>Inicio:</strong> Dashboard con estadísticas y resumen de actividad</li>
+                <li><strong>Gestión:</strong> Menú desplegable con:
+                    <ul>
+                        <li>📚 30 Temas (gestión de recursos del temario general)</li>
+                        <li>📋 Planificaciones (crear y gestionar planificaciones para alumnos)</li>
+                        <li>📝 Tareas (asignar y gestionar tareas a alumnos)</li>
+                        <li>📅 Exámenes Semanales (crear y gestionar exámenes programados)</li>
+                        <li>📁 Recursos Específicos (subir recursos personalizados para alumnos)</li>
+                    </ul>
+                </li>
+                <li><strong>Municipal:</strong> Gestión de temas municipales</li>
+                <li><strong>Contacto:</strong> Para enviar mensajes generales</li>
+            </ul>
+        </div>
+        
+        <div class="tip">
+            <strong>💡 Tip:</strong> En la parte superior derecha encontrarás:
+            <ul class="feature-list">
+                <li>🔔 <strong>Notificaciones:</strong> Icono con contador de notificaciones no leídas</li>
+                <li>Tu nombre de usuario y rol (Profesor)</li>
+                <li>Botón para cerrar sesión</li>
+            </ul>
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 2: DASHBOARD #}
+    <div class="tutorial-section" id="seccion-2">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-2')">
+            <h2><span class="icon-large">🏠</span> 2. Dashboard (Inicio)</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            El Dashboard es tu centro de control donde encontrarás un resumen completo de la actividad de tus alumnos asignados.
+        </p>
+        
+        <div class="subsection" id="sub-2-1">
+            <div class="subsection-header" onclick="toggleSubsection('sub-2-1')">
+                <h3>2.1. Mis Alumnos Asignados</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <p>
+                        En esta sección verás una lista de todos los alumnos que tienes asignados:
+                    </p>
+                    <ul class="feature-list">
+                        <li>Nombre de cada alumno</li>
+                        <li>Estado (Activo/Inactivo)</li>
+                        <li>Botón "Ver Exámenes" para acceder al historial de cada alumno</li>
+                    </ul>
+                </div>
+                
+                <div class="warning">
+                    <strong>⚠️ Sin Alumnos:</strong> Si no tienes alumnos asignados, contacta con el administrador 
+                    para que te asigne alumnos. Muchas funcionalidades requieren tener alumnos asignados.
+                </div>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-2-2">
+            <div class="subsection-header" onclick="toggleSubsection('sub-2-2')">
+                <h3>2.2. Estadísticas Generales</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <h4>Estadísticas Disponibles:</h4>
+                    <ul class="feature-list">
+                        <li><strong>Alumnos Activos:</strong> Total de alumnos activos asignados a ti</li>
+                        <li><strong>Total Exámenes:</strong> Número total de exámenes realizados por tus alumnos</li>
+                        <li><strong>Promedio General:</strong> Nota media de todos los exámenes de tus alumnos</li>
+                        <li><strong>Exámenes Hoy:</strong> Exámenes realizados hoy por tus alumnos</li>
+                        <li><strong>Esta Semana:</strong> Exámenes realizados esta semana</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-2-3">
+            <div class="subsection-header" onclick="toggleSubsection('sub-2-3')">
+                <h3>2.3. Últimos Exámenes Realizados</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <p>
+                        Verás una tabla con los últimos exámenes realizados por tus alumnos:
+                    </p>
+                    <ul class="feature-list">
+                        <li>Nombre del alumno</li>
+                        <li>Fecha y hora del examen</li>
+                        <li>Dificultad (Fácil, Moderada, Difícil)</li>
+                        <li>Nota obtenida</li>
+                        <li>Tipo (General o Municipal)</li>
+                        <li>Botón "Ver" para ver el detalle completo del examen</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 3: GESTIÓN DE ALUMNOS #}
+    <div class="tutorial-section" id="seccion-3">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-3')">
+            <h2><span class="icon-large">👥</span> 3. Gestión de Alumnos</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            Como profesor, puedes ver información detallada sobre los exámenes de tus alumnos asignados.
+        </p>
+        
+        <div class="subsection" id="sub-3-1">
+            <div class="subsection-header" onclick="toggleSubsection('sub-3-1')">
+                <h3>3.1. Ver Exámenes de un Alumno</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="step-box">
+                    <strong>Para ver los exámenes de un alumno:</strong>
+                    <ol style="padding-left: 1.5rem;">
+                        <li>Desde el Dashboard, haz clic en "Ver Exámenes" junto al nombre del alumno</li>
+                        <li>O ve a "Gestión" → "Exámenes" y selecciona un alumno</li>
+                        <li>Verás todos los exámenes realizados por ese alumno</li>
+                        <li>Puedes filtrar por tipo, dificultad, tema, etc.</li>
+                        <li>Haz clic en "Ver Detalle" para ver preguntas y respuestas completas</li>
+                    </ol>
+                </div>
+                
+                <div class="feature-card">
+                    <h4>Información Disponible:</h4>
+                    <ul class="feature-list">
+                        <li>Historial completo de exámenes</li>
+                        <li>Notas y estadísticas</li>
+                        <li>Detalle de cada pregunta y respuesta</li>
+                        <li>Evolución del rendimiento</li>
+                        <li>Rankings y posición del alumno</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 4: EXÁMENES SEMANALES #}
+    <div class="tutorial-section" id="seccion-4">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-4')">
+            <h2><span class="icon-large">📅</span> 4. Exámenes Semanales</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            Los exámenes semanales son pruebas programadas que puedes crear para que tus alumnos las realicen en fechas específicas.
+        </p>
+        
+        <div class="subsection" id="sub-4-1">
+            <div class="subsection-header" onclick="toggleSubsection('sub-4-1')">
+                <h3>4.1. Crear un Examen Semanal</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="step-box">
+                    <strong>Paso a paso para crear un examen semanal:</strong>
+                    <ol style="padding-left: 1.5rem;">
+                        <li>Ve a "Gestión" → "Exámenes Semanales"</li>
+                        <li>Haz clic en "Nuevo Examen Semanal"</li>
+                        <li>Selecciona el tipo de examen:
+                            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                                <li><strong>General:</strong> Examen del temario general</li>
+                                <li><strong>Municipal:</strong> Examen de un municipio específico</li>
+                                <li><strong>Convocatoria:</strong> Examen relacionado con una convocatoria</li>
+                            </ul>
+                        </li>
+                        <li>Configura los parámetros:
+                            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                                <li>Nombre del examen</li>
+                                <li>Dificultad (Fácil, Moderada, Difícil)</li>
+                                <li>Número de preguntas</li>
+                                <li>Temas específicos (si es general)</li>
+                                <li>Municipio o Convocatoria (si aplica)</li>
+                                <li>Grupo específico (opcional - si quieres que solo un grupo lo vea)</li>
+                            </ul>
+                        </li>
+                        <li>Establece las fechas:
+                            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                                <li>Fecha de apertura (cuándo pueden empezar a realizarlo)</li>
+                                <li>Fecha de cierre (hasta cuándo pueden realizarlo)</li>
+                            </ul>
+                        </li>
+                        <li>Guarda el examen</li>
+                    </ol>
+                </div>
+                
+                <div class="tip">
+                    <strong>💡 Tip:</strong> Los alumnos recibirán una notificación automática cuando crees un examen semanal 
+                    disponible para ellos. Si asignas el examen a un grupo específico, solo los alumnos de ese grupo lo verán.
+                </div>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-4-2">
+            <div class="subsection-header" onclick="toggleSubsection('sub-4-2')">
+                <h3>4.2. Gestionar Exámenes Semanales</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <h4>Funcionalidades de Gestión:</h4>
+                    <ul class="feature-list">
+                        <li>Ver lista de todos los exámenes semanales creados</li>
+                        <li>Editar exámenes existentes</li>
+                        <li>Ver resultados de cada examen</li>
+                        <li>Ver ranking de alumnos que han realizado el examen</li>
+                        <li>Activar o desactivar exámenes</li>
+                        <li>Ver estadísticas de participación</li>
+                    </ul>
+                </div>
+                
+                <div class="step-box">
+                    <strong>Para ver resultados de un examen:</strong>
+                    <ol style="padding-left: 1.5rem;">
+                        <li>Ve a la lista de exámenes semanales</li>
+                        <li>Haz clic en el examen que quieres revisar</li>
+                        <li>Verás todos los alumnos que lo han realizado</li>
+                        <li>Puedes ver el detalle de cada examen individual</li>
+                        <li>Verás el ranking completo con notas y posiciones</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 5: PLANIFICACIONES #}
+    <div class="tutorial-section" id="seccion-5">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-5')">
+            <h2><span class="icon-large">📋</span> 5. Planificaciones</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            Las planificaciones te permiten organizar el tiempo de estudio de tus alumnos de forma estructurada y personalizada.
+        </p>
+        
+        <div class="subsection" id="sub-5-1">
+            <div class="subsection-header" onclick="toggleSubsection('sub-5-1')">
+                <h3>5.1. Crear una Planificación Semanal</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="step-box">
+                    <strong>Para crear una planificación:</strong>
+                    <ol style="padding-left: 1.5rem;">
+                        <li>Ve a "Gestión" → "Planificaciones"</li>
+                        <li>Haz clic en "Nueva Planificación"</li>
+                        <li>Completa la información básica:
+                            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                                <li>Nombre de la planificación</li>
+                                <li>Descripción (opcional)</li>
+                                <li>Fecha de finalización (opcional)</li>
+                            </ul>
+                        </li>
+                        <li>Añade franjas horarias:
+                            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                                <li>Día de la semana</li>
+                                <li>Hora de inicio y fin</li>
+                                <li>Tipo de actividad (Repaso Básico, Estudio, o Realizar Exámenes)</li>
+                                <li>Descripción de qué estudiar o repasar</li>
+                            </ul>
+                        </li>
+                        <li>Asigna la planificación a uno o varios alumnos</li>
+                        <li>Guarda la planificación</li>
+                    </ol>
+                </div>
+                
+                <div class="tip">
+                    <strong>💡 Tip:</strong> Puedes crear diferentes planificaciones para diferentes alumnos según sus necesidades. 
+                    Las planificaciones se muestran en el calendario semanal del alumno.
+                </div>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-5-2">
+            <div class="subsection-header" onclick="toggleSubsection('sub-5-2')">
+                <h3>5.2. Planificaciones Personalizadas</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <h4>Actividades con Fechas Específicas:</h4>
+                    <p>
+                        Además de las planificaciones semanales recurrentes, puedes crear actividades para fechas específicas:
+                    </p>
+                    <ul class="feature-list">
+                        <li>Actividades puntuales para días concretos</li>
+                        <li>Añadir información adicional (temas, recursos, enlaces, notas)</li>
+                        <li>Asignar tareas específicas a esas actividades</li>
+                        <li>Personalizar completamente el contenido para cada alumno</li>
+                    </ul>
+                </div>
+                
+                <div class="step-box">
+                    <strong>Para crear una actividad personalizada:</strong>
+                    <ol style="padding-left: 1.5rem;">
+                        <li>Ve a la planificación del alumno</li>
+                        <li>Haz clic en "Añadir Actividad"</li>
+                        <li>Selecciona la fecha específica</li>
+                        <li>Configura la actividad con todos los detalles</li>
+                        <li>Guarda la actividad</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 6: TAREAS #}
+    <div class="tutorial-section" id="seccion-6">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-6')">
+            <h2><span class="icon-large">📝</span> 6. Tareas</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            Las tareas te permiten asignar actividades específicas a tus alumnos para que las completen en fechas determinadas.
+        </p>
+        
+        <div class="subsection" id="sub-6-1">
+            <div class="subsection-header" onclick="toggleSubsection('sub-6-1')">
+                <h3>6.1. Crear una Tarea</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="step-box">
+                    <strong>Para crear una tarea:</strong>
+                    <ol style="padding-left: 1.5rem;">
+                        <li>Ve a "Gestión" → "Tareas"</li>
+                        <li>Haz clic en "Nueva Tarea"</li>
+                        <li>Completa la información:
+                            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                                <li>Nombre de la tarea</li>
+                                <li>Descripción detallada</li>
+                                <li>Semana de asignación (el lunes de la semana)</li>
+                            </ul>
+                        </li>
+                        <li>Selecciona los alumnos a los que asignar la tarea</li>
+                        <li>Opcionalmente, asigna la tarea a una franja horaria específica de la planificación</li>
+                        <li>Guarda la tarea</li>
+                    </ol>
+                </div>
+                
+                <div class="tip">
+                    <strong>💡 Tip:</strong> Los alumnos recibirán una notificación cuando les asignes una nueva tarea. 
+                    Pueden marcar las tareas como completadas cuando las terminen.
+                </div>
+            </div>
+        </div>
+        
+        <div class="subsection" id="sub-6-2">
+            <div class="subsection-header" onclick="toggleSubsection('sub-6-2')">
+                <h3>6.2. Gestionar Tareas</h3>
+                <span class="subsection-icon">▼</span>
+            </div>
+            <div class="subsection-content">
+                <div class="feature-card">
+                    <h4>Funcionalidades:</h4>
+                    <ul class="feature-list">
+                        <li>Ver todas las tareas creadas</li>
+                        <li>Editar tareas existentes</li>
+                        <li>Ver qué alumnos tienen asignada cada tarea</li>
+                        <li>Ver el estado de cada tarea (completada o pendiente)</li>
+                        <li>Filtrar por semana o alumno</li>
+                        <li>Eliminar tareas</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 7: RECURSOS ESPECÍFICOS #}
+    <div class="tutorial-section" id="seccion-7">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-7')">
+            <h2><span class="icon-large">📁</span> 7. Recursos Específicos</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            Los recursos específicos te permiten subir archivos personalizados (PDFs, documentos, etc.) que solo verán los alumnos 
+            a los que se los asignes.
+        </p>
+        
+        <div class="step-box">
+            <strong>Para crear un recurso específico:</strong>
+            <ol style="padding-left: 1.5rem;">
+                <li>Ve a "Gestión" → "Recursos Específicos"</li>
+                <li>Haz clic en "Nuevo Recurso Específico"</li>
+                <li>Completa la información:
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>Título del recurso</li>
+                        <li>Descripción</li>
+                        <li>Archivo a subir (PDF, Word, etc.)</li>
+                    </ul>
+                </li>
+                <li>Selecciona los alumnos a los que asignar el recurso</li>
+                <li>Guarda el recurso</li>
+            </ol>
+        </div>
+        
+        <div class="feature-card">
+            <h4>Ventajas de los Recursos Específicos:</h4>
+            <ul class="feature-list">
+                <li>Material personalizado para cada alumno</li>
+                <li>Recursos complementarios al temario general</li>
+                <li>Documentos de apoyo específicos</li>
+                <li>Control total sobre quién puede acceder a cada recurso</li>
+            </ul>
+        </div>
+        
+        <div class="tip">
+            <strong>💡 Tip:</strong> Los alumnos verán estos recursos en la sección "Temario y Recursos" → "Recursos Específicos". 
+            Solo verán los recursos que tú les hayas asignado específicamente.
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 8: MENSAJES DE ALUMNOS #}
+    <div class="tutorial-section" id="seccion-8">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-8')">
+            <h2><span class="icon-large">💬</span> 8. Mensajes de Alumnos</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            Los alumnos pueden enviarte mensajes directamente a través de la plataforma. Puedes responderles y mantener 
+            un historial completo de la conversación.
+        </p>
+        
+        <div class="step-box">
+            <strong>Para gestionar mensajes:</strong>
+            <ol style="padding-left: 1.5rem;">
+                <li>Recibirás una notificación cuando un alumno te envíe un mensaje</li>
+                <li>Ve a la sección de mensajes (desde el Dashboard o el menú)</li>
+                <li>Verás todos los mensajes recibidos y enviados</li>
+                <li>Haz clic en un mensaje para ver la conversación completa</li>
+                <li>Escribe tu respuesta y envíala</li>
+                <li>El alumno recibirá una notificación de tu respuesta</li>
+            </ol>
+        </div>
+        
+        <div class="feature-card">
+            <h4>Funcionalidades:</h4>
+            <ul class="feature-list">
+                <li>Ver historial completo de conversaciones</li>
+                <li>Responder a mensajes de alumnos</li>
+                <li>Iniciar nuevas conversaciones con tus alumnos</li>
+                <li>Ver fecha y hora de cada mensaje</li>
+                <li>Notificaciones automáticas de nuevos mensajes</li>
+            </ul>
+        </div>
+        
+        <div class="tip">
+            <strong>💡 Consejo:</strong> Responde a los mensajes de tus alumnos de forma oportuna. La comunicación 
+            fluida mejora el seguimiento y la motivación de los alumnos.
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 9: TEMAS MUNICIPALES #}
+    <div class="tutorial-section" id="seccion-9">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-9')">
+            <h2><span class="icon-large">🏛️</span> 9. Temas Municipales</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        <p>
+            Puedes gestionar temas municipales relacionados con la normativa específica de cada municipio.
+        </p>
+        
+        <div class="step-box">
+            <strong>Para gestionar temas municipales:</strong>
+            <ol style="padding-left: 1.5rem;">
+                <li>Ve a "Municipal" en el menú</li>
+                <li>Selecciona el municipio o convocatoria</li>
+                <li>Gestiona los temas municipales correspondientes</li>
+                <li>Puedes crear, editar y organizar temas</li>
+                <li>Asocia recursos (PDFs) a cada tema</li>
+            </ol>
+        </div>
+        
+        <div class="feature-card">
+            <h4>Funcionalidades:</h4>
+            <ul class="feature-list">
+                <li>Crear y editar temas municipales</li>
+                <li>Organizar temas por municipio o convocatoria</li>
+                <li>Asociar recursos PDF a cada tema</li>
+                <li>Gestionar el contenido específico de cada municipio</li>
+            </ul>
+        </div>
+        </div>
+    </div>
+
+    {# SECCIÓN 10: CONSEJOS Y BUENAS PRÁCTICAS #}
+    <div class="tutorial-section" id="seccion-10">
+        <div class="tutorial-section-header" onclick="toggleSection('seccion-10')">
+            <h2><span class="icon-large">💡</span> 10. Consejos y Buenas Prácticas</h2>
+            <span class="accordion-icon">▼</span>
+        </div>
+        <div class="tutorial-section-content">
+        
+        <div class="feature-card">
+            <h4>📊 Seguimiento Regular</h4>
+            <p>
+                Revisa regularmente el Dashboard y los exámenes de tus alumnos para identificar fortalezas y áreas de mejora. 
+                Esto te permitirá ajustar las planificaciones y tareas según las necesidades de cada alumno.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <h4>📅 Planificaciones Realistas</h4>
+            <p>
+                Crea planificaciones que sean realistas y alcanzables. Considera el tiempo disponible de cada alumno y 
+                distribuye las actividades de forma equilibrada entre repaso, estudio y práctica de exámenes.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <h4>🔄 Variedad en Exámenes</h4>
+            <p>
+                Crea exámenes de diferentes dificultades y tipos. Alterna entre exámenes del temario general, municipales 
+                y de convocatoria para que los alumnos practiquen en diferentes contextos.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <h4>💬 Comunicación Activa</h4>
+            <p>
+                Mantén una comunicación activa con tus alumnos a través de los mensajes. Responde sus dudas, 
+                proporciona feedback sobre su progreso y motívalos en su preparación.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <h4>📝 Tareas Significativas</h4>
+            <p>
+                Asigna tareas que sean relevantes y que contribuyan al aprendizaje. Relaciona las tareas con los temas 
+                que están estudiando y con los exámenes que van a realizar.
+            </p>
+        </div>
+        
+        <div class="highlight">
+            <strong>🎯 Objetivo Final:</strong> Como profesor, tu objetivo es guiar y apoyar a tus alumnos en su preparación. 
+            Usa todas las herramientas disponibles de forma estratégica para maximizar su éxito en las oposiciones.
+        </div>
+        </div>
+    </div>
+
+</div>
+
+{% include 'tutorial/scripts.html.twig' %}
+{% endblock %}
+
