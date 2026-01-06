@@ -44,6 +44,12 @@ when@prod:
                 path: php://stderr
                 level: debug
                 formatter: monolog.formatter.json
+            # Handler adicional para escribir logs a archivo (para el panel de admin)
+            file:
+                type: stream
+                path: "%kernel.logs_dir%/%kernel.environment%.log"
+                level: debug
+                channels: ["!event", "!doctrine"]
             console:
                 type: console
                 process_psr_3_messages: false

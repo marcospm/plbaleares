@@ -21,6 +21,19 @@
     {% if not logFileExists %}
         <div class="alert alert-warning">
             <strong>⚠️ Archivo de logs no encontrado:</strong> {{ logFile }}
+            {% if environment == 'prod' %}
+                <br><br>
+                <strong>Nota para producción:</strong> En producción, los logs pueden estar configurados para escribirse en stderr en lugar de un archivo.
+                <br>Se ha configurado un handler adicional para escribir también en archivo. Los logs aparecerán aquí una vez que se generen nuevos registros.
+                {% if not logDirWritable %}
+                    <br><br>
+                    <strong>⚠️ El directorio de logs no es escribible:</strong> {{ logDir }}
+                    <br>Por favor, verifica los permisos del directorio o contacta con el administrador del servidor.
+                {% endif %}
+            {% else %}
+                <br><br>
+                El archivo de logs se creará automáticamente cuando se generen los primeros registros.
+            {% endif %}
         </div>
     {% else %}
         <div class="card mb-4">

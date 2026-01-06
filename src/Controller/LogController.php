@@ -22,7 +22,8 @@ class LogController extends AbstractController
     public function index(Request $request): Response
     {
         $environment = $this->kernel->getEnvironment();
-        $logFile = $this->kernel->getLogDir() . '/' . $environment . '.log';
+        $logDir = $this->kernel->getLogDir();
+        $logFile = $logDir . '/' . $environment . '.log';
         
         $level = $request->query->get('level', 'all');
         $channel = $request->query->get('channel', 'all');
@@ -31,11 +32,28 @@ class LogController extends AbstractController
         
         $logs = [];
         $availableChannels = [];
+        $logFileExists = file_exists($logFile);
+        $logDirWritable = is_dir($logDir) && is_writable($logDir);
         
-        if (file_exists($logFile)) {
+        if ($logFileExists) {
             $result = $this->parseLogFile($logFile, $level, $channel, $limit, $search);
             $logs = $result['logs'];
             $availableChannels = $result['channels'];
+        } elseif (!$logDirWritable && $environment === 'prod') {
+            // En producción, si el directorio no es escribible, intentar crear el archivo
+            // Esto puede ayudar en plataformas como Upsun donde el directorio puede no existir inicialmente
+            try {
+                if (!is_dir($logDir)) {
+                    @mkdir($logDir, 0755, true);
+                }
+                if (is_dir($logDir) && is_writable($logDir)) {
+                    // Crear archivo vacío para que Monolog pueda escribir
+                    @touch($logFile);
+                    $logFileExists = file_exists($logFile);
+                }
+            } catch (\Exception $e) {
+                // Ignorar errores al crear el directorio/archivo
+            }
         }
         
         return $this->render('log/index.html.twig', [
@@ -46,7 +64,9 @@ class LogController extends AbstractController
             'search' => $search,
             'environment' => $environment,
             'logFile' => $logFile,
-            'logFileExists' => file_exists($logFile),
+            'logFileExists' => $logFileExists,
+            'logDirWritable' => $logDirWritable,
+            'logDir' => $logDir,
             'availableChannels' => $availableChannels,
         ]);
     }
