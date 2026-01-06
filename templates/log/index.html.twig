@@ -1,0 +1,303 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Logs del Sistema{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>📋 Logs del Sistema</h1>
+        <div>
+            {% if logFileExists %}
+                <form method="post" action="{{ path('app_log_clear') }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que quieres limpiar todos los logs? Esta acción no se puede deshacer.');">
+                    <input type="hidden" name="_token" value="{{ csrf_token('clear_logs') }}">
+                    <button type="submit" class="btn btn-danger">
+                        🗑️ Limpiar Logs
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if not logFileExists %}
+        <div class="alert alert-warning">
+            <strong>⚠️ Archivo de logs no encontrado:</strong> {{ logFile }}
+        </div>
+    {% else %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Filtros</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" action="{{ path('app_log_index') }}" class="row g-3">
+                    <div class="col-md-2">
+                        <label for="level" class="form-label">Nivel</label>
+                        <select name="level" id="level" class="form-select">
+                            <option value="all" {% if level == 'all' %}selected{% endif %}>Todos</option>
+                            <option value="debug" {% if level == 'debug' %}selected{% endif %}>Debug</option>
+                            <option value="info" {% if level == 'info' %}selected{% endif %}>Info</option>
+                            <option value="notice" {% if level == 'notice' %}selected{% endif %}>Notice</option>
+                            <option value="warning" {% if level == 'warning' %}selected{% endif %}>Warning</option>
+                            <option value="error" {% if level == 'error' %}selected{% endif %}>Error</option>
+                            <option value="critical" {% if level == 'critical' %}selected{% endif %}>Critical</option>
+                            <option value="alert" {% if level == 'alert' %}selected{% endif %}>Alert</option>
+                            <option value="emergency" {% if level == 'emergency' %}selected{% endif %}>Emergency</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="channel" class="form-label">Canal</label>
+                        <select name="channel" id="channel" class="form-select">
+                            <option value="all" {% if channel == 'all' %}selected{% endif %}>Todos</option>
+                            {% for ch in availableChannels %}
+                                <option value="{{ ch }}" {% if channel == ch %}selected{% endif %}>{{ ch }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="limit" class="form-label">Límite</label>
+                        <select name="limit" id="limit" class="form-select">
+                            <option value="50" {% if limit == 50 %}selected{% endif %}>50</option>
+                            <option value="100" {% if limit == 100 %}selected{% endif %}>100</option>
+                            <option value="200" {% if limit == 200 %}selected{% endif %}>200</option>
+                            <option value="500" {% if limit == 500 %}selected{% endif %}>500</option>
+                            <option value="1000" {% if limit == 1000 %}selected{% endif %}>1000</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="search" class="form-label">Buscar</label>
+                        <input type="text" name="search" id="search" class="form-control" 
+                               value="{{ search }}" placeholder="Buscar en mensajes y contexto...">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">🔍 Filtrar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0">Logs ({{ logs|length }} encontrados)</h5>
+                    {% if availableChannels|length > 0 %}
+                        <small class="text-muted">
+                            Canales disponibles: 
+                            {% for ch in availableChannels %}
+                                <span class="badge bg-secondary">{{ ch }}</span>
+                            {% endfor %}
+                        </small>
+                    {% endif %}
+                </div>
+                <small class="text-muted">Entorno: {{ environment }}</small>
+            </div>
+            <div class="card-body p-0">
+                {% if logs|length > 0 %}
+                    <div style="max-height: 70vh; overflow-y: auto;">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th style="width: 180px;">Fecha/Hora</th>
+                                    <th style="width: 100px;">Nivel</th>
+                                    <th style="width: 120px;">Canal</th>
+                                    <th>Mensaje</th>
+                                    <th style="width: 80px;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                    <tr class="log-row log-level-{{ log.level }}">
+                                        <td class="text-nowrap small">
+                                            {{ log.timestamp }}
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-level-{{ log.level }}">
+                                                {{ log.level|upper }}
+                                            </span>
+                                        </td>
+                                        <td class="small text-muted">{{ log.channel }}</td>
+                                        <td>
+                                            <div class="log-message" style="max-width: 600px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                                {{ log.message }}
+                                            </div>
+                                            {% if log.context is not empty %}
+                                                <small class="text-muted d-block mt-1">
+                                                    Contexto disponible
+                                                </small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-info" 
+                                                    onclick="showLogDetails({{ loop.index0 }})" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#logModal">
+                                                👁️ Ver
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr id="log-details-{{ loop.index0 }}" style="display: none;">
+                                        <td colspan="5" class="bg-light">
+                                            <div class="p-3">
+                                                <strong>Mensaje completo:</strong>
+                                                <pre class="bg-white p-2 rounded border">{{ log.message }}</pre>
+                                                
+                                                {% if log.context is not empty %}
+                                                    <strong>Contexto:</strong>
+                                                    <pre class="bg-white p-2 rounded border">{{ log.context|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
+                                                {% endif %}
+                                                
+                                                <strong>Línea completa:</strong>
+                                                <pre class="bg-white p-2 rounded border small">{{ log.raw }}</pre>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="p-4 text-center text-muted">
+                        <p>No se encontraron logs con los filtros seleccionados.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Modal para ver detalles del log -->
+<div class="modal fade" id="logModal" tabindex="-1" aria-labelledby="logModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="logModalLabel">Detalles del Log</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="logModalBody">
+                <!-- Contenido dinámico -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .log-level-error,
+    .log-level-critical,
+    .log-level-alert,
+    .log-level-emergency {
+        background-color: #fff5f5;
+    }
+    
+    .log-level-warning {
+        background-color: #fffbf0;
+    }
+    
+    .badge-level-debug {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .badge-level-info {
+        background-color: #0dcaf0;
+        color: white;
+    }
+    
+    .badge-level-notice {
+        background-color: #17a2b8;
+        color: white;
+    }
+    
+    .badge-level-warning {
+        background-color: #ffc107;
+        color: #000;
+    }
+    
+    .badge-level-error {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .badge-level-critical {
+        background-color: #721c24;
+        color: white;
+    }
+    
+    .badge-level-alert {
+        background-color: #856404;
+        color: white;
+    }
+    
+    .badge-level-emergency {
+        background-color: #000;
+        color: white;
+    }
+    
+    .log-message {
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+    }
+    
+    pre {
+        font-size: 0.85em;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+</style>
+
+<script>
+    const logsData = {{ logs|json_encode|raw }};
+    
+    function showLogDetails(index) {
+        const log = logsData[index];
+        const modalBody = document.getElementById('logModalBody');
+        
+        let html = `
+            <div class="mb-3">
+                <strong>Fecha/Hora:</strong><br>
+                <code>${log.timestamp}</code>
+            </div>
+            
+            <div class="mb-3">
+                <strong>Nivel:</strong>
+                <span class="badge badge-level-${log.level}">${log.level.toUpperCase()}</span>
+            </div>
+            
+            <div class="mb-3">
+                <strong>Canal:</strong>
+                <code>${log.channel}</code>
+            </div>
+            
+            <div class="mb-3">
+                <strong>Mensaje:</strong>
+                <pre class="bg-light p-2 rounded border">${escapeHtml(log.message)}</pre>
+            </div>
+        `;
+        
+        if (log.context && Object.keys(log.context).length > 0) {
+            html += `
+                <div class="mb-3">
+                    <strong>Contexto:</strong>
+                    <pre class="bg-light p-2 rounded border">${escapeHtml(JSON.stringify(log.context, null, 2))}</pre>
+                </div>
+            `;
+        }
+        
+        html += `
+            <div class="mb-3">
+                <strong>Línea completa:</strong>
+                <pre class="bg-light p-2 rounded border small">${escapeHtml(log.raw)}</pre>
+            </div>
+        `;
+        
+        modalBody.innerHTML = html;
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+</script>
+{% endblock %}
+
