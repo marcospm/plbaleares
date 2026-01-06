@@ -618,46 +618,44 @@
         (function() {
             'use strict';
             
+            // Función para hacer scroll a la pregunta (siempre activa)
+            function scrollToPregunta() {
+                const preguntaElement = document.getElementById('pregunta-texto');
+                if (preguntaElement) {
+                    // Obtener la posición del elemento
+                    const elementPosition = preguntaElement.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - 100; // 100px de offset desde arriba
+                    
+                    // Hacer scroll suave
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            }
+            
+            // Hacer scroll a la pregunta al cargar (siempre, no solo en modo estudio)
+            // Intentar hacer scroll inmediatamente si el DOM ya está listo
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                // Esperar un poco más para asegurar que todo esté renderizado
+                setTimeout(scrollToPregunta, 300);
+            } else {
+                // Si aún se está cargando, esperar al DOMContentLoaded
+                document.addEventListener('DOMContentLoaded', function() {
+                    setTimeout(scrollToPregunta, 300);
+                });
+            }
+            
+            // También intentar después de que la ventana se cargue completamente
+            window.addEventListener('load', function() {
+                setTimeout(scrollToPregunta, 200);
+            });
+            
             // Modo estudio: manejar selección de respuesta
             {% if modoEstudio is defined and modoEstudio %}
             const modoEstudioActivo = true;
             let preguntaBloqueada = {{ preguntaBloqueada is defined and preguntaBloqueada ? 'true' : 'false' }};
             const preguntaId = {{ pregunta.id }};
-            
-            // Si la pregunta está bloqueada (ya respondida), hacer scroll a la pregunta
-            if (preguntaBloqueada) {
-                // Función para hacer scroll a la pregunta
-                function scrollToPregunta() {
-                    const preguntaElement = document.getElementById('pregunta-texto');
-                    if (preguntaElement) {
-                        // Obtener la posición del elemento
-                        const elementPosition = preguntaElement.getBoundingClientRect().top;
-                        const offsetPosition = elementPosition + window.pageYOffset - 100; // 100px de offset desde arriba
-                        
-                        // Hacer scroll suave
-                        window.scrollTo({
-                            top: offsetPosition,
-                            behavior: 'smooth'
-                        });
-                    }
-                }
-                
-                // Intentar hacer scroll inmediatamente si el DOM ya está listo
-                if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                    // Esperar un poco más para asegurar que todo esté renderizado
-                    setTimeout(scrollToPregunta, 300);
-                } else {
-                    // Si aún se está cargando, esperar al DOMContentLoaded
-                    document.addEventListener('DOMContentLoaded', function() {
-                        setTimeout(scrollToPregunta, 300);
-                    });
-                }
-                
-                // También intentar después de que la ventana se cargue completamente
-                window.addEventListener('load', function() {
-                    setTimeout(scrollToPregunta, 200);
-                });
-            }
             
             if (!preguntaBloqueada) {
                 // Agregar listeners a los radio buttons
