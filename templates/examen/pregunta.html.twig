@@ -144,8 +144,8 @@
                     {% for letra, texto in opciones %}
                         {% set esSeleccionada = (respuestaActual == letra) %}
                         {% set esCorrecta = (mostrarRespuestas and respuestaCorrecta == letra) %}
-                        {# Solo es incorrecta si está seleccionada Y NO es la correcta #}
-                        {% set esIncorrecta = (mostrarRespuestas and esSeleccionada and not esCorrecta) %}
+                        {# En modo estudio, todas las opciones incorrectas se marcan como incorrectas #}
+                        {% set esIncorrecta = (mostrarRespuestas and not esCorrecta) %}
                         
                         <label style="display: flex; align-items: start; padding: 1rem; border: 2px solid var(--color-border); border-radius: 4px; cursor: {% if preguntaBloqueada is defined and preguntaBloqueada %}not-allowed{% else %}pointer{% endif %}; transition: all 0.3s; 
                                {% if esCorrecta %}background: #d4edda !important; border-color: #28a745 !important;{% elseif esIncorrecta %}background: #f8d7da !important; border-color: #dc3545 !important;{% elseif esSeleccionada and not mostrarRespuestas %}background: #e3f2fd; border-color: var(--color-primary);{% endif %}
