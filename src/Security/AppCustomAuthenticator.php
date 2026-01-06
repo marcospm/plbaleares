@@ -57,8 +57,8 @@ class AppCustomAuthenticator extends AbstractLoginFormAuthenticator
         // Limpiar cualquier targetPath guardado para asegurar redirección al dashboard
         $this->removeTargetPath($request->getSession(), $firewallName);
         
-        // Siempre redirigir al dashboard después del login exitoso
-        return new RedirectResponse($this->urlGenerator->generate('app_dashboard'));
+        // Redirigir al dashboard con parámetro para mostrar modal móvil si aplica
+        return new RedirectResponse($this->urlGenerator->generate('app_dashboard', ['login' => 'success']));
     }
 
     protected function getLoginUrl(Request $request): string

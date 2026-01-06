@@ -762,8 +762,154 @@
                 if (event.target == modal) {
                     cerrarModalTema();
                 }
+            };
+
+            // Modal de aviso para dispositivos móviles
+            {% if app.user %}
+            function mostrarModalMovil() {
+                // Verificar si viene de un login exitoso
+                const urlParams = new URLSearchParams(window.location.search);
+                const vieneDeLogin = urlParams.get('login') === 'success';
+                
+                // Detectar si es un dispositivo móvil (teléfono, no tablet)
+                const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+                const width = window.innerWidth || document.documentElement.clientWidth;
+                const height = window.innerHeight || document.documentElement.clientHeight;
+                
+                // Detectar iPhone/iPod (pero no iPad)
+                const isIPhone = /iPhone/i.test(userAgent);
+                const isIPod = /iPod/i.test(userAgent);
+                const isIPad = /iPad/i.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                
+                // Detectar Android móvil (pero no tablet)
+                const isAndroidMobile = /Android.*Mobile/i.test(userAgent);
+                const isAndroidTablet = /Android/i.test(userAgent) && !/Mobile/i.test(userAgent);
+                
+                // Otros móviles
+                const isOtherMobile = /BlackBerry|IEMobile|Opera Mini|webOS/i.test(userAgent);
+                
+                // Verificar por tamaño de pantalla (teléfonos tienen pantallas más pequeñas)
+                const isSmallScreen = width <= 480 || (width <= 768 && height <= 900);
+                
+                // Es un teléfono móvil si cumple alguna de estas condiciones:
+                const esTelefonoMovil = (isIPhone && !isIPad) || 
+                                      isIPod || 
+                                      (isAndroidMobile && !isAndroidTablet) || 
+                                      isOtherMobile ||
+                                      (isSmallScreen && width < 600 && !isIPad && !isAndroidTablet);
+                
+                // Verificar si ya se mostró el modal en esta sesión
+                const modalShown = sessionStorage.getItem('mobileWarningShown');
+                
+                // Mostrar modal si es móvil y (viene de login O no se ha mostrado antes)
+                if (esTelefonoMovil && (vieneDeLogin || !modalShown)) {
+                    const modal = document.getElementById('mobileWarningModal');
+                    if (modal) {
+                        modal.style.display = 'flex';
+                        sessionStorage.setItem('mobileWarningShown', 'true');
+                        
+                        // Limpiar el parámetro de la URL sin recargar la página
+                        if (vieneDeLogin) {
+                            const url = new URL(window.location);
+                            url.searchParams.delete('login');
+                            window.history.replaceState({}, '', url);
+                        }
+                    }
+                }
+            }
+            
+            // Ejecutar cuando la página esté completamente cargada
+            if (document.readyState === 'loading') {
+                window.addEventListener('load', function() {
+                    setTimeout(mostrarModalMovil, 800);
+                });
+            } else {
+                setTimeout(mostrarModalMovil, 800);
+            }
+            {% endif %}
+
+            function cerrarMobileWarning() {
+                const modal = document.getElementById('mobileWarningModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                }
             }
 
+            // Cerrar modal al hacer clic fuera de él
+            window.addEventListener('click', function(event) {
+                const modal = document.getElementById('mobileWarningModal');
+                if (event.target == modal) {
+                    cerrarMobileWarning();
+                }
+            });
+
         </script>
+
+        {# Modal de aviso para dispositivos móviles #}
+        {% if app.user %}
+        <div id="mobileWarningModal" style="display: none; position: fixed; z-index: 10001; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; padding: 1rem; animation: fadeIn 0.3s ease;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 2rem; max-width: 500px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); position: relative; animation: slideUp 0.4s ease;">
+                <button onclick="cerrarMobileWarning()" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 1.5rem; width: 2rem; height: 2rem; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; font-weight: bold; line-height: 1;" 
+                        onmouseover="this.style.background='rgba(255,255,255,0.3)'; this.style.transform='rotate(90deg)'" 
+                        onmouseout="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='rotate(0deg)'">
+                    ×
+                </button>
+                
+                <div style="text-align: center; color: white; margin-bottom: 1.5rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">📱</div>
+                    <h2 style="margin: 0 0 1rem 0; font-size: 1.5rem; font-weight: 600;">Experiencia Optimizada</h2>
+                </div>
+                
+                <div style="background: rgba(255,255,255,0.95); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <p style="margin: 0 0 1rem 0; color: #333; font-size: 1rem; line-height: 1.6;">
+                        Para tener la <strong style="color: #667eea;">experiencia completa</strong> de la plataforma, te recomendamos usar:
+                    </p>
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span style="font-size: 1.5rem;">💻</span>
+                            <span style="color: #333; font-size: 0.95rem;">Ordenador</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span style="font-size: 1.5rem;">📱</span>
+                            <span style="color: #333; font-size: 0.95rem;">iPad o Tablet</span>
+                        </div>
+                    </div>
+                    <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem; border-radius: 6px; margin-top: 1rem;">
+                        <p style="margin: 0; color: #856404; font-size: 0.9rem; line-height: 1.5;">
+                            <strong>💡 Consejo:</strong> Con un teléfono móvil la experiencia está algo limitada. Si decides continuar, te recomendamos poner el dispositivo en <strong>modo horizontal</strong> para una mejor visualización.
+                        </p>
+                    </div>
+                </div>
+                
+                <button onclick="cerrarMobileWarning()" style="width: 100%; background: white; color: #667eea; border: none; padding: 0.875rem 1.5rem; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" 
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.2)'" 
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'">
+                    Entendido, continuar
+                </button>
+            </div>
+        </div>
+
+        <style>
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            @keyframes slideUp {
+                from { 
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to { 
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            #mobileWarningModal {
+                backdrop-filter: blur(4px);
+            }
+        </style>
+        {% endif %}
     </body>
 </html>
