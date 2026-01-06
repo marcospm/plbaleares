@@ -140,10 +140,18 @@
                 
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
                     {% set opciones = {'A': pregunta.opcionA, 'B': pregunta.opcionB, 'C': pregunta.opcionC, 'D': pregunta.opcionD} %}
-                    {% set mostrarRespuestas = (modoEstudio is defined and modoEstudio and preguntaBloqueada is defined and preguntaBloqueada and respuestaCorrecta is defined and respuestaCorrecta is not null) %}
+                    {% set mostrarRespuestas = (modoEstudio is defined and modoEstudio and preguntaBloqueada is defined and preguntaBloqueada and respuestaCorrecta is defined and respuestaCorrecta is not null and respuestaCorrecta != '') %}
                     {% for letra, texto in opciones %}
                         {% set esSeleccionada = (respuestaActual == letra) %}
-                        {% set esCorrecta = (mostrarRespuestas and respuestaCorrecta == letra) %}
+                        {# Comparar respuestaCorrecta con letra, asegurando que ambos sean strings y comparando directamente #}
+                        {% set esCorrecta = false %}
+                        {% if mostrarRespuestas %}
+                            {% set respuestaCorrectaStr = respuestaCorrecta|trim|upper %}
+                            {% set letraStr = letra|trim|upper %}
+                            {% if respuestaCorrectaStr == letraStr %}
+                                {% set esCorrecta = true %}
+                            {% endif %}
+                        {% endif %}
                         {# En modo estudio, todas las opciones incorrectas se marcan como incorrectas #}
                         {% set esIncorrecta = (mostrarRespuestas and not esCorrecta) %}
                         
