@@ -690,9 +690,23 @@ class ExamenController extends AbstractController
 
         foreach ($preguntasIds as $preguntaId) {
             if ($esMunicipal) {
-                $pregunta = $this->preguntaMunicipalRepository->find($preguntaId);
+                $pregunta = $this->preguntaMunicipalRepository->createQueryBuilder('p')
+                    ->leftJoin('p.temaMunicipal', 'tm')
+                    ->addSelect('tm')
+                    ->where('p.id = :id')
+                    ->setParameter('id', $preguntaId)
+                    ->getQuery()
+                    ->getOneOrNullResult();
             } else {
-                $pregunta = $this->preguntaRepository->find($preguntaId);
+                $pregunta = $this->preguntaRepository->createQueryBuilder('p')
+                    ->leftJoin('p.tema', 't')
+                    ->addSelect('t')
+                    ->leftJoin('p.ley', 'l')
+                    ->addSelect('l')
+                    ->where('p.id = :id')
+                    ->setParameter('id', $preguntaId)
+                    ->getQuery()
+                    ->getOneOrNullResult();
             }
             if (!$pregunta) {
                 continue;
@@ -2066,10 +2080,24 @@ class ExamenController extends AbstractController
 
         // Obtener las preguntas del examen usando los IDs guardados
         foreach ($preguntasIds as $preguntaId) {
-            if ($esMunicipal) {
-                $pregunta = $this->preguntaMunicipalRepository->find($preguntaId);
+            if ($esMunicipal || $esConvocatoria) {
+                $pregunta = $this->preguntaMunicipalRepository->createQueryBuilder('p')
+                    ->leftJoin('p.temaMunicipal', 'tm')
+                    ->addSelect('tm')
+                    ->where('p.id = :id')
+                    ->setParameter('id', $preguntaId)
+                    ->getQuery()
+                    ->getOneOrNullResult();
             } else {
-                $pregunta = $this->preguntaRepository->find($preguntaId);
+                $pregunta = $this->preguntaRepository->createQueryBuilder('p')
+                    ->leftJoin('p.tema', 't')
+                    ->addSelect('t')
+                    ->leftJoin('p.ley', 'l')
+                    ->addSelect('l')
+                    ->where('p.id = :id')
+                    ->setParameter('id', $preguntaId)
+                    ->getQuery()
+                    ->getOneOrNullResult();
             }
             
             if ($pregunta) {
