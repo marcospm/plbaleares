@@ -140,15 +140,16 @@
                 
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
                     {% set opciones = {'A': pregunta.opcionA, 'B': pregunta.opcionB, 'C': pregunta.opcionC, 'D': pregunta.opcionD} %}
+                    {% set mostrarRespuestas = (modoEstudio is defined and modoEstudio and preguntaBloqueada is defined and preguntaBloqueada and respuestaCorrecta is defined and respuestaCorrecta is not null) %}
                     {% for letra, texto in opciones %}
-                        {% set mostrarRespuestaCorrecta = (modoEstudio is defined and modoEstudio and preguntaBloqueada is defined and preguntaBloqueada and respuestaCorrecta is defined and respuestaCorrecta is not null) %}
-                        {% set esCorrecta = (mostrarRespuestaCorrecta and respuestaCorrecta == letra) %}
                         {% set esSeleccionada = (respuestaActual == letra) %}
-                        {% set esIncorrecta = (mostrarRespuestaCorrecta and esSeleccionada and respuestaCorrecta != letra) %}
+                        {% set esCorrecta = (mostrarRespuestas and respuestaCorrecta == letra) %}
+                        {# Solo es incorrecta si está seleccionada Y NO es la correcta #}
+                        {% set esIncorrecta = (mostrarRespuestas and esSeleccionada and not esCorrecta) %}
                         
                         <label style="display: flex; align-items: start; padding: 1rem; border: 2px solid var(--color-border); border-radius: 4px; cursor: {% if preguntaBloqueada is defined and preguntaBloqueada %}not-allowed{% else %}pointer{% endif %}; transition: all 0.3s; 
-                               {% if esCorrecta %}background: #d4edda; border-color: #28a745;{% elseif esIncorrecta %}background: #f8d7da; border-color: #dc3545;{% elseif esSeleccionada %}background: #e3f2fd; border-color: var(--color-primary);{% endif %}
-                               {% if preguntaBloqueada is defined and preguntaBloqueada and not esCorrecta %}opacity: 0.7;{% endif %}">
+                               {% if esCorrecta %}background: #d4edda !important; border-color: #28a745 !important;{% elseif esIncorrecta %}background: #f8d7da !important; border-color: #dc3545 !important;{% elseif esSeleccionada and not mostrarRespuestas %}background: #e3f2fd; border-color: var(--color-primary);{% endif %}
+                               {% if preguntaBloqueada is defined and preguntaBloqueada and not esCorrecta and not esIncorrecta %}opacity: 0.7;{% endif %}">
                             <input type="radio" name="respuesta" value="{{ letra }}" 
                                    style="margin-right: 1rem; margin-top: 0.25rem;" 
                                    {% if esSeleccionada %}checked{% endif %}

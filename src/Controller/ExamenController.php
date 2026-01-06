@@ -567,6 +567,11 @@ class ExamenController extends AbstractController
                 }
             }
             
+            // En modo estudio, si se respondió sin acción específica, redirigir a la misma pregunta para mostrar feedback
+            if ($modoEstudio && $preguntaBloqueada && empty($accion) && $numeroDestino <= 0) {
+                return $this->redirectToRoute('app_examen_pregunta', ['numero' => $numero]);
+            }
+            
             // Si hay un número destino específico, redirigir allí
             if ($numeroDestino > 0 && $numeroDestino >= 1 && $numeroDestino <= count($preguntasIds)) {
                 return $this->redirectToRoute('app_examen_pregunta', ['numero' => $numeroDestino]);
