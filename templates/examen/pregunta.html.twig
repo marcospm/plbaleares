@@ -166,7 +166,7 @@
                     {% endfor %}
                 </div>
                 
-                {# Mostrar retroalimentación en modo estudio cuando la pregunta está bloqueada #}
+                {# Mostrar retroalimentación en modo estudio cuando la pregunta está bloqueada (después de responder) #}
                 {% if modoEstudio is defined and modoEstudio and preguntaBloqueada is defined and preguntaBloqueada and retroalimentacion %}
                     <div id="retroalimentacion-container" style="margin-top: 1.5rem; padding: 1rem; background: #e7f3ff; border-left: 4px solid #2196F3; border-radius: 4px;">
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
