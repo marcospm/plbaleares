@@ -14,7 +14,7 @@
             font-family: Arial, Helvetica, sans-serif;
             font-size: 10pt;
             color: #333;
-            line-height: 1.4;
+            line-height: 1.5;
         }
         
         .header {
@@ -25,13 +25,13 @@
         }
         
         .header h1 {
-            font-size: 20pt;
+            font-size: 22pt;
             color: #007bff;
             margin-bottom: 5px;
         }
         
         .header .subtitle {
-            font-size: 12pt;
+            font-size: 13pt;
             color: #666;
         }
         
@@ -41,87 +41,114 @@
             border-radius: 4px;
             padding: 10px;
             margin-bottom: 15px;
+            font-size: 9pt;
         }
         
         .info-box strong {
             color: #007bff;
         }
         
-        .calendar {
+        .activities-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
         }
         
-        .calendar th {
+        .activities-table thead th {
             background: #007bff;
             color: white;
-            padding: 8px;
-            text-align: center;
+            padding: 10px 8px;
+            text-align: left;
             font-weight: bold;
             border: 1px solid #0056b3;
+            font-size: 10pt;
         }
         
-        .calendar td {
+        .activities-table tbody td {
             border: 1px solid #dee2e6;
-            padding: 5px;
+            padding: 8px;
             vertical-align: top;
-            width: 14.28%;
-            height: 100px;
         }
         
-        .calendar .day-number {
-            font-weight: bold;
-            color: #007bff;
-            margin-bottom: 5px;
-            font-size: 11pt;
-        }
-        
-        .calendar .other-month {
+        .activities-table tbody tr:nth-child(even) {
             background: #f8f9fa;
-            color: #999;
         }
         
-        .calendar .today {
+        .activities-table tbody tr:hover {
             background: #e7f3ff;
-            border: 2px solid #007bff;
         }
         
-        .activity {
-            font-size: 8pt;
-            margin-bottom: 3px;
-            padding: 2px 4px;
-            border-radius: 3px;
-            border-left: 3px solid;
+        .day-header {
+            font-weight: bold;
+            font-size: 11pt;
+            color: #007bff;
+            width: 12%;
         }
         
-        .activity.repaso {
-            background: #e3f2fd;
-            border-color: #2196F3;
+        .day-date {
+            font-size: 9pt;
+            color: #666;
+            margin-top: 2px;
         }
         
-        .activity.estudio {
-            background: #e8f5e9;
-            border-color: #4CAF50;
+        .activity-item {
+            margin-bottom: 10px;
+            padding: 8px;
+            background: white;
+            border-left: 4px solid;
+            border-radius: 4px;
+            page-break-inside: avoid;
         }
         
-        .activity.examenes {
-            background: #fff3e0;
-            border-color: #FF9800;
+        .activity-item:last-child {
+            margin-bottom: 0;
         }
         
         .activity-time {
             font-weight: bold;
-            color: #555;
+            font-size: 10pt;
+            color: #333;
+            margin-bottom: 4px;
         }
         
         .activity-type {
-            font-size: 7pt;
+            font-size: 9pt;
             color: #666;
+            margin-bottom: 4px;
+            font-style: italic;
+        }
+        
+        .activity-description {
+            font-size: 9pt;
+            color: #555;
+            line-height: 1.4;
+            margin-top: 4px;
+        }
+        
+        .activity.repaso {
+            border-left-color: #2196F3;
+            background: #e3f2fd;
+        }
+        
+        .activity.estudio {
+            border-left-color: #4CAF50;
+            background: #e8f5e9;
+        }
+        
+        .activity.examenes {
+            border-left-color: #FF9800;
+            background: #fff3e0;
+        }
+        
+        .no-activities {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            padding: 15px;
         }
         
         .tasks-section {
-            margin-top: 20px;
+            margin-top: 25px;
             page-break-inside: avoid;
         }
         
@@ -173,6 +200,10 @@
         .page-break {
             page-break-after: always;
         }
+        
+        .day-section {
+            page-break-inside: avoid;
+        }
     </style>
 </head>
 <body>
@@ -194,60 +225,103 @@
         {% endif %}
     </div>
     
-    <table class="calendar">
+    <table class="activities-table">
         <thead>
             <tr>
-                <th>Lunes</th>
-                <th>Martes</th>
-                <th>Miércoles</th>
-                <th>Jueves</th>
-                <th>Viernes</th>
-                <th>Sábado</th>
-                <th>Domingo</th>
+                <th style="width: 12%;">Día</th>
+                <th style="width: 15%;">Horario</th>
+                <th style="width: 15%;">Tipo</th>
+                <th style="width: 58%;">Descripción de la Actividad</th>
             </tr>
         </thead>
         <tbody>
             {% set hoy = 'now'|date('Y-m-d') %}
-            {% set primerDiaSemana = primerDiaMes|date('N') %}
+            {% set diasConActividades = 0 %}
+            {% set diasEspanol = {'Monday': 'Lunes', 'Tuesday': 'Martes', 'Wednesday': 'Miércoles', 'Thursday': 'Jueves', 'Friday': 'Viernes', 'Saturday': 'Sábado', 'Sunday': 'Domingo'} %}
             
-            {# Calcular el primer día de la semana (lunes) para mostrar #}
-            {% set fechaInicio = primerDiaMes %}
-            {% if primerDiaSemana > 1 %}
-                {% set diasRetroceso = primerDiaSemana - 1 %}
-                {% set fechaInicio = primerDiaMes|date_modify('-' ~ diasRetroceso ~ ' days') %}
-            {% endif %}
+            {# Calcular número de días del mes #}
+            {% set numDias = ultimoDiaMes|date('d') %}
             
-            {# Generar 6 semanas máximo #}
-            {% for semana in 0..5 %}
-                <tr>
-                    {% for diaSemana in 0..6 %}
-                        {% set diasOffset = semana * 7 + diaSemana %}
-                        {% set fechaActual = fechaInicio|date_modify('+' ~ diasOffset ~ ' days') %}
-                        {% set fechaDiaStr = fechaActual|date('Y-m-d') %}
-                        {% set esDelMes = fechaActual >= primerDiaMes and fechaActual <= ultimoDiaMes %}
-                        
-                        <td {% if not esDelMes %}class="other-month"{% elseif fechaDiaStr == hoy %}class="today"{% endif %}>
-                            <div class="day-number">{{ fechaActual|date('d') }}</div>
-                            {% if esDelMes and franjasPorDia[fechaDiaStr] is defined %}
-                                {% for franja in franjasPorDia[fechaDiaStr] %}
-                                    <div class="activity {% if franja.tipoActividad == 'repaso_basico' %}repaso{% elseif franja.tipoActividad == 'realizar_examenes' %}examenes{% else %}estudio{% endif %}">
-                                        <div class="activity-time">{{ franja.horaInicio|date('H:i') }} - {{ franja.horaFin|date('H:i') }}</div>
-                                        <div class="activity-type">
-                                            {% if franja.tipoActividad == 'repaso_basico' %}
-                                                📚 Repaso
-                                            {% elseif franja.tipoActividad == 'realizar_examenes' %}
-                                                📝 Exámenes
-                                            {% else %}
-                                                📖 Estudio
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                {% endfor %}
+            {# Iterar sobre todos los días del mes #}
+            {% for dia in 1..numDias %}
+                {% set fechaActual = primerDiaMes|date_modify('+' ~ (dia - 1) ~ ' days') %}
+                {% set fechaDiaStr = fechaActual|date('Y-m-d') %}
+                {% set franjasDelDia = franjasPorDia[fechaDiaStr] ?? [] %}
+                
+                {% if franjasDelDia|length > 0 %}
+                    {% set diasConActividades = diasConActividades + 1 %}
+                    {% set nombreDia = fechaActual|date('l') %}
+                    {% set nombreDiaEspanol = diasEspanol[nombreDia] %}
+                    
+                    {% for franja in franjasDelDia %}
+                        <tr class="day-section">
+                            {% if loop.first %}
+                                <td class="day-header" rowspan="{{ franjasDelDia|length }}">
+                                    <div>{{ nombreDiaEspanol }}</div>
+                                    <div class="day-date">{{ fechaActual|date('d/m/Y') }}</div>
+                                    {% if fechaDiaStr == hoy %}
+                                        <div style="color: #28a745; font-size: 8pt; margin-top: 3px;">● Hoy</div>
+                                    {% endif %}
+                                </td>
                             {% endif %}
-                        </td>
+                            
+                            <td>
+                                <div class="activity-time">
+                                    {{ franja.horaInicio|date('H:i') }} - {{ franja.horaFin|date('H:i') }}
+                                </div>
+                            </td>
+                            
+                            <td>
+                                <div class="activity-type">
+                                    {% if franja.tipoActividad == 'repaso_basico' %}
+                                        📚 Repaso
+                                    {% elseif franja.tipoActividad == 'realizar_examenes' %}
+                                        📝 Exámenes
+                                    {% else %}
+                                        📖 Estudio
+                                    {% endif %}
+                                </div>
+                            </td>
+                            
+                            <td>
+                                <div class="activity-description">
+                                    {% if franja.descripcionRepaso %}
+                                        <strong>{{ franja.descripcionRepaso }}</strong>
+                                    {% else %}
+                                        <em>Sin descripción específica</em>
+                                    {% endif %}
+                                    
+                                    {% if franja.temas %}
+                                        <div style="margin-top: 4px; font-size: 8pt; color: #666;">
+                                            <strong>Temas:</strong> {{ franja.temas }}
+                                        </div>
+                                    {% endif %}
+                                    
+                                    {% if franja.recursos %}
+                                        <div style="margin-top: 4px; font-size: 8pt; color: #666;">
+                                            <strong>Recursos:</strong> {{ franja.recursos }}
+                                        </div>
+                                    {% endif %}
+                                    
+                                    {% if franja.notas %}
+                                        <div style="margin-top: 4px; font-size: 8pt; color: #666; font-style: italic;">
+                                            <strong>Notas:</strong> {{ franja.notas }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
                     {% endfor %}
-                </tr>
+                {% endif %}
             {% endfor %}
+            
+            {% if diasConActividades == 0 %}
+                <tr>
+                    <td colspan="4" class="no-activities">
+                        No hay actividades planificadas para este mes.
+                    </td>
+                </tr>
+            {% endif %}
         </tbody>
     </table>
     
@@ -277,4 +351,3 @@
     </div>
 </body>
 </html>
-
