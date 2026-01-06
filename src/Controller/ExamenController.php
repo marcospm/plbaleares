@@ -586,9 +586,10 @@ class ExamenController extends AbstractController
         $esPrimera = ($indice === 0);
         
         // Obtener respuesta correcta y retroalimentación para modo estudio
+        // Mostrar siempre cuando está en modo estudio y la pregunta está bloqueada
         $respuestaCorrecta = null;
         $retroalimentacion = null;
-        if ($modoEstudio && $preguntaBloqueada && $respuestaActual) {
+        if ($modoEstudio && $preguntaBloqueada) {
             $respuestaCorrecta = $pregunta->getRespuestaCorrecta();
             $retroalimentacion = $pregunta->getRetroalimentacion();
         }

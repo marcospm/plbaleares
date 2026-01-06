@@ -25,6 +25,7 @@ class PreguntaMunicipalController extends AbstractController
         TemaMunicipalRepository $temaMunicipalRepository,
         Request $request
     ): Response {
+        $search = trim($request->query->get('search', ''));
         $municipioId = $request->query->getInt('municipio');
         $temaId = $request->query->getInt('tema');
         $dificultad = $request->query->get('dificultad', '');
@@ -67,6 +68,14 @@ class PreguntaMunicipalController extends AbstractController
             }));
         }
 
+        if (!empty($search)) {
+            $preguntas = array_values(array_filter($preguntas, function($pregunta) use ($search) {
+                $textoMatch = stripos($pregunta->getTexto() ?? '', $search) !== false;
+                $retroMatch = stripos($pregunta->getRetroalimentacion() ?? '', $search) !== false;
+                return $textoMatch || $retroMatch;
+            }));
+        }
+
         // Calcular paginación
         $totalItems = count($preguntas);
         $totalPages = max(1, ceil($totalItems / $itemsPerPage));
@@ -94,6 +103,7 @@ class PreguntaMunicipalController extends AbstractController
             'municipioSeleccionado' => $municipioId,
             'temaSeleccionado' => $temaId,
             'dificultadSeleccionada' => $dificultad,
+            'search' => $search,
             'mostrarDescartadas' => $mostrarDescartadas,
             'currentPage' => $page,
             'totalPages' => $totalPages,
@@ -154,6 +164,9 @@ class PreguntaMunicipalController extends AbstractController
     {
         // Obtener parámetros de filtro de la query string para mantenerlos al volver
         $filtros = [];
+        if ($request->query->get('search')) {
+            $filtros['search'] = $request->query->get('search');
+        }
         if ($request->query->getInt('municipio') > 0) {
             $filtros['municipio'] = $request->query->getInt('municipio');
         }
@@ -184,6 +197,9 @@ class PreguntaMunicipalController extends AbstractController
         // Preservar filtros y página al redirigir (del POST)
         $params = [];
         $payload = $request->getPayload();
+        if ($payload->get('search')) {
+            $params['search'] = $payload->get('search');
+        }
         if ($payload->getInt('municipio') > 0) {
             $params['municipio'] = $payload->getInt('municipio');
         }
