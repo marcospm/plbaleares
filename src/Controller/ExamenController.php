@@ -54,6 +54,7 @@ class ExamenController extends AbstractController
         $session->remove('examen_respuestas');
         $session->remove('examen_config');
         $session->remove('examen_pregunta_actual');
+        $session->remove('examen_preguntas_bloqueadas');
 
         $municipioId = $request->query->getInt('municipio');
         $convocatoriaId = $request->query->getInt('convocatoria');
@@ -355,12 +356,20 @@ class ExamenController extends AbstractController
                 // Obtener tiempo límite del formulario (por defecto 60 minutos)
                 $tiempoLimite = $data['tiempoLimite'] ?? 60;
                 
+                // Obtener modo estudio (solo para exámenes no semanales)
+                // Los exámenes semanales no tienen modo estudio
+                $modoEstudio = false; // Por defecto desactivado
+                if (!isset($config['examen_semanal_id'])) {
+                    $modoEstudio = $data['modoEstudio'] ?? false;
+                }
+                
                 // Guardar en sesión
                 $config = [
                     'dificultad' => $dificultad,
                     'numero_preguntas' => $preguntasAUsar,
                     'es_municipal' => $esMunicipal,
                     'tiempo_limite' => $tiempoLimite, // Tiempo en minutos
+                    'modo_estudio' => $modoEstudio, // Modo estudio activado
                 ];
                 
                 if ($esMunicipal) {
@@ -379,6 +388,7 @@ class ExamenController extends AbstractController
                 $session->set('examen_respuestas', []);
                 $session->set('examen_config', $config);
                 $session->set('examen_pregunta_actual', 0);
+                $session->set('examen_preguntas_bloqueadas', []); // Preguntas bloqueadas en modo estudio
 
                 return $this->redirectToRoute('app_examen_pregunta', ['numero' => 1]);
             }
@@ -516,11 +526,26 @@ class ExamenController extends AbstractController
         }
 
         // Guardar respuesta si se envía
+        // El modo estudio solo aplica a exámenes no semanales
+        $modoEstudio = false;
+        if (!isset($config['examen_semanal_id'])) {
+            $modoEstudio = $config['modo_estudio'] ?? false;
+        }
+        $preguntasBloqueadas = $session->get('examen_preguntas_bloqueadas', []);
+        $preguntaBloqueada = in_array($pregunta->getId(), $preguntasBloqueadas);
+        
         if ($request->isMethod('POST')) {
             $respuesta = $request->request->get('respuesta');
             if (in_array($respuesta, ['A', 'B', 'C', 'D'])) {
                 $respuestas[$pregunta->getId()] = $respuesta;
                 $session->set('examen_respuestas', $respuestas);
+                
+                // En modo estudio, bloquear la pregunta después de responder
+                if ($modoEstudio && !$preguntaBloqueada) {
+                    $preguntasBloqueadas[] = $pregunta->getId();
+                    $session->set('examen_preguntas_bloqueadas', $preguntasBloqueadas);
+                    $preguntaBloqueada = true;
+                }
             }
 
             // Determinar siguiente acción
@@ -559,6 +584,14 @@ class ExamenController extends AbstractController
         $respuestaActual = $respuestas[$pregunta->getId()] ?? null;
         $esUltima = ($indice === count($preguntasIds) - 1);
         $esPrimera = ($indice === 0);
+        
+        // Obtener respuesta correcta y retroalimentación para modo estudio
+        $respuestaCorrecta = null;
+        $retroalimentacion = null;
+        if ($modoEstudio && $preguntaBloqueada && $respuestaActual) {
+            $respuestaCorrecta = $pregunta->getRespuestaCorrecta();
+            $retroalimentacion = $pregunta->getRetroalimentacion();
+        }
 
         // Calcular porcentajes por tema
         $porcentajesPorTema = [];
@@ -623,6 +656,10 @@ class ExamenController extends AbstractController
             'porcentajesPorTema' => $porcentajesPorTema,
             'estadoPreguntas' => $estadoPreguntas,
             'config' => $config,
+            'modoEstudio' => $modoEstudio,
+            'preguntaBloqueada' => $preguntaBloqueada,
+            'respuestaCorrecta' => $respuestaCorrecta,
+            'retroalimentacion' => $retroalimentacion,
         ]);
     }
 

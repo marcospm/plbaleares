@@ -132,35 +132,47 @@
 
         <form method="post" action="{{ path('app_examen_pregunta', {'numero': numero}) }}" id="formPregunta">
             <div class="form-group">
+                {% if modoEstudio is defined and modoEstudio %}
+                    <div style="margin-bottom: 1rem; padding: 0.75rem; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                        <strong style="color: #856404;">📚 Modo Estudio Activado:</strong> Al seleccionar una respuesta, se mostrará inmediatamente la respuesta correcta y retroalimentación.
+                    </div>
+                {% endif %}
+                
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    <label style="display: flex; align-items: start; padding: 1rem; border: 2px solid var(--color-border); border-radius: 4px; cursor: pointer; transition: all 0.3s; {% if respuestaActual == 'A' %}background: #e3f2fd; border-color: var(--color-primary);{% endif %}">
-                        <input type="radio" name="respuesta" value="A" style="margin-right: 1rem; margin-top: 0.25rem;" {% if respuestaActual == 'A' %}checked{% endif %}>
-                        <div>
-                            <strong style="color: var(--color-primary);">A)</strong> {{ pregunta.opcionA }}
-                        </div>
-                    </label>
-
-                    <label style="display: flex; align-items: start; padding: 1rem; border: 2px solid var(--color-border); border-radius: 4px; cursor: pointer; transition: all 0.3s; {% if respuestaActual == 'B' %}background: #e3f2fd; border-color: var(--color-primary);{% endif %}">
-                        <input type="radio" name="respuesta" value="B" style="margin-right: 1rem; margin-top: 0.25rem;" {% if respuestaActual == 'B' %}checked{% endif %}>
-                        <div>
-                            <strong style="color: var(--color-primary);">B)</strong> {{ pregunta.opcionB }}
-                        </div>
-                    </label>
-
-                    <label style="display: flex; align-items: start; padding: 1rem; border: 2px solid var(--color-border); border-radius: 4px; cursor: pointer; transition: all 0.3s; {% if respuestaActual == 'C' %}background: #e3f2fd; border-color: var(--color-primary);{% endif %}">
-                        <input type="radio" name="respuesta" value="C" style="margin-right: 1rem; margin-top: 0.25rem;" {% if respuestaActual == 'C' %}checked{% endif %}>
-                        <div>
-                            <strong style="color: var(--color-primary);">C)</strong> {{ pregunta.opcionC }}
-                        </div>
-                    </label>
-
-                    <label style="display: flex; align-items: start; padding: 1rem; border: 2px solid var(--color-border); border-radius: 4px; cursor: pointer; transition: all 0.3s; {% if respuestaActual == 'D' %}background: #e3f2fd; border-color: var(--color-primary);{% endif %}">
-                        <input type="radio" name="respuesta" value="D" style="margin-right: 1rem; margin-top: 0.25rem;" {% if respuestaActual == 'D' %}checked{% endif %}>
-                        <div>
-                            <strong style="color: var(--color-primary);">D)</strong> {{ pregunta.opcionD }}
-                        </div>
-                    </label>
+                    {% set opciones = {'A': pregunta.opcionA, 'B': pregunta.opcionB, 'C': pregunta.opcionC, 'D': pregunta.opcionD} %}
+                    {% for letra, texto in opciones %}
+                        {% set esCorrecta = (respuestaCorrecta is defined and respuestaCorrecta == letra) %}
+                        {% set esSeleccionada = (respuestaActual == letra) %}
+                        {% set esIncorrecta = (modoEstudio is defined and modoEstudio and preguntaBloqueada is defined and preguntaBloqueada and esSeleccionada and not esCorrecta) %}
+                        
+                        <label style="display: flex; align-items: start; padding: 1rem; border: 2px solid var(--color-border); border-radius: 4px; cursor: {% if preguntaBloqueada is defined and preguntaBloqueada %}not-allowed{% else %}pointer{% endif %}; transition: all 0.3s; 
+                               {% if esCorrecta %}background: #d4edda; border-color: #28a745;{% elseif esIncorrecta %}background: #f8d7da; border-color: #dc3545;{% elseif esSeleccionada %}background: #e3f2fd; border-color: var(--color-primary);{% endif %}
+                               {% if preguntaBloqueada is defined and preguntaBloqueada %}opacity: 0.7;{% endif %}">
+                            <input type="radio" name="respuesta" value="{{ letra }}" 
+                                   style="margin-right: 1rem; margin-top: 0.25rem;" 
+                                   {% if esSeleccionada %}checked{% endif %}
+                                   {% if preguntaBloqueada is defined and preguntaBloqueada %}disabled{% endif %}
+                                   data-opcion="{{ letra }}">
+                            <div style="flex: 1;">
+                                <strong style="color: var(--color-primary);">{{ letra }})</strong> {{ texto }}
+                                {% if esCorrecta %}
+                                    <span style="display: inline-block; margin-left: 0.5rem; padding: 0.25rem 0.5rem; background: #28a745; color: white; border-radius: 4px; font-size: 0.85rem; font-weight: bold;">✓ Correcta</span>
+                                {% endif %}
+                            </div>
+                        </label>
+                    {% endfor %}
                 </div>
+                
+                {# Mostrar retroalimentación en modo estudio cuando la pregunta está bloqueada #}
+                {% if modoEstudio is defined and modoEstudio and preguntaBloqueada is defined and preguntaBloqueada and retroalimentacion %}
+                    <div id="retroalimentacion-container" style="margin-top: 1.5rem; padding: 1rem; background: #e7f3ff; border-left: 4px solid #2196F3; border-radius: 4px;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <span style="font-size: 1.2rem;">💡</span>
+                            <strong style="color: #1565C0;">Retroalimentación:</strong>
+                        </div>
+                        <p style="margin: 0; color: #333; line-height: 1.6;">{{ retroalimentacion }}</p>
+                    </div>
+                {% endif %}
             </div>
 
             <div class="d-flex gap-2 mt-4">
@@ -566,10 +578,78 @@
         </script>
         {% endif %}
 
-        {# Script para temporizador y navegación rápida de preguntas #}
+        {# Script para modo estudio y temporizador #}
         <script>
         (function() {
             'use strict';
+            
+            // Modo estudio: manejar selección de respuesta
+            {% if modoEstudio is defined and modoEstudio %}
+            const modoEstudioActivo = true;
+            let preguntaBloqueada = {{ preguntaBloqueada is defined and preguntaBloqueada ? 'true' : 'false' }};
+            const preguntaId = {{ pregunta.id }};
+            
+            if (!preguntaBloqueada) {
+                // Agregar listeners a los radio buttons
+                const radioButtons = document.querySelectorAll('input[name="respuesta"]');
+                let enviandoRespuesta = false;
+                
+                radioButtons.forEach(function(radio) {
+                    radio.addEventListener('change', function() {
+                        if (this.checked && !preguntaBloqueada && !enviandoRespuesta) {
+                            enviandoRespuesta = true;
+                            // Deshabilitar todos los radio buttons mientras se envía
+                            radioButtons.forEach(function(rb) {
+                                rb.disabled = true;
+                            });
+                            
+                            // Enviar respuesta inmediatamente
+                            enviarRespuestaModoEstudio(this.value);
+                        }
+                    });
+                });
+            }
+            
+            function enviarRespuestaModoEstudio(respuesta) {
+                const form = document.getElementById('formPregunta');
+                if (!form) {
+                    enviandoRespuesta = false;
+                    return;
+                }
+                
+                // Crear FormData con todos los campos del formulario
+                const formData = new FormData(form);
+                formData.set('respuesta', respuesta);
+                
+                // Enviar formulario con AJAX
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    if (response.redirected) {
+                        // Si hay redirección, seguirla para mostrar la respuesta correcta
+                        window.location.href = response.url;
+                    } else if (response.ok) {
+                        // Si la respuesta es OK pero no hay redirección, recargar la página
+                        window.location.reload();
+                    } else {
+                        throw new Error('Error en la respuesta del servidor');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // En caso de error, recargar la página
+                    window.location.reload();
+                });
+            }
+            {% else %}
+            const modoEstudioActivo = false;
+            {% endif %}
+            
             
             // Variables del temporizador
             let tiempoInicio = null;

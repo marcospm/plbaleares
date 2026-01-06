@@ -9,6 +9,7 @@ use App\Entity\Convocatoria;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
@@ -202,6 +203,13 @@ class ExamenIniciarType extends AbstractType
                 'data' => 60, // Valor por defecto: 60 minutos
                 'attr' => ['class' => 'form-control'],
                 'help' => 'Puedes pausar el temporizador en cualquier momento durante el examen.'
+            ])
+            ->add('modoEstudio', CheckboxType::class, [
+                'label' => 'Modo Estudio',
+                'required' => false,
+                'data' => false,
+                'attr' => ['class' => 'form-check-input'],
+                'help' => 'En modo estudio, al seleccionar una respuesta se mostrará inmediatamente la respuesta correcta y retroalimentación. La pregunta quedará bloqueada después de responder.',
             ])
         ;
 

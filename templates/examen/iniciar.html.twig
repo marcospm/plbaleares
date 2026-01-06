@@ -145,6 +145,17 @@
                 {{ form_row(form.tiempoLimite) }}
             </div>
 
+            <div class="form-group mb-3">
+                <div class="form-check">
+                    {{ form_widget(form.modoEstudio, {'attr': {'class': 'form-check-input'}}) }}
+                    {{ form_label(form.modoEstudio, null, {'label_attr': {'class': 'form-check-label'}}) }}
+                    {% if form.modoEstudio.vars.help is defined %}
+                        <small class="form-text text-muted">{{ form.modoEstudio.vars.help }}</small>
+                    {% endif %}
+                </div>
+                {{ form_errors(form.modoEstudio) }}
+            </div>
+
             {% if preguntasDisponibles is defined and preguntasDisponibles is not null %}
                 {% if preguntasDisponibles > 0 %}
                     <div class="alert alert-info">
