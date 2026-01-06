@@ -636,10 +636,29 @@ class ExamenController extends AbstractController
         $estadoPreguntas = [];
         for ($i = 0; $i < count($preguntasIds); $i++) {
             $preguntaId = $preguntasIds[$i];
+            $tieneRespuesta = isset($respuestas[$preguntaId]);
+            $esCorrecta = null;
+            
+            // En modo estudio, verificar si la respuesta es correcta
+            if ($modoEstudio && $tieneRespuesta) {
+                // Obtener la pregunta para comparar respuestas
+                if ($esMunicipal) {
+                    $preguntaParaComparar = $this->preguntaMunicipalRepository->find($preguntaId);
+                } else {
+                    $preguntaParaComparar = $this->preguntaRepository->find($preguntaId);
+                }
+                
+                if ($preguntaParaComparar) {
+                    $respuestaAlumno = $respuestas[$preguntaId];
+                    $esCorrecta = ($respuestaAlumno === $preguntaParaComparar->getRespuestaCorrecta());
+                }
+            }
+            
             $estadoPreguntas[$i + 1] = [
                 'numero' => $i + 1,
-                'tieneRespuesta' => isset($respuestas[$preguntaId]),
+                'tieneRespuesta' => $tieneRespuesta,
                 'esActual' => ($i + 1) === $numero,
+                'esCorrecta' => $esCorrecta, // null = sin respuesta, true = correcta, false = incorrecta
             ];
         }
         

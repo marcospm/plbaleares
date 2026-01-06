@@ -39,8 +39,8 @@ class AppExtension extends AbstractExtension
     }
 
     /**
-     * Convierte markdown básico a HTML
-     * Soporta: **texto** (negritas), *texto* (cursiva), saltos de línea
+     * Convierte markdown básico a HTML y permite HTML existente
+     * Soporta: **texto** (negritas), *texto* (cursiva), HTML tags, saltos de línea
      */
     public function markdownToHtml(?string $text): string
     {
@@ -48,24 +48,55 @@ class AppExtension extends AbstractExtension
             return '';
         }
 
-        // Convertir **texto** a <strong>texto</strong>
-        $text = preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $text);
+        // Primero, proteger el HTML existente para no procesarlo como markdown
+        $htmlTags = [];
+        $placeholder = '___HTML_PLACEHOLDER_';
+        $counter = 0;
         
-        // Convertir *texto* a <em>texto</em> (solo si no está dentro de **)
-        $text = preg_replace('/(?<!\*)\*([^*]+?)\*(?!\*)/', '<em>$1</em>', $text);
+        // Reemplazar todos los tags HTML con placeholders
+        $text = preg_replace_callback('/<[^>]+>/', function($matches) use (&$htmlTags, &$counter, $placeholder) {
+            $key = $placeholder . $counter . '___';
+            $htmlTags[$key] = $matches[0];
+            $counter++;
+            return $key;
+        }, $text);
+        
+        // Procesar markdown en el texto sin HTML
+        // Convertir **texto** a <strong>texto</strong> (negritas con doble asterisco)
+        $text = preg_replace('/\*\*(.+?)\*\*/s', '<strong>$1</strong>', $text);
+        
+        // Convertir *texto* a <em>texto</em> (cursiva con asterisco simple)
+        // Solo si no está precedido o seguido de otro asterisco
+        $text = preg_replace('/(?<!\*)\*([^*\n]+?)\*(?!\*)/', '<em>$1</em>', $text);
         
         // Convertir saltos de línea dobles a párrafos
-        $text = preg_replace('/\n\n+/', '</p><p>', $text);
-        $text = '<p>' . $text . '</p>';
+        $parrafos = preg_split('/\n\n+/', $text);
+        $resultado = '';
         
-        // Convertir saltos de línea simples a <br>
-        $text = preg_replace('/\n/', '<br>', $text);
+        foreach ($parrafos as $parrafo) {
+            $parrafo = trim($parrafo);
+            if (!empty($parrafo)) {
+                // Convertir saltos de línea simples dentro del párrafo a <br>
+                $parrafo = preg_replace('/\n/', '<br>', $parrafo);
+                $resultado .= '<p>' . $parrafo . '</p>';
+            }
+        }
+        
+        // Si no hay párrafos (texto sin dobles saltos de línea), convertir saltos simples a <br>
+        if (empty($resultado)) {
+            $resultado = preg_replace('/\n/', '<br>', $text);
+        }
+        
+        // Restaurar HTML tags originales
+        foreach ($htmlTags as $key => $html) {
+            $resultado = str_replace($key, $html, $resultado);
+        }
         
         // Limpiar párrafos vacíos
-        $text = preg_replace('/<p>\s*<\/p>/', '', $text);
-        $text = preg_replace('/<p><br><\/p>/', '', $text);
+        $resultado = preg_replace('/<p>\s*<\/p>/', '', $resultado);
+        $resultado = preg_replace('/<p><br><\/p>/', '', $resultado);
         
-        return trim($text);
+        return trim($resultado);
     }
 }
 
