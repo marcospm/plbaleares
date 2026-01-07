@@ -40,6 +40,19 @@ class RegistrationController extends AbstractController
                 ]);
             }
 
+            // Verificar si el email ya existe
+            if ($user->getEmail()) {
+                $existingUserByEmail = $entityManager->getRepository(User::class)
+                    ->findOneBy(['email' => $user->getEmail()]);
+
+                if ($existingUserByEmail) {
+                    $this->addFlash('error', 'Este email ya está registrado. Por favor, usa otro email o inicia sesión.');
+                    return $this->render('registration/register.html.twig', [
+                        'registrationForm' => $form,
+                    ]);
+                }
+            }
+
             // Encriptar la contraseña
             $user->setPassword(
                 $passwordHasher->hashPassword(
