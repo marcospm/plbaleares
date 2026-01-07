@@ -550,6 +550,7 @@
                                                     <li><a href="{{ path('app_pregunta_index') }}" class="dropdown-item">Preguntas</a></li>
                                                     <li><a href="{{ path('app_recurso_index') }}" class="dropdown-item">30 Temas</a></li>
                                                     <li><a href="{{ path('app_examen_pdf_index') }}" class="dropdown-item">Exámenes PDF</a></li>
+                                                    <li><a href="{{ path('app_boib_index') }}" class="dropdown-item">BOIB</a></li>
                                                 </ul>
                                             </li>
                                             <li class="dropdown-item-with-submenu">
@@ -576,16 +577,15 @@
                                             </li>
                                             <li class="dropdown-item-with-submenu">
                                                 <a href="#" class="dropdown-item" onclick="toggleSubmenu(this); return false;">
-                                                    <span>👥 Gestión</span>
+                                                    <span>👥 Alumnos</span>
                                                     <span style="margin-left: 1rem;">▶</span>
                                                 </a>
                                                 <ul class="submenu">
                                                     <li><a href="{{ path('app_examen_profesor') }}" class="dropdown-item">Exámenes de Alumnos</a></li>
                                                     <li><a href="{{ path('app_recurso_especifico_index') }}" class="dropdown-item">Recursos Específicos</a></li>
-                                                    <li><a href="{{ path('app_convocatoria_index') }}" class="dropdown-item">📋 Convocatorias</a></li>
-                                                    <li><a href="{{ path('app_boib_index') }}" class="dropdown-item">📋 BOIB</a></li>
                                                 </ul>
                                             </li>
+                                            <li><a href="{{ path('app_convocatoria_index') }}" class="dropdown-item">📋 Convocatorias</a></li>
                                         </ul>
                                     </div>
                                 {% endif %}
@@ -597,13 +597,45 @@
                                             Administración ▼
                                         </a>
                                         <ul class="dropdown-menu" style="left: 0; right: auto;">
-                                            <li><a href="{{ path('app_user_index') }}" class="dropdown-item">👤 Usuarios</a></li>
+                                            <li class="dropdown-item-with-submenu">
+                                                <a href="#" class="dropdown-item" onclick="toggleSubmenu(this); return false;">
+                                                    <span>👥 Usuarios y Grupos</span>
+                                                    <span style="margin-left: 1rem;">▶</span>
+                                                </a>
+                                                <ul class="submenu">
+                                                    <li><a href="{{ path('app_user_index') }}" class="dropdown-item">Usuarios</a></li>
+                                                    <li><a href="{{ path('app_grupo_index') }}" class="dropdown-item">Grupos</a></li>
+                                                </ul>
+                                            </li>
                                             <li><a href="{{ path('app_convocatoria_index') }}" class="dropdown-item">📋 Convocatorias</a></li>
-                                            <li><a href="{{ path('app_grupo_index') }}" class="dropdown-item">👥 Grupos</a></li>
-                                            <li><a href="{{ path('app_configuracion_examen_index') }}" class="dropdown-item">⚙️ Porcentajes por Tema</a></li>
-                                            <li><a href="{{ path('app_contacto_mensajes') }}" class="dropdown-item">📧 Mensajes de Contacto</a></li>
+                                            <li class="dropdown-item-with-submenu">
+                                                <a href="#" class="dropdown-item" onclick="toggleSubmenu(this); return false;">
+                                                    <span>⚙️ Configuración</span>
+                                                    <span style="margin-left: 1rem;">▶</span>
+                                                </a>
+                                                <ul class="submenu">
+                                                    <li><a href="{{ path('app_configuracion_examen_index') }}" class="dropdown-item">Porcentajes por Tema</a></li>
+                                                </ul>
+                                            </li>
+                                            <li class="dropdown-item-with-submenu">
+                                                <a href="#" class="dropdown-item" onclick="toggleSubmenu(this); return false;">
+                                                    <span>📧 Comunicación</span>
+                                                    <span style="margin-left: 1rem;">▶</span>
+                                                </a>
+                                                <ul class="submenu">
+                                                    <li><a href="{{ path('app_contacto_mensajes') }}" class="dropdown-item">Mensajes de Contacto</a></li>
+                                                </ul>
+                                            </li>
                                             <li><hr class="dropdown-divider"></li>
-                                            <li><a href="{{ path('app_log_index') }}" class="dropdown-item">📋 Logs del Sistema</a></li>
+                                            <li class="dropdown-item-with-submenu">
+                                                <a href="#" class="dropdown-item" onclick="toggleSubmenu(this); return false;">
+                                                    <span>🔧 Sistema</span>
+                                                    <span style="margin-left: 1rem;">▶</span>
+                                                </a>
+                                                <ul class="submenu">
+                                                    <li><a href="{{ path('app_log_index') }}" class="dropdown-item">Logs del Sistema</a></li>
+                                                </ul>
+                                            </li>
                                         </ul>
                                     </div>
                                 {% endif %}
@@ -694,9 +726,18 @@
                                             </ul>
                                         </div>
                                     </li>
-                                    <li><a href="{{ path('app_articulo_publico_index') }}" class="nav-link nav-link-alumno">Artículos</a></li>
-                                    <li><a href="{{ path('app_recurso_publico_index') }}" class="nav-link nav-link-alumno">Temario y Recursos</a></li>
-                                    <li><a href="{{ path('app_boib_index') }}" class="nav-link nav-link-alumno">BOIB</a></li>
+                                    <li style="position: relative;">
+                                        <div class="nav-dropdown" style="position: relative;">
+                                            <a href="#" class="nav-link nav-link-alumno dropdown-toggle" onclick="event.preventDefault(); toggleDropdown(this); return false;" style="cursor: pointer;">
+                                                Contenido <span class="dropdown-arrow">▼</span>
+                                            </a>
+                                            <ul class="dropdown-menu" style="left: 0; right: auto;">
+                                                <li><a class="dropdown-item" href="{{ path('app_articulo_publico_index') }}">📄 Artículos</a></li>
+                                                <li><a class="dropdown-item" href="{{ path('app_recurso_publico_index') }}">📚 Temario y Recursos</a></li>
+                                                <li><a class="dropdown-item" href="{{ path('app_boib_index') }}">📋 BOIB</a></li>
+                                            </ul>
+                                        </div>
+                                    </li>
                                     <li><a href="{{ path('app_contacto') }}" class="nav-link nav-link-alumno">Contacto</a></li>
                                 {% endif %}
                             {% else %}
