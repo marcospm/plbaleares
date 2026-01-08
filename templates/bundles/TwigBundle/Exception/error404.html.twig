@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Página no encontrada | BISPOL</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/favicon.png') }}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .background-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('{{ asset('images/404-background.jpg') }}') center center / cover no-repeat;
+            filter: brightness(0.4);
+            z-index: 0;
+        }
+        
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(26, 77, 122, 0.6) 0%, rgba(13, 58, 95, 0.6) 100%);
+            z-index: 1;
+        }
+        
+        .content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            color: white;
+            padding: 2rem;
+            max-width: 600px;
+        }
+        
+        .error-code {
+            font-size: 8rem;
+            font-weight: 700;
+            color: var(--color-accent, #f39c12);
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+            margin-bottom: 1rem;
+            line-height: 1;
+        }
+        
+        .error-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .error-message {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .logo-badge {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .logo-badge img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+        
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+        }
+        
+        .logo-text-main {
+            font-size: 1.8rem;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .logo-text-sub {
+            font-size: 1rem;
+            opacity: 0.95;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        }
+        
+        .actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 2rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 2rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: inline-block;
+            border: 2px solid transparent;
+        }
+        
+        .btn-primary {
+            background: var(--color-secondary, #4a90a4);
+            color: white;
+            border-color: var(--color-secondary, #4a90a4);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        @media (max-width: 768px) {
+            .error-code {
+                font-size: 5rem;
+            }
+            
+            .error-title {
+                font-size: 1.8rem;
+            }
+            
+            .error-message {
+                font-size: 1rem;
+            }
+            
+            .logo-container {
+                flex-direction: column;
+            }
+            
+            .logo-text {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-image"></div>
+    <div class="overlay"></div>
+    
+    <div class="content">
+        <div class="logo-container">
+            <div class="logo-badge">
+                <img src="{{ asset('images/logo-bispol.png') }}" alt="Logo BISPOL">
+            </div>
+            <div class="logo-text">
+                <span class="logo-text-main">BISPOL</span>
+                <span class="logo-text-sub">Centre de Formació</span>
+            </div>
+        </div>
+        
+        <div class="error-code">404</div>
+        <h1 class="error-title">Página no encontrada</h1>
+        <p class="error-message">
+            Lo sentimos, la página que buscas no existe o ha sido movida.
+            Nuestros agentes están investigando el caso.
+        </p>
+        
+        <div class="actions">
+            <a href="{{ path('app_home') }}" class="btn btn-primary">
+                Ir al Inicio
+            </a>
+            {% if app.user %}
+                <a href="{{ path('app_dashboard') }}" class="btn btn-secondary">
+                    Ir al Dashboard
+                </a>
+            {% else %}
+                <a href="{{ path('app_login') }}" class="btn btn-secondary">
+                    Iniciar Sesión
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
+

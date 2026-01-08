@@ -27,11 +27,8 @@ class RecursoPublicoController extends AbstractController
     ): Response {
         $user = $this->getUser();
         
-        $examenes = $examenPDFRepository->findAll();
-        // Ordenar por fecha de subida descendente
-        usort($examenes, function($a, $b) {
-            return $b->getFechaSubida() <=> $a->getFechaSubida();
-        });
+        // Obtener solo los 10 últimos exámenes PDF ordenados por fecha de subida descendente
+        $examenes = $examenPDFRepository->findUltimos(10);
         
         // Obtener recursos específicos asignados al usuario
         $recursosEspecificos = [];
