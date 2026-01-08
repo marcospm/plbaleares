@@ -30,6 +30,18 @@ class Articulo
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
     private ?string $video = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $tituloLey = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $capitulo = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $seccion = null;
+
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $textoLegal = null;
+
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
     private bool $activo = true;
 
@@ -122,6 +134,54 @@ class Articulo
     public function setVideo(?string $video): static
     {
         $this->video = $video;
+
+        return $this;
+    }
+
+    public function getTituloLey(): ?string
+    {
+        return $this->tituloLey;
+    }
+
+    public function setTituloLey(?string $tituloLey): static
+    {
+        $this->tituloLey = $tituloLey;
+
+        return $this;
+    }
+
+    public function getCapitulo(): ?string
+    {
+        return $this->capitulo;
+    }
+
+    public function setCapitulo(?string $capitulo): static
+    {
+        $this->capitulo = $capitulo;
+
+        return $this;
+    }
+
+    public function getSeccion(): ?string
+    {
+        return $this->seccion;
+    }
+
+    public function setSeccion(?string $seccion): static
+    {
+        $this->seccion = $seccion;
+
+        return $this;
+    }
+
+    public function getTextoLegal(): ?string
+    {
+        return $this->textoLegal;
+    }
+
+    public function setTextoLegal(?string $textoLegal): static
+    {
+        $this->textoLegal = $textoLegal;
 
         return $this;
     }

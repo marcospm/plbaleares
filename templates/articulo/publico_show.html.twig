@@ -19,12 +19,42 @@
             <p style="font-size: 1.1rem; color: var(--color-primary);">{{ articulo.ley.nombre }}</p>
         </div>
 
+        {% if articulo.tituloLey %}
+        <div class="form-group">
+            <label class="form-label"><strong>Título en la Ley:</strong></label>
+            <p style="font-size: 1rem; color: #333;">{{ articulo.tituloLey }}</p>
+        </div>
+        {% endif %}
+
+        {% if articulo.capitulo %}
+        <div class="form-group">
+            <label class="form-label"><strong>Capítulo:</strong></label>
+            <p style="font-size: 1rem; color: #333;">{{ articulo.capitulo }}</p>
+        </div>
+        {% endif %}
+
+        {% if articulo.seccion %}
+        <div class="form-group">
+            <label class="form-label"><strong>Sección:</strong></label>
+            <p style="font-size: 1rem; color: #333;">{{ articulo.seccion }}</p>
+        </div>
+        {% endif %}
+
         <div class="form-group">
             <label class="form-label"><strong>Explicación para el Opositor:</strong></label>
             <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--color-secondary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); line-height: 1.6;">
                 {{ articulo.explicacion|default('Sin explicación disponible')|markdown|raw }}
             </div>
         </div>
+
+        {% if articulo.textoLegal %}
+        <div class="form-group">
+            <label class="form-label"><strong>Texto Legal:</strong></label>
+            <div style="background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%); padding: 1.5rem; border-radius: 8px; border-left: 4px solid #ffc107; box-shadow: 0 2px 4px rgba(0,0,0,0.05); line-height: 1.6;">
+                {{ articulo.textoLegal|raw }}
+            </div>
+        </div>
+        {% endif %}
 
         {% if articulo.video and articulo.video|trim != '' %}
         <div class="form-group">

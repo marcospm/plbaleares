@@ -166,14 +166,27 @@
                         </div>
                     {% endif %}
 
-                    {% if not esMunicipal and item.pregunta.articulo and item.pregunta.articulo.explicacion %}
+                    {% if not esMunicipal and item.pregunta.articulo %}
+                        {% if item.pregunta.articulo.explicacion or item.pregunta.articulo.textoLegal %}
                         <details style="margin-top: 1rem;">
-                            <summary style="cursor: pointer; font-weight: bold; color: var(--color-primary);">Ver Explicación del Artículo</summary>
-                            <div style="background: #e3f2fd; padding: 1rem; border-radius: 4px; margin-top: 0.5rem; border-left: 4px solid var(--color-secondary); line-height: 1.6;">
+                            <summary style="cursor: pointer; font-weight: bold; color: var(--color-primary);">Ver Información del Artículo</summary>
+                            <div style="margin-top: 0.5rem;">
                                 <p><strong>Artículo {{ item.pregunta.articulo.getNumeroCompleto() }} - {{ item.pregunta.ley.nombre }}</strong></p>
-                                <div>{{ item.pregunta.articulo.explicacion|markdown|raw }}</div>
+                                {% if item.pregunta.articulo.explicacion %}
+                                <div style="background: #e3f2fd; padding: 1rem; border-radius: 4px; margin-top: 0.5rem; border-left: 4px solid var(--color-secondary); line-height: 1.6;">
+                                    <strong>Explicación para el Opositor:</strong>
+                                    <div style="margin-top: 0.5rem;">{{ item.pregunta.articulo.explicacion|markdown|raw }}</div>
+                                </div>
+                                {% endif %}
+                                {% if item.pregunta.articulo.textoLegal %}
+                                <div style="background: #fff3cd; padding: 1rem; border-radius: 4px; margin-top: 0.5rem; border-left: 4px solid #ffc107; line-height: 1.6;">
+                                    <strong>Texto Legal:</strong>
+                                    <div style="margin-top: 0.5rem;">{{ item.pregunta.articulo.textoLegal|raw }}</div>
+                                </div>
+                                {% endif %}
                             </div>
                         </details>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
