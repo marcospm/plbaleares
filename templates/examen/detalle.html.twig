@@ -50,52 +50,128 @@
             <strong>Dificultad:</strong> <span class="badge badge-{{ examen.dificultad }}">{{ examen.getDificultadLabel() }}</span>
         </div>
 
-        <div class="mb-4">
-            {% if examen.convocatoria %}
-                <strong>Convocatoria:</strong> <span class="badge" style="background-color: #9C27B0;">{{ examen.convocatoria.nombre }}</span><br>
-                <strong>Municipios de la Convocatoria:</strong>
-                {% if examen.convocatoria.municipios|length > 0 %}
-                    {% for municipio in examen.convocatoria.municipios %}
-                        <span class="badge" style="background-color: #2196F3;">{{ municipio.nombre }}</span>
-                    {% endfor %}
+        <details class="mb-4" style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem;">
+            <summary style="cursor: pointer; font-weight: bold; color: var(--color-primary); font-size: 1.1rem; user-select: none; outline: none;">
+                📚 Información del Examen
+            </summary>
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #dee2e6;">
+                {% if examen.convocatoria %}
+                    <div style="margin-bottom: 0.75rem;">
+                        <strong>Convocatoria:</strong> <span class="badge" style="background-color: #9C27B0;">{{ examen.convocatoria.nombre }}</span>
+                    </div>
+                    <div style="margin-bottom: 0.75rem;">
+                        <strong>Municipios de la Convocatoria:</strong>
+                        {% if examen.convocatoria.municipios|length > 0 %}
+                            {% for municipio in examen.convocatoria.municipios %}
+                                <span class="badge" style="background-color: #2196F3;">{{ municipio.nombre }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">No hay municipios asignados</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <strong>Temas Municipales:</strong>
+                        {% if examen.temasMunicipales|length > 0 %}
+                            <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                {% for temaMunicipal in examen.temasMunicipales %}
+                                    <span class="badge badge-facil">{{ temaMunicipal.nombre }} ({{ temaMunicipal.municipio.nombre }})</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <span class="text-muted">No hay temas municipales asignados</span>
+                        {% endif %}
+                    </div>
+                {% elseif examen.municipio %}
+                    <div style="margin-bottom: 0.75rem;">
+                        <strong>Municipio:</strong> <span class="badge" style="background-color: #2196F3;">{{ examen.municipio.nombre }}</span>
+                    </div>
+                    <div>
+                        <strong>Temas Municipales:</strong>
+                        {% if examen.temasMunicipales|length > 0 %}
+                            <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                {% for temaMunicipal in examen.temasMunicipales %}
+                                    <span class="badge badge-facil">{{ temaMunicipal.nombre }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <span class="text-muted">No hay temas municipales asignados</span>
+                        {% endif %}
+                    </div>
                 {% else %}
-                    <span class="text-muted">No hay municipios asignados</span>
+                    <div>
+                        <strong>Temas:</strong>
+                        {% if examen.temas|length > 0 %}
+                            <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                {% for tema in examen.temas %}
+                                    <span class="badge badge-facil">{{ tema.nombre }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <span class="text-muted">No hay temas asignados</span>
+                        {% endif %}
+                    </div>
                 {% endif %}
-                <br><br>
-                <strong>Temas Municipales:</strong>
-                {% if examen.temasMunicipales|length > 0 %}
-                    {% for temaMunicipal in examen.temasMunicipales %}
-                        <span class="badge badge-facil">{{ temaMunicipal.nombre }} ({{ temaMunicipal.municipio.nombre }})</span>
-                    {% endfor %}
-                {% else %}
-                    <span class="text-muted">No hay temas municipales asignados</span>
-                {% endif %}
-            {% elseif examen.municipio %}
-                <strong>Municipio:</strong> <span class="badge" style="background-color: #2196F3;">{{ examen.municipio.nombre }}</span><br>
-                <strong>Temas Municipales:</strong>
-                {% if examen.temasMunicipales|length > 0 %}
-                    {% for temaMunicipal in examen.temasMunicipales %}
-                        <span class="badge badge-facil">{{ temaMunicipal.nombre }}</span>
-                    {% endfor %}
-                {% else %}
-                    <span class="text-muted">No hay temas municipales asignados</span>
-                {% endif %}
-            {% else %}
-                <strong>Temas:</strong>
-                {% if examen.temas|length > 0 %}
-                    {% for tema in examen.temas %}
-                        <span class="badge badge-facil">{{ tema.nombre }}</span>
-                    {% endfor %}
-                {% else %}
-                    <span class="text-muted">No hay temas asignados</span>
-                {% endif %}
-            {% endif %}
-        </div>
+            </div>
+        </details>
 
         <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Detalle de Preguntas</h3>
 
+        {# Lista de números de preguntas clicables #}
+        <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 0.75rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.85rem; color: #666; font-weight: 500;">📋 Navegación rápida:</span>
+                <span style="font-size: 0.75rem; color: #999;">(Haz clic en cualquier número para ir a esa pregunta)</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: flex-start;">
+                {% for item in preguntas %}
+                    <a href="#pregunta-{{ loop.index }}" 
+                       class="pregunta-link-detalle"
+                       style="display: inline-flex; align-items: center; justify-content: center; 
+                              min-width: 32px; height: 32px; 
+                              border-radius: 4px; 
+                              text-decoration: none; 
+                              font-weight: 500; 
+                              font-size: 0.8rem;
+                              transition: all 0.2s;
+                              cursor: pointer;
+                              user-select: none;
+                              {% if item.esCorrecta is null %}
+                                  background: #e0e0e0;
+                                  color: #666;
+                                  border: 2px solid #999;
+                              {% elseif item.esCorrecta %}
+                                  background: #28a745;
+                                  color: white;
+                                  border: 2px solid #28a745;
+                              {% else %}
+                                  background: #dc3545;
+                                  color: white;
+                                  border: 2px solid #dc3545;
+                              {% endif %}"
+                       onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 2px 6px rgba(0,0,0,0.15)';"
+                       onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                        {{ loop.index }}
+                    </a>
+                {% endfor %}
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 0.5rem; font-size: 0.75rem; color: #666; flex-wrap: wrap;">
+                <span style="display: flex; align-items: center; gap: 0.25rem;">
+                    <span style="display: inline-block; width: 16px; height: 16px; background: #28a745; border-radius: 3px; border: 1px solid #28a745;"></span>
+                    <span>Correcta</span>
+                </span>
+                <span style="display: flex; align-items: center; gap: 0.25rem;">
+                    <span style="display: inline-block; width: 16px; height: 16px; background: #dc3545; border-radius: 3px; border: 1px solid #dc3545;"></span>
+                    <span>Incorrecta</span>
+                </span>
+                <span style="display: flex; align-items: center; gap: 0.25rem;">
+                    <span style="display: inline-block; width: 16px; height: 16px; background: #e0e0e0; border-radius: 3px; border: 1px solid #999;"></span>
+                    <span>Sin responder</span>
+                </span>
+            </div>
+        </div>
+
         {% for item in preguntas %}
-            <div class="card mb-3" style="{% if item.esCorrecta is null %}border-left: 4px solid #999;{% elseif item.esCorrecta %}border-left: 4px solid var(--color-success);{% else %}border-left: 4px solid var(--color-danger);{% endif %}">
+            <div id="pregunta-{{ loop.index }}" class="card mb-3" style="{% if item.esCorrecta is null %}border-left: 4px solid #999;{% elseif item.esCorrecta %}border-left: 4px solid var(--color-success);{% else %}border-left: 4px solid var(--color-danger);{% endif %}">
                 <div class="card-body">
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                         <div style="flex: 1;">
@@ -196,7 +272,7 @@
                         </div>
                     {% endif %}
 
-                    {% if not examen.municipio and item.pregunta.articulo %}
+                    {% if not esMunicipal and not esConvocatoria and item.pregunta.articulo is defined and item.pregunta.articulo %}
                         {% if item.pregunta.articulo.explicacion or item.pregunta.articulo.textoLegal %}
                         <details style="margin-top: 1rem;">
                             <summary style="cursor: pointer; font-weight: bold; color: var(--color-primary);">Ver Información del Artículo</summary>
@@ -232,5 +308,38 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Scroll suave al hacer clic en los números de preguntas
+    document.addEventListener('DOMContentLoaded', function() {
+        const preguntaLinks = document.querySelectorAll('.pregunta-link-detalle');
+        preguntaLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    // Calcular offset para que la pregunta quede visible (considerando header fijo si existe)
+                    const offset = 80; // Ajustar según sea necesario
+                    const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset - offset;
+                    
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                    
+                    // Resaltar brevemente la pregunta al llegar
+                    setTimeout(() => {
+                        targetElement.style.transition = 'box-shadow 0.3s';
+                        targetElement.style.boxShadow = '0 0 0 3px rgba(0, 113, 181, 0.3)';
+                        setTimeout(() => {
+                            targetElement.style.boxShadow = '';
+                        }, 1000);
+                    }, 500);
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}
 
