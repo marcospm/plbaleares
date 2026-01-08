@@ -1,20 +1,20 @@
-/* Estilo Policial - Oposiciones Policía Local de las Illes Balears */
+/* Estilo BISPOL - Academia de Formación */
 :root {
-    /* Colores oficiales Policía Local Illes Balears */
-    --color-primary: #003366; /* Azul marino oficial */
-    --color-primary-dark: #001f3f;
-    --color-primary-light: #004d99;
-    --color-secondary: #0071b5; /* Azul claro oficial RGB R0G113B181 */
-    --color-accent: #ffc107;
-    --color-text: #212121;
-    --color-text-light: #757575;
-    --color-bg: #f8f9fa;
+    /* Colores BISPOL - Academia de Formación */
+    --color-primary: #1a4d7a; /* Azul profesional BISPOL */
+    --color-primary-dark: #0d3a5f;
+    --color-primary-light: #2a6ba0;
+    --color-secondary: #4a90a4; /* Azul turquesa BISPOL */
+    --color-accent: #f39c12; /* Naranja/dorado para acentos */
+    --color-text: #2c3e50;
+    --color-text-light: #7f8c8d;
+    --color-bg: #f5f7fa;
     --color-white: #ffffff;
-    --color-border: #dee2e6;
-    --color-success: #28a745;
-    --color-danger: #dc3545;
-    --color-warning: #ffc107;
-    --color-info: #0071b5;
+    --color-border: #e1e8ed;
+    --color-success: #27ae60;
+    --color-danger: #e74c3c;
+    --color-warning: #f39c12;
+    --color-info: #3498db;
 }
 
 * {
@@ -63,18 +63,20 @@ body {
 }
 
 .logo-badge {
-    width: 65px;
-    height: 65px;
-    background: var(--color-white);
+    width: 80px;
+    height: 80px;
+    background: rgba(26, 77, 122, 0.3);
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     position: relative;
     overflow: hidden;
-    padding: 8px;
+    padding: 10px;
     transition: transform 0.3s, box-shadow 0.3s;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(5px);
 }
 
 .logo-badge:hover {
@@ -102,6 +104,8 @@ body {
     height: 100%;
     object-fit: contain;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    position: relative;
+    z-index: 1;
 }
 
 .logo-text {
@@ -114,12 +118,16 @@ body {
     font-size: 1.3rem;
     font-weight: 700;
     letter-spacing: 0.5px;
+    color: var(--color-white);
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
 .logo-text-sub {
     font-size: 0.85rem;
-    opacity: 0.9;
+    opacity: 0.95;
     font-weight: 400;
+    color: var(--color-white);
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
 }
 
 .navbar-nav {
@@ -667,9 +675,9 @@ input[type="radio"] {
     }
     
     .logo-badge {
-        width: 50px;
-        height: 50px;
-        padding: 5px;
+        width: 60px;
+        height: 60px;
+        padding: 6px;
     }
     
     .logo-badge .logo-img {

@@ -3,8 +3,10 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>{% block title %}Sistema de Oposiciones - Policía Local Illes Balears{% endblock %}</title>
-        <link rel="icon" href="https://usuaris.tinet.cat/polis/images/3245.gif">
+        <title>{% block title %}BISPOL - Aula Virtual{% endblock %}</title>
+        <link rel="icon" type="image/png" href="{{ asset('images/favicon.png') }}">
+        <link rel="shortcut icon" type="image/png" href="{{ asset('images/favicon.png') }}">
+        <link rel="apple-touch-icon" href="{{ asset('images/favicon.png') }}">
         {% block stylesheets %}
             <style>
                 /* Estilos para dropdown menu */
@@ -555,11 +557,11 @@
                             <a href="{% if app.user %}{{ path('app_dashboard') }}{% else %}{{ path('app_home') }}{% endif %}" class="navbar-brand">
                                 <div class="logo-container">
                                     <div class="logo-badge">
-                                        <img src="https://usuaris.tinet.cat/polis/images/3245.gif" alt="Logo Policía Local Illes Balears" class="logo-img">
+                                        <img src="{{ asset('images/logo-bispol.png') }}" alt="Logo BISPOL" class="logo-img">
                                     </div>
                                     <div class="logo-text">
-                                        <span class="logo-text-main">POLICÍA LOCAL</span>
-                                        <span class="logo-text-sub">Illes Balears - Sistema de Oposiciones</span>
+                                        <span class="logo-text-main">BISPOL</span>
+                                        <span class="logo-text-sub">Centre de Formació - Aula Virtual</span>
                                     </div>
                                 </div>
                             </a>
@@ -800,10 +802,10 @@
 
         <footer class="footer">
             <div style="display: flex; align-items: center; justify-content: center; gap: 2rem; flex-wrap: wrap; padding: 0.5rem 0;">
-                <img src="https://cloud10.todocoleccion.online/coleccionismo/tc/2021/08/31/14/284728403.webp" alt="Parche Policía Local Illes Balears" style="height: 70px; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4)); border-radius: 8px;">
+                <img src="{{ asset('images/logo-bispol.png') }}" alt="Logo BISPOL" style="height: 70px; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4)); border-radius: 8px;">
                 <div style="text-align: center;">
-                    <p style="margin: 0; font-size: 1rem; font-weight: 500;">&copy; {{ 'now'|date('Y') }} Policía Local - Illes Balears</p>
-                    <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; opacity: 0.85;">Sistema de Oposiciones. Todos los derechos reservados.</p>
+                    <p style="margin: 0; font-size: 1rem; font-weight: 500;">&copy; {{ 'now'|date('Y') }} BISPOL - Centre de Formació</p>
+                    <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; opacity: 0.85;">Aula Virtual. Todos los derechos reservados.</p>
                 </div>
             </div>
         </footer>
