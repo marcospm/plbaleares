@@ -48,13 +48,46 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     //        ;
     //    }
 
-    //    public function findOneBySomeField($value): ?User
-    //    {
-    //        return $this->createQueryBuilder('u')
-    //            ->andWhere('u.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+    /**
+     * Busca usuarios con paginación y filtros
+     * @param string $search Término de búsqueda (username o nombre)
+     * @param string|null $activo Filtro por estado activo ('1', '0' o null)
+     * @param int $page Número de página (empezando en 1)
+     * @param int $itemsPerPage Items por página
+     * @return array ['users' => User[], 'total' => int]
+     */
+    public function findPaginated(?string $search = null, ?string $activo = null, int $page = 1, int $itemsPerPage = 20): array
+    {
+        $qb = $this->createQueryBuilder('u');
+        
+        // Filtro por búsqueda
+        if (!empty($search)) {
+            $qb->andWhere('(u.username LIKE :search OR u.nombre LIKE :search)')
+               ->setParameter('search', '%' . $search . '%');
+        }
+        
+        // Filtro por estado activo
+        if ($activo !== null && $activo !== '') {
+            $activoBool = $activo === '1';
+            $qb->andWhere('u.activo = :activo')
+               ->setParameter('activo', $activoBool);
+        }
+        
+        // Contar total antes de paginar
+        $totalQb = clone $qb;
+        $total = (int) $totalQb->select('COUNT(u.id)')
+                               ->getQuery()
+                               ->getSingleScalarResult();
+        
+        // Aplicar paginación
+        $offset = ($page - 1) * $itemsPerPage;
+        $qb->orderBy('u.username', 'ASC')
+           ->setFirstResult($offset)
+           ->setMaxResults($itemsPerPage);
+        
+        return [
+            'users' => $qb->getQuery()->getResult(),
+            'total' => $total,
+        ];
+    }
 }

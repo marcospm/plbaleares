@@ -21,3 +21,9 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+    
+    # Servicio de versionado de assets
+    App\Service\AssetVersionService: ~
+    App\Service\AssetVersionStrategy:
+        arguments:
+            $versionService: '@App\Service\AssetVersionService'

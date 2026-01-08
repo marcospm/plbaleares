@@ -27,37 +27,14 @@ class UserController extends AbstractController
         $itemsPerPage = 20; // Número de usuarios por página
         $page = max(1, $request->query->getInt('page', 1));
 
-        // Obtener todos los usuarios
-        $allUsers = $userRepository->findAll();
-
-        // Filtrar por búsqueda
-        if (!empty($search)) {
-            $allUsers = array_filter($allUsers, function($user) use ($search) {
-                $usernameMatch = stripos($user->getUsername(), $search) !== false;
-                $nombreMatch = $user->getNombre() && stripos($user->getNombre(), $search) !== false;
-                return $usernameMatch || $nombreMatch;
-            });
-        }
-
-        // Filtrar por estado activo
-        if ($activo !== '') {
-            $activoBool = $activo === '1';
-            $allUsers = array_filter($allUsers, function($user) use ($activoBool) {
-                return $user->isActivo() === $activoBool;
-            });
-        }
-
-        // Convertir a array indexado numéricamente
-        $allUsers = array_values($allUsers);
-
-        // Calcular paginación
-        $totalItems = count($allUsers);
+        // Obtener usuarios con paginación y filtros a nivel de base de datos
+        $result = $userRepository->findPaginated($search, $activo, $page, $itemsPerPage);
+        $users = $result['users'];
+        $totalItems = $result['total'];
+        
+        // Calcular total de páginas
         $totalPages = max(1, ceil($totalItems / $itemsPerPage));
         $page = min($page, $totalPages); // Asegurar que la página no exceda el total
-        
-        // Obtener los items de la página actual
-        $offset = ($page - 1) * $itemsPerPage;
-        $users = array_slice($allUsers, $offset, $itemsPerPage);
 
         return $this->render('user/index.html.twig', [
             'users' => $users,

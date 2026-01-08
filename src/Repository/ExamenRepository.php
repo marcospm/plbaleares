@@ -26,6 +26,8 @@ class ExamenRepository extends ServiceEntityRepository
     public function findByUsuario(User $usuario, int $limit = 10): array
     {
         return $this->createQueryBuilder('e')
+            ->leftJoin('e.usuario', 'u')
+            ->addSelect('u')
             ->andWhere('e.usuario = :usuario')
             ->setParameter('usuario', $usuario)
             ->orderBy('e.fecha', 'DESC')

@@ -29,7 +29,10 @@ class TareaAsignadaRepository extends ServiceEntityRepository
         }
         
         return $this->createQueryBuilder('ta')
-            ->join('ta.tarea', 't')
+            ->leftJoin('ta.tarea', 't')
+            ->addSelect('t')
+            ->leftJoin('ta.usuario', 'u')
+            ->addSelect('u')
             ->where('ta.usuario = :usuario')
             ->andWhere('t.semanaAsignacion = :semana')
             ->setParameter('usuario', $usuario)
@@ -45,11 +48,14 @@ class TareaAsignadaRepository extends ServiceEntityRepository
     public function findPendientesByUsuario(User $usuario): array
     {
         return $this->createQueryBuilder('ta')
+            ->leftJoin('ta.tarea', 't')
+            ->addSelect('t')
+            ->leftJoin('ta.usuario', 'u')
+            ->addSelect('u')
             ->where('ta.usuario = :usuario')
             ->andWhere('ta.completada = :completada')
             ->setParameter('usuario', $usuario)
             ->setParameter('completada', false)
-            ->join('ta.tarea', 't')
             ->orderBy('t.semanaAsignacion', 'ASC')
             ->addOrderBy('t.fechaCreacion', 'ASC')
             ->getQuery()

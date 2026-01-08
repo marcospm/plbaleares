@@ -12,6 +12,12 @@ framework:
 
     #esi: true
     #fragments: true
+    
+    # Asset versioning para cache busting en despliegues
+    # Se genera automáticamente basado en APP_VERSION, GIT_COMMIT o timestamp
+    assets:
+        version_strategy: App\Service\AssetVersionStrategy
+        version_format: '%%s?v=%%s'
 
 when@test:
     framework:

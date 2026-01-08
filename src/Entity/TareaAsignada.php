@@ -7,6 +7,8 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: TareaAsignadaRepository::class)]
+#[ORM\Index(columns: ['usuario_id', 'completada'], name: 'idx_tarea_asignada_usuario_completada')]
+#[ORM\Index(columns: ['tarea_id'], name: 'idx_tarea_asignada_tarea')]
 class TareaAsignada
 {
     #[ORM\Id]

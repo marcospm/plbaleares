@@ -7,6 +7,9 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: NotificacionRepository::class)]
+#[ORM\Index(columns: ['alumno_id', 'leida'], name: 'idx_notificacion_alumno_leida')]
+#[ORM\Index(columns: ['profesor_id', 'leida'], name: 'idx_notificacion_profesor_leida')]
+#[ORM\Index(columns: ['fecha_creacion'], name: 'idx_notificacion_fecha_creacion')]
 class Notificacion
 {
     public const TIPO_EXAMEN = 'examen';

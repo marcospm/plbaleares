@@ -50,10 +50,18 @@ class DashboardController extends AbstractController
             $alumnosIds = [];
             
             if (!$esAdmin) {
-                // Si es profesor, obtener solo sus alumnos asignados
+                // Si es profesor, obtener solo sus alumnos asignados con eager loading
+                $userWithAlumnos = $userRepository->createQueryBuilder('u')
+                    ->leftJoin('u.alumnos', 'a')
+                    ->addSelect('a')
+                    ->where('u.id = :userId')
+                    ->setParameter('userId', $user->getId())
+                    ->getQuery()
+                    ->getOneOrNullResult();
+                
                 $alumnosIds = array_map(function($alumno) {
                     return $alumno->getId();
-                }, $user->getAlumnos()->toArray());
+                }, $userWithAlumnos ? $userWithAlumnos->getAlumnos()->toArray() : []);
                 
                 if (empty($alumnosIds)) {
                     // Si no tiene alumnos asignados, usar un ID que no existe para que no muestre nada
@@ -177,9 +185,10 @@ class DashboardController extends AbstractController
                 ->getQuery()
                 ->getSingleScalarResult();
 
-            // Últimos exámenes realizados
+            // Últimos exámenes realizados con eager loading de usuario
             $qbUltimosExamenes = $examenRepository->createQueryBuilder('e')
-                ->join('e.usuario', 'u')
+                ->leftJoin('e.usuario', 'u')
+                ->addSelect('u')
                 ->where('u.roles NOT LIKE :roleProfesor')
                 ->andWhere('u.roles NOT LIKE :roleAdmin')
                 ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
@@ -220,7 +229,8 @@ class DashboardController extends AbstractController
             // Obtener lista de alumnos asignados para mostrar en el dashboard
             $misAlumnos = [];
             if (!$esAdmin) {
-                $misAlumnos = $user->getAlumnos()->toArray();
+                // Usar el usuario con alumnos ya cargados
+                $misAlumnos = $userWithAlumnos ? $userWithAlumnos->getAlumnos()->toArray() : [];
             } else {
                 // Si es admin, obtener todos los alumnos
                 $misAlumnos = $userRepository->createQueryBuilder('u')
@@ -299,10 +309,18 @@ class DashboardController extends AbstractController
             }
         }
 
-        // Obtener convocatorias activas del usuario
-        $convocatorias = $user->getConvocatorias()->filter(function($convocatoria) {
+        // Obtener convocatorias activas del usuario con eager loading
+        $userWithConvocatorias = $userRepository->createQueryBuilder('u')
+            ->leftJoin('u.convocatorias', 'c')
+            ->addSelect('c')
+            ->where('u.id = :userId')
+            ->setParameter('userId', $user->getId())
+            ->getQuery()
+            ->getOneOrNullResult();
+        
+        $convocatorias = $userWithConvocatorias ? $userWithConvocatorias->getConvocatorias()->filter(function($convocatoria) {
             return $convocatoria->isActivo();
-        })->toArray();
+        })->toArray() : [];
 
         // Obtener cantidad de exámenes para el ranking (por defecto 3)
         $cantidadRanking = $request->query->getInt('cantidad', 3);

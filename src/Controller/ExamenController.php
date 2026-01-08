@@ -601,14 +601,22 @@ class ExamenController extends AbstractController
 
         // Calcular porcentajes por tema
         $porcentajesPorTema = [];
-        if (!$esMunicipal) {
+        if (!$esMunicipal && !empty($preguntasIds)) {
             // Obtener todos los temas seleccionados en la configuración del examen
             $temas = $this->temaRepository->findBy(['id' => $config['temas'] ?? []]);
             $preguntasPorTema = [];
             
+            // Cargar todas las preguntas de una vez con sus temas (evitar N+1)
+            $preguntas = $this->preguntaRepository->createQueryBuilder('p')
+                ->leftJoin('p.tema', 't')
+                ->addSelect('t')
+                ->where('p.id IN (:ids)')
+                ->setParameter('ids', $preguntasIds)
+                ->getQuery()
+                ->getResult();
+            
             // Contar preguntas por tema en el examen actual
-            foreach ($preguntasIds as $preguntaId) {
-                $preguntaTemp = $this->preguntaRepository->find($preguntaId);
+            foreach ($preguntas as $preguntaTemp) {
                 if ($preguntaTemp && $preguntaTemp->getTema()) {
                     $temaId = $preguntaTemp->getTema()->getId();
                     if (!isset($preguntasPorTema[$temaId])) {
