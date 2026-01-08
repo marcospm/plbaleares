@@ -15,29 +15,6 @@
 
             {{ form_start(registrationForm) }}
                 <div style="margin-bottom: 1.5rem;">
-                    <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">Datos de Acceso</h3>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                {{ form_row(registrationForm.username) }}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                {{ form_row(registrationForm.plainPassword.first) }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                {{ form_row(registrationForm.plainPassword.second) }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 1.5rem;">
                     <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">Información Personal</h3>
                     <div class="row">
                         <div class="col-md-6">
@@ -60,6 +37,32 @@
                     </div>
                 </div>
 
+                <div style="margin-bottom: 1.5rem;">
+                    <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">Datos de Acceso</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_row(registrationForm.username) }}
+                                <small class="form-text text-muted" style="font-size: 0.85rem; display: block; margin-top: 0.25rem;">
+                                    Se rellenará automáticamente con tu email, pero puedes cambiarlo si lo deseas.
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_row(registrationForm.plainPassword.first) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form_row(registrationForm.plainPassword.second) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="alert alert-info" style="margin-top: 1rem;">
                     <strong>Nota:</strong> Tu cuenta será revisada por un administrador antes de poder iniciar sesión. 
                     Recibirás una notificación cuando tu cuenta esté activa.
@@ -73,5 +76,74 @@
         </div>
     </div>
 </div>
+
+<script>
+(function() {
+    'use strict';
+    
+    // Esperar a que el DOM esté listo
+    document.addEventListener('DOMContentLoaded', function() {
+        const emailField = document.querySelector('input[type="email"]');
+        const usernameField = document.querySelector('input[name*="username"]');
+        
+        if (!emailField || !usernameField) {
+            console.warn('No se encontraron los campos de email o username');
+            return;
+        }
+        
+        // Flag para saber si el username fue rellenado automáticamente
+        let usernameAutoFilled = false;
+        
+        // Función para rellenar el username con el email
+        function fillUsernameFromEmail() {
+            const email = emailField.value.trim();
+            if (email && !usernameField.value.trim()) {
+                // Solo rellenar si el campo de username está vacío
+                usernameField.value = email;
+                usernameAutoFilled = true;
+            } else if (email && usernameAutoFilled) {
+                // Si el username fue rellenado automáticamente y el email cambia, actualizar el username
+                // pero solo si el usuario no lo ha modificado manualmente
+                const currentUsername = usernameField.value.trim();
+                const previousEmail = emailField.dataset.previousEmail || '';
+                
+                // Si el username actual coincide con el email anterior, actualizarlo
+                if (currentUsername === previousEmail) {
+                    usernameField.value = email;
+                }
+            }
+            
+            // Guardar el email actual para comparaciones futuras
+            emailField.dataset.previousEmail = email;
+        }
+        
+        // Detectar cuando el usuario modifica manualmente el username
+        usernameField.addEventListener('input', function() {
+            // Si el usuario empieza a escribir, marcar que ya no es automático
+            if (this.value.trim() !== emailField.value.trim()) {
+                usernameAutoFilled = false;
+            }
+        });
+        
+        // Detectar cuando el usuario hace clic en el campo username
+        usernameField.addEventListener('focus', function() {
+            // Si el campo tiene el mismo valor que el email, seleccionar todo para facilitar la edición
+            if (this.value === emailField.value.trim()) {
+                this.select();
+            }
+        });
+        
+        // Rellenar automáticamente cuando se escribe en el campo de email
+        emailField.addEventListener('input', fillUsernameFromEmail);
+        
+        // También rellenar cuando se pierde el foco del email (si el username está vacío)
+        emailField.addEventListener('blur', function() {
+            if (!usernameField.value.trim() && this.value.trim()) {
+                fillUsernameFromEmail();
+            }
+        });
+    });
+})();
+</script>
 {% endblock %}
 

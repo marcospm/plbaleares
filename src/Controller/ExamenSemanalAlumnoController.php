@@ -211,13 +211,28 @@ class ExamenSemanalAlumnoController extends AbstractController
             // Examen con preguntas específicas (creadas al vuelo)
             if ($esMunicipal || $esConvocatoria) {
                 $preguntas = $examenSemanal->getPreguntasMunicipales()->toArray();
+                // Filtrar solo preguntas activas
+                $preguntas = array_filter($preguntas, function($p) {
+                    return $p->isActivo();
+                });
             } else {
                 $preguntas = $examenSemanal->getPreguntas()->toArray();
+                // Filtrar solo preguntas activas
+                $preguntas = array_filter($preguntas, function($p) {
+                    return $p->isActivo();
+                });
             }
+            
+            // Reindexar el array después de filtrar
+            $preguntas = array_values($preguntas);
         } else {
             // Examen con preguntas por temas (método tradicional)
             if ($esMunicipal || $esConvocatoria) {
                 $temasMunicipales = $examenSemanal->getTemasMunicipales();
+                if ($temasMunicipales->isEmpty()) {
+                    $this->addFlash('error', 'Este examen semanal no tiene temas municipales asignados. Contacta con tu profesor.');
+                    return $this->redirectToRoute('app_examen_semanal_alumno_index');
+                }
                 foreach ($temasMunicipales as $temaMunicipal) {
                     $preguntasTema = $this->preguntaMunicipalRepository->findBy([
                         'temaMunicipal' => $temaMunicipal,
@@ -228,6 +243,10 @@ class ExamenSemanalAlumnoController extends AbstractController
                 }
             } else {
                 $temas = $examenSemanal->getTemas();
+                if ($temas->isEmpty()) {
+                    $this->addFlash('error', 'Este examen semanal no tiene temas asignados. Contacta con tu profesor.');
+                    return $this->redirectToRoute('app_examen_semanal_alumno_index');
+                }
                 foreach ($temas as $tema) {
                     $preguntasTema = $this->preguntaRepository->findBy([
                         'tema' => $tema,
@@ -240,7 +259,13 @@ class ExamenSemanalAlumnoController extends AbstractController
         }
 
         if (empty($preguntas)) {
-            $this->addFlash('error', 'No hay preguntas disponibles para este examen.');
+            $mensajeError = 'No hay preguntas disponibles para este examen.';
+            if ($examenSemanal->getModoCreacion() === 'preguntas_especificas') {
+                $mensajeError .= ' El examen no tiene preguntas específicas asignadas o todas están desactivadas.';
+            } else {
+                $mensajeError .= ' No hay preguntas activas para los temas y dificultad configurados en este examen.';
+            }
+            $this->addFlash('error', $mensajeError);
             return $this->redirectToRoute('app_examen_semanal_alumno_index');
         }
 
@@ -248,7 +273,7 @@ class ExamenSemanalAlumnoController extends AbstractController
         $numeroPreguntas = $examenSemanal->getNumeroPreguntas();
         if ($numeroPreguntas !== null && $numeroPreguntas > 0) {
             // Para exámenes generales (no municipales) con temas, usar distribución por porcentajes
-            if (!$esMunicipal && $examenSemanal->getModoCreacion() !== 'preguntas_especificas') {
+            if (!$esMunicipal && !$esConvocatoria && $examenSemanal->getModoCreacion() !== 'preguntas_especificas') {
                 $temas = $examenSemanal->getTemas()->toArray();
                 if (!empty($temas)) {
                     // Usar distribución por porcentajes para exámenes generales
@@ -259,7 +284,7 @@ class ExamenSemanalAlumnoController extends AbstractController
                     $preguntas = $this->seleccionarPreguntasSinRepetirArticulos($preguntas, $numeroPreguntas);
                 }
             } else {
-                // Para exámenes municipales o con preguntas específicas, usar selección aleatoria sin repetir artículos
+                // Para exámenes municipales, convocatorias o con preguntas específicas, usar selección aleatoria sin repetir artículos
                 shuffle($preguntas);
                 $preguntas = $this->seleccionarPreguntasSinRepetirArticulos($preguntas, $numeroPreguntas);
             }
@@ -273,6 +298,12 @@ class ExamenSemanalAlumnoController extends AbstractController
             // pero usar todas las preguntas disponibles
             shuffle($preguntas);
             $preguntas = $this->seleccionarPreguntasSinRepetirArticulos($preguntas, count($preguntas));
+        }
+        
+        // Verificar nuevamente que haya preguntas después de la selección
+        if (empty($preguntas)) {
+            $this->addFlash('error', 'No se pudieron seleccionar preguntas para este examen. Puede que todas las preguntas disponibles compartan el mismo artículo y no se puedan usar juntas.');
+            return $this->redirectToRoute('app_examen_semanal_alumno_index');
         }
 
         $preguntasIds = array_map(fn($p) => $p->getId(), $preguntas);

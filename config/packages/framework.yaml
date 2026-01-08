@@ -3,7 +3,22 @@ framework:
     secret: '%env(APP_SECRET)%'
 
     # Note that the session will be started ONLY if you read or write from it.
-    session: true
+    session:
+        enabled: true
+        # Tiempo de vida de la cookie de sesión (en segundos) - 8 horas
+        cookie_lifetime: 28800
+        # Tiempo máximo de vida de la sesión en el servidor (en segundos) - 8 horas
+        gc_maxlifetime: 28800
+        # Cookie segura (auto detecta HTTPS)
+        cookie_secure: auto
+        # Cookie HTTP only (protección XSS)
+        cookie_httponly: true
+        # SameSite cookie (protección CSRF)
+        cookie_samesite: lax
+        # Ruta de la cookie
+        cookie_path: /
+        # Actualizar metadatos de sesión cada 60 segundos (evita regeneración innecesaria)
+        metadata_update_threshold: 60
     
     # Configurar zona horaria
     default_locale: es
