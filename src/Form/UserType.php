@@ -7,6 +7,8 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
+use Symfony\Component\Form\Extension\Core\Type\PasswordType;
+use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -16,6 +18,8 @@ class UserType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $isNew = $options['is_new'] ?? false;
+
         $builder
             ->add('nombre', TextType::class, [
                 'label' => 'Nombre',
@@ -26,7 +30,41 @@ class UserType extends AbstractType
                 'label' => 'Nombre de Usuario (para login)',
                 'required' => true,
                 'attr' => ['class' => 'form-control', 'placeholder' => 'usuario123']
-            ])
+            ]);
+
+        // Solo agregar contraseña y roles si es un usuario nuevo
+        if ($isNew) {
+            $builder
+                ->add('plainPassword', RepeatedType::class, [
+                    'type' => PasswordType::class,
+                    'first_options' => [
+                        'label' => 'Contraseña',
+                        'attr' => ['class' => 'form-control']
+                    ],
+                    'second_options' => [
+                        'label' => 'Repetir Contraseña',
+                        'attr' => ['class' => 'form-control']
+                    ],
+                    'invalid_message' => 'Las contraseñas no coinciden.',
+                    'required' => true,
+                    'mapped' => false,
+                ])
+                ->add('roles', ChoiceType::class, [
+                    'label' => 'Roles',
+                    'choices' => [
+                        'Usuario (Alumno)' => 'ROLE_USER',
+                        'Profesor' => 'ROLE_PROFESOR',
+                        'Administrador' => 'ROLE_ADMIN',
+                    ],
+                    'multiple' => true,
+                    'expanded' => false,
+                    'required' => true,
+                    'attr' => ['class' => 'form-control'],
+                    'data' => ['ROLE_USER'], // Valor por defecto
+                ]);
+        }
+
+        $builder
             ->add('email', EmailType::class, [
                 'label' => 'Email',
                 'required' => false,
@@ -101,6 +139,7 @@ class UserType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => User::class,
+            'is_new' => false,
         ]);
     }
 }

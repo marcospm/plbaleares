@@ -9,6 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -22,27 +23,117 @@ class UserController extends AbstractController
         $search = $request->query->get('search', '');
         $activo = $request->query->get('activo', '');
 
-        $users = $userRepository->findAll();
+        // Parámetros de paginación
+        $itemsPerPage = 20; // Número de usuarios por página
+        $page = max(1, $request->query->getInt('page', 1));
+
+        // Obtener todos los usuarios
+        $allUsers = $userRepository->findAll();
 
         // Filtrar por búsqueda
         if (!empty($search)) {
-            $users = array_filter($users, function($user) use ($search) {
-                return stripos($user->getUsername(), $search) !== false;
+            $allUsers = array_filter($allUsers, function($user) use ($search) {
+                $usernameMatch = stripos($user->getUsername(), $search) !== false;
+                $nombreMatch = $user->getNombre() && stripos($user->getNombre(), $search) !== false;
+                return $usernameMatch || $nombreMatch;
             });
         }
 
         // Filtrar por estado activo
         if ($activo !== '') {
             $activoBool = $activo === '1';
-            $users = array_filter($users, function($user) use ($activoBool) {
+            $allUsers = array_filter($allUsers, function($user) use ($activoBool) {
                 return $user->isActivo() === $activoBool;
             });
         }
+
+        // Convertir a array indexado numéricamente
+        $allUsers = array_values($allUsers);
+
+        // Calcular paginación
+        $totalItems = count($allUsers);
+        $totalPages = max(1, ceil($totalItems / $itemsPerPage));
+        $page = min($page, $totalPages); // Asegurar que la página no exceda el total
+        
+        // Obtener los items de la página actual
+        $offset = ($page - 1) * $itemsPerPage;
+        $users = array_slice($allUsers, $offset, $itemsPerPage);
 
         return $this->render('user/index.html.twig', [
             'users' => $users,
             'search' => $search,
             'activoFiltro' => $activo,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'totalItems' => $totalItems,
+            'itemsPerPage' => $itemsPerPage,
+        ]);
+    }
+
+    #[Route('/new', name: 'app_user_new', methods: ['GET', 'POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function new(Request $request, EntityManagerInterface $entityManager, UserPasswordHasherInterface $passwordHasher): Response
+    {
+        $user = new User();
+        $form = $this->createForm(UserType::class, $user, ['is_new' => true]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            // Verificar si el nombre de usuario ya existe
+            $existingUser = $entityManager->getRepository(User::class)
+                ->findOneBy(['username' => $user->getUsername()]);
+
+            if ($existingUser) {
+                $this->addFlash('error', 'Este nombre de usuario ya está en uso. Por favor, elige otro.');
+                return $this->render('user/new.html.twig', [
+                    'user' => $user,
+                    'form' => $form,
+                ]);
+            }
+
+            // Verificar si el email ya existe (si se proporcionó)
+            if ($user->getEmail()) {
+                $existingUserByEmail = $entityManager->getRepository(User::class)
+                    ->findOneBy(['email' => $user->getEmail()]);
+
+                if ($existingUserByEmail) {
+                    $this->addFlash('error', 'Este email ya está registrado. Por favor, usa otro email.');
+                    return $this->render('user/new.html.twig', [
+                        'user' => $user,
+                        'form' => $form,
+                    ]);
+                }
+            }
+
+            // Encriptar la contraseña si se proporcionó
+            if ($form->get('plainPassword')->getData()) {
+                $hashedPassword = $passwordHasher->hashPassword(
+                    $user,
+                    $form->get('plainPassword')->getData()
+                );
+                $user->setPassword($hashedPassword);
+            }
+
+            // Asegurar que el usuario tenga al menos ROLE_USER
+            $roles = $user->getRoles();
+            if (empty($roles) || !in_array('ROLE_USER', $roles)) {
+                $roles[] = 'ROLE_USER';
+                $user->setRoles(array_unique($roles));
+            }
+
+            // El usuario se crea inactivo por defecto
+            $user->setActivo(false);
+
+            $entityManager->persist($user);
+            $entityManager->flush();
+
+            $this->addFlash('success', 'Usuario creado correctamente.');
+            return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('user/new.html.twig', [
+            'user' => $user,
+            'form' => $form,
         ]);
     }
 
