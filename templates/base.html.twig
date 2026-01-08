@@ -806,6 +806,9 @@
                 <div style="text-align: center;">
                     <p style="margin: 0; font-size: 1rem; font-weight: 500;">&copy; {{ 'now'|date('Y') }} BISPOL - Centre de Formació</p>
                     <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; opacity: 0.85;">Aula Virtual. Todos los derechos reservados.</p>
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.8rem; opacity: 0.75;">
+                        <a href="{{ path('app_cookie_politica') }}" style="color: rgba(255, 255, 255, 0.8); text-decoration: underline;">Política de Cookies</a>
+                    </p>
                 </div>
             </div>
         </footer>
@@ -992,5 +995,8 @@
             }
         </style>
         {% endif %}
+        
+        {# Banner de cookies #}
+        {% include 'cookie/banner.html.twig' %}
     </body>
 </html>

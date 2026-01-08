@@ -1,0 +1,158 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Política de Cookies - BISPOL{% endblock %}
+
+{% block body %}
+<div class="container" style="max-width: 900px; margin: 2rem auto; padding: 0 1rem;">
+    <div class="card">
+        <div class="card-header" style="background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color: white;">
+            <h1 style="margin: 0; font-size: 2rem;">Política de Cookies</h1>
+            <p style="margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 0.95rem;">
+                Última actualización: {{ 'now'|date('d/m/Y') }}
+            </p>
+        </div>
+        <div class="card-body" style="padding: 2rem;">
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">¿Qué son las cookies?</h2>
+                <p style="line-height: 1.8; color: var(--color-text);">
+                    Las cookies son pequeños archivos de texto que se almacenan en su dispositivo cuando visita un sitio web. 
+                    Estas cookies permiten que el sitio web recuerde sus acciones y preferencias durante un período de tiempo, 
+                    por lo que no tiene que volver a configurarlas cada vez que regresa al sitio o navega de una página a otra.
+                </p>
+            </section>
+
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">¿Cómo utilizamos las cookies?</h2>
+                <p style="line-height: 1.8; color: var(--color-text); margin-bottom: 1rem;">
+                    En BISPOL - Centre de Formació utilizamos cookies para:
+                </p>
+                <ul style="line-height: 1.8; color: var(--color-text); padding-left: 2rem;">
+                    <li>Garantizar el funcionamiento correcto del sitio web</li>
+                    <li>Recordar sus preferencias y configuraciones</li>
+                    <li>Mejorar la seguridad y prevenir fraudes</li>
+                    <li>Analizar cómo se utiliza nuestro sitio web para mejorarlo</li>
+                    <li>Personalizar su experiencia de usuario</li>
+                </ul>
+            </section>
+
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Tipos de cookies que utilizamos</h2>
+                
+                <div style="margin-bottom: 1.5rem; padding: 1.5rem; background: var(--color-bg); border-radius: 8px; border-left: 4px solid var(--color-primary);">
+                    <h3 style="color: var(--color-primary); margin-bottom: 0.75rem; font-size: 1.2rem;">
+                        🍪 Cookies Necesarias
+                    </h3>
+                    <p style="line-height: 1.8; color: var(--color-text); margin: 0;">
+                        Estas cookies son esenciales para el funcionamiento del sitio web. Incluyen cookies de sesión, 
+                        autenticación y seguridad. Sin estas cookies, el sitio web no puede funcionar correctamente. 
+                        Estas cookies no se pueden desactivar.
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 1.5rem; padding: 1.5rem; background: var(--color-bg); border-radius: 8px; border-left: 4px solid var(--color-secondary);">
+                    <h3 style="color: var(--color-secondary); margin-bottom: 0.75rem; font-size: 1.2rem;">
+                        ⚙️ Cookies de Funcionalidad
+                    </h3>
+                    <p style="line-height: 1.8; color: var(--color-text); margin: 0;">
+                        Estas cookies permiten que el sitio web recuerde sus preferencias y elecciones (como idioma, 
+                        región o configuración de accesibilidad) para proporcionar una experiencia más personalizada.
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 1.5rem; padding: 1.5rem; background: var(--color-bg); border-radius: 8px; border-left: 4px solid var(--color-info);">
+                    <h3 style="color: var(--color-info); margin-bottom: 0.75rem; font-size: 1.2rem;">
+                        📊 Cookies Analíticas
+                    </h3>
+                    <p style="line-height: 1.8; color: var(--color-text); margin: 0;">
+                        Estas cookies nos ayudan a entender cómo los visitantes interactúan con nuestro sitio web, 
+                        recopilando información de forma anónima. Esto nos permite mejorar el contenido y la funcionalidad 
+                        del sitio web.
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 1.5rem; padding: 1.5rem; background: var(--color-bg); border-radius: 8px; border-left: 4px solid var(--color-accent);">
+                    <h3 style="color: var(--color-accent); margin-bottom: 0.75rem; font-size: 1.2rem;">
+                        📢 Cookies de Marketing
+                    </h3>
+                    <p style="line-height: 1.8; color: var(--color-text); margin: 0;">
+                        Estas cookies se utilizan para mostrarle anuncios relevantes y medir la efectividad de nuestras 
+                        campañas publicitarias. Actualmente, BISPOL no utiliza cookies de marketing de terceros.
+                    </p>
+                </div>
+            </section>
+
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Gestionar sus preferencias de cookies</h2>
+                <p style="line-height: 1.8; color: var(--color-text); margin-bottom: 1rem;">
+                    Puede gestionar sus preferencias de cookies en cualquier momento haciendo clic en el botón de configuración 
+                    que aparece en el banner de cookies o utilizando la configuración de su navegador.
+                </p>
+                <div style="padding: 1rem; background: var(--color-bg); border-radius: 8px; margin-top: 1rem;">
+                    <p style="margin: 0; font-weight: 600; color: var(--color-primary); margin-bottom: 0.5rem;">
+                        ¿Desea cambiar sus preferencias de cookies ahora?
+                    </p>
+                    <button onclick="document.getElementById('cookie-settings').click(); window.location.href='{{ path('app_home') }}';" 
+                            class="btn" 
+                            style="background: var(--color-primary); color: white; padding: 0.6rem 1.5rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        Configurar Cookies
+                    </button>
+                </div>
+            </section>
+
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Cookies de terceros</h2>
+                <p style="line-height: 1.8; color: var(--color-text);">
+                    Actualmente, BISPOL no utiliza cookies de terceros. Todas las cookies utilizadas son propias y están 
+                    bajo nuestro control directo.
+                </p>
+            </section>
+
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Duración de las cookies</h2>
+                <p style="line-height: 1.8; color: var(--color-text);">
+                    Las cookies que utilizamos tienen diferentes duraciones:
+                </p>
+                <ul style="line-height: 1.8; color: var(--color-text); padding-left: 2rem; margin-top: 0.5rem;">
+                    <li><strong>Cookies de sesión:</strong> Se eliminan cuando cierra su navegador</li>
+                    <li><strong>Cookies persistentes:</strong> Permanecen en su dispositivo durante un máximo de 365 días</li>
+                </ul>
+            </section>
+
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Sus derechos</h2>
+                <p style="line-height: 1.8; color: var(--color-text); margin-bottom: 1rem;">
+                    De acuerdo con el Reglamento General de Protección de Datos (RGPD), usted tiene derecho a:
+                </p>
+                <ul style="line-height: 1.8; color: var(--color-text); padding-left: 2rem;">
+                    <li>Ser informado sobre el uso de cookies</li>
+                    <li>Dar o retirar su consentimiento para el uso de cookies</li>
+                    <li>Acceder a sus datos personales</li>
+                    <li>Solicitar la eliminación de sus datos personales</li>
+                </ul>
+            </section>
+
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Contacto</h2>
+                <p style="line-height: 1.8; color: var(--color-text);">
+                    Si tiene preguntas sobre nuestra política de cookies, puede contactarnos en:
+                </p>
+                <div style="padding: 1rem; background: var(--color-bg); border-radius: 8px; margin-top: 1rem;">
+                    <p style="margin: 0.5rem 0; color: var(--color-text);">
+                        <strong>Email:</strong> <a href="mailto:info@bispol.es" style="color: var(--color-primary);">info@bispol.es</a>
+                    </p>
+                    <p style="margin: 0.5rem 0; color: var(--color-text);">
+                        <strong>Teléfono:</strong> +34 620 17 62 59
+                    </p>
+                </div>
+            </section>
+
+            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--color-border); text-align: center;">
+                <a href="{{ path('app_home') }}" class="btn" style="background: var(--color-primary); color: white; padding: 0.75rem 2rem; text-decoration: none; border-radius: 6px; display: inline-block;">
+                    Volver al Inicio
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
