@@ -356,7 +356,7 @@
         {% endif %}
 
         <div class="d-flex gap-2 mt-4">
-            <a href="{{ path('app_articulo_publico_index', {'ley': leySeleccionada ?? 0, 'search': search ?? ''}) }}" class="btn btn-secondary">Volver a Artículos</a>
+            <a href="{{ path('app_articulo_publico_index', {'ley': leySeleccionada ?? 0, 'search': search ?? '', 'page': page ?? 1}) }}" class="btn btn-secondary">Volver a Artículos</a>
         </div>
     </div>
 </div>

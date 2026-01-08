@@ -21,6 +21,10 @@ class ArticuloPublicoController extends AbstractController
         $leyId = $request->query->getInt('ley');
         $search = $request->query->get('search', '');
 
+        // Parámetros de paginación
+        $itemsPerPage = 20; // Número de artículos por página
+        $page = max(1, $request->query->getInt('page', 1));
+
         // Solo leyes activas
         $leyes = array_filter($leyRepository->findAll(), function($ley) {
             return $ley->isActivo();
@@ -32,11 +36,27 @@ class ArticuloPublicoController extends AbstractController
             !empty($search) ? $search : null
         );
 
+        // Convertir a array indexado numéricamente
+        $articulos = array_values($articulos);
+
+        // Calcular paginación
+        $totalItems = count($articulos);
+        $totalPages = max(1, ceil($totalItems / $itemsPerPage));
+        $page = min($page, $totalPages); // Asegurar que la página no exceda el total
+        
+        // Obtener los items de la página actual
+        $offset = ($page - 1) * $itemsPerPage;
+        $articulosPaginated = array_slice($articulos, $offset, $itemsPerPage);
+
         return $this->render('articulo/publico_index.html.twig', [
-            'articulos' => $articulos,
+            'articulos' => $articulosPaginated,
             'leyes' => $leyes,
             'leySeleccionada' => $leyId,
             'search' => $search,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'totalItems' => $totalItems,
+            'itemsPerPage' => $itemsPerPage,
         ]);
     }
 
@@ -52,11 +72,13 @@ class ArticuloPublicoController extends AbstractController
         // Obtener parámetros de filtro de la query string para mantenerlos al volver
         $leyId = $request->query->getInt('ley');
         $search = $request->query->get('search', '');
+        $page = $request->query->getInt('page', 1);
 
         return $this->render('articulo/publico_show.html.twig', [
             'articulo' => $articulo,
             'leySeleccionada' => $leyId,
             'search' => $search,
+            'page' => $page,
         ]);
     }
 }

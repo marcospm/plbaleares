@@ -38,10 +38,10 @@ class ArticuloRepository extends ServiceEntityRepository
         }
 
         if ($search !== null && $search !== '') {
-            // Para búsqueda en número, convertir a CAST para buscar como texto
+            // Para búsqueda en número, usar CONCAT para convertir a texto
             $qb->andWhere(
                 $qb->expr()->orX(
-                    $qb->expr()->like('CAST(a.numero AS CHAR)', ':search'),
+                    $qb->expr()->like('CONCAT(a.numero, \'\')', ':search'),
                     $qb->expr()->like('COALESCE(a.sufijo, \'\')', ':search'),
                     $qb->expr()->like('a.nombre', ':search'),
                     $qb->expr()->like('a.explicacion', ':search'),
@@ -93,10 +93,10 @@ class ArticuloRepository extends ServiceEntityRepository
 
         // Filtro de búsqueda general (busca en número, sufijo, nombre, explicación y nombre de ley)
         if ($search !== null && $search !== '') {
-            // Para búsqueda en número, convertir a CAST para buscar como texto
+            // Para búsqueda en número, usar CONCAT para convertir a texto
             $qb->andWhere(
                 $qb->expr()->orX(
-                    $qb->expr()->like('CAST(a.numero AS CHAR)', ':search'),
+                    $qb->expr()->like('CONCAT(a.numero, \'\')', ':search'),
                     $qb->expr()->like('COALESCE(a.sufijo, \'\')', ':search'),
                     $qb->expr()->like('a.nombre', ':search'),
                     $qb->expr()->like('a.explicacion', ':search'),
