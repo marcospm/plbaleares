@@ -1,0 +1,219 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Adivina el Número del Artículo - Juegos - BISPOL{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .juego-container {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #feedback {
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .btn {
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .form-control:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 0.2rem rgba(26, 77, 122, 0.25);
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div style="max-width: 800px; margin: 2rem auto; padding: 0 1rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">🔢 Adivina el Número del Artículo</h1>
+        <p style="color: #666;">Lee la ley y el nombre del artículo. ¿Sabes cuál es su número?</p>
+    </div>
+
+    <div id="juego-container" class="juego-container">
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-body" style="padding: 2rem;">
+                <div id="info-articulo" style="margin-bottom: 2rem;">
+                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <h3 style="margin: 0 0 0.5rem 0; color: var(--color-primary);">Ley:</h3>
+                        <p id="ley-nombre" style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #333;"></p>
+                    </div>
+                    <div style="background: #fff3cd; padding: 1.5rem; border-radius: 8px;">
+                        <h3 style="margin: 0 0 0.5rem 0; color: var(--color-primary);">Nombre del artículo:</h3>
+                        <p id="nombre-articulo" style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #333;"></p>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label for="respuesta" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">Número del artículo (incluye sufijo si tiene, ej: "1", "2 bis", "3 ter"):</label>
+                    <input type="text" id="respuesta" class="form-control" placeholder="Ej: 1, 2 bis, 3 ter..." style="font-size: 1rem; padding: 0.75rem;">
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                    <button id="btn-verificar" class="btn btn-primary" style="flex: 1; padding: 0.75rem;">Verificar</button>
+                    <button id="btn-siguiente" class="btn btn-secondary" style="flex: 1; padding: 0.75rem; display: none;">Siguiente</button>
+                </div>
+
+                <div id="feedback" style="display: none; padding: 1rem; border-radius: 8px; margin-top: 1rem;"></div>
+            </div>
+        </div>
+
+       
+    </div>
+</div>
+
+<script>
+    /**
+     * Función para normalizar texto (eliminar acentos, convertir a minúsculas, etc.)
+     */
+    function normalizarTexto(texto) {
+        if (!texto) return '';
+        return texto.toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // Eliminar acentos
+            .trim();
+    }
+
+    let articulos = [];
+    let indiceActual = 0;
+    let articuloActual = null;
+    let aciertos = parseInt(sessionStorage.getItem('adivinaNumeroArticuloAciertos') || '0');
+    let errores = parseInt(sessionStorage.getItem('adivinaNumeroArticuloErrores') || '0');
+
+
+    function cargarArticulos() {
+        fetch('{{ path('app_juego_api_articulos_lote') }}')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error HTTP: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                if (!data || data.length === 0) {
+                    alert('No hay artículos disponibles');
+                    return;
+                }
+                
+                // Mezclar los artículos para asegurar variedad de leyes
+                articulos = data;
+                // Mezclar aleatoriamente el array
+                for (let i = articulos.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [articulos[i], articulos[j]] = [articulos[j], articulos[i]];
+                }
+                indiceActual = 0;
+                mostrarSiguienteArticulo();
+            })
+            .catch(error => {
+                console.error('Error al cargar artículos:', error);
+                alert('Error al cargar los artículos. Por favor, recarga la página e intenta de nuevo.');
+            });
+    }
+
+    function mostrarSiguienteArticulo() {
+        if (indiceActual >= articulos.length) {
+            // Si se acabaron los artículos, cargar más
+            cargarArticulos();
+            return;
+        }
+        
+        articuloActual = articulos[indiceActual];
+        indiceActual++;
+        
+        // Mostrar la ley
+        if (articuloActual.ley && articuloActual.ley.nombre) {
+            document.getElementById('ley-nombre').textContent = articuloActual.ley.nombre;
+        } else {
+            document.getElementById('ley-nombre').textContent = 'Ley no especificada';
+        }
+        
+        // Mostrar el nombre del artículo
+        document.getElementById('nombre-articulo').textContent = articuloActual.nombre || 'Sin nombre';
+        
+        document.getElementById('respuesta').value = '';
+        document.getElementById('respuesta').disabled = false;
+        document.getElementById('btn-verificar').style.display = 'block';
+        document.getElementById('btn-siguiente').style.display = 'none';
+        document.getElementById('feedback').style.display = 'none';
+        document.getElementById('respuesta').focus();
+    }
+
+    function verificarRespuesta() {
+        const respuesta = document.getElementById('respuesta').value.trim();
+        if (!respuesta) {
+            alert('Por favor, escribe una respuesta');
+            return;
+        }
+
+        // Comparar de forma flexible (sin acentos, minúsculas)
+        const respuestaNormalizada = normalizarTexto(respuesta);
+        const numeroCompletoNormalizado = normalizarTexto(articuloActual.numeroCompleto);
+        
+        // También comparar solo el número si no hay sufijo
+        const numeroNormalizado = normalizarTexto(articuloActual.numero.toString());
+        
+        const esCorrecta = respuestaNormalizada === numeroCompletoNormalizado || 
+                          respuestaNormalizada === numeroNormalizado;
+        
+        const feedback = document.getElementById('feedback');
+        feedback.style.display = 'block';
+        
+        // Mostrar siempre el mismo estilo, sin indicar si es correcto o incorrecto
+        feedback.style.backgroundColor = '#e9ecef';
+        feedback.style.borderLeft = '4px solid #6c757d';
+        feedback.style.color = '#212529';
+        feedback.innerHTML = '<strong>Número correcto:</strong> <strong>' + articuloActual.numeroCompleto + '</strong>';
+
+
+        document.getElementById('respuesta').disabled = true;
+        document.getElementById('btn-verificar').style.display = 'none';
+        document.getElementById('btn-siguiente').style.display = 'block';
+    }
+
+    document.getElementById('btn-verificar').addEventListener('click', verificarRespuesta);
+    document.getElementById('btn-siguiente').addEventListener('click', mostrarSiguienteArticulo);
+    document.getElementById('respuesta').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !document.getElementById('respuesta').disabled) {
+            verificarRespuesta();
+        }
+    });
+
+    // Cargar artículos al iniciar
+    cargarArticulos();
+</script>
+{% endblock %}
+

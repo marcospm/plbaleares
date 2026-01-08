@@ -56,5 +56,55 @@ class PreguntaRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    /**
+     * Obtiene 20 preguntas activas aleatorias con tema y ley cargados
+     * Mezcla preguntas de diferentes leyes
+     * @return Pregunta[]
+     */
+    public function findAleatoriasActivas(int $limit = 20): array
+    {
+        // Primero obtener solo los IDs de las preguntas activas con texto
+        // Esto es mucho más rápido que cargar todas las entidades
+        $ids = $this->createQueryBuilder('p')
+            ->select('p.id')
+            ->where('p.activo = :activo')
+            ->andWhere('p.texto IS NOT NULL')
+            ->andWhere('p.texto != :vacio')
+            ->setParameter('activo', true)
+            ->setParameter('vacio', '')
+            ->getQuery()
+            ->getResult();
+
+        if (empty($ids)) {
+            return [];
+        }
+
+        // Convertir a array simple de IDs
+        $idsArray = array_map(function($row) {
+            return $row['id'];
+        }, $ids);
+
+        // Mezclar los IDs para aleatoriedad
+        shuffle($idsArray);
+
+        // Tomar solo el número necesario de IDs
+        $idsSeleccionados = array_slice($idsArray, 0, min($limit, count($idsArray)));
+
+        if (empty($idsSeleccionados)) {
+            return [];
+        }
+
+        // Ahora cargar solo las preguntas seleccionadas con sus relaciones
+        return $this->createQueryBuilder('p')
+            ->innerJoin('p.tema', 't')
+            ->addSelect('t')
+            ->innerJoin('p.ley', 'l')
+            ->addSelect('l')
+            ->where('p.id IN (:ids)')
+            ->setParameter('ids', $idsSeleccionados)
+            ->getQuery()
+            ->getResult();
+    }
 }
 

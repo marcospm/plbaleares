@@ -109,5 +109,39 @@ class ArticuloRepository extends ServiceEntityRepository
         // Ordenar por número (ahora es numérico, el ordenBy ya está en la línea 80)
         return $qb->getQuery()->getResult();
     }
+
+    /**
+     * Obtiene 20 artículos activos aleatorios con nombre y ley cargada
+     * Mezcla artículos de diferentes leyes
+     * @return Articulo[]
+     */
+    public function findAleatoriosConNombre(int $limit = 20): array
+    {
+        // Obtener todos los artículos activos con nombre y ley cargada
+        $articulos = $this->createQueryBuilder('a')
+            ->innerJoin('a.ley', 'l')
+            ->addSelect('l')
+            ->where('a.activo = :activo')
+            ->andWhere('l.activo = :activo')
+            ->andWhere('a.nombre IS NOT NULL')
+            ->andWhere('a.nombre != :vacio')
+            ->setParameter('activo', true)
+            ->setParameter('vacio', '')
+            ->getQuery()
+            ->getResult();
+
+        if (empty($articulos)) {
+            return [];
+        }
+
+        // Mezclar los artículos para asegurar variedad de leyes
+        shuffle($articulos);
+
+        // Si hay menos artículos que el límite, usar todos
+        $limit = min($limit, count($articulos));
+
+        // Retornar solo el número solicitado
+        return array_slice($articulos, 0, $limit);
+    }
 }
 

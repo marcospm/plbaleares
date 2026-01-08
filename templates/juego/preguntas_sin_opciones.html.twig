@@ -130,12 +130,14 @@
         return false;
     }
 
+    let preguntas = [];
+    let indiceActual = 0;
     let preguntaActual = null;
     let aciertos = parseInt(sessionStorage.getItem('preguntasSinOpcionesAciertos') || '0');
     let errores = parseInt(sessionStorage.getItem('preguntasSinOpcionesErrores') || '0');
 
-    function cargarPregunta() {
-        fetch('{{ path('app_juego_api_pregunta_aleatoria') }}')
+    function cargarPreguntas() {
+        fetch('{{ path('app_juego_api_preguntas_lote') }}')
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Error HTTP: ' + response.status);
@@ -143,43 +145,65 @@
                 return response.json();
             })
             .then(data => {
-                console.log('Datos recibidos:', data); // Debug
-                
                 if (data.error) {
                     alert('Error: ' + data.error);
                     return;
                 }
                 
-                // Verificar que los datos necesarios estén presentes
-                if (!data.texto || data.texto.trim() === '') {
-                    console.error('El texto de la pregunta está vacío');
-                    alert('Error: La pregunta no tiene texto. Por favor, intenta de nuevo.');
+                if (!data || data.length === 0) {
+                    alert('No hay preguntas disponibles');
                     return;
                 }
                 
-                preguntaActual = data;
-                
-                // Mostrar la ley
-                if (data.ley && data.ley.nombre) {
-                    document.getElementById('ley-nombre').textContent = data.ley.nombre;
-                } else {
-                    document.getElementById('ley-nombre').textContent = 'Ley no especificada';
+                // Mezclar las preguntas para asegurar variedad de leyes
+                preguntas = data;
+                // Mezclar aleatoriamente el array
+                for (let i = preguntas.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [preguntas[i], preguntas[j]] = [preguntas[j], preguntas[i]];
                 }
-                
-                // Mostrar la pregunta
-                document.getElementById('pregunta-texto').textContent = data.texto;
-                
-                document.getElementById('respuesta').value = '';
-                document.getElementById('respuesta').disabled = false;
-                document.getElementById('btn-verificar').style.display = 'block';
-                document.getElementById('btn-siguiente').style.display = 'none';
-                document.getElementById('feedback').style.display = 'none';
-                document.getElementById('respuesta').focus();
+                indiceActual = 0;
+                mostrarSiguientePregunta();
             })
             .catch(error => {
-                console.error('Error al cargar pregunta:', error);
-                alert('Error al cargar la pregunta. Por favor, recarga la página e intenta de nuevo.');
+                console.error('Error al cargar preguntas:', error);
+                alert('Error al cargar las preguntas. Por favor, recarga la página e intenta de nuevo.');
             });
+    }
+
+    function mostrarSiguientePregunta() {
+        if (indiceActual >= preguntas.length) {
+            // Si se acabaron las preguntas, cargar más
+            cargarPreguntas();
+            return;
+        }
+        
+        preguntaActual = preguntas[indiceActual];
+        indiceActual++;
+        
+        // Verificar que los datos necesarios estén presentes
+        if (!preguntaActual.texto || preguntaActual.texto.trim() === '') {
+            // Si esta pregunta no tiene texto, pasar a la siguiente
+            mostrarSiguientePregunta();
+            return;
+        }
+        
+        // Mostrar la ley
+        if (preguntaActual.ley && preguntaActual.ley.nombre) {
+            document.getElementById('ley-nombre').textContent = preguntaActual.ley.nombre;
+        } else {
+            document.getElementById('ley-nombre').textContent = 'Ley no especificada';
+        }
+        
+        // Mostrar la pregunta
+        document.getElementById('pregunta-texto').textContent = preguntaActual.texto;
+        
+        document.getElementById('respuesta').value = '';
+        document.getElementById('respuesta').disabled = false;
+        document.getElementById('btn-verificar').style.display = 'block';
+        document.getElementById('btn-siguiente').style.display = 'none';
+        document.getElementById('feedback').style.display = 'none';
+        document.getElementById('respuesta').focus();
     }
 
     function verificarRespuesta() {
@@ -221,29 +245,79 @@
         const feedback = document.getElementById('feedback');
         feedback.style.display = 'block';
         
+        // Mostrar siempre el mismo estilo, sin indicar si es correcto o incorrecto
         feedback.style.backgroundColor = '#e9ecef';
-		feedback.style.borderLeft = '4px solid #6c757d';
-		feedback.style.color = '#212529';
+        feedback.style.borderLeft = '4px solid #6c757d';
+        feedback.style.color = '#212529';
+        feedback.innerHTML = '<strong>Respuesta correcta:</strong> <strong>' + preguntaActual.respuestaCorrecta + '</strong>';
 
-		feedback.innerHTML =
-			'<strong>Respuesta correcta:</strong> <strong>' +
-			preguntaActual.respuestaCorrecta;
+        // Actualizar contadores solo internamente, sin mostrar en el feedback
+        if (esCorrecta) {
+            aciertos++;
+            sessionStorage.setItem('preguntasSinOpcionesAciertos', aciertos.toString());
+            const contadorAciertos = document.getElementById('contador-aciertos');
+            if (contadorAciertos) {
+                contadorAciertos.textContent = aciertos;
+            }
+        } else {
+            errores++;
+            sessionStorage.setItem('preguntasSinOpcionesErrores', errores.toString());
+            const contadorErrores = document.getElementById('contador-errores');
+            if (contadorErrores) {
+                contadorErrores.textContent = errores;
+            }
+        }
 
-
-        document.getElementById('respuesta').disabled = true;
-        document.getElementById('btn-verificar').style.display = 'none';
-        document.getElementById('btn-siguiente').style.display = 'block';
+        // Ocultar botón verificar y mostrar botón siguiente
+        const btnVerificar = document.getElementById('btn-verificar');
+        const btnSiguiente = document.getElementById('btn-siguiente');
+        const respuestaInput = document.getElementById('respuesta');
+        
+        if (respuestaInput) respuestaInput.disabled = true;
+        if (btnVerificar) btnVerificar.style.display = 'none';
+        if (btnSiguiente) btnSiguiente.style.display = 'block';
     }
 
-    document.getElementById('btn-verificar').addEventListener('click', verificarRespuesta);
-    document.getElementById('btn-siguiente').addEventListener('click', cargarPregunta);
-    document.getElementById('respuesta').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter' && !document.getElementById('respuesta').disabled) {
-            verificarRespuesta();
+    function inicializarEventListeners() {
+        const btnVerificar = document.getElementById('btn-verificar');
+        const btnSiguiente = document.getElementById('btn-siguiente');
+        const respuestaInput = document.getElementById('respuesta');
+        
+        if (btnVerificar) {
+            // Remover listener anterior si existe
+            btnVerificar.replaceWith(btnVerificar.cloneNode(true));
+            document.getElementById('btn-verificar').addEventListener('click', verificarRespuesta);
         }
-    });
+        
+        if (btnSiguiente) {
+            // Remover listener anterior si existe
+            btnSiguiente.replaceWith(btnSiguiente.cloneNode(true));
+            document.getElementById('btn-siguiente').addEventListener('click', mostrarSiguientePregunta);
+        }
+        
+        if (respuestaInput) {
+            respuestaInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !respuestaInput.disabled) {
+                    verificarRespuesta();
+                }
+            });
+        }
+    }
 
-    // Cargar primera pregunta al iniciar
-    cargarPregunta();
+    // Inicializar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            inicializarEventListeners();
+            cargarPreguntas();
+        });
+    } else {
+        inicializarEventListeners();
+        cargarPreguntas();
+    }
+
+    // Reinicializar en navegaciones de Turbo
+    document.addEventListener('turbo:load', function() {
+        inicializarEventListeners();
+    });
 </script>
 {% endblock %}

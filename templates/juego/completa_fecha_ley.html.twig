@@ -1,0 +1,341 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Completa la Fecha de la Ley - Juegos - BISPOL{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .juego-container {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #feedback {
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .btn {
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .form-control:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 0.2rem rgba(26, 77, 122, 0.25);
+        }
+
+        .campos-fecha {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .campo-fecha {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .campo-fecha label {
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .campo-fecha input {
+            font-size: 1rem;
+            padding: 0.75rem;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div style="max-width: 800px; margin: 2rem auto; padding: 0 1rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">📅 Completa la Fecha de la Ley</h1>
+        <p style="color: #666;">Completa los campos vacíos de la ley. Formato: número/número, de día de mes</p>
+    </div>
+
+    <div id="juego-container" class="juego-container">
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-body" style="padding: 2rem;">
+                <div id="info-ley" style="margin-bottom: 2rem;">
+                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px;">
+                        <h3 style="margin: 0 0 1rem 0; color: var(--color-primary);">Ley:</h3>
+                        <p id="ley-texto" style="margin: 0; line-height: 1.8; color: #333; font-size: 1.2rem; font-weight: 600;"></p>
+                    </div>
+                </div>
+
+                <div class="campos-fecha">
+                    <div class="campo-fecha">
+                        <label for="numero1">Primer número:</label>
+                        <input type="text" id="numero1" class="form-control" placeholder="Ej: 20" style="text-align: center;">
+                    </div>
+                    <div class="campo-fecha">
+                        <label for="numero2">Año:</label>
+                        <input type="text" id="numero2" class="form-control" placeholder="Ej: 2006" style="text-align: center;">
+                    </div>
+                    <div class="campo-fecha">
+                        <label for="dia">Día:</label>
+                        <input type="text" id="dia" class="form-control" placeholder="Ej: 15" style="text-align: center;">
+                    </div>
+                    <div class="campo-fecha">
+                        <label for="mes">Mes:</label>
+                        <input type="text" id="mes" class="form-control" placeholder="Ej: diciembre" style="text-align: center;">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                    <button id="btn-verificar" class="btn btn-primary" style="flex: 1; padding: 0.75rem;">Verificar</button>
+                    <button id="btn-siguiente" class="btn btn-secondary" style="flex: 1; padding: 0.75rem; display: none;">Siguiente</button>
+                </div>
+
+                <div id="feedback" style="display: none; padding: 1rem; border-radius: 8px; margin-top: 1rem;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /**
+     * Función para normalizar texto (eliminar acentos, convertir a minúsculas, etc.)
+     */
+    function normalizarTexto(texto) {
+        if (!texto) return '';
+        return texto.toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // Eliminar acentos
+            .trim();
+    }
+
+    /**
+     * Compara dos textos de forma flexible
+     */
+    function compararTextoFlexible(texto1, texto2) {
+        const t1 = normalizarTexto(texto1);
+        const t2 = normalizarTexto(texto2);
+        
+        // Coincidencia exacta
+        if (t1 === t2) return true;
+        
+        // Si uno contiene al otro (con al menos 2 caracteres)
+        if (t1.length >= 2 && t2.length >= 2) {
+            if (t1.includes(t2) || t2.includes(t1)) return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Compara números de forma flexible
+     */
+    function compararNumero(num1, num2) {
+        const n1 = parseInt(num1) || 0;
+        const n2 = parseInt(num2) || 0;
+        return n1 === n2;
+    }
+
+    let leyes = [];
+    let indiceActual = 0;
+    let leyActual = null;
+
+    function cargarLeyes() {
+        fetch('{{ path('app_juego_api_leyes_con_fecha') }}')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error HTTP: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                if (!data || data.length === 0) {
+                    alert('No hay leyes disponibles');
+                    return;
+                }
+                
+                leyes = data;
+                indiceActual = 0;
+                mostrarSiguienteLey();
+            })
+            .catch(error => {
+                console.error('Error al cargar leyes:', error);
+                alert('Error al cargar las leyes. Por favor, recarga la página e intenta de nuevo.');
+            });
+    }
+
+    function mostrarSiguienteLey() {
+        if (indiceActual >= leyes.length) {
+            // Si se acabaron, volver al inicio
+            indiceActual = 0;
+        }
+        
+        leyActual = leyes[indiceActual];
+        indiceActual++;
+        
+        // Obtener el nombre completo de la ley
+        let textoLey = leyActual.nombre;
+        
+        // Función para escapar caracteres especiales de regex
+        function escapeRegex(str) {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+        
+        // Crear el patrón completo de la fecha para reemplazarlo de una vez
+        // Patrón: número1/número2, de día de mes (con espacios flexibles)
+        const numero1Escapado = escapeRegex(leyActual.numero1);
+        const numero2Escapado = escapeRegex(leyActual.numero2);
+        const diaEscapado = escapeRegex(leyActual.dia);
+        const mesEscapado = escapeRegex(leyActual.mes);
+        
+        // Patrón que permite variaciones en espacios
+        const patronCompleto = new RegExp(
+            numero1Escapado + '\\/' + numero2Escapado + ',\\s*de\\s+' + diaEscapado + '\\s+de\\s+' + mesEscapado,
+            'gi'
+        );
+        
+        // Reemplazar el patrón completo con los campos vacíos
+        const reemplazo = '<span style="background: #fff3cd; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: bold;">___</span>/<span style="background: #fff3cd; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: bold;">___</span>, de <span style="background: #fff3cd; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: bold;">___</span> de <span style="background: #fff3cd; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: bold;">___</span>';
+        
+        textoLey = textoLey.replace(patronCompleto, reemplazo);
+        
+        document.getElementById('ley-texto').innerHTML = textoLey;
+        
+        // Limpiar campos
+        document.getElementById('numero1').value = '';
+        document.getElementById('numero2').value = '';
+        document.getElementById('dia').value = '';
+        document.getElementById('mes').value = '';
+        
+        // Habilitar campos
+        document.getElementById('numero1').disabled = false;
+        document.getElementById('numero2').disabled = false;
+        document.getElementById('dia').disabled = false;
+        document.getElementById('mes').disabled = false;
+        
+        // Mostrar botón verificar y ocultar siguiente
+        document.getElementById('btn-verificar').style.display = 'block';
+        document.getElementById('btn-siguiente').style.display = 'none';
+        document.getElementById('feedback').style.display = 'none';
+        
+        // Enfocar primer campo
+        document.getElementById('numero1').focus();
+    }
+
+    function verificarRespuesta() {
+        const numero1 = document.getElementById('numero1').value.trim();
+        const numero2 = document.getElementById('numero2').value.trim();
+        const dia = document.getElementById('dia').value.trim();
+        const mes = document.getElementById('mes').value.trim();
+        
+        if (!numero1 || !numero2 || !dia || !mes) {
+            alert('Por favor, completa todos los campos');
+            return;
+        }
+
+        // Verificar cada campo
+        const numero1Correcto = compararNumero(numero1, leyActual.numero1);
+        const numero2Correcto = compararNumero(numero2, leyActual.numero2);
+        const diaCorrecto = compararNumero(dia, leyActual.dia);
+        const mesCorrecto = compararTextoFlexible(mes, leyActual.mes);
+
+        // Construir la respuesta correcta
+        const respuestaCorrecta = `Ley ${leyActual.numero1}/${leyActual.numero2}, de ${leyActual.dia} de ${leyActual.mes}`;
+
+        const feedback = document.getElementById('feedback');
+        feedback.style.display = 'block';
+        feedback.style.backgroundColor = '#e9ecef';
+        feedback.style.borderLeft = '4px solid #6c757d';
+        feedback.style.color = '#212529';
+        feedback.innerHTML = '<strong>Respuesta correcta:</strong> <strong>' + respuestaCorrecta + '</strong>';
+
+        // Deshabilitar campos
+        document.getElementById('numero1').disabled = true;
+        document.getElementById('numero2').disabled = true;
+        document.getElementById('dia').disabled = true;
+        document.getElementById('mes').disabled = true;
+
+        // Ocultar botón verificar y mostrar siguiente
+        const btnVerificar = document.getElementById('btn-verificar');
+        const btnSiguiente = document.getElementById('btn-siguiente');
+        
+        if (btnVerificar) btnVerificar.style.display = 'none';
+        if (btnSiguiente) btnSiguiente.style.display = 'block';
+    }
+
+    function inicializarEventListeners() {
+        const btnVerificar = document.getElementById('btn-verificar');
+        const btnSiguiente = document.getElementById('btn-siguiente');
+        const inputs = ['numero1', 'numero2', 'dia', 'mes'];
+        
+        if (btnVerificar) {
+            btnVerificar.replaceWith(btnVerificar.cloneNode(true));
+            document.getElementById('btn-verificar').addEventListener('click', verificarRespuesta);
+        }
+        
+        if (btnSiguiente) {
+            btnSiguiente.replaceWith(btnSiguiente.cloneNode(true));
+            document.getElementById('btn-siguiente').addEventListener('click', mostrarSiguienteLey);
+        }
+        
+        // Permitir Enter para verificar
+        inputs.forEach(inputId => {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter' && !input.disabled) {
+                        e.preventDefault();
+                        verificarRespuesta();
+                    }
+                });
+            }
+        });
+    }
+
+    // Inicializar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            inicializarEventListeners();
+            cargarLeyes();
+        });
+    } else {
+        inicializarEventListeners();
+        cargarLeyes();
+    }
+
+    // Reinicializar en navegaciones de Turbo
+    document.addEventListener('turbo:load', function() {
+        inicializarEventListeners();
+    });
+</script>
+{% endblock %}
+
