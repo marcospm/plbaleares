@@ -1,0 +1,418 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Completa el Texto Legal - Juegos - BISPOL{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .juego-container {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #feedback {
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .btn {
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .form-control:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 0.2rem rgba(26, 77, 122, 0.25);
+        }
+
+        .campo-palabra {
+            display: inline-block;
+            margin: 0.25rem;
+        }
+
+        .campo-palabra input {
+            min-width: 120px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .texto-legal-container {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--color-primary);
+            line-height: 1.8;
+            font-size: 1.05rem;
+        }
+
+        .palabra-oculta {
+            background: #fff3cd;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            border: 2px dashed #ffc107;
+            display: inline-block;
+            margin: 0.1rem;
+            min-width: 100px;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div style="max-width: 1000px; margin: 2rem auto; padding: 0 1rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">⚖️ Completa el Texto Legal</h1>
+        <p style="color: #666;">Lee la ley, el artículo y completa las palabras faltantes en el texto legal.</p>
+    </div>
+
+    <div id="juego-container" class="juego-container">
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-body" style="padding: 2rem;">
+                <div id="info-articulo" style="margin-bottom: 2rem;">
+                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <h3 style="margin: 0 0 0.5rem 0; color: var(--color-primary);">Ley:</h3>
+                        <p id="ley-nombre" style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #333;"></p>
+                    </div>
+                    <div style="background: #e3f2fd; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <h3 style="margin: 0 0 0.5rem 0; color: var(--color-primary);">Artículo:</h3>
+                        <p id="articulo-numero" style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #333;"></p>
+                        <p id="articulo-nombre" style="margin: 0.5rem 0 0 0; font-size: 1rem; color: #666;"></p>
+                    </div>
+                    <div class="texto-legal-container" id="texto-legal-container">
+                        <h3 style="margin: 0 0 1rem 0; color: var(--color-primary);">Texto Legal:</h3>
+                        <div id="texto-legal" style="margin: 0;"></div>
+                    </div>
+                </div>
+
+                <div id="campos-palabras" style="margin-bottom: 1.5rem;"></div>
+
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                    <button id="btn-verificar" class="btn btn-primary" style="flex: 1; padding: 0.75rem;">Verificar</button>
+                    <button id="btn-siguiente" class="btn btn-secondary" style="flex: 1; padding: 0.75rem; display: none;">Siguiente</button>
+                </div>
+
+                <div id="feedback" style="display: none; padding: 1rem; border-radius: 8px; margin-top: 1rem;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /**
+     * Función para normalizar texto (eliminar acentos, convertir a minúsculas, etc.)
+     */
+    function normalizarTexto(texto) {
+        if (!texto) return '';
+        return texto.toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // Eliminar acentos
+            .trim();
+    }
+
+    /**
+     * Compara dos textos de forma flexible
+     */
+    function compararTextoFlexible(texto1, texto2) {
+        const t1 = normalizarTexto(texto1);
+        const t2 = normalizarTexto(texto2);
+        
+        // Coincidencia exacta
+        if (t1 === t2) return true;
+        
+        // Si uno contiene al otro (con al menos 3 caracteres)
+        if (t1.length >= 3 && t2.length >= 3) {
+            if (t1.includes(t2) || t2.includes(t1)) return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Extrae palabras del HTML, respetando los tags
+     */
+    function extraerPalabrasDelHTML(html) {
+        // Crear un elemento temporal para parsear el HTML
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        
+        // Obtener el texto completo sin tags
+        const textoCompleto = temp.textContent || temp.innerText || '';
+        
+        // Dividir en palabras (eliminar espacios múltiples y caracteres especiales al inicio/final)
+        const palabras = textoCompleto.split(/\s+/).filter(p => p.length > 0 && /[a-zA-ZÁÉÍÓÚáéíóúÑñ]/.test(p));
+        
+        // Filtrar palabras muy cortas (menos de 3 caracteres) y muy comunes
+        const palabrasComunes = ['el', 'la', 'los', 'las', 'de', 'del', 'en', 'y', 'a', 'un', 'una', 'unos', 'unas', 'que', 'por', 'para', 'con', 'sin', 'sobre', 'entre'];
+        const palabrasFiltradas = palabras.filter(p => p.length >= 3 && !palabrasComunes.includes(p.toLowerCase()));
+        
+        return palabrasFiltradas;
+    }
+
+    /**
+     * Reemplaza palabras en el HTML manteniendo la estructura
+     */
+    function ocultarPalabrasEnHTML(html, palabrasAOcultar) {
+        let htmlResultado = html;
+        
+        // Ordenar palabras por longitud (más largas primero) para evitar reemplazos parciales
+        palabrasAOcultar.sort((a, b) => b.length - a.length);
+        
+        palabrasAOcultar.forEach((palabra, index) => {
+            // Crear regex que busca la palabra como palabra completa (respetando mayúsculas/minúsculas)
+            const regex = new RegExp(`\\b${palabra.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+            const reemplazo = `<span class="palabra-oculta" data-palabra-index="${index}" data-palabra-original="${palabra.replace(/"/g, '&quot;')}">___</span>`;
+            htmlResultado = htmlResultado.replace(regex, reemplazo);
+        });
+        
+        return htmlResultado;
+    }
+
+    let articulos = [];
+    let indiceActual = 0;
+    let articuloActual = null;
+    let palabrasOcultas = [];
+    let palabrasOriginales = [];
+
+    function cargarArticulos() {
+        fetch('{{ path('app_juego_api_articulos_texto_legal_lote') }}')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error HTTP: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                if (!data || data.length === 0) {
+                    alert('No hay artículos disponibles');
+                    return;
+                }
+                
+                articulos = data;
+                indiceActual = 0;
+                mostrarSiguienteArticulo();
+            })
+            .catch(error => {
+                console.error('Error al cargar artículos:', error);
+                alert('Error al cargar los artículos. Por favor, recarga la página e intenta de nuevo.');
+            });
+    }
+
+    function mostrarSiguienteArticulo() {
+        if (indiceActual >= articulos.length || articulos.length === 0) {
+            // Si se acabaron, volver al inicio
+            indiceActual = 0;
+        }
+        
+        if (articulos.length === 0) {
+            alert('No hay artículos disponibles');
+            return;
+        }
+        
+        articuloActual = articulos[indiceActual];
+        indiceActual++;
+        
+        // Mostrar la ley
+        document.getElementById('ley-nombre').textContent = articuloActual.ley.nombre;
+        
+        // Mostrar el artículo
+        document.getElementById('articulo-numero').textContent = 'Artículo ' + articuloActual.numeroCompleto;
+        if (articuloActual.nombre) {
+            document.getElementById('articulo-nombre').textContent = articuloActual.nombre;
+            document.getElementById('articulo-nombre').style.display = 'block';
+        } else {
+            document.getElementById('articulo-nombre').style.display = 'none';
+        }
+        
+        // Procesar el texto legal
+        const textoLegalHTML = articuloActual.textoLegal || '';
+        
+        if (!textoLegalHTML || textoLegalHTML.trim() === '') {
+            // Si no hay texto legal, pasar al siguiente
+            mostrarSiguienteArticulo();
+            return;
+        }
+        
+        const palabras = extraerPalabrasDelHTML(textoLegalHTML);
+        
+        if (palabras.length < 1) {
+            // Si no hay palabras, pasar al siguiente
+            mostrarSiguienteArticulo();
+            return;
+        }
+        
+        // Seleccionar entre 1 y 5 palabras aleatoriamente (o menos si no hay suficientes)
+        const numPalabrasAOcultar = Math.min(Math.max(1, Math.floor(Math.random() * 5) + 1), palabras.length);
+        
+        // Seleccionar palabras aleatoriamente sin repetición
+        const indicesSeleccionados = [];
+        const palabrasDisponibles = [...palabras.keys()]; // Crear array de índices disponibles
+        
+        while (indicesSeleccionados.length < numPalabrasAOcultar && palabrasDisponibles.length > 0) {
+            const indiceAleatorio = Math.floor(Math.random() * palabrasDisponibles.length);
+            const indiceSeleccionado = palabrasDisponibles[indiceAleatorio];
+            indicesSeleccionados.push(indiceSeleccionado);
+            palabrasDisponibles.splice(indiceAleatorio, 1); // Eliminar el índice seleccionado
+        }
+        
+        palabrasOcultas = indicesSeleccionados.map(i => palabras[i]);
+        palabrasOriginales = [...palabrasOcultas];
+        
+        // Ocultar palabras en el HTML
+        const htmlConOcultas = ocultarPalabrasEnHTML(textoLegalHTML, palabrasOcultas);
+        document.getElementById('texto-legal').innerHTML = htmlConOcultas;
+        
+        // Crear campos de entrada para cada palabra oculta
+        const camposContainer = document.getElementById('campos-palabras');
+        camposContainer.innerHTML = '';
+        
+        palabrasOcultas.forEach((palabra, index) => {
+            const campoDiv = document.createElement('div');
+            campoDiv.className = 'campo-palabra';
+            campoDiv.innerHTML = `
+                <label style="display: block; margin-bottom: 0.25rem; font-weight: 600; color: #333;">
+                    Palabra ${index + 1}:
+                </label>
+                <input type="text" 
+                       class="form-control campo-palabra-input" 
+                       data-palabra-index="${index}"
+                       placeholder="Escribe la palabra..."
+                       style="font-size: 1rem; padding: 0.75rem;">
+            `;
+            camposContainer.appendChild(campoDiv);
+        });
+        
+        // Limpiar feedback
+        document.getElementById('feedback').style.display = 'none';
+        
+        // Mostrar botón verificar y ocultar siguiente
+        document.getElementById('btn-verificar').style.display = 'block';
+        document.getElementById('btn-siguiente').style.display = 'none';
+        
+        // Habilitar campos
+        document.querySelectorAll('.campo-palabra-input').forEach(input => {
+            input.disabled = false;
+            input.value = '';
+        });
+        
+        // Enfocar primer campo
+        const primerCampo = document.querySelector('.campo-palabra-input');
+        if (primerCampo) {
+            primerCampo.focus();
+        }
+    }
+
+    function verificarRespuesta() {
+        const campos = document.querySelectorAll('.campo-palabra-input');
+        const respuestas = [];
+        
+        campos.forEach((campo, index) => {
+            respuestas[index] = campo.value.trim();
+        });
+        
+        // Construir el feedback con las palabras correctas
+        let feedbackHTML = '<strong>Palabras correctas:</strong><br><br>';
+        palabrasOriginales.forEach((palabra, index) => {
+            feedbackHTML += `<strong>Palabra ${index + 1}:</strong> ${palabra}<br>`;
+        });
+        
+        const feedback = document.getElementById('feedback');
+        feedback.style.display = 'block';
+        feedback.style.backgroundColor = '#e9ecef';
+        feedback.style.borderLeft = '4px solid #6c757d';
+        feedback.style.color = '#212529';
+        feedback.innerHTML = feedbackHTML;
+
+        // Deshabilitar campos
+        campos.forEach(campo => {
+            campo.disabled = true;
+        });
+
+        // Reemplazar los campos ocultos en el HTML con las palabras correctas
+        palabrasOriginales.forEach((palabra, index) => {
+            const spans = document.querySelectorAll(`.palabra-oculta[data-palabra-index="${index}"]`);
+            spans.forEach(span => {
+                span.innerHTML = `<strong style="color: #28a745;">${palabra}</strong>`;
+                span.style.background = '#d4edda';
+                span.style.borderColor = '#28a745';
+            });
+        });
+
+        // Ocultar botón verificar y mostrar siguiente
+        document.getElementById('btn-verificar').style.display = 'none';
+        document.getElementById('btn-siguiente').style.display = 'block';
+    }
+
+    function inicializarEventListeners() {
+        const btnVerificar = document.getElementById('btn-verificar');
+        const btnSiguiente = document.getElementById('btn-siguiente');
+        
+        if (btnVerificar) {
+            btnVerificar.replaceWith(btnVerificar.cloneNode(true));
+            document.getElementById('btn-verificar').addEventListener('click', verificarRespuesta);
+        }
+        
+        if (btnSiguiente) {
+            btnSiguiente.replaceWith(btnSiguiente.cloneNode(true));
+            document.getElementById('btn-siguiente').addEventListener('click', mostrarSiguienteArticulo);
+        }
+        
+        // Permitir Enter para verificar
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.target.classList.contains('campo-palabra-input')) {
+                const campos = document.querySelectorAll('.campo-palabra-input');
+                const todosCompletos = Array.from(campos).every(c => c.value.trim() !== '');
+                if (todosCompletos && !campos[0].disabled) {
+                    e.preventDefault();
+                    verificarRespuesta();
+                }
+            }
+        });
+    }
+
+    // Inicializar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            inicializarEventListeners();
+            cargarArticulos();
+        });
+    } else {
+        inicializarEventListeners();
+        cargarArticulos();
+    }
+
+    // Reinicializar en navegaciones de Turbo
+    document.addEventListener('turbo:load', function() {
+        inicializarEventListeners();
+    });
+</script>
+{% endblock %}
+
+

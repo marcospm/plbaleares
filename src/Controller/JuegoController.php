@@ -36,6 +36,12 @@ class JuegoController extends AbstractController
         return $this->render('juego/completa_fecha_ley.html.twig');
     }
 
+    #[Route('/juegos/completa-texto-legal', name: 'app_juego_completa_texto_legal')]
+    public function completaTextoLegal(): Response
+    {
+        return $this->render('juego/completa_texto_legal.html.twig');
+    }
+
     #[Route('/api/juegos/pregunta-aleatoria', name: 'app_juego_api_pregunta_aleatoria')]
     public function getPreguntaAleatoria(PreguntaRepository $preguntaRepository): JsonResponse
     {
@@ -208,6 +214,34 @@ class JuegoController extends AbstractController
 
         // Mezclar aleatoriamente
         shuffle($resultado);
+
+        return new JsonResponse($resultado);
+    }
+
+    #[Route('/api/juegos/articulos-texto-legal-lote', name: 'app_juego_api_articulos_texto_legal_lote')]
+    public function getArticulosTextoLegalLote(ArticuloRepository $articuloRepository): JsonResponse
+    {
+        $articulos = $articuloRepository->findAleatoriosConTextoLegal(20);
+        
+        if (empty($articulos)) {
+            return new JsonResponse(['error' => 'No hay artículos con texto legal disponibles'], 404);
+        }
+
+        $resultado = [];
+        foreach ($articulos as $articulo) {
+            $resultado[] = [
+                'id' => $articulo->getId(),
+                'numero' => $articulo->getNumero(),
+                'sufijo' => $articulo->getSufijo(),
+                'numeroCompleto' => $articulo->getNumeroCompleto(),
+                'nombre' => $articulo->getNombre(),
+                'textoLegal' => $articulo->getTextoLegal(),
+                'ley' => [
+                    'id' => $articulo->getLey()->getId(),
+                    'nombre' => $articulo->getLey()->getNombre(),
+                ],
+            ];
+        }
 
         return new JsonResponse($resultado);
     }

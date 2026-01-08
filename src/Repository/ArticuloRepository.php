@@ -143,5 +143,53 @@ class ArticuloRepository extends ServiceEntityRepository
         // Retornar solo el número solicitado
         return array_slice($articulos, 0, $limit);
     }
+
+    /**
+     * Obtiene 20 artículos activos aleatorios con textoLegal y ley cargada
+     * @return Articulo[]
+     */
+    public function findAleatoriosConTextoLegal(int $limit = 20): array
+    {
+        // Primero obtener todos los IDs de artículos activos con textoLegal
+        $ids = $this->createQueryBuilder('a')
+            ->select('a.id')
+            ->innerJoin('a.ley', 'l')
+            ->where('a.activo = :activo')
+            ->andWhere('l.activo = :activo')
+            ->andWhere('a.textoLegal IS NOT NULL')
+            ->andWhere('a.textoLegal != :vacio')
+            ->setParameter('activo', true)
+            ->setParameter('vacio', '')
+            ->getQuery()
+            ->getScalarResult();
+
+        if (empty($ids)) {
+            return [];
+        }
+
+        // Convertir a array simple de IDs
+        $idsArray = array_column($ids, 'id');
+
+        // Mezclar aleatoriamente
+        shuffle($idsArray);
+
+        // Limitar la cantidad
+        $limit = min($limit, count($idsArray));
+        $idsSeleccionados = array_slice($idsArray, 0, $limit);
+
+        // Si no hay IDs seleccionados, retornar array vacío
+        if (empty($idsSeleccionados)) {
+            return [];
+        }
+
+        // Obtener los artículos completos con ley cargada
+        return $this->createQueryBuilder('a')
+            ->innerJoin('a.ley', 'l')
+            ->addSelect('l')
+            ->where('a.id IN (:ids)')
+            ->setParameter('ids', $idsSeleccionados)
+            ->getQuery()
+            ->getResult();
+    }
 }
 
