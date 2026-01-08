@@ -473,7 +473,16 @@
                 document.addEventListener('DOMContentLoaded', function() {
                     {% if is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN') %}
                     fetch('{{ path('app_notificacion_contador') }}')
-                        .then(response => response.json())
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            const contentType = response.headers.get('content-type');
+                            if (!contentType || !contentType.includes('application/json')) {
+                                throw new Error('La respuesta no es JSON');
+                            }
+                            return response.json();
+                        })
                         .then(data => {
                             const contador = document.getElementById('notificaciones-contador-profesor');
                             if (contador) {
@@ -486,11 +495,29 @@
                             }
                         })
                         .catch(error => {
-                            console.error('Error al cargar contador:', error);
+                            // Solo mostrar error en consola si es un error real, no silenciarlo completamente
+                            // pero no mostrar errores de red o de autenticación como errores críticos
+                            if (error.message && !error.message.includes('HTTP error! status: 401') && !error.message.includes('HTTP error! status: 403')) {
+                                console.error('Error al cargar contador:', error);
+                            }
+                            // Ocultar el contador si hay error
+                            const contador = document.getElementById('notificaciones-contador-profesor');
+                            if (contador) {
+                                contador.style.display = 'none';
+                            }
                         });
                     {% elseif not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
                     fetch('{{ path('app_notificacion_alumno_contador') }}')
-                        .then(response => response.json())
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            const contentType = response.headers.get('content-type');
+                            if (!contentType || !contentType.includes('application/json')) {
+                                throw new Error('La respuesta no es JSON');
+                            }
+                            return response.json();
+                        })
                         .then(data => {
                             const contador = document.getElementById('notificaciones-contador-alumno');
                             if (contador) {
@@ -503,7 +530,16 @@
                             }
                         })
                         .catch(error => {
-                            console.error('Error al cargar contador:', error);
+                            // Solo mostrar error en consola si es un error real, no silenciarlo completamente
+                            // pero no mostrar errores de red o de autenticación como errores críticos
+                            if (error.message && !error.message.includes('HTTP error! status: 401') && !error.message.includes('HTTP error! status: 403')) {
+                                console.error('Error al cargar contador:', error);
+                            }
+                            // Ocultar el contador si hay error
+                            const contador = document.getElementById('notificaciones-contador-alumno');
+                            if (contador) {
+                                contador.style.display = 'none';
+                            }
                         });
                     {% endif %}
                 });

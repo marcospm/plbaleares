@@ -194,7 +194,10 @@
 </div>
 
 <script>
-let examenId = null;
+// Usar window para evitar conflictos con Turbo cuando se recarga la página
+if (typeof window.examenId === 'undefined') {
+    window.examenId = null;
+}
 const tipoExamen = '{{ tipoExamen }}';
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -211,34 +214,52 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('No se encontró el botón crearExamenBtn');
     }
     
-    // Agregar pregunta
-    document.getElementById('agregarPreguntaBtn').addEventListener('click', agregarPregunta);
+    // Agregar pregunta (solo si existe el botón)
+    const agregarPreguntaBtn = document.getElementById('agregarPreguntaBtn');
+    if (agregarPreguntaBtn) {
+        agregarPreguntaBtn.addEventListener('click', agregarPregunta);
+    }
     
-    // Finalizar examen
-    document.getElementById('finalizarExamenBtn').addEventListener('click', finalizarExamen);
+    // Finalizar examen (solo si existe el botón)
+    const finalizarExamenBtn = document.getElementById('finalizarExamenBtn');
+    if (finalizarExamenBtn) {
+        finalizarExamenBtn.addEventListener('click', finalizarExamen);
+    }
 
     // Cargar artículos cuando se selecciona una ley
     if (tipoExamen === 'general') {
-        document.getElementById('leySelect').addEventListener('change', function() {
-            const leyId = this.value;
-            if (leyId) {
-                cargarArticulos(leyId);
-            } else {
-                document.getElementById('articuloSelect').innerHTML = '<option value="">Primero selecciona una ley...</option>';
-            }
-        });
+        const leySelect = document.getElementById('leySelect');
+        if (leySelect) {
+            leySelect.addEventListener('change', function() {
+                const leyId = this.value;
+                if (leyId) {
+                    cargarArticulos(leyId);
+                } else {
+                    const articuloSelect = document.getElementById('articuloSelect');
+                    if (articuloSelect) {
+                        articuloSelect.innerHTML = '<option value="">Primero selecciona una ley...</option>';
+                    }
+                }
+            });
+        }
     }
 
     // Cargar temas municipales cuando se selecciona un municipio
     if (tipoExamen === 'municipal') {
-        document.getElementById('municipioSelect').addEventListener('change', function() {
-            const municipioId = this.value;
-            if (municipioId) {
-                cargarTemasMunicipales(municipioId);
-            } else {
-                document.getElementById('temaMunicipalSelect').innerHTML = '<option value="">Selecciona un tema...</option>';
-            }
-        });
+        const municipioSelect = document.getElementById('municipioSelect');
+        if (municipioSelect) {
+            municipioSelect.addEventListener('change', function() {
+                const municipioId = this.value;
+                if (municipioId) {
+                    cargarTemasMunicipales(municipioId);
+                } else {
+                    const temaMunicipalSelect = document.getElementById('temaMunicipalSelect');
+                    if (temaMunicipalSelect) {
+                        temaMunicipalSelect.innerHTML = '<option value="">Selecciona un tema...</option>';
+                    }
+                }
+            });
+        }
     }
 });
 
@@ -290,7 +311,7 @@ function crearExamen() {
     .then(data => {
         console.log('Response data:', data);
         if (data.success) {
-            examenId = data.examenId;
+            window.examenId = data.examenId;
             document.getElementById('examenForm').style.display = 'none';
             document.getElementById('preguntasSection').style.display = 'block';
             alert('Examen creado correctamente. Ahora puedes agregar preguntas.');
@@ -305,7 +326,7 @@ function crearExamen() {
 }
 
 function agregarPregunta() {
-    if (!examenId) {
+    if (!window.examenId) {
         alert('Primero debes crear el examen');
         return;
     }
@@ -343,7 +364,7 @@ function agregarPregunta() {
         return;
     }
 
-    fetch(`/examen-semanal/${examenId}/agregar-pregunta`, {
+    fetch(`/examen-semanal/${window.examenId}/agregar-pregunta`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -396,7 +417,7 @@ function eliminarPregunta(preguntaId) {
         return;
     }
 
-    fetch(`/examen-semanal/${examenId}/eliminar-pregunta/${preguntaId}`, {
+    fetch(`/examen-semanal/${window.examenId}/eliminar-pregunta/${preguntaId}`, {
         method: 'DELETE'
     })
     .then(response => response.json())
@@ -418,7 +439,7 @@ function eliminarPregunta(preguntaId) {
 }
 
 function finalizarExamen() {
-    if (!examenId) {
+    if (!window.examenId) {
         alert('No hay un examen para finalizar');
         return;
     }
@@ -432,7 +453,7 @@ function finalizarExamen() {
         return;
     }
 
-    fetch(`/examen-semanal/${examenId}/finalizar`, {
+    fetch(`/examen-semanal/${window.examenId}/finalizar`, {
         method: 'POST'
     })
     .then(response => response.json())

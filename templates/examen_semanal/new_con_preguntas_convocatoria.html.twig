@@ -167,18 +167,33 @@
 </div>
 
 <script>
-let examenId = null;
-let convocatoriaId = null;
+// Usar window para evitar conflictos con Turbo cuando se recarga la página
+if (typeof window.examenId === 'undefined') {
+    window.examenId = null;
+}
+if (typeof window.convocatoriaId === 'undefined') {
+    window.convocatoriaId = null;
+}
 
-document.addEventListener('DOMContentLoaded', function() {
+function inicializarEventListeners() {
     // Crear examen
     const crearExamenBtn = document.getElementById('crearExamenBtn');
     if (crearExamenBtn) {
+        // Usar onclick directamente como respaldo y también addEventListener
+        crearExamenBtn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Botón crear examen clickeado (onclick)');
+            crearExamen();
+            return false;
+        };
+        
         crearExamenBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Botón crear examen clickeado');
+            console.log('Botón crear examen clickeado (addEventListener)');
             crearExamen();
+            return false;
         });
     } else {
         console.error('No se encontró el botón crearExamenBtn');
@@ -197,27 +212,51 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Cargar municipios cuando se selecciona una convocatoria
-    document.getElementById('convocatoriaSelect').addEventListener('change', function() {
-        const convId = this.value;
-        if (convId) {
-            convocatoriaId = convId;
-            cargarMunicipiosConvocatoria(convId);
-        } else {
-            document.getElementById('municipioSelect').innerHTML = '<option value="">Selecciona un municipio...</option>';
-            document.getElementById('temaMunicipalSelect').innerHTML = '<option value="">Primero selecciona un municipio...</option>';
-        }
-    });
+    const convocatoriaSelect = document.getElementById('convocatoriaSelect');
+    if (convocatoriaSelect) {
+        convocatoriaSelect.addEventListener('change', function() {
+            const convId = this.value;
+            if (convId) {
+                window.convocatoriaId = convId;
+                cargarMunicipiosConvocatoria(convId);
+            } else {
+                const municipioSelect = document.getElementById('municipioSelect');
+                const temaMunicipalSelect = document.getElementById('temaMunicipalSelect');
+                if (municipioSelect) {
+                    municipioSelect.innerHTML = '<option value="">Selecciona un municipio...</option>';
+                }
+                if (temaMunicipalSelect) {
+                    temaMunicipalSelect.innerHTML = '<option value="">Primero selecciona un municipio...</option>';
+                }
+            }
+        });
+    }
 
     // Cargar temas municipales cuando se selecciona un municipio
-    document.getElementById('municipioSelect').addEventListener('change', function() {
-        const municipioId = this.value;
-        if (municipioId) {
-            cargarTemasMunicipales(municipioId);
-        } else {
-            document.getElementById('temaMunicipalSelect').innerHTML = '<option value="">Primero selecciona un municipio...</option>';
-        }
-    });
-});
+    const municipioSelect = document.getElementById('municipioSelect');
+    if (municipioSelect) {
+        municipioSelect.addEventListener('change', function() {
+            const municipioId = this.value;
+            if (municipioId) {
+                cargarTemasMunicipales(municipioId);
+            } else {
+                const temaMunicipalSelect = document.getElementById('temaMunicipalSelect');
+                if (temaMunicipalSelect) {
+                    temaMunicipalSelect.innerHTML = '<option value="">Primero selecciona un municipio...</option>';
+                }
+            }
+        });
+    }
+}
+
+// Ejecutar tanto en carga inicial como en navegación Turbo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inicializarEventListeners);
+} else {
+    // Si el DOM ya está cargado, ejecutar inmediatamente
+    inicializarEventListeners();
+}
+document.addEventListener('turbo:load', inicializarEventListeners);
 
 function crearExamen() {
     console.log('Función crearExamen llamada');
@@ -259,7 +298,7 @@ function crearExamen() {
     .then(data => {
         console.log('Response data:', data);
         if (data.success) {
-            examenId = data.examenId;
+            window.examenId = data.examenId;
             document.getElementById('examenForm').style.display = 'none';
             document.getElementById('preguntasSection').style.display = 'block';
             alert('Examen creado correctamente. Ahora puedes agregar preguntas.');
@@ -274,7 +313,7 @@ function crearExamen() {
 }
 
 function agregarPregunta() {
-    if (!examenId) {
+    if (!window.examenId) {
         alert('Primero debes crear el examen');
         return;
     }
@@ -303,7 +342,7 @@ function agregarPregunta() {
         return;
     }
 
-    fetch(`/examen-semanal/${examenId}/agregar-pregunta`, {
+    fetch(`/examen-semanal/${window.examenId}/agregar-pregunta`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -358,7 +397,7 @@ function eliminarPregunta(preguntaId) {
         return;
     }
 
-    fetch(`/examen-semanal/${examenId}/eliminar-pregunta/${preguntaId}`, {
+    fetch(`/examen-semanal/${window.examenId}/eliminar-pregunta/${preguntaId}`, {
         method: 'DELETE'
     })
     .then(response => response.json())
@@ -380,7 +419,7 @@ function eliminarPregunta(preguntaId) {
 }
 
 function finalizarExamen() {
-    if (!examenId) {
+    if (!window.examenId) {
         alert('No hay un examen para finalizar');
         return;
     }
@@ -394,7 +433,7 @@ function finalizarExamen() {
         return;
     }
 
-    fetch(`/examen-semanal/${examenId}/finalizar`, {
+    fetch(`/examen-semanal/${window.examenId}/finalizar`, {
         method: 'POST'
     })
     .then(response => response.json())
