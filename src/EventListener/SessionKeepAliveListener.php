@@ -6,12 +6,18 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 /**
- * Listener para mantener la sesión activa durante exámenes y operaciones largas
+ * Listener para mantener la sesión activa en todas las rutas autenticadas
  */
 class SessionKeepAliveListener implements EventSubscriberInterface
 {
+    public function __construct(
+        private TokenStorageInterface $tokenStorage
+    ) {
+    }
+
     public static function getSubscribedEvents(): array
     {
         return [
@@ -30,32 +36,26 @@ class SessionKeepAliveListener implements EventSubscriberInterface
 
         $session = $request->getSession();
         
-        // Rutas relacionadas con exámenes semanales que necesitan mantener la sesión activa
-        $examenRoutes = [
-            'app_examen_semanal',
-            'app_examen_semanal_alumno',
-            'app_examen_pregunta',
-            'app_examen_continuar',
-            'app_examen_iniciar',
-            'app_examen_resultado',
-            'app_examen_historial',
+        // Verificar si el usuario está autenticado
+        $token = $this->tokenStorage->getToken();
+        $isAuthenticated = $token && $token->getUser() !== null && $token->getUser() !== 'anon.';
+        
+        // Rutas públicas que no necesitan mantener la sesión
+        $publicRoutes = [
+            'app_login',
+            'app_register',
+            'app_home',
+            'app_contacto',
+            'app_logout',
         ];
         
         $route = $request->attributes->get('_route', '');
-        
-        // Si es una ruta de examen, tocar la sesión para mantenerla activa
-        $isExamenRoute = false;
-        foreach ($examenRoutes as $examenRoute) {
-            if (str_starts_with($route, $examenRoute)) {
-                $isExamenRoute = true;
-                break;
-            }
-        }
+        $isPublicRoute = in_array($route, $publicRoutes) || str_starts_with($route, '_');
         
         // Mantener la sesión activa si:
-        // 1. Es una ruta de examen
-        // 2. Hay datos de examen en la sesión
-        if ($isExamenRoute || $session->has('examen_preguntas') || $session->has('examen_config')) {
+        // 1. El usuario está autenticado Y no es una ruta pública
+        // 2. O hay datos de examen en la sesión (para mantener compatibilidad con exámenes)
+        if (($isAuthenticated && !$isPublicRoute) || $session->has('examen_preguntas') || $session->has('examen_config')) {
             // Tocar la sesión para actualizar su tiempo de última actividad
             // Usar get() en lugar de migrate() para evitar regenerar el ID de sesión
             // Esto actualiza el tiempo de última actividad sin cambiar el ID

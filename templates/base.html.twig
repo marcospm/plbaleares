@@ -776,6 +776,16 @@
                                             </ul>
                                         </div>
                                     </li>
+                                    <li style="position: relative;">
+                                        <div class="nav-dropdown" style="position: relative;">
+                                            <a href="#" class="nav-link nav-link-alumno dropdown-toggle" onclick="event.preventDefault(); toggleDropdown(this); return false;" style="cursor: pointer;">
+                                                🎮 Juegos <span class="dropdown-arrow">▼</span>
+                                            </a>
+                                            <ul class="dropdown-menu" style="left: 0; right: auto;">
+                                                <li><a class="dropdown-item" href="{{ path('app_juego_preguntas_sin_opciones') }}">✏️ Preguntas sin Opciones</a></li>
+                                            </ul>
+                                        </div>
+                                    </li>
                                     <li><a href="{{ path('app_contacto') }}" class="nav-link nav-link-alumno">Contacto</a></li>
                                 {% endif %}
                             {% else %}

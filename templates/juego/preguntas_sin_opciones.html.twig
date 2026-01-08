@@ -1,0 +1,249 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Preguntas sin Opciones - Juegos - BISPOL{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .juego-container {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #feedback {
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .btn {
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .form-control:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 0.2rem rgba(26, 77, 122, 0.25);
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div style="max-width: 800px; margin: 2rem auto; padding: 0 1rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">✏️ Preguntas sin Opciones</h1>
+        <p style="color: #666;">Lee la pregunta y escribe la respuesta. ¡No verás las opciones hasta que verifiques!</p>
+    </div>
+
+    <div id="juego-container" class="juego-container">
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-body" style="padding: 2rem;">
+                <div id="info-pregunta" style="margin-bottom: 2rem;">
+                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <h3 style="margin: 0 0 0.5rem 0; color: var(--color-primary);">Ley:</h3>
+                        <p id="ley-nombre" style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #333;"></p>
+                    </div>
+                    <div style="background: #e3f2fd; padding: 1.5rem; border-radius: 8px;">
+                        <h3 style="margin: 0 0 1rem 0; color: var(--color-primary);">Pregunta:</h3>
+                        <p id="pregunta-texto" style="margin: 0; line-height: 1.8; color: #333; font-size: 1.1rem;"></p>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label for="respuesta" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">Tu respuesta:</label>
+                    <input type="text" id="respuesta" class="form-control" placeholder="Escribe tu respuesta..." style="font-size: 1rem; padding: 0.75rem;">
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                    <button id="btn-verificar" class="btn btn-primary" style="flex: 1; padding: 0.75rem;">Verificar</button>
+                    <button id="btn-siguiente" class="btn btn-secondary" style="flex: 1; padding: 0.75rem; display: none;">Siguiente</button>
+                </div>
+
+                <div id="feedback" style="display: none; padding: 1rem; border-radius: 8px; margin-top: 1rem;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /**
+     * Función para normalizar texto (eliminar acentos, convertir a minúsculas, etc.)
+     */
+    function normalizarTexto(texto) {
+        if (!texto) return '';
+        return texto.toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // Eliminar acentos
+            .trim();
+    }
+
+    /**
+     * Compara dos textos de forma flexible
+     * Retorna true si son similares (coinciden parcialmente o son muy parecidos)
+     */
+    function compararTextoFlexible(texto1, texto2) {
+        const t1 = normalizarTexto(texto1);
+        const t2 = normalizarTexto(texto2);
+        
+        // Coincidencia exacta
+        if (t1 === t2) return true;
+        
+        // Si uno contiene al otro (con al menos 3 caracteres)
+        if (t1.length >= 3 && t2.length >= 3) {
+            if (t1.includes(t2) || t2.includes(t1)) return true;
+        }
+        
+        // Calcular similitud básica (palabras comunes)
+        const palabras1 = t1.split(/\s+/).filter(p => p.length > 2);
+        const palabras2 = t2.split(/\s+/).filter(p => p.length > 2);
+        
+        if (palabras1.length > 0 && palabras2.length > 0) {
+            const palabrasComunes = palabras1.filter(p => palabras2.includes(p));
+            const similitud = palabrasComunes.length / Math.max(palabras1.length, palabras2.length);
+            // Si más del 50% de las palabras coinciden, considerarlo correcto
+            if (similitud >= 0.5) return true;
+        }
+        
+        return false;
+    }
+
+    let preguntaActual = null;
+    let aciertos = parseInt(sessionStorage.getItem('preguntasSinOpcionesAciertos') || '0');
+    let errores = parseInt(sessionStorage.getItem('preguntasSinOpcionesErrores') || '0');
+
+    function cargarPregunta() {
+        fetch('{{ path('app_juego_api_pregunta_aleatoria') }}')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error HTTP: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Datos recibidos:', data); // Debug
+                
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                // Verificar que los datos necesarios estén presentes
+                if (!data.texto || data.texto.trim() === '') {
+                    console.error('El texto de la pregunta está vacío');
+                    alert('Error: La pregunta no tiene texto. Por favor, intenta de nuevo.');
+                    return;
+                }
+                
+                preguntaActual = data;
+                
+                // Mostrar la ley
+                if (data.ley && data.ley.nombre) {
+                    document.getElementById('ley-nombre').textContent = data.ley.nombre;
+                } else {
+                    document.getElementById('ley-nombre').textContent = 'Ley no especificada';
+                }
+                
+                // Mostrar la pregunta
+                document.getElementById('pregunta-texto').textContent = data.texto;
+                
+                document.getElementById('respuesta').value = '';
+                document.getElementById('respuesta').disabled = false;
+                document.getElementById('btn-verificar').style.display = 'block';
+                document.getElementById('btn-siguiente').style.display = 'none';
+                document.getElementById('feedback').style.display = 'none';
+                document.getElementById('respuesta').focus();
+            })
+            .catch(error => {
+                console.error('Error al cargar pregunta:', error);
+                alert('Error al cargar la pregunta. Por favor, recarga la página e intenta de nuevo.');
+            });
+    }
+
+    function verificarRespuesta() {
+        const respuesta = document.getElementById('respuesta').value.trim();
+        if (!respuesta) {
+            alert('Por favor, escribe una respuesta');
+            return;
+        }
+
+        // Comparar con todas las opciones de forma flexible
+        const respuestaNormalizada = normalizarTexto(respuesta);
+        const opciones = [
+            preguntaActual.opcionA,
+            preguntaActual.opcionB,
+            preguntaActual.opcionC,
+            preguntaActual.opcionD
+        ];
+        
+        let esCorrecta = false;
+        let opcionEncontrada = null;
+        
+        // Primero verificar si coincide exactamente con alguna opción
+        for (let opcion of opciones) {
+            if (compararTextoFlexible(respuesta, opcion)) {
+                esCorrecta = true;
+                opcionEncontrada = opcion;
+                break;
+            }
+        }
+        
+        // Si no coincide con ninguna, verificar si es similar a la respuesta correcta
+        if (!esCorrecta) {
+            esCorrecta = compararTextoFlexible(respuesta, preguntaActual.respuestaCorrecta);
+            if (esCorrecta) {
+                opcionEncontrada = preguntaActual.respuestaCorrecta;
+            }
+        }
+        
+        const feedback = document.getElementById('feedback');
+        feedback.style.display = 'block';
+        
+        feedback.style.backgroundColor = '#e9ecef';
+		feedback.style.borderLeft = '4px solid #6c757d';
+		feedback.style.color = '#212529';
+
+		feedback.innerHTML =
+			'<strong>Respuesta correcta:</strong> <strong>' +
+			preguntaActual.respuestaCorrecta;
+
+
+        document.getElementById('respuesta').disabled = true;
+        document.getElementById('btn-verificar').style.display = 'none';
+        document.getElementById('btn-siguiente').style.display = 'block';
+    }
+
+    document.getElementById('btn-verificar').addEventListener('click', verificarRespuesta);
+    document.getElementById('btn-siguiente').addEventListener('click', cargarPregunta);
+    document.getElementById('respuesta').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !document.getElementById('respuesta').disabled) {
+            verificarRespuesta();
+        }
+    });
+
+    // Cargar primera pregunta al iniciar
+    cargarPregunta();
+</script>
+{% endblock %}
