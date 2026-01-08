@@ -7,6 +7,7 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
+use Symfony\Component\Form\Extension\Core\Type\TelType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -53,6 +54,14 @@ class RegistrationFormType extends AbstractType
                 'constraints' => [
                     new NotBlank(message: 'Por favor, introduce un email'),
                     new Email(message: 'Por favor, introduce un email válido'),
+                ],
+            ])
+            ->add('telefono', TelType::class, [
+                'label' => 'Teléfono',
+                'required' => false,
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'Ej: +34 600 123 456'
                 ],
             ])
             ->add('plainPassword', RepeatedType::class, [

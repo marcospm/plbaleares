@@ -12,35 +12,59 @@
         <p class="text-muted mb-3">Tienes {{ borradores|length }} examen(es) guardado(s) que puedes continuar:</p>
         <div class="list-group">
             {% for borrador in borradores %}
-                <div class="list-group-item d-flex justify-content-between align-items-center" style="border-left: 3px solid #ffc107; margin-bottom: 0.5rem;">
-                    <div>
-                        <strong>
-                            {% if borrador.tipoExamen == 'general' %}
-                                📚 Examen General
-                            {% elseif borrador.tipoExamen == 'municipal' %}
-                                🏛️ Examen Municipal
-                            {% elseif borrador.tipoExamen == 'convocatoria' %}
-                                📋 Examen de Convocatoria
-                            {% endif %}
-                        </strong>
-                        <br>
-                        <small class="text-muted">
-                            Dificultad: {{ borrador.config.dificultad|capitalize }} | 
-                            Preguntas: {{ borrador.preguntasIds|length }} | 
-                            Respondidas: {{ borrador.respuestas|length }} | 
-                            Pregunta actual: {{ borrador.preguntaActual }}/{{ borrador.preguntasIds|length }}
+                <div class="list-group-item d-flex justify-content-between align-items-center" style="border-left: 3px solid #ffc107; margin-bottom: 0.5rem; padding: 1rem;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <strong style="font-size: 1rem;">
+                                {% if borrador.tipoExamen == 'general' %}
+                                    📚 Examen General
+                                {% elseif borrador.tipoExamen == 'municipal' %}
+                                    🏛️ Examen Municipal
+                                    {% if borrador.config.municipio_id is defined and municipios[borrador.config.municipio_id] is defined %}
+                                        - {{ municipios[borrador.config.municipio_id].nombre }}
+                                    {% endif %}
+                                {% elseif borrador.tipoExamen == 'convocatoria' %}
+                                    📋 Examen de Convocatoria
+                                    {% if borrador.config.convocatoria_id is defined and convocatorias[borrador.config.convocatoria_id] is defined %}
+                                        - {{ convocatorias[borrador.config.convocatoria_id].nombre }}
+                                    {% endif %}
+                                {% endif %}
+                            </strong>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.5rem;">
+                            <small class="text-muted" style="display: inline-block;">
+                                <strong>Dificultad:</strong> {{ borrador.config.dificultad|capitalize }}
+                            </small>
+                            <small class="text-muted" style="display: inline-block;">
+                                <strong>Preguntas:</strong> {{ borrador.preguntasIds|length }}
+                            </small>
+                            <small class="text-muted" style="display: inline-block;">
+                                <strong>Respondidas:</strong> {{ borrador.respuestas|length }}
+                            </small>
+                            <small class="text-muted" style="display: inline-block;">
+                                <strong>Progreso:</strong> {{ borrador.preguntaActual }}/{{ borrador.preguntasIds|length }}
+                            </small>
                             {% if borrador.tiempoRestante %}
-                                | Tiempo restante: {{ (borrador.tiempoRestante / 60)|round }} min
+                                <small class="text-muted" style="display: inline-block;">
+                                    <strong>⏱️ Tiempo restante:</strong> {{ (borrador.tiempoRestante / 60)|round }} min
+                                </small>
                             {% endif %}
-                        </small>
-                        <br>
-                        <small class="text-muted">
-                            Guardado: {{ borrador.fechaActualizacion|date('d/m/Y H:i') }}
+                        </div>
+                        <small class="text-muted" style="display: block; font-size: 0.85rem;">
+                            💾 Guardado: {{ borrador.fechaActualizacion|date('d/m/Y H:i') }}
                         </small>
                     </div>
-                    <a href="{{ path('app_examen_continuar', {'id': borrador.id}) }}" class="btn btn-warning btn-sm">
-                        ▶️ Continuar
-                    </a>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; margin-left: 1rem;">
+                        <a href="{{ path('app_examen_continuar', {'id': borrador.id}) }}" class="btn btn-warning btn-sm">
+                            ▶️ Continuar
+                        </a>
+                        <form method="post" action="{{ path('app_examen_borrador_eliminar', {'id': borrador.id}) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este borrador?');">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete_borrador_' ~ borrador.id) }}">
+                            <button type="submit" class="btn btn-danger btn-sm" title="Eliminar borrador">
+                                🗑️
+                            </button>
+                        </form>
+                    </div>
                 </div>
             {% endfor %}
         </div>

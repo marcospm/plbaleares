@@ -483,11 +483,38 @@ class ExamenController extends AbstractController
             ->getQuery()
             ->getResult();
 
+        // Obtener municipios y convocatorias para mostrar en los borradores
+        $municipios = [];
+        $convocatorias = [];
+        foreach ($borradores as $borrador) {
+            $config = $borrador->getConfig();
+            if (isset($config['municipio_id'])) {
+                $municipioId = $config['municipio_id'];
+                if (!isset($municipios[$municipioId])) {
+                    $municipio = $this->municipioRepository->find($municipioId);
+                    if ($municipio) {
+                        $municipios[$municipioId] = $municipio;
+                    }
+                }
+            }
+            if (isset($config['convocatoria_id'])) {
+                $convocatoriaId = $config['convocatoria_id'];
+                if (!isset($convocatorias[$convocatoriaId])) {
+                    $convocatoria = $this->convocatoriaRepository->find($convocatoriaId);
+                    if ($convocatoria) {
+                        $convocatorias[$convocatoriaId] = $convocatoria;
+                    }
+                }
+            }
+        }
+
         return $this->render('examen/iniciar.html.twig', [
             'form' => $form,
             'preguntasDisponibles' => $preguntasDisponibles,
             'mostrarOpcionMunicipal' => $mostrarOpcionMunicipal,
             'borradores' => $borradores,
+            'municipios' => $municipios,
+            'convocatorias' => $convocatorias,
         ]);
     }
 
@@ -2412,17 +2439,16 @@ class ExamenController extends AbstractController
             return;
         }
         
+        // Siempre crear un nuevo borrador para permitir múltiples borradores
+        $borrador = new ExamenBorrador();
+        $borrador->setUsuario($user);
+        
         // Si es examen semanal, buscar por examen semanal
         if ($examenSemanalId) {
             $examenSemanal = $this->entityManager->getRepository(\App\Entity\ExamenSemanal::class)->find($examenSemanalId);
             if ($examenSemanal) {
-                $borrador = $this->examenBorradorRepository->findOneByUsuarioAndExamenSemanal($user, $examenSemanal);
-                if (!$borrador) {
-                    $borrador = new ExamenBorrador();
-                    $borrador->setUsuario($user);
-                    $borrador->setTipoExamen('semanal');
-                    $borrador->setExamenSemanal($examenSemanal);
-                }
+                $borrador->setTipoExamen('semanal');
+                $borrador->setExamenSemanal($examenSemanal);
             } else {
                 return; // No se encontró el examen semanal
             }
@@ -2435,14 +2461,7 @@ class ExamenController extends AbstractController
                 $tipoExamen = 'municipal';
             }
             
-            // Buscar borrador existente o crear uno nuevo
-            $borrador = $this->examenBorradorRepository->findOneByUsuarioAndTipo($user, $tipoExamen);
-            
-            if (!$borrador) {
-                $borrador = new ExamenBorrador();
-                $borrador->setUsuario($user);
-                $borrador->setTipoExamen($tipoExamen);
-            }
+            $borrador->setTipoExamen($tipoExamen);
         }
         
         // Actualizar datos del borrador
@@ -2480,6 +2499,34 @@ class ExamenController extends AbstractController
         
         // Redirigir a la pregunta actual
         return $this->redirectToRoute('app_examen_pregunta', ['numero' => $borrador->getPreguntaActual()]);
+    }
+
+    /**
+     * Elimina un borrador
+     */
+    #[Route('/borrador/eliminar/{id}', name: 'app_examen_borrador_eliminar', methods: ['POST'])]
+    public function eliminarBorrador(int $id, Request $request): Response
+    {
+        $user = $this->getUser();
+        $borrador = $this->examenBorradorRepository->find($id);
+        
+        if (!$borrador || $borrador->getUsuario() !== $user) {
+            $this->addFlash('error', 'Borrador no encontrado.');
+            return $this->redirectToRoute('app_examen_iniciar');
+        }
+        
+        // Verificar token CSRF
+        $token = $request->request->get('_token');
+        if (!$this->isCsrfTokenValid('delete_borrador_' . $id, $token)) {
+            $this->addFlash('error', 'Token de seguridad inválido.');
+            return $this->redirectToRoute('app_examen_iniciar');
+        }
+        
+        $this->entityManager->remove($borrador);
+        $this->entityManager->flush();
+        
+        $this->addFlash('success', 'Borrador eliminado correctamente.');
+        return $this->redirectToRoute('app_examen_iniciar');
     }
 }
 

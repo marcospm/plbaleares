@@ -213,12 +213,9 @@
                 {% endif %}
                 {% if not esUltima %}
                     <button type="submit" name="accion" value="siguiente" class="btn btn-primary">Siguiente</button>
-                {% else %}
-                    <button type="submit" name="accion" value="finalizar" class="btn btn-success" id="btnFinalizarExamen" onclick="return confirm('¿Estás seguro de finalizar el examen?');">Finalizar Examen</button>
                 {% endif %}
-                {% if modoEstudio is defined and modoEstudio and not esUltima %}
-                    <button type="submit" name="accion" value="finalizar" class="btn btn-success" id="btnFinalizarExamenModoEstudio" onclick="return confirm('¿Estás seguro de finalizar el examen?');">Finalizar Examen</button>
-                {% endif %}
+                {# Botón Finalizar Examen siempre visible #}
+                <button type="submit" name="accion" value="finalizar" class="btn btn-success" id="btnFinalizarExamen" onclick="return confirm('¿Estás seguro de finalizar el examen?');">Finalizar Examen</button>
                 <button type="submit" name="accion" value="guardar_borrador" class="btn btn-secondary" id="btnGuardarBorrador" style="margin-left: auto;">💾 Guardar y continuar más tarde</button>
             </div>
         </form>
