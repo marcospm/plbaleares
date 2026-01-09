@@ -112,7 +112,7 @@ class ArticuloRepository extends ServiceEntityRepository
 
     /**
      * Obtiene 20 artículos activos aleatorios con nombre y ley cargada
-     * Mezcla artículos de diferentes leyes
+     * Distribuye artículos de diferentes leyes de forma equilibrada
      * @return Articulo[]
      */
     public function findAleatoriosConNombre(int $limit = 20): array
@@ -134,26 +134,71 @@ class ArticuloRepository extends ServiceEntityRepository
             return [];
         }
 
-        // Mezclar los artículos para asegurar variedad de leyes
-        shuffle($articulos);
+        // Agrupar artículos por ley
+        $articulosPorLey = [];
+        foreach ($articulos as $articulo) {
+            $leyId = $articulo->getLey()->getId();
+            if (!isset($articulosPorLey[$leyId])) {
+                $articulosPorLey[$leyId] = [];
+            }
+            $articulosPorLey[$leyId][] = $articulo;
+        }
 
-        // Si hay menos artículos que el límite, usar todos
-        $limit = min($limit, count($articulos));
+        // Mezclar los artículos dentro de cada ley
+        foreach ($articulosPorLey as $leyId => $articulosLey) {
+            shuffle($articulosPorLey[$leyId]);
+        }
 
-        // Retornar solo el número solicitado
-        return array_slice($articulos, 0, $limit);
+        // Distribuir artículos de forma round-robin entre las leyes
+        $resultado = [];
+        $indicesPorLey = array_fill_keys(array_keys($articulosPorLey), 0);
+        $leyesIds = array_keys($articulosPorLey);
+        shuffle($leyesIds); // Mezclar el orden de las leyes también
+
+        $totalLeyes = count($leyesIds);
+        if ($totalLeyes === 0) {
+            return [];
+        }
+
+        // Seleccionar artículos alternando entre leyes
+        while (count($resultado) < $limit) {
+            $algunoAgregado = false;
+            foreach ($leyesIds as $leyId) {
+                if (count($resultado) >= $limit) {
+                    break;
+                }
+                
+                if (isset($indicesPorLey[$leyId]) && 
+                    $indicesPorLey[$leyId] < count($articulosPorLey[$leyId])) {
+                    $resultado[] = $articulosPorLey[$leyId][$indicesPorLey[$leyId]];
+                    $indicesPorLey[$leyId]++;
+                    $algunoAgregado = true;
+                }
+            }
+            
+            // Si no se agregó ninguno, significa que ya no hay más artículos disponibles
+            if (!$algunoAgregado) {
+                break;
+            }
+        }
+
+        // Mezclar el resultado final para mayor aleatoriedad
+        shuffle($resultado);
+
+        return $resultado;
     }
 
     /**
      * Obtiene 20 artículos activos aleatorios con textoLegal y ley cargada
+     * Distribuye artículos de diferentes leyes de forma equilibrada
      * @return Articulo[]
      */
     public function findAleatoriosConTextoLegal(int $limit = 20): array
     {
-        // Primero obtener todos los IDs de artículos activos con textoLegal
-        $ids = $this->createQueryBuilder('a')
-            ->select('a.id')
+        // Obtener todos los artículos activos con textoLegal y ley cargada
+        $articulos = $this->createQueryBuilder('a')
             ->innerJoin('a.ley', 'l')
+            ->addSelect('l')
             ->where('a.activo = :activo')
             ->andWhere('l.activo = :activo')
             ->andWhere('a.textoLegal IS NOT NULL')
@@ -161,35 +206,64 @@ class ArticuloRepository extends ServiceEntityRepository
             ->setParameter('activo', true)
             ->setParameter('vacio', '')
             ->getQuery()
-            ->getScalarResult();
-
-        if (empty($ids)) {
-            return [];
-        }
-
-        // Convertir a array simple de IDs
-        $idsArray = array_column($ids, 'id');
-
-        // Mezclar aleatoriamente
-        shuffle($idsArray);
-
-        // Limitar la cantidad
-        $limit = min($limit, count($idsArray));
-        $idsSeleccionados = array_slice($idsArray, 0, $limit);
-
-        // Si no hay IDs seleccionados, retornar array vacío
-        if (empty($idsSeleccionados)) {
-            return [];
-        }
-
-        // Obtener los artículos completos con ley cargada
-        return $this->createQueryBuilder('a')
-            ->innerJoin('a.ley', 'l')
-            ->addSelect('l')
-            ->where('a.id IN (:ids)')
-            ->setParameter('ids', $idsSeleccionados)
-            ->getQuery()
             ->getResult();
+
+        if (empty($articulos)) {
+            return [];
+        }
+
+        // Agrupar artículos por ley
+        $articulosPorLey = [];
+        foreach ($articulos as $articulo) {
+            $leyId = $articulo->getLey()->getId();
+            if (!isset($articulosPorLey[$leyId])) {
+                $articulosPorLey[$leyId] = [];
+            }
+            $articulosPorLey[$leyId][] = $articulo;
+        }
+
+        // Mezclar los artículos dentro de cada ley
+        foreach ($articulosPorLey as $leyId => $articulosLey) {
+            shuffle($articulosPorLey[$leyId]);
+        }
+
+        // Distribuir artículos de forma round-robin entre las leyes
+        $resultado = [];
+        $indicesPorLey = array_fill_keys(array_keys($articulosPorLey), 0);
+        $leyesIds = array_keys($articulosPorLey);
+        shuffle($leyesIds); // Mezclar el orden de las leyes también
+
+        $totalLeyes = count($leyesIds);
+        if ($totalLeyes === 0) {
+            return [];
+        }
+
+        // Seleccionar artículos alternando entre leyes
+        while (count($resultado) < $limit) {
+            $algunoAgregado = false;
+            foreach ($leyesIds as $leyId) {
+                if (count($resultado) >= $limit) {
+                    break;
+                }
+                
+                if (isset($indicesPorLey[$leyId]) && 
+                    $indicesPorLey[$leyId] < count($articulosPorLey[$leyId])) {
+                    $resultado[] = $articulosPorLey[$leyId][$indicesPorLey[$leyId]];
+                    $indicesPorLey[$leyId]++;
+                    $algunoAgregado = true;
+                }
+            }
+            
+            // Si no se agregó ninguno, significa que ya no hay más artículos disponibles
+            if (!$algunoAgregado) {
+                break;
+            }
+        }
+
+        // Mezclar el resultado final para mayor aleatoriedad
+        shuffle($resultado);
+
+        return $resultado;
     }
 }
 
