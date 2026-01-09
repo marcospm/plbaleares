@@ -1,0 +1,137 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Crear Partida - Gamificación - BISPOL{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .juego-container {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .btn {
+            transition: all 0.3s ease;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+
+        .btn-primary:hover {
+            background-color: #1a4d7a;
+            border-color: #1a4d7a;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 0.2rem rgba(26, 77, 122, 0.25);
+        }
+
+        .form-label {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-select {
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+
+        .form-select:hover {
+            border-color: var(--color-primary);
+        }
+
+        .card {
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 12px;
+        }
+
+        .card-body {
+            padding: 2.5rem;
+        }
+
+        .form-text {
+            color: #6c757d;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div style="max-width: 600px; margin: 2rem auto; padding: 0 1rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">Crear Nueva Partida</h1>
+        <p style="color: #666;">Configura tu partida multijugador</p>
+    </div>
+
+    <div class="juego-container">
+        <div class="card">
+            <div class="card-body" style="padding: 2rem;">
+                <form method="POST" action="{{ path('app_partida_preguntas_crear') }}">
+                    <div class="mb-3">
+                        <label for="numPreguntas" class="form-label" style="font-weight: 600;">Número de Preguntas</label>
+                        <select class="form-select" id="numPreguntas" name="numPreguntas" required>
+                            <option value="5">5 preguntas</option>
+                            <option value="10" selected>10 preguntas</option>
+                            <option value="15">15 preguntas</option>
+                            <option value="20">20 preguntas</option>
+                        </select>
+                        <small class="form-text text-muted">Las preguntas serán de los 30 temas del temario general</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="tiempoLimite" class="form-label" style="font-weight: 600;">Tiempo Límite (minutos)</label>
+                        <select class="form-select" id="tiempoLimite" name="tiempoLimite" required>
+                            <option value="5">5 minutos</option>
+                            <option value="10">10 minutos</option>
+                            <option value="15">15 minutos</option>
+                            <option value="20" selected>20 minutos</option>
+                        </select>
+                        <small class="form-text text-muted">Tiempo máximo para responder todas las preguntas. La partida terminará cuando el último jugador responda, aunque sea antes del tiempo límite.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="dificultad" class="form-label" style="font-weight: 600;">Dificultad (opcional)</label>
+                        <select class="form-select" id="dificultad" name="dificultad">
+                            <option value="">Todas las dificultades</option>
+                            <option value="facil">Fácil</option>
+                            <option value="media">Media</option>
+                            <option value="dificil">Difícil</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                        <a href="{{ path('app_partida_preguntas_index') }}" class="btn btn-secondary" style="flex: 1;">Cancelar</a>
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">Crear Partida</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

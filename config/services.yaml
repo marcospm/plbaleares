@@ -27,3 +27,8 @@ services:
     App\Service\AssetVersionStrategy:
         arguments:
             $versionService: '@App\Service\AssetVersionService'
+    
+    # Servicio de partidas multijugador
+    App\Service\PartidaPreguntasService:
+        arguments:
+            $cache: '@cache.partidas'

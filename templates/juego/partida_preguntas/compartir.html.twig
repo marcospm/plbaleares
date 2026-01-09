@@ -1,0 +1,157 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Partida Creada - Compartir - Gamificación - BISPOL{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .juego-container {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .url-compartir {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 1rem;
+            word-break: break-all;
+            margin: 1rem 0;
+            position: relative;
+        }
+
+        .btn-copiar {
+            margin-top: 1rem;
+        }
+
+        .btn-copiar.copied {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .qr-code-container {
+            text-align: center;
+            margin: 2rem 0;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div style="max-width: 800px; margin: 2rem auto; padding: 0 1rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">✅ Partida Creada</h1>
+        <p style="color: #666;">Comparte este enlace con los jugadores. Deben estar logueados para participar.</p>
+    </div>
+
+    <div class="juego-container">
+        <div class="card">
+            <div class="card-body" style="padding: 2rem;">
+                <div class="info-box">
+                    <h3 style="margin: 0 0 1rem 0; color: var(--color-primary);">Información de la Partida</h3>
+                    <p style="margin: 0.5rem 0;"><strong>Preguntas:</strong> {{ partida.numPreguntas }}</p>
+                    <p style="margin: 0.5rem 0;"><strong>Tiempo límite:</strong> {{ partida.tiempoLimite }} minutos</p>
+                    {% if partida.dificultad %}
+                        <p style="margin: 0.5rem 0;"><strong>Dificultad:</strong> {{ partida.dificultad|capitalize }}</p>
+                    {% else %}
+                        <p style="margin: 0.5rem 0;"><strong>Dificultad:</strong> Todas</p>
+                    {% endif %}
+                </div>
+
+                <div style="margin: 2rem 0;">
+                    <h3 style="color: var(--color-primary); margin-bottom: 1rem;">Enlace para Compartir</h3>
+                    <div class="url-compartir" id="url-compartir">{{ urlCompartir }}</div>
+                    <button class="btn btn-primary btn-copiar" id="btn-copiar" onclick="copiarEnlace()" style="width: 100%;">
+                        📋 Copiar Enlace
+                    </button>
+                </div>
+
+                <div style="text-align: center; margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #e0e0e0;">
+                    <p style="color: #666; margin-bottom: 1rem;">
+                        <strong>Instrucciones:</strong><br>
+                        Comparte este enlace con los jugadores. Ellos deberán estar logueados para poder unirse y jugar. Solo necesitan hacer clic en el enlace para unirse.
+                    </p>
+                    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                        <a href="{{ urlCompartir }}" class="btn btn-success btn-lg" target="_blank">
+                            🎮 Probar Enlace
+                        </a>
+                        <a href="{{ path('app_partida_preguntas_index') }}" class="btn btn-secondary btn-lg">
+                            Volver al Inicio
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function copiarEnlace() {
+        const url = document.getElementById('url-compartir').textContent;
+        
+        // Usar la API moderna de clipboard si está disponible
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(() => {
+                mostrarConfirmacion();
+            }).catch(err => {
+                console.error('Error al copiar:', err);
+                copiarFallback(url);
+            });
+        } else {
+            copiarFallback(url);
+        }
+    }
+
+    function copiarFallback(text) {
+        // Método alternativo para navegadores antiguos
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        
+        try {
+            document.execCommand('copy');
+            mostrarConfirmacion();
+        } catch (err) {
+            alert('No se pudo copiar el enlace. Por favor, cópialo manualmente.');
+        }
+        
+        document.body.removeChild(textarea);
+    }
+
+    function mostrarConfirmacion() {
+        const btn = document.getElementById('btn-copiar');
+        const textoOriginal = btn.textContent;
+        btn.textContent = '✅ ¡Copiado!';
+        btn.classList.add('copied');
+        
+        setTimeout(() => {
+            btn.textContent = textoOriginal;
+            btn.classList.remove('copied');
+        }, 2000);
+    }
+
+</script>
+{% endblock %}
+

@@ -1,0 +1,93 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Unirse a Partida - Gamificación - BISPOL{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .juego-container {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .btn {
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .codigo-partida {
+            font-size: 2rem;
+            font-weight: bold;
+            letter-spacing: 0.3rem;
+            color: var(--color-primary);
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            margin: 1rem 0;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div style="max-width: 600px; margin: 2rem auto; padding: 0 1rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">Unirse a Partida</h1>
+        <div class="codigo-partida">{{ codigo }}</div>
+        <p style="color: #666;">Ingresa tu nombre para unirte a la partida</p>
+    </div>
+
+    <div class="juego-container">
+        <div class="card">
+            <div class="card-body" style="padding: 2rem;">
+                {% if partida %}
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                        <p style="margin: 0;"><strong>Preguntas:</strong> {{ partida.numPreguntas }}</p>
+                        <p style="margin: 0;"><strong>Tiempo límite:</strong> {{ partida.tiempoLimite }} minutos</p>
+                        {% if partida.dificultad %}
+                            <p style="margin: 0;"><strong>Dificultad:</strong> {{ partida.dificultad|capitalize }}</p>
+                        {% else %}
+                            <p style="margin: 0;"><strong>Dificultad:</strong> Todas</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                <form method="POST" action="{{ path('app_partida_preguntas_unirse', {codigo: codigo}) }}">
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label" style="font-weight: 600;">Tu Nombre</label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="nombre" 
+                               name="nombre" 
+                               maxlength="50" 
+                               required 
+                               autofocus
+                               placeholder="Escribe tu nombre...">
+                        <small class="form-text text-muted">Máximo 50 caracteres</small>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                        <a href="{{ path('app_partida_preguntas_index') }}" class="btn btn-secondary" style="flex: 1;">Cancelar</a>
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">Unirse</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

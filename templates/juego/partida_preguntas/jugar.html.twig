@@ -1,0 +1,606 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Jugando Partida - Gamificación - BISPOL{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .juego-container {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .btn {
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .cronometro {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--color-primary);
+            text-align: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .cronometro.urgente {
+            color: #dc3545;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .pregunta-card {
+            margin-bottom: 1.5rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .pregunta-card.respondida {
+            border-color: #28a745;
+            background-color: #f8fff9;
+        }
+
+        .opcion {
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .opcion:hover {
+            border-color: var(--color-primary);
+            background-color: #f0f7ff;
+        }
+
+        .opcion.selected {
+            border-color: var(--color-primary);
+            background-color: #e3f2fd;
+            font-weight: 600;
+        }
+
+        .ranking-sidebar {
+            position: sticky;
+            top: 2rem;
+            max-height: calc(100vh - 4rem);
+            overflow-y: auto;
+        }
+
+        .participante-item {
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+
+        .participante-item.jugando {
+            background: #e3f2fd;
+            border-left: 3px solid var(--color-primary);
+        }
+
+        .participante-item.finalizado {
+            background: #d4edda;
+            border-left: 3px solid #28a745;
+        }
+
+        .indicador-pregunta {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+            text-align: center;
+            border-radius: 50%;
+            margin: 0.25rem;
+            border: 2px solid #e0e0e0;
+            cursor: pointer;
+        }
+
+        .indicador-pregunta.respondida {
+            background-color: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+
+        .indicador-pregunta.actual {
+            border-color: var(--color-primary);
+            border-width: 3px;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div style="max-width: 1400px; margin: 2rem auto; padding: 0 1rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">Partida: {{ codigo }}</h1>
+        <div class="cronometro" id="cronometro">
+            <span id="tiempo-restante">--:--</span>
+            <div id="mensaje-cronometro" style="font-size: 0.9rem; margin-top: 0.5rem; color: #666;">
+                {% if not partida.fechaInicioPrimerJugador %}
+                    Esperando a que alguien inicie...
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-9">
+            <div id="contenedor-juego">
+                {% if partida.participantes[participanteId].estado == 'esperando' %}
+                    <div class="card">
+                        <div class="card-body" style="padding: 3rem; text-align: center;">
+                            <h3 style="color: var(--color-primary); margin-bottom: 1rem;">¡Listo para empezar!</h3>
+                            <p style="color: #666; margin-bottom: 2rem;">
+                                Cuando estés listo, haz clic en el botón para comenzar. El cronómetro empezará cuando el primer jugador inicie.
+                            </p>
+                            <button id="btn-iniciar" class="btn btn-primary btn-lg">Empezar a Jugar</button>
+                        </div>
+                    </div>
+                {% else %}
+                    <div id="preguntas-container" style="display: none;">
+                        <div style="text-align: center; margin-bottom: 1.5rem;">
+                            <div id="indicadores-preguntas"></div>
+                        </div>
+                        <div id="preguntas-lista"></div>
+                        <div style="text-align: center; margin-top: 2rem;">
+                            <button id="btn-finalizar" class="btn btn-success btn-lg">Finalizar Partida</button>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-lg-3">
+            <div class="ranking-sidebar">
+                <div class="card">
+                    <div class="card-header" style="background: var(--color-primary); color: white;">
+                        <h5 style="margin: 0;">Ranking en Tiempo Real</h5>
+                    </div>
+                    <div class="card-body" id="ranking-container">
+                        <p style="text-align: center; color: #666;">Cargando...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const codigoPartida = '{{ codigo }}';
+    const participanteId = '{{ participanteId }}';
+    const tiempoLimite = {{ partida.tiempoLimite }};
+    let fechaInicioPrimerJugador = {{ partida.fechaInicioPrimerJugador ?? 'null' }};
+    let preguntas = [];
+    let respuestas = {};
+    let intervaloRanking = null;
+    let intervaloCronometro = null;
+    let juegoIniciado = false;
+
+    // Iniciar juego
+    document.getElementById('btn-iniciar')?.addEventListener('click', function() {
+        fetch(`/juegos/partida-preguntas/${codigoPartida}/iniciar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Ocultar el botón de iniciar y mostrar el contenedor de preguntas
+                const contenedorJuego = document.getElementById('contenedor-juego');
+                if (contenedorJuego) {
+                    contenedorJuego.innerHTML = `
+                        <div id="preguntas-container" style="display: none;">
+                            <div style="text-align: center; margin-bottom: 1.5rem;">
+                                <div id="indicadores-preguntas"></div>
+                            </div>
+                            <div id="preguntas-lista"></div>
+                            <div style="text-align: center; margin-top: 2rem;">
+                                <button id="btn-finalizar" class="btn btn-success btn-lg">Finalizar Partida</button>
+                            </div>
+                        </div>
+                    `;
+                }
+                cargarPreguntas();
+                iniciarCronometro();
+                iniciarPollingRanking();
+            } else {
+                alert('Error: ' + (data.error || 'No se pudo iniciar el juego'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al iniciar el juego');
+        });
+    });
+
+    // Cargar preguntas
+    function cargarPreguntas() {
+        fetch(`/api/partida-preguntas/${codigoPartida}/preguntas`)
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.error || `HTTP error! status: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Verificar si la respuesta es un error
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                if (!data || !Array.isArray(data) || data.length === 0) {
+                    throw new Error('No se recibieron preguntas válidas');
+                }
+                preguntas = data;
+                mostrarPreguntas();
+                juegoIniciado = true;
+            })
+            .catch(error => {
+                console.error('Error al cargar preguntas:', error);
+                alert('Error al cargar las preguntas: ' + error.message);
+            });
+    }
+
+    // Mostrar preguntas
+    function mostrarPreguntas() {
+        // Mostrar el contenedor primero si está oculto
+        const preguntasContainer = document.getElementById('preguntas-container');
+        if (preguntasContainer) {
+            preguntasContainer.style.display = 'block';
+        }
+        
+        const container = document.getElementById('preguntas-lista');
+        const indicadores = document.getElementById('indicadores-preguntas');
+        
+        if (!container || !indicadores) {
+            console.error('Elementos del DOM no encontrados');
+            return;
+        }
+        
+        container.innerHTML = '';
+        indicadores.innerHTML = '';
+
+        preguntas.forEach((pregunta, index) => {
+            // Indicador
+            const indicador = document.createElement('span');
+            indicador.className = 'indicador-pregunta';
+            indicador.textContent = index + 1;
+            indicador.onclick = () => scrollToPregunta(index);
+            if (index === 0) indicador.classList.add('actual');
+            indicadores.appendChild(indicador);
+
+            // Pregunta
+            const preguntaDiv = document.createElement('div');
+            preguntaDiv.className = 'pregunta-card';
+            preguntaDiv.id = `pregunta-${pregunta.id}`;
+            preguntaDiv.innerHTML = `
+                <h4 style="margin-bottom: 1rem;">Pregunta ${index + 1}</h4>
+                ${pregunta.tema ? `<p style="margin: 0 0 0.5rem 0; color: #666;"><strong>Tema:</strong> ${pregunta.tema}</p>` : ''}
+                ${pregunta.ley ? `<p style="margin: 0 0 1rem 0; color: #666;"><strong>Ley:</strong> ${pregunta.ley}</p>` : ''}
+                <p style="margin-bottom: 1.5rem; font-size: 1.1rem;">${pregunta.texto}</p>
+                <div class="opciones">
+                    <div class="opcion" data-pregunta-id="${pregunta.id}" data-respuesta="A">
+                        <strong>A)</strong> ${pregunta.opcionA}
+                    </div>
+                    <div class="opcion" data-pregunta-id="${pregunta.id}" data-respuesta="B">
+                        <strong>B)</strong> ${pregunta.opcionB}
+                    </div>
+                    <div class="opcion" data-pregunta-id="${pregunta.id}" data-respuesta="C">
+                        <strong>C)</strong> ${pregunta.opcionC}
+                    </div>
+                    <div class="opcion" data-pregunta-id="${pregunta.id}" data-respuesta="D">
+                        <strong>D)</strong> ${pregunta.opcionD}
+                    </div>
+                </div>
+            `;
+            container.appendChild(preguntaDiv);
+
+            // Event listeners para opciones
+            preguntaDiv.querySelectorAll('.opcion').forEach(opcion => {
+                opcion.addEventListener('click', function() {
+                    const preguntaId = parseInt(this.dataset.preguntaId);
+                    const respuesta = this.dataset.respuesta;
+                    
+                    // Deseleccionar otras opciones
+                    preguntaDiv.querySelectorAll('.opcion').forEach(o => o.classList.remove('selected'));
+                    this.classList.add('selected');
+                    
+                    // Guardar respuesta
+                    respuestas[preguntaId] = respuesta;
+                    guardarRespuesta(preguntaId, respuesta);
+                    
+                    // Actualizar indicador
+                    indicador.classList.add('respondida');
+                    preguntaDiv.classList.add('respondida');
+                    
+                    // Actualizar indicador actual
+                    document.querySelectorAll('.indicador-pregunta').forEach(i => i.classList.remove('actual'));
+                    if (index < preguntas.length - 1) {
+                        document.querySelectorAll('.indicador-pregunta')[index + 1].classList.add('actual');
+                    }
+                });
+            });
+
+            // Verificar si ya tiene respuesta guardada
+            if (respuestas[pregunta.id]) {
+                const respuestaGuardada = respuestas[pregunta.id];
+                preguntaDiv.querySelector(`[data-respuesta="${respuestaGuardada}"]`)?.classList.add('selected');
+                indicador.classList.add('respondida');
+                preguntaDiv.classList.add('respondida');
+            }
+        });
+
+        document.getElementById('preguntas-container').style.display = 'block';
+    }
+
+    function scrollToPregunta(index) {
+        const preguntaId = preguntas[index].id;
+        document.getElementById(`pregunta-${preguntaId}`).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Guardar respuesta
+    function guardarRespuesta(preguntaId, respuesta) {
+        fetch(`/juegos/partida-preguntas/${codigoPartida}/responder`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `preguntaId=${preguntaId}&respuesta=${respuesta}`
+        })
+        .then(response => response.json())
+        .catch(error => {
+            console.error('Error al guardar respuesta:', error);
+        });
+    }
+
+    // Iniciar cronómetro
+    function iniciarCronometro() {
+        if (!fechaInicioPrimerJugador) {
+            // Obtener fecha de inicio desde el servidor
+            obtenerEstado();
+            return;
+        }
+
+        const mensajeCronometro = document.getElementById('mensaje-cronometro');
+        if (mensajeCronometro) {
+            mensajeCronometro.textContent = '';
+        }
+
+        intervaloCronometro = setInterval(() => {
+            const ahora = Math.floor(Date.now() / 1000);
+            const tiempoTranscurrido = ahora - fechaInicioPrimerJugador;
+            const tiempoRestante = (tiempoLimite * 60) - tiempoTranscurrido;
+
+            if (tiempoRestante <= 0) {
+                clearInterval(intervaloCronometro);
+                verificarYFinalizarPorTiempo();
+                return;
+            }
+
+            const minutos = Math.floor(tiempoRestante / 60);
+            const segundos = tiempoRestante % 60;
+            const tiempoFormato = `${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
+            
+            const tiempoRestanteElement = document.getElementById('tiempo-restante');
+            if (tiempoRestanteElement) {
+                tiempoRestanteElement.textContent = tiempoFormato;
+            }
+            
+            // Alerta cuando quedan 1 minuto y 30 segundos
+            if (tiempoRestante === 90) {
+                alert('⚠️ Te quedan 1 minuto y 30 segundos');
+            }
+
+            // Cambiar color cuando quedan menos de 2 minutos
+            const cronometro = document.getElementById('cronometro');
+            if (tiempoRestante <= 120) {
+                cronometro.classList.add('urgente');
+            }
+        }, 1000);
+    }
+
+    // Verificar y finalizar por tiempo en el servidor
+    function verificarYFinalizarPorTiempo() {
+        // Mostrar mensaje de que se está finalizando
+        const tiempoRestanteElement = document.getElementById('tiempo-restante');
+        if (tiempoRestanteElement) {
+            tiempoRestanteElement.textContent = '00:00';
+            tiempoRestanteElement.parentElement.innerHTML = '<div style="text-align: center; padding: 1rem;"><strong>⏰ Tiempo agotado. Finalizando partida...</strong><br><small>Recopilando resultados, por favor espera unos segundos.</small></div>';
+        }
+
+        // Esperar unos segundos para que el servidor finalice a todos los participantes
+        setTimeout(() => {
+            fetch(`/api/partida-preguntas/${codigoPartida}/estado`)
+                .then(response => response.json())
+                .then(data => {
+                    // Si la partida ya está finalizada, redirigir
+                    if (data.estado === 'finalizada') {
+                        finalizarPartida(true);
+                    } else {
+                        // Intentar finalizar la partida del participante
+                        finalizarPartida(true);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Aún así intentar finalizar después de un momento
+                    setTimeout(() => {
+                        finalizarPartida(true);
+                    }, 2000);
+                });
+        }, 3000); // Esperar 3 segundos para recopilar datos
+    }
+
+    // Obtener estado de la partida
+    function obtenerEstado() {
+        fetch(`/api/partida-preguntas/${codigoPartida}/estado`)
+            .then(response => response.json())
+            .then(data => {
+                // Si la partida está finalizada, redirigir
+                if (data.estado === 'finalizada') {
+                    if (intervaloCronometro) clearInterval(intervaloCronometro);
+                    if (intervaloRanking) clearInterval(intervaloRanking);
+                    window.location.href = `/juegos/partida-preguntas/${codigoPartida}/finalizado`;
+                    return;
+                }
+
+                if (data.fechaInicioPrimerJugador && !fechaInicioPrimerJugador) {
+                    fechaInicioPrimerJugador = data.fechaInicioPrimerJugador;
+                    iniciarCronometro();
+                } else if (data.fechaInicioPrimerJugador && fechaInicioPrimerJugador !== data.fechaInicioPrimerJugador) {
+                    // Actualizar si cambió
+                    fechaInicioPrimerJugador = data.fechaInicioPrimerJugador;
+                    if (!intervaloCronometro) {
+                        iniciarCronometro();
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    // Finalizar partida - usar delegación de eventos para botones creados dinámicamente
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.id === 'btn-finalizar') {
+            if (confirm('¿Estás seguro de que quieres finalizar la partida? No podrás cambiar tus respuestas.')) {
+                finalizarPartida();
+            }
+        }
+    });
+
+    function finalizarPartida(porTiempo = false) {
+        fetch(`/juegos/partida-preguntas/${codigoPartida}/finalizar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                if (intervaloCronometro) clearInterval(intervaloCronometro);
+                if (intervaloRanking) clearInterval(intervaloRanking);
+                
+                if (porTiempo) {
+                    // Redirigir automáticamente sin alerta
+                    window.location.href = `/juegos/partida-preguntas/${codigoPartida}/finalizado`;
+                } else {
+                    window.location.href = `/juegos/partida-preguntas/${codigoPartida}/finalizado`;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            if (!porTiempo) {
+                alert('Error al finalizar la partida');
+            }
+            // Aún así redirigir si es por tiempo
+            if (porTiempo) {
+                window.location.href = `/juegos/partida-preguntas/${codigoPartida}/finalizado`;
+            }
+        });
+    }
+
+    // Polling de ranking
+    function iniciarPollingRanking() {
+        actualizarRanking();
+        intervaloRanking = setInterval(() => {
+            actualizarRanking();
+            // También verificar si la partida fue finalizada por tiempo
+            obtenerEstado();
+        }, 3000); // Cada 3 segundos
+    }
+
+    function actualizarRanking() {
+        fetch(`/api/partida-preguntas/${codigoPartida}/ranking`)
+            .then(response => response.json())
+            .then(data => {
+                mostrarRanking(data);
+            })
+            .catch(error => console.error('Error:', error));
+
+        // También verificar estado para actualizar cronómetro si es necesario
+        obtenerEstado();
+    }
+
+    function mostrarRanking(ranking) {
+        const container = document.getElementById('ranking-container');
+        
+        if (ranking.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #666;">Aún no hay resultados</p>';
+            return;
+        }
+
+        let html = '<ol style="padding-left: 1.5rem; margin: 0;">';
+        ranking.forEach((participante, index) => {
+            const posicion = index + 1;
+            const emoji = posicion === 1 ? '🥇' : posicion === 2 ? '🥈' : posicion === 3 ? '🥉' : '';
+            html += `
+                <li style="margin-bottom: 0.5rem;">
+                    <div class="participante-item ${participante.estado}">
+                        <strong>${emoji} ${participante.nombre}</strong><br>
+                        <small>
+                            ${participante.aciertos} aciertos
+                            ${participante.tiempoTotal ? ` • ${formatearTiempo(participante.tiempoTotal)}` : ''}
+                        </small>
+                    </div>
+                </li>
+            `;
+        });
+        html += '</ol>';
+        container.innerHTML = html;
+    }
+
+    function formatearTiempo(segundos) {
+        const min = Math.floor(segundos / 60);
+        const seg = segundos % 60;
+        return `${min}:${String(seg).padStart(2, '0')}`;
+    }
+
+    // Si ya está jugando, cargar preguntas automáticamente
+    {% if partida.participantes[participanteId].estado == 'jugando' %}
+        cargarPreguntas();
+        iniciarCronometro();
+        iniciarPollingRanking();
+    {% elseif partida.fechaInicioPrimerJugador %}
+        iniciarCronometro();
+        iniciarPollingRanking();
+    {% else %}
+        // Polling para cuando alguien inicie
+        setInterval(obtenerEstado, 2000);
+    {% endif %}
+
+    // Limpiar intervalos al salir
+    window.addEventListener('beforeunload', function() {
+        if (intervaloCronometro) clearInterval(intervaloCronometro);
+        if (intervaloRanking) clearInterval(intervaloRanking);
+    });
+</script>
+{% endblock %}
+

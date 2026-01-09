@@ -1,0 +1,280 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Partida Finalizada - Gamificación - BISPOL{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .ranking-item {
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 8px;
+            border-left: 4px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+
+        .ranking-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .ranking-item.posicion-1 {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            border-left-color: #ffd700;
+        }
+
+        .ranking-item.posicion-2 {
+            background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
+            border-left-color: #c0c0c0;
+        }
+
+        .ranking-item.posicion-3 {
+            background: linear-gradient(135deg, #cd7f32 0%, #e6a85c 100%);
+            border-left-color: #cd7f32;
+        }
+
+        .medalla {
+            font-size: 2rem;
+            margin-right: 1rem;
+        }
+
+        .resultados-participante {
+            background: #e3f2fd;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .pregunta-resultado {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .pregunta-resultado.correcta {
+            border-color: #28a745;
+            background-color: #f8fff9;
+        }
+
+        .pregunta-resultado.incorrecta {
+            border-color: #dc3545;
+            background-color: #fff5f5;
+        }
+
+        .pregunta-resultado.en-blanco {
+            border-color: #6c757d;
+            background-color: #f8f9fa;
+        }
+
+        .opcion-resultado {
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 4px;
+        }
+
+        .opcion-resultado.correcta {
+            background-color: #d4edda;
+            border-left: 3px solid #28a745;
+        }
+
+        .opcion-resultado.seleccionada-incorrecta {
+            background-color: #f8d7da;
+            border-left: 3px solid #dc3545;
+        }
+
+        .opcion-resultado.seleccionada {
+            background-color: #e3f2fd;
+            border-left: 3px solid var(--color-primary);
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div style="max-width: 1000px; margin: 2rem auto; padding: 0 1rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">🏆 Partida Finalizada</h1>
+        <p style="color: #666;">Código de partida: <strong>{{ codigo }}</strong></p>
+    </div>
+
+    {% if participanteId and partida.participantes[participanteId] %}
+        {% set miResultado = partida.participantes[participanteId] %}
+        <div class="resultados-participante">
+            <h3 style="color: var(--color-primary); margin-bottom: 1rem;">Tus Resultados</h3>
+            <div class="row">
+                <div class="col-md-3">
+                    <p style="margin: 0;"><strong>Aciertos:</strong></p>
+                    <p style="font-size: 1.5rem; color: #28a745; font-weight: bold;">{{ miResultado.aciertos }}</p>
+                </div>
+                <div class="col-md-3">
+                    <p style="margin: 0;"><strong>Errores:</strong></p>
+                    <p style="font-size: 1.5rem; color: #dc3545; font-weight: bold;">{{ miResultado.errores }}</p>
+                </div>
+                <div class="col-md-3">
+                    <p style="margin: 0;"><strong>En blanco:</strong></p>
+                    <p style="font-size: 1.5rem; color: #6c757d; font-weight: bold;">{{ miResultado.enBlanco }}</p>
+                </div>
+                <div class="col-md-3">
+                    <p style="margin: 0;"><strong>Nota:</strong></p>
+                    <p style="font-size: 1.5rem; color: var(--color-primary); font-weight: bold;">{{ miResultado.nota|number_format(2) }}/10</p>
+                </div>
+            </div>
+            {% if miResultado.tiempoTotal %}
+                {% set minutos = (miResultado.tiempoTotal // 60) %}
+                {% set segundos = (miResultado.tiempoTotal % 60) %}
+                <p style="margin-top: 1rem; margin-bottom: 0;"><strong>Tiempo:</strong> {{ minutos }} min {{ segundos }} seg</p>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header" style="background: var(--color-primary); color: white;">
+            <h3 style="margin: 0;">Ranking Final</h3>
+        </div>
+        <div class="card-body">
+            {% if ranking|length > 0 %}
+                {% for participante in ranking %}
+                    <div class="ranking-item posicion-{{ loop.index <= 3 ? loop.index : '' }}">
+                        <div style="display: flex; align-items: center;">
+                            <span class="medalla">
+                                {% if loop.index == 1 %}🥇
+                                {% elseif loop.index == 2 %}🥈
+                                {% elseif loop.index == 3 %}🥉
+                                {% else %}{{ loop.index }}.
+                                {% endif %}
+                            </span>
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0; color: #333;">
+                                    {{ participante.nombre }}
+                                    {% if participanteId == participante.id %}
+                                        <span style="color: var(--color-primary);">(Tú)</span>
+                                    {% endif %}
+                                </h4>
+                                <div style="display: flex; gap: 2rem; margin-top: 0.5rem;">
+                                    <span><strong>Aciertos:</strong> {{ participante.aciertos }}</span>
+                                    <span><strong>Errores:</strong> {{ participante.errores }}</span>
+                                    <span><strong>En blanco:</strong> {{ participante.enBlanco }}</span>
+                                    <span><strong>Nota:</strong> {{ participante.nota|number_format(2) }}/10</span>
+                                    {% if participante.tiempoTotal %}
+                                        {% set minutos = (participante.tiempoTotal // 60) %}
+                                        {% set segundos = (participante.tiempoTotal % 60) %}
+                                        <span><strong>Tiempo:</strong> {{ minutos }} min {{ segundos }} seg</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p style="text-align: center; color: #666;">Aún no hay resultados disponibles</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if preguntasConRespuestas|length > 0 %}
+        <div class="card" style="margin-top: 2rem;">
+            <div class="card-header" style="background: var(--color-primary); color: white;">
+                <h3 style="margin: 0;">📝 Revisión de Preguntas</h3>
+            </div>
+            <div class="card-body">
+                {% for pregunta in preguntasConRespuestas %}
+                    <div class="pregunta-resultado {% if pregunta.esCorrecta %}correcta{% elseif pregunta.respuestaParticipante %}incorrecta{% else %}en-blanco{% endif %}">
+                        <div style="margin-bottom: 1rem;">
+                            <h4 style="margin: 0 0 0.5rem 0; color: var(--color-primary);">
+                                Pregunta {{ loop.index }}
+                            </h4>
+                            {% if pregunta.tema %}
+                                <p style="margin: 0.25rem 0; color: #666;">
+                                    <strong>Tema:</strong> {{ pregunta.tema }}
+                                </p>
+                            {% endif %}
+                            {% if pregunta.ley %}
+                                <p style="margin: 0.25rem 0; color: #666;">
+                                    <strong>Ley:</strong> {{ pregunta.ley }}
+                                </p>
+                            {% endif %}
+                        </div>
+                        <p style="font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600;">{{ pregunta.texto }}</p>
+                        
+                        <div class="opciones-resultado">
+                            {% set esCorrectaA = pregunta.respuestaCorrecta == 'A' %}
+                            {% set esSeleccionadaA = pregunta.respuestaParticipante == 'A' %}
+                            {% set esIncorrectaA = esSeleccionadaA and not esCorrectaA %}
+                            <div class="opcion-resultado {% if esCorrectaA %}correcta{% elseif esIncorrectaA %}seleccionada-incorrecta{% endif %}">
+                                <strong>A)</strong> {{ pregunta.opcionA }}
+                                {% if esCorrectaA %}
+                                    <span style="color: #28a745; margin-left: 1rem;">✓ Correcta</span>
+                                {% elseif esIncorrectaA %}
+                                    <span style="color: #dc3545; margin-left: 1rem;">✗ Tu respuesta (incorrecta)</span>
+                                {% endif %}
+                            </div>
+                            
+                            {% set esCorrectaB = pregunta.respuestaCorrecta == 'B' %}
+                            {% set esSeleccionadaB = pregunta.respuestaParticipante == 'B' %}
+                            {% set esIncorrectaB = esSeleccionadaB and not esCorrectaB %}
+                            <div class="opcion-resultado {% if esCorrectaB %}correcta{% elseif esIncorrectaB %}seleccionada-incorrecta{% endif %}">
+                                <strong>B)</strong> {{ pregunta.opcionB }}
+                                {% if esCorrectaB %}
+                                    <span style="color: #28a745; margin-left: 1rem;">✓ Correcta</span>
+                                {% elseif esIncorrectaB %}
+                                    <span style="color: #dc3545; margin-left: 1rem;">✗ Tu respuesta (incorrecta)</span>
+                                {% endif %}
+                            </div>
+                            
+                            {% set esCorrectaC = pregunta.respuestaCorrecta == 'C' %}
+                            {% set esSeleccionadaC = pregunta.respuestaParticipante == 'C' %}
+                            {% set esIncorrectaC = esSeleccionadaC and not esCorrectaC %}
+                            <div class="opcion-resultado {% if esCorrectaC %}correcta{% elseif esIncorrectaC %}seleccionada-incorrecta{% endif %}">
+                                <strong>C)</strong> {{ pregunta.opcionC }}
+                                {% if esCorrectaC %}
+                                    <span style="color: #28a745; margin-left: 1rem;">✓ Correcta</span>
+                                {% elseif esIncorrectaC %}
+                                    <span style="color: #dc3545; margin-left: 1rem;">✗ Tu respuesta (incorrecta)</span>
+                                {% endif %}
+                            </div>
+                            
+                            {% set esCorrectaD = pregunta.respuestaCorrecta == 'D' %}
+                            {% set esSeleccionadaD = pregunta.respuestaParticipante == 'D' %}
+                            {% set esIncorrectaD = esSeleccionadaD and not esCorrectaD %}
+                            <div class="opcion-resultado {% if esCorrectaD %}correcta{% elseif esIncorrectaD %}seleccionada-incorrecta{% endif %}">
+                                <strong>D)</strong> {{ pregunta.opcionD }}
+                                {% if esCorrectaD %}
+                                    <span style="color: #28a745; margin-left: 1rem;">✓ Correcta</span>
+                                {% elseif esIncorrectaD %}
+                                    <span style="color: #dc3545; margin-left: 1rem;">✗ Tu respuesta (incorrecta)</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
+                            {% if pregunta.respuestaParticipante %}
+                                <p style="margin: 0;">
+                                    <strong>Tu respuesta:</strong> 
+                                    <span style="{% if pregunta.esCorrecta %}color: #28a745;{% else %}color: #dc3545;{% endif %}">
+                                        {{ pregunta.respuestaParticipante }}
+                                        {% if pregunta.esCorrecta %}
+                                            ✓ Correcta
+                                        {% else %}
+                                            ✗ Incorrecta
+                                        {% endif %}
+                                    </span>
+                                </p>
+                            {% else %}
+                                <p style="margin: 0; color: #6c757d;">
+                                    <strong>Tu respuesta:</strong> En blanco
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <div style="text-align: center; margin-top: 2rem;">
+        <a href="{{ path('app_partida_preguntas_index') }}" class="btn btn-primary">Crear Nueva Partida</a>
+    </div>
+</div>
+{% endblock %}
+
