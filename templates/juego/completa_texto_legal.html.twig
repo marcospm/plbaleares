@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Completa el Texto Legal - Juegos - BISPOL{% endblock %}
+{% block title %}Completa el Artículo - Gamificación - BISPOL{% endblock %}
 
 {% block stylesheets %}
     {{ parent() }}
@@ -84,7 +84,7 @@
 {% block body %}
 <div style="max-width: 1000px; margin: 2rem auto; padding: 0 1rem;">
     <div style="text-align: center; margin-bottom: 2rem;">
-        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">⚖️ Completa el Texto Legal</h1>
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">⚖️ Completa el Artículo</h1>
         <p style="color: #666;">Lee la ley, el artículo y completa las palabras faltantes en el texto legal.</p>
     </div>
 
@@ -173,6 +173,7 @@
 
     /**
      * Reemplaza palabras en el HTML manteniendo la estructura
+     * Solo reemplaza la primera ocurrencia de cada palabra para que coincida con los campos de entrada
      */
     function ocultarPalabrasEnHTML(html, palabrasAOcultar) {
         let htmlResultado = html;
@@ -182,9 +183,19 @@
         
         palabrasAOcultar.forEach((palabra, index) => {
             // Crear regex que busca la palabra como palabra completa (respetando mayúsculas/minúsculas)
+            // Usar replace con función para reemplazar solo la primera ocurrencia
             const regex = new RegExp(`\\b${palabra.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
             const reemplazo = `<span class="palabra-oculta" data-palabra-index="${index}" data-palabra-original="${palabra.replace(/"/g, '&quot;')}">___</span>`;
-            htmlResultado = htmlResultado.replace(regex, reemplazo);
+            
+            // Reemplazar solo la primera ocurrencia
+            let primeraOcurrencia = true;
+            htmlResultado = htmlResultado.replace(regex, (match) => {
+                if (primeraOcurrencia) {
+                    primeraOcurrencia = false;
+                    return reemplazo;
+                }
+                return match; // Mantener las demás ocurrencias sin cambiar
+            });
         });
         
         return htmlResultado;
@@ -288,6 +299,24 @@
         // Ocultar palabras en el HTML
         const htmlConOcultas = ocultarPalabrasEnHTML(textoLegalHTML, palabrasOcultas);
         document.getElementById('texto-legal').innerHTML = htmlConOcultas;
+        
+        // Verificar que el número de palabras ocultas en el HTML coincida con el número de palabras seleccionadas
+        const palabrasOcultasEnHTML = document.querySelectorAll('.palabra-oculta');
+        if (palabrasOcultasEnHTML.length !== palabrasOcultas.length) {
+            console.warn(`Advertencia: Se esperaban ${palabrasOcultas.length} palabras ocultas pero se encontraron ${palabrasOcultasEnHTML.length}. Ajustando...`);
+            // Si hay más palabras ocultas en el HTML que las seleccionadas, ajustar el array
+            // Esto puede pasar si una palabra aparece múltiples veces y se reemplazó más de una vez
+            palabrasOcultas.length = palabrasOcultasEnHTML.length;
+            palabrasOriginales.length = palabrasOcultasEnHTML.length;
+            // Actualizar las palabras originales basándose en los data attributes
+            palabrasOcultasEnHTML.forEach((span, index) => {
+                const palabraOriginal = span.getAttribute('data-palabra-original');
+                if (palabraOriginal && index < palabrasOcultas.length) {
+                    palabrasOcultas[index] = palabraOriginal;
+                    palabrasOriginales[index] = palabraOriginal;
+                }
+            });
+        }
         
         // Crear campos de entrada para cada palabra oculta
         const camposContainer = document.getElementById('campos-palabras');

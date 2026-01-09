@@ -15,19 +15,19 @@ class JuegoController extends AbstractController
     #[Route('/juegos', name: 'app_juego_index')]
     public function index(): Response
     {
-        return $this->redirectToRoute('app_juego_preguntas_sin_opciones');
-    }
-
-    #[Route('/juegos/preguntas-sin-opciones', name: 'app_juego_preguntas_sin_opciones')]
-    public function preguntasSinOpciones(): Response
-    {
-        return $this->render('juego/preguntas_sin_opciones.html.twig');
+        return $this->redirectToRoute('app_juego_adivina_numero_articulo');
     }
 
     #[Route('/juegos/adivina-numero-articulo', name: 'app_juego_adivina_numero_articulo')]
     public function adivinaNumeroArticulo(): Response
     {
         return $this->render('juego/adivina_numero_articulo.html.twig');
+    }
+
+    #[Route('/juegos/adivina-nombre-articulo', name: 'app_juego_adivina_nombre_articulo')]
+    public function adivinaNombreArticulo(): Response
+    {
+        return $this->render('juego/adivina_nombre_articulo.html.twig');
     }
 
     #[Route('/juegos/completa-fecha-ley', name: 'app_juego_completa_fecha_ley')]

@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}¿Qué Número Tiene el Artículo? - Gamificación - BISPOL{% endblock %}
+{% block title %}¿Cómo se Llama el Artículo? - Gamificación - BISPOL{% endblock %}
 
 {% block stylesheets %}
     {{ parent() }}
@@ -54,8 +54,8 @@
 {% block body %}
 <div style="max-width: 800px; margin: 2rem auto; padding: 0 1rem;">
     <div style="text-align: center; margin-bottom: 2rem;">
-        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">🔢 ¿Qué Número Tiene el Artículo?</h1>
-        <p style="color: #666;">Lee la ley y el nombre del artículo. ¿Sabes cuál es su número?</p>
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">📝 ¿Cómo se Llama el Artículo?</h1>
+        <p style="color: #666;">Lee la ley y el número del artículo. ¿Sabes cuál es su nombre?</p>
     </div>
 
     <div id="juego-container" class="juego-container">
@@ -67,14 +67,14 @@
                         <p id="ley-nombre" style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #333;"></p>
                     </div>
                     <div style="background: #fff3cd; padding: 1.5rem; border-radius: 8px;">
-                        <h3 style="margin: 0 0 0.5rem 0; color: var(--color-primary);">Nombre del artículo:</h3>
-                        <p id="nombre-articulo" style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #333;"></p>
+                        <h3 style="margin: 0 0 0.5rem 0; color: var(--color-primary);">Número del artículo:</h3>
+                        <p id="numero-articulo" style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #333;"></p>
                     </div>
                 </div>
 
                 <div style="margin-bottom: 1.5rem;">
-                    <label for="respuesta" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">Número del artículo (incluye sufijo si tiene, ej: "1", "2 bis", "3 ter"):</label>
-                    <input type="text" id="respuesta" class="form-control" placeholder="Ej: 1, 2 bis, 3 ter..." style="font-size: 1rem; padding: 0.75rem;">
+                    <label for="respuesta" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">Nombre del artículo:</label>
+                    <input type="text" id="respuesta" class="form-control" placeholder="Escribe el nombre del artículo..." style="font-size: 1rem; padding: 0.75rem;">
                 </div>
 
                 <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
@@ -105,8 +105,8 @@
     let articulos = [];
     let indiceActual = 0;
     let articuloActual = null;
-    let aciertos = parseInt(sessionStorage.getItem('adivinaNumeroArticuloAciertos') || '0');
-    let errores = parseInt(sessionStorage.getItem('adivinaNumeroArticuloErrores') || '0');
+    let aciertos = parseInt(sessionStorage.getItem('adivinaNombreArticuloAciertos') || '0');
+    let errores = parseInt(sessionStorage.getItem('adivinaNombreArticuloErrores') || '0');
 
 
     function cargarArticulos() {
@@ -161,8 +161,8 @@
             document.getElementById('ley-nombre').textContent = 'Ley no especificada';
         }
         
-        // Mostrar el nombre del artículo
-        document.getElementById('nombre-articulo').textContent = articuloActual.nombre || 'Sin nombre';
+        // Mostrar el número del artículo
+        document.getElementById('numero-articulo').textContent = articuloActual.numeroCompleto || articuloActual.numero || 'Sin número';
         
         document.getElementById('respuesta').value = '';
         document.getElementById('respuesta').disabled = false;
@@ -181,13 +181,9 @@
 
         // Comparar de forma flexible (sin acentos, minúsculas)
         const respuestaNormalizada = normalizarTexto(respuesta);
-        const numeroCompletoNormalizado = normalizarTexto(articuloActual.numeroCompleto);
+        const nombreNormalizado = normalizarTexto(articuloActual.nombre);
         
-        // También comparar solo el número si no hay sufijo
-        const numeroNormalizado = normalizarTexto(articuloActual.numero.toString());
-        
-        const esCorrecta = respuestaNormalizada === numeroCompletoNormalizado || 
-                          respuestaNormalizada === numeroNormalizado;
+        const esCorrecta = respuestaNormalizada === nombreNormalizado;
         
         const feedback = document.getElementById('feedback');
         feedback.style.display = 'block';
@@ -196,7 +192,7 @@
         feedback.style.backgroundColor = '#e9ecef';
         feedback.style.borderLeft = '4px solid #6c757d';
         feedback.style.color = '#212529';
-        feedback.innerHTML = '<strong>Número correcto:</strong> <strong>' + articuloActual.numeroCompleto + '</strong>';
+        feedback.innerHTML = '<strong>Nombre correcto:</strong> <strong>' + (articuloActual.nombre || 'Sin nombre') + '</strong>';
 
 
         document.getElementById('respuesta').disabled = true;
