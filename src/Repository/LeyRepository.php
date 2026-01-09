@@ -22,9 +22,12 @@ class LeyRepository extends ServiceEntityRepository
      */
     public function findLeyesConFormatoFecha(): array
     {
+        // Excluir ley "Accidentes de Tráfico"
         $qb = $this->createQueryBuilder('l')
             ->where('l.activo = :activo')
+            ->andWhere('l.nombre != :nombreLeyExcluida')
             ->setParameter('activo', true)
+            ->setParameter('nombreLeyExcluida', 'Accidentes de Tráfico')
             ->orderBy('l.nombre', 'ASC');
 
         $leyes = $qb->getQuery()->getResult();

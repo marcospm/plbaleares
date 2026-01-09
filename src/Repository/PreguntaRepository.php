@@ -22,12 +22,22 @@ class PreguntaRepository extends ServiceEntityRepository
     public function findAleatoriaActiva(): ?Pregunta
     {
         // Primero obtener el total de preguntas activas con texto
+        // Excluir ley "Accidentes de Tráfico"
+        $subquery = $this->getEntityManager()->createQueryBuilder()
+            ->select('l2.id')
+            ->from('App\Entity\Ley', 'l2')
+            ->where('l2.nombre = :nombreLeyExcluida')
+            ->setMaxResults(1);
+
         $total = $this->createQueryBuilder('p')
             ->select('COUNT(p.id)')
+            ->innerJoin('p.ley', 'l')
             ->where('p.activo = :activo')
+            ->andWhere('l.id != (' . $subquery->getDQL() . ')')
             ->andWhere('p.texto IS NOT NULL')
             ->andWhere('p.texto != :vacio')
             ->setParameter('activo', true)
+            ->setParameter('nombreLeyExcluida', 'Accidentes de Tráfico')
             ->setParameter('vacio', '')
             ->getQuery()
             ->getSingleScalarResult();
@@ -40,15 +50,23 @@ class PreguntaRepository extends ServiceEntityRepository
         $offset = random_int(0, max(0, $total - 1));
 
         // Obtener la pregunta en esa posición
+        $subquery2 = $this->getEntityManager()->createQueryBuilder()
+            ->select('l3.id')
+            ->from('App\Entity\Ley', 'l3')
+            ->where('l3.nombre = :nombreLeyExcluida2')
+            ->setMaxResults(1);
+
         return $this->createQueryBuilder('p')
             ->innerJoin('p.tema', 't')
             ->addSelect('t')
             ->innerJoin('p.ley', 'l')
             ->addSelect('l')
             ->where('p.activo = :activo')
+            ->andWhere('l.id != (' . $subquery2->getDQL() . ')')
             ->andWhere('p.texto IS NOT NULL')
             ->andWhere('p.texto != :vacio')
             ->setParameter('activo', true)
+            ->setParameter('nombreLeyExcluida2', 'Accidentes de Tráfico')
             ->setParameter('vacio', '')
             ->orderBy('p.id', 'ASC')
             ->setFirstResult($offset)
@@ -66,12 +84,22 @@ class PreguntaRepository extends ServiceEntityRepository
     {
         // Primero obtener solo los IDs de las preguntas activas con texto
         // Esto es mucho más rápido que cargar todas las entidades
+        // Excluir ley "Accidentes de Tráfico"
+        $subquery = $this->getEntityManager()->createQueryBuilder()
+            ->select('l2.id')
+            ->from('App\Entity\Ley', 'l2')
+            ->where('l2.nombre = :nombreLeyExcluida')
+            ->setMaxResults(1);
+
         $ids = $this->createQueryBuilder('p')
             ->select('p.id')
+            ->innerJoin('p.ley', 'l')
             ->where('p.activo = :activo')
+            ->andWhere('l.id != (' . $subquery->getDQL() . ')')
             ->andWhere('p.texto IS NOT NULL')
             ->andWhere('p.texto != :vacio')
             ->setParameter('activo', true)
+            ->setParameter('nombreLeyExcluida', 'Accidentes de Tráfico')
             ->setParameter('vacio', '')
             ->getQuery()
             ->getResult();
@@ -117,14 +145,24 @@ class PreguntaRepository extends ServiceEntityRepository
     public function findAleatoriasActivasPorDificultad(int $limit = 20, ?string $dificultad = null): array
     {
         // Obtener solo los IDs de las preguntas activas con texto
+        // Excluir ley "Accidentes de Tráfico"
+        $subquery = $this->getEntityManager()->createQueryBuilder()
+            ->select('l2.id')
+            ->from('App\Entity\Ley', 'l2')
+            ->where('l2.nombre = :nombreLeyExcluida')
+            ->setMaxResults(1);
+
         $qb = $this->createQueryBuilder('p')
             ->select('p.id')
             ->innerJoin('p.tema', 't')
+            ->innerJoin('p.ley', 'l')
             ->where('p.activo = :activo')
             ->andWhere('t.activo = :activo')
+            ->andWhere('l.id != (' . $subquery->getDQL() . ')')
             ->andWhere('p.texto IS NOT NULL')
             ->andWhere('p.texto != :vacio')
             ->setParameter('activo', true)
+            ->setParameter('nombreLeyExcluida', 'Accidentes de Tráfico')
             ->setParameter('vacio', '');
 
         // Filtrar por dificultad si se especifica

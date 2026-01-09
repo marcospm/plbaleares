@@ -118,14 +118,23 @@ class ArticuloRepository extends ServiceEntityRepository
     public function findAleatoriosConNombre(int $limit = 20): array
     {
         // Obtener todos los artículos activos con nombre y ley cargada
+        // Excluir ley "Accidentes de Tráfico"
+        $subquery = $this->getEntityManager()->createQueryBuilder()
+            ->select('l2.id')
+            ->from('App\Entity\Ley', 'l2')
+            ->where('l2.nombre = :nombreLeyExcluida')
+            ->setMaxResults(1);
+
         $articulos = $this->createQueryBuilder('a')
             ->innerJoin('a.ley', 'l')
             ->addSelect('l')
             ->where('a.activo = :activo')
             ->andWhere('l.activo = :activo')
+            ->andWhere('l.id != (' . $subquery->getDQL() . ')')
             ->andWhere('a.nombre IS NOT NULL')
             ->andWhere('a.nombre != :vacio')
             ->setParameter('activo', true)
+            ->setParameter('nombreLeyExcluida', 'Accidentes de Tráfico')
             ->setParameter('vacio', '')
             ->getQuery()
             ->getResult();
@@ -196,14 +205,23 @@ class ArticuloRepository extends ServiceEntityRepository
     public function findAleatoriosConTextoLegal(int $limit = 20): array
     {
         // Obtener todos los artículos activos con textoLegal y ley cargada
+        // Excluir ley "Accidentes de Tráfico"
+        $subquery = $this->getEntityManager()->createQueryBuilder()
+            ->select('l2.id')
+            ->from('App\Entity\Ley', 'l2')
+            ->where('l2.nombre = :nombreLeyExcluida')
+            ->setMaxResults(1);
+
         $articulos = $this->createQueryBuilder('a')
             ->innerJoin('a.ley', 'l')
             ->addSelect('l')
             ->where('a.activo = :activo')
             ->andWhere('l.activo = :activo')
+            ->andWhere('l.id != (' . $subquery->getDQL() . ')')
             ->andWhere('a.textoLegal IS NOT NULL')
             ->andWhere('a.textoLegal != :vacio')
             ->setParameter('activo', true)
+            ->setParameter('nombreLeyExcluida', 'Accidentes de Tráfico')
             ->setParameter('vacio', '')
             ->getQuery()
             ->getResult();
