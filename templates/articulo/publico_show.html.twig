@@ -8,12 +8,16 @@
         <h1>Artículo {{ articulo.getNumeroCompleto() }}{% if articulo.nombre %} - {{ articulo.nombre }}{% endif %}</h1>
     </div>
     <div class="card-body">
-        {% if articulo.nombre %}
         <div class="form-group">
-            <label class="form-label"><strong>Nombre:</strong></label>
-            <p style="font-size: 1.1rem; color: var(--color-primary);">{{ articulo.nombre }}</p>
+            <label class="form-label"><strong>{% if articulo.nombre %}Nombre:{% else %}Número:{% endif %}</strong></label>
+            <p style="font-size: 1.1rem; color: var(--color-primary);">
+                {% if articulo.nombre %}
+                    {{ articulo.nombre }} - {{ articulo.getNumeroCompleto() }}
+                {% else %}
+                    {{ articulo.getNumeroCompleto() }}
+                {% endif %}
+            </p>
         </div>
-        {% endif %}
         <div class="form-group">
             <label class="form-label"><strong>Ley:</strong></label>
             <p style="font-size: 1.1rem; color: var(--color-primary);">{{ articulo.ley.nombre }}</p>
