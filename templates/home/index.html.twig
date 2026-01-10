@@ -1,23 +1,404 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}BISPOL - Aula Virtual{% endblock %}
+{% block title %}BISPOL - Aula Virtual para Oposiciones{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, #0071B5 0%, #005a8f 100%);
+            color: white;
+            padding: 2rem 2rem;
+            text-align: center;
+            margin: -2rem -1rem 2rem -1rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M 100 0 L 0 0 0 100" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .hero-logo {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            margin: 0 auto 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        .hero-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+        }
+        
+        .hero-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .hero-subtitle {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            opacity: 0.95;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.5;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn-hero-primary {
+            background: #FF9800;
+            color: white;
+            padding: 0.75rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        
+        .btn-hero-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.5);
+            background: #fb8c00;
+        }
+        
+        .btn-hero-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.75rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 50px;
+            border: 2px solid white;
+            transition: all 0.3s ease;
+            display: inline-block;
+            backdrop-filter: blur(10px);
+        }
+        
+        .btn-hero-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .features-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #0071B5;
+            margin-bottom: 1rem;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, #FF9800, #FF5722);
+            border-radius: 2px;
+        }
+        
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 3rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+        
+        .feature-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2.5rem;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border: 1px solid #f0f0f0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #0071B5, #00BCD4);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+        }
+        
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .feature-icon {
+            font-size: 4.5rem;
+            margin-bottom: 1.5rem;
+            display: block;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+        
+        .feature-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #0071B5;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-description {
+            color: #666;
+            line-height: 1.7;
+            font-size: 1rem;
+        }
+        
+        .stats-section {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 4rem 2rem;
+            margin: 4rem -1rem;
+            border-radius: 0;
+        }
+        
+        .stats-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #0071B5;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-description {
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        
+        .cta-section {
+            background: linear-gradient(135deg, #0071B5 0%, #005a8f 100%);
+            color: white;
+            padding: 5rem 2rem;
+            text-align: center;
+            margin: 4rem -1rem;
+            border-radius: 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        
+        .cta-content {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .cta-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        .cta-description {
+            font-size: 1.3rem;
+            margin-bottom: 2.5rem;
+            opacity: 0.95;
+        }
+        
+        .btn-cta {
+            background: #FF9800;
+            color: white;
+            padding: 1.2rem 3rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 50px;
+            box-shadow: 0 6px 25px rgba(255, 152, 0, 0.4);
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        
+        .btn-cta:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 30px rgba(255, 152, 0, 0.5);
+            background: #fb8c00;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 1.75rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1rem;
+            }
+            
+            .hero-logo {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .cta-title {
+                font-size: 2rem;
+            }
+            
+            .cta-description {
+                font-size: 1.1rem;
+            }
+            
+            .btn-hero-primary,
+            .btn-hero-secondary,
+            .btn-cta {
+                width: 100%;
+                max-width: 300px;
+                padding: 0.9rem 2rem;
+                font-size: 1rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .hero-section {
+                padding: 3rem 1rem;
+            }
+            
+            .hero-title {
+                font-size: 1.75rem;
+            }
+            
+            .section-title {
+                font-size: 1.75rem;
+            }
+        }
+    </style>
+{% endblock %}
 
 {% block body %}
 <div style="min-height: 80vh;">
     <!-- Hero Section -->
-    <div class="hero-section" style="background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color: white; padding: 2rem 2rem; text-align: center; margin: -2rem -1rem 2rem -1rem; border-bottom: 3px solid var(--color-secondary);">
-        <div class="container" style="max-width: 1200px; margin: 0 auto;">
-            <div style="display: flex; justify-content: center; margin-bottom: 2rem;">
-                <div style="width: 150px; height: 150px; background: rgba(255, 255, 255, 0.15); border-radius: 12px; display: flex; align-items: center; justify-content: center; padding: 15px; border: 2px solid rgba(255, 255, 255, 0.3); box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-                    <img src="{{ asset('images/logo-bispol.png') }}" alt="Logo BISPOL" style="width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
-                </div>
+    <div class="hero-section">
+        <div class="hero-content">
+            <div class="hero-logo">
+                <img src="{{ asset('images/logo-bispol.png') }}" alt="Logo BISPOL">
             </div>
+            <h1 class="hero-title">BISPOL - Aula Virtual</h1>
+            <p class="hero-subtitle">
+                La plataforma más completa para preparar tu oposición en las Islas Baleares. 
+                Accede a exámenes personalizados, contenido actualizado, planificaciones de estudio 
+                y herramientas de gamificación para optimizar tu aprendizaje.
+            </p>
             {% if not app.user %}
-                <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
-                    <a href="{{ path('app_register') }}" class="btn hero-btn" style="background: var(--color-secondary); color: white; padding: 0.6rem 1.5rem; font-size: 0.95rem; font-weight: 600; text-decoration: none; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: transform 0.3s;">
-                        Solicitar Cuenta
+                <div class="hero-buttons">
+                    <a href="{{ path('app_register') }}" class="btn-hero-primary">
+                        Solicita una cuenta
                     </a>
-                    <a href="{{ path('app_login') }}" class="btn hero-btn" style="background: rgba(255,255,255,0.2); color: white; padding: 0.6rem 1.5rem; font-size: 0.95rem; font-weight: 600; text-decoration: none; border-radius: 6px; border: 2px solid white; transition: transform 0.3s;">
+                    <a href="{{ path('app_login') }}" class="btn-hero-secondary">
                         Iniciar Sesión
                     </a>
                 </div>
@@ -25,316 +406,212 @@
         </div>
     </div>
 
-    <div class="container" style="max-width: 1200px;">
-        <!-- Servicios -->
-        <div style="margin-bottom: 4rem;">
-            <h2 style="text-align: center; color: var(--color-primary); margin-bottom: 3rem; font-size: 2.5rem;">
-                Nuestros Servicios
-            </h2>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
+    <!-- Features Section -->
+    <div class="features-section">
+        <h2 class="section-title">Todo lo que necesitas para tu preparación</h2>
+        <p class="section-subtitle">
+            Herramientas profesionales diseñadas específicamente para opositores 
+            que buscan el éxito en las convocatorias de las Islas Baleares
+        </p>
+        
+        <div class="features-grid">
                 <!-- Exámenes Personalizados -->
-                <div class="card" style="text-align: center; transition: transform 0.3s;">
-                    <div class="card-body" style="padding: 2rem;">
-                        <div style="font-size: 4rem; margin-bottom: 1rem;">📝</div>
-                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
-                            Exámenes Personalizados
-                        </h3>
-                        <p style="color: var(--color-text-light); line-height: 1.6;">
-                            Crea exámenes adaptados a tus necesidades. Elige los temas, la dificultad (fácil, moderada, difícil) y el número de preguntas. Disponible para temario general y municipios específicos.
-                        </p>
-                    </div>
+            <div class="feature-card">
+                <span class="feature-icon">📝</span>
+                <h3 class="feature-title">Exámenes Personalizados</h3>
+                <p class="feature-description">
+                    Crea exámenes totalmente adaptados a tus necesidades. Elige los temas, 
+                    la dificultad (fácil, moderada, difícil) y el número de preguntas. 
+                    Disponible para temario general y contenido municipal específico.
+                </p>
                 </div>
 
                 <!-- Exámenes Semanales -->
-                <div class="card" style="text-align: center; transition: transform 0.3s;">
-                    <div class="card-body" style="padding: 2rem;">
-                        <div style="font-size: 4rem; margin-bottom: 1rem;">📅</div>
-                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
-                            Exámenes Semanales
-                        </h3>
-                        <p style="color: var(--color-text-light); line-height: 1.6;">
-                            Participa en exámenes semanales programados por tus profesores. Compite con otros opositores, consulta rankings y mejora tu posición. Disponible en modo general y municipal.
-                        </p>
-                    </div>
+            <div class="feature-card">
+                <span class="feature-icon">📅</span>
+                <h3 class="feature-title">Exámenes Semanales</h3>
+                <p class="feature-description">
+                    Participa en exámenes semanales programados por tus profesores. 
+                    Compite con otros opositores, consulta rankings en tiempo real 
+                    y mejora tu posición semana a semana.
+                </p>
                 </div>
 
                 <!-- Planificaciones -->
-                <div class="card" style="text-align: center; transition: transform 0.3s;">
-                    <div class="card-body" style="padding: 2rem;">
-                        <div style="font-size: 4rem; margin-bottom: 1rem;">📋</div>
-                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
-                            Planificaciones de Estudio
-                        </h3>
-                        <p style="color: var(--color-text-light); line-height: 1.6;">
-                            Accede a planificaciones personalizadas creadas por tus profesores. Organiza tu tiempo de estudio con franjas horarias, temas específicos y tareas asignadas. Sigue tu progreso semanal.
-                        </p>
-                    </div>
+            <div class="feature-card">
+                <span class="feature-icon">📋</span>
+                <h3 class="feature-title">Planificaciones Personalizadas</h3>
+                <p class="feature-description">
+                    Accede a planificaciones de estudio creadas por tus profesores. 
+                    Organiza tu tiempo con franjas horarias, temas específicos y 
+                    tareas asignadas. Sigue tu progreso semanal de forma visual.
+                </p>
                 </div>
 
-                <!-- Municipios -->
-                <div class="card" style="text-align: center; transition: transform 0.3s;">
-                    <div class="card-body" style="padding: 2rem;">
-                        <div style="font-size: 4rem; margin-bottom: 1rem;">🏛️</div>
-                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
-                            Contenido Municipal
-                        </h3>
-                        <p style="color: var(--color-text-light); line-height: 1.6;">
-                            Accede a temas y preguntas específicas de tu municipio. Descarga PDFs de temas municipales y realiza exámenes con contenido adaptado a tu convocatoria local.
-                        </p>
-                    </div>
+            <!-- Contenido Municipal -->
+            <div class="feature-card">
+                <span class="feature-icon">🏛️</span>
+                <h3 class="feature-title">Contenido Municipal</h3>
+                <p class="feature-description">
+                    Accede a temas y preguntas específicas de tu municipio. 
+                    Descarga PDFs de temas municipales y realiza exámenes 
+                    con contenido adaptado a tu convocatoria local.
+                </p>
                 </div>
 
                 <!-- Artículos -->
-                <div class="card" style="text-align: center; transition: transform 0.3s;">
-                    <div class="card-body" style="padding: 2rem;">
-                        <div style="font-size: 4rem; margin-bottom: 1rem;">📚</div>
-                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
-                            Explicaciones de Artículos
-                        </h3>
-                        <p style="color: var(--color-text-light); line-height: 1.6;">
-                            Accede a explicaciones sencillas de todos los artículos de las leyes. Haz preguntas y obtén respuestas de la comunidad.
-                        </p>
-                    </div>
+            <div class="feature-card">
+                <span class="feature-icon">📚</span>
+                <h3 class="feature-title">Artículos con Explicaciones</h3>
+                <p class="feature-description">
+                    Accede a explicaciones claras de todos los artículos de las leyes. 
+                    Incluye videos explicativos, texto legal completo y sistema de 
+                    mensajes para resolver tus dudas con la comunidad.
+                </p>
                 </div>
 
                 <!-- Recursos -->
-                <div class="card" style="text-align: center; transition: transform 0.3s;">
-                    <div class="card-body" style="padding: 2rem;">
-                        <div style="font-size: 4rem; margin-bottom: 1rem;">📥</div>
-                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
-                            Recursos de Estudio
-                        </h3>
-                        <p style="color: var(--color-text-light); line-height: 1.6;">
-                            Descarga todos los recursos necesarios para tu preparación. Accede a los 30 temas completos en PDF, temas municipales y materiales adicionales organizados por categorías.
+            <div class="feature-card">
+                <span class="feature-icon">📥</span>
+                <h3 class="feature-title">30 Temas Completos</h3>
+                <p class="feature-description">
+                    Descarga todos los recursos necesarios para tu preparación. 
+                    Accede a los 30 temas completos en PDF, temas municipales 
+                    y materiales adicionales organizados por categorías.
                         </p>
                     </div>
+
+            <!-- Gamificación -->
+            <div class="feature-card">
+                <span class="feature-icon">🎮</span>
+                <h3 class="feature-title">Gamificación</h3>
+                <p class="feature-description">
+                    Aprende divirtiéndote con nuestros juegos interactivos: adivina 
+                    el número del artículo, completa textos legales, juega partidas 
+                    de preguntas en tiempo real con otros opositores y más.
+                </p>
                 </div>
 
-                <!-- Historial y Estadísticas -->
-                <div class="card" style="text-align: center; transition: transform 0.3s;">
-                    <div class="card-body" style="padding: 2rem;">
-                        <div style="font-size: 4rem; margin-bottom: 1rem;">📊</div>
-                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
-                            Seguimiento de Progreso
-                        </h3>
-                        <p style="color: var(--color-text-light); line-height: 1.6;">
-                            Consulta tu historial completo de exámenes, notas y estadísticas detalladas. Visualiza porcentajes por tema, identifica tus fortalezas y áreas de mejora con gráficos y análisis.
+            <!-- Estadísticas -->
+            <div class="feature-card">
+                <span class="feature-icon">📊</span>
+                <h3 class="feature-title">Seguimiento de Progreso</h3>
+                <p class="feature-description">
+                    Consulta tu historial completo de exámenes, notas y estadísticas 
+                    detalladas. Visualiza porcentajes por tema, identifica fortalezas 
+                    y áreas de mejora con gráficos y análisis personalizados.
                         </p>
                     </div>
+
+            <!-- Rankings -->
+            <div class="feature-card">
+                <span class="feature-icon">🏆</span>
+                <h3 class="feature-title">Rankings y Competencia</h3>
+                <p class="feature-description">
+                    Participa en rankings de exámenes semanales. Compara tu rendimiento 
+                    con otros opositores, motívate y mejora tu posición en las 
+                    clasificaciones por dificultad y tipo de examen.
+                </p>
                 </div>
 
-                <!-- Ranking -->
-                <div class="card" style="text-align: center; transition: transform 0.3s;">
-                    <div class="card-body" style="padding: 2rem;">
-                        <div style="font-size: 4rem; margin-bottom: 1rem;">🏆</div>
-                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
-                            Ranking y Competencia
-                        </h3>
-                        <p style="color: var(--color-text-light); line-height: 1.6;">
-                            Participa en rankings de exámenes semanales. Compara tu rendimiento con otros opositores, motívate y mejora tu posición en las clasificaciones.
-                        </p>
-                    </div>
+            <!-- BOIB -->
+            <div class="feature-card">
+                <span class="feature-icon">📋</span>
+                <h3 class="feature-title">Acceso a BOIB</h3>
+                <p class="feature-description">
+                    Consulta el Boletín Oficial de las Islas Baleares directamente 
+                    desde la plataforma. Mantente al día con las publicaciones 
+                    oficiales relevantes para tu oposición.
+                </p>
                 </div>
 
                 <!-- Notificaciones -->
-                <div class="card" style="text-align: center; transition: transform 0.3s;">
-                    <div class="card-body" style="padding: 2rem;">
-                        <div style="font-size: 4rem; margin-bottom: 1rem;">🔔</div>
-                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
-                            Sistema de Notificaciones
-                        </h3>
-                        <p style="color: var(--color-text-light); line-height: 1.6;">
-                            Mantente informado sobre nuevos exámenes semanales, planificaciones, tareas asignadas y respuestas a tus preguntas. Nunca te pierdas una actualización importante.
-                        </p>
-                    </div>
+            <div class="feature-card">
+                <span class="feature-icon">🔔</span>
+                <h3 class="feature-title">Sistema de Notificaciones</h3>
+                <p class="feature-description">
+                    Mantente informado sobre nuevos exámenes semanales, planificaciones, 
+                    tareas asignadas y respuestas a tus preguntas. Nunca te pierdas 
+                    una actualización importante.
+                </p>
                 </div>
 
                 <!-- Retroalimentación -->
-                <div class="card" style="text-align: center; transition: transform 0.3s;">
-                    <div class="card-body" style="padding: 2rem;">
-                        <div style="font-size: 4rem; margin-bottom: 1rem;">💡</div>
-                        <h3 style="color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem;">
-                            Retroalimentación Inmediata
-                        </h3>
-                        <p style="color: var(--color-text-light); line-height: 1.6;">
-                            Recibe explicaciones detalladas de cada pregunta al finalizar el examen. Aprende de tus errores, refuerza tus conocimientos y mejora con cada intento.
-                        </p>
+            <div class="feature-card">
+                <span class="feature-icon">💡</span>
+                <h3 class="feature-title">Retroalimentación Inmediata</h3>
+                <p class="feature-description">
+                    Recibe explicaciones detalladas de cada pregunta al finalizar el examen. 
+                    Aprende de tus errores, refuerza tus conocimientos y mejora 
+                    con cada intento gracias al sistema de retroalimentación completa.
+                </p>
+            </div>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="stats-section">
+            <div class="stats-container">
+                <h2 class="section-title" style="color: #0071B5; margin-bottom: 3rem;">¿Por qué elegir BISPOL?</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-title">30 Temas Completos</div>
+                        <div class="stat-description">Todos los temas de la oposición organizados y accesibles en formato PDF de alta calidad.</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-title">Sistema de Notas Real</div>
+                        <div class="stat-description">Calificación de 0 a 20 puntos con penalización por errores, igual que en la oposición oficial.</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-title">Acceso 24/7</div>
+                        <div class="stat-description">Estudia cuando quieras, desde cualquier dispositivo. Tu progreso se guarda automáticamente.</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-title">Contenido Actualizado</div>
+                        <div class="stat-description">Leyes y artículos actualizados según las bases oficiales de la convocatoria actual.</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-title">Planificación Inteligente</div>
+                        <div class="stat-description">Recibe planificaciones semanales con horarios, temas y tareas específicas para optimizar tu estudio.</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-title">Foro de Preguntas</div>
+                        <div class="stat-description">Haz preguntas sobre artículos y obtén respuestas de profesores y otros opositores.</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-title">Estadísticas Avanzadas</div>
+                        <div class="stat-description">Visualiza tu rendimiento por tema, dificultad y tipo de examen con gráficos y porcentajes detallados.</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-title">Soporte Profesional</div>
+                        <div class="stat-description">Profesores disponibles para resolver dudas, crear exámenes y guiar tu preparación.</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Características -->
-        <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 3rem 2rem; border-radius: 12px; margin-bottom: 3rem;">
-            <h2 style="text-align: center; color: var(--color-primary); margin-bottom: 2rem; font-size: 2rem;">
-                ¿Por qué elegir nuestra plataforma?
-            </h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
-                <div style="display: flex; align-items: start; gap: 1rem;">
-                    <span style="font-size: 2rem;">✅</span>
-                    <div>
-                        <strong style="color: var(--color-primary);">30 Temas Completos</strong>
-                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Todos los temas de la oposición organizados y accesibles en formato PDF.</p>
-                    </div>
-                </div>
-                <div style="display: flex; align-items: start; gap: 1rem;">
-                    <span style="font-size: 2rem;">✅</span>
-                    <div>
-                        <strong style="color: var(--color-primary);">Sistema de Notas</strong>
-                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Sistema de calificación de 0 a 20 puntos con penalización por errores, igual que en la oposición real.</p>
-                    </div>
-                </div>
-                <div style="display: flex; align-items: start; gap: 1rem;">
-                    <span style="font-size: 2rem;">✅</span>
-                    <div>
-                        <strong style="color: var(--color-primary);">Acceso 24/7</strong>
-                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Estudia cuando quieras, desde cualquier dispositivo. Tu progreso se guarda automáticamente.</p>
-                    </div>
-                </div>
-                <div style="display: flex; align-items: start; gap: 1rem;">
-                    <span style="font-size: 2rem;">✅</span>
-                    <div>
-                        <strong style="color: var(--color-primary);">Contenido Actualizado</strong>
-                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Leyes y artículos actualizados según las bases oficiales de la convocatoria.</p>
-                    </div>
-                </div>
-                <div style="display: flex; align-items: start; gap: 1rem;">
-                    <span style="font-size: 2rem;">✅</span>
-                    <div>
-                        <strong style="color: var(--color-primary);">Planificación Personalizada</strong>
-                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Recibe planificaciones semanales con horarios, temas y tareas específicas para optimizar tu estudio.</p>
-                    </div>
-                </div>
-                <div style="display: flex; align-items: start; gap: 1rem;">
-                    <span style="font-size: 2rem;">✅</span>
-                    <div>
-                        <strong style="color: var(--color-primary);">Foro de Preguntas</strong>
-                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Haz preguntas sobre artículos y obtén respuestas de profesores y otros opositores.</p>
-                    </div>
-                </div>
-                <div style="display: flex; align-items: start; gap: 1rem;">
-                    <span style="font-size: 2rem;">✅</span>
-                    <div>
-                        <strong style="color: var(--color-primary);">Estadísticas Detalladas</strong>
-                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Visualiza tu rendimiento por tema, dificultad y tipo de examen con gráficos y porcentajes.</p>
-                    </div>
-                </div>
-                <div style="display: flex; align-items: start; gap: 1rem;">
-                    <span style="font-size: 2rem;">✅</span>
-                    <div>
-                        <strong style="color: var(--color-primary);">Soporte Profesional</strong>
-                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-light);">Profesores disponibles para resolver dudas, crear exámenes y guiar tu preparación.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- CTA Final -->
+        <!-- CTA Section -->
         {% if not app.user %}
-        <div style="text-align: center; padding: 3rem 2rem; background: var(--color-primary); color: white; border-radius: 12px; margin-bottom: 3rem;">
-            <h2 style="font-size: 2rem; margin-bottom: 1rem;">¿Listo para comenzar?</h2>
-            <p style="font-size: 1.2rem; margin-bottom: 2rem; opacity: 0.9;">
+        <div class="cta-section">
+            <div class="cta-content">
+                <h2 class="cta-title">¿Listo para comenzar tu preparación?</h2>
+                <p class="cta-description">
                 Crea tu cuenta gratuita y comienza a preparar tu oposición hoy mismo.
+                    Accede a todas las herramientas y contenido necesario para alcanzar el éxito.
             </p>
-            <a href="{{ path('app_register') }}" class="btn" style="background: var(--color-secondary); color: white; padding: 1rem 2.5rem; font-size: 1.2rem; font-weight: 600; text-decoration: none; border-radius: 8px; display: inline-block; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-                Registrarse Ahora
+                <a href="{{ path('app_register') }}" class="btn-cta">
+                    Solicita una cuenta →
             </a>
+            </div>
         </div>
         {% endif %}
     </div>
 </div>
-
-<style>
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-}
-
-/* Estilos responsive para móviles */
-@media (max-width: 768px) {
-    /* Ajustar hero section en móviles */
-    .hero-section h1 {
-        font-size: 1.5rem !important;
-    }
-    
-    .hero-section h2 {
-        font-size: 1.1rem !important;
-        margin-bottom: 1rem !important;
-    }
-    
-    /* Ajustar logo en móviles */
-    .hero-section div[style*="width: 150px; height: 150px"] {
-        width: 120px !important;
-        height: 120px !important;
-    }
-    
-    /* Ajustar botones del hero */
-    .hero-section .hero-btn {
-        font-size: 0.85rem !important;
-        padding: 0.5rem 1.2rem !important;
-        width: 100%;
-        max-width: 200px;
-    }
-    
-    /* Ajustar padding del hero */
-    .hero-section {
-        padding: 1.5rem 1rem !important;
-    }
-    
-    /* Ajustar grid de servicios */
-    div[style*="grid-template-columns: repeat(auto-fit"] {
-        grid-template-columns: 1fr !important;
-        gap: 1.5rem !important;
-    }
-    
-    /* Ajustar tarjetas de servicios */
-    .card {
-        margin-bottom: 1rem;
-    }
-    
-    /* Ajustar grid de características */
-    div[style*="grid-template-columns: repeat(auto-fit, minmax(250px"] {
-        grid-template-columns: 1fr !important;
-    }
-    
-    /* Ajustar título de servicios */
-    h2[style*="font-size: 2.5rem"] {
-        font-size: 2rem !important;
-    }
-}
-
-@media (max-width: 480px) {
-    /* Ajustes adicionales para pantallas muy pequeñas */
-    .hero-section h1 {
-        font-size: 1.3rem !important;
-    }
-    
-    .hero-section h2 {
-        font-size: 1rem !important;
-    }
-    
-    /* Ajustar logo en pantallas muy pequeñas */
-    .hero-section div[style*="width: 150px; height: 150px"] {
-        width: 100px !important;
-        height: 100px !important;
-    }
-    
-    .hero-section .hero-btn {
-        font-size: 0.8rem !important;
-        padding: 0.45rem 1rem !important;
-        max-width: 180px;
-    }
-    
-    .hero-section {
-        padding: 1rem 0.75rem !important;
-    }
-    
-    /* Ajustar título de servicios */
-    h2[style*="font-size: 2.5rem"] {
-        font-size: 1.75rem !important;
-    }
-}
-</style>
 {% endblock %}
-
