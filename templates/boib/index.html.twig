@@ -105,6 +105,40 @@
             color: #555;
         }
         
+        .texto-boib-formateado {
+            background: white;
+            padding: 1.25rem;
+            border-radius: 6px;
+            border-left: 4px solid #28a745;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.8;
+            font-size: 1rem;
+            color: #333;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            text-align: justify;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        .texto-boib-formateado mark {
+            background: #ffeb3b;
+            padding: 0.15rem 0.25rem;
+            border-radius: 3px;
+            font-weight: 600;
+            color: #000;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .texto-boib-formateado .termino-destacado {
+            background: #e3f2fd;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #1976d2;
+            display: inline-block;
+            margin-bottom: 0.5rem;
+        }
+        
         .resultado-item .enlaces {
             display: flex;
             gap: 1rem;
@@ -280,6 +314,82 @@
 </div>
 
 <script>
+    // Función para formatear el texto del BOIB y mejorar su legibilidad
+    function formatearTextoBoib(texto) {
+        if (!texto) return '';
+        
+        // Limpiar espacios múltiples
+        texto = texto.replace(/\s+/g, ' ');
+        
+        // Separar palabras que estén juntas (detectar cuando hay una minúscula seguida de mayúscula)
+        // Ejemplo: "ayuntamientoPolicía" -> "ayuntamiento Policía"
+        texto = texto.replace(/([a-záéíóúñü])([A-ZÁÉÍÓÚÑ])/g, '$1 $2');
+        
+        // Separar palabras comunes que suelen aparecer juntas
+        const palabrasComunes = [
+            'ayuntamiento', 'municipio', 'policía', 'policia', 'consejo', 'gobierno',
+            'comunidad', 'islas', 'baleares', 'artículo', 'articulo', 'número', 'numero',
+            'subinspector', 'inspector', 'oficial', 'agente', 'proceso', 'unificado',
+            'convocatoria', 'plaza', 'plazas', 'oferta', 'empleo', 'público', 'publico',
+            'plazo', 'presentación', 'presentacion', 'solicitudes', 'requisitos',
+            'título', 'titulo', 'diploma', 'formación', 'formacion', 'experiencia',
+            'bases', 'reguladora', 'reguladoras', 'normativa', 'orden', 'decreto'
+        ];
+        
+        // Buscar y separar patrones comunes (mejorado)
+        palabrasComunes.forEach(function(palabra) {
+            // Separar si aparece seguida de otra palabra sin espacio (mayúscula)
+            const regex = new RegExp('(' + palabra + ')([A-ZÁÉÍÓÚÑ][a-záéíóúñü]{2,})', 'gi');
+            texto = texto.replace(regex, '$1 $2');
+            
+            // Separar si aparece después de otra palabra sin espacio (minúscula seguida de mayúscula)
+            const regex2 = new RegExp('([a-záéíóúñü]{3,})(' + palabra + ')', 'gi');
+            texto = texto.replace(regex2, '$1 $2');
+            
+            // Caso especial: palabra común seguida de número o artículo
+            const regex3 = new RegExp('(' + palabra + ')(art\.|núm\.|nº|número)', 'gi');
+            texto = texto.replace(regex3, '$1 $2');
+        });
+        
+        // Separar números de palabras (ej: "artículo1" -> "artículo 1")
+        texto = texto.replace(/([a-záéíóúñü])(\d+)/gi, '$1 $2');
+        texto = texto.replace(/(\d+)([a-záéíóúñü])/gi, '$1 $2');
+        
+        // Separar artículos y números comunes
+        texto = texto.replace(/(art\.|núm\.|nº|número|articulo|numero)([A-Za-zÁÉÍÓÚáéíóúÑñ])/gi, '$1 $2');
+        
+        // Agregar espacios después de signos de puntuación si no los tienen
+        texto = texto.replace(/([.,;:])([A-Za-zÁÉÍÓÚáéíóúÑñ])/g, '$1 $2');
+        
+        // Normalizar espacios alrededor de comillas y paréntesis
+        texto = texto.replace(/\s*([()""''])\s*/g, '$1 ');
+        texto = texto.replace(/\s*([()""''])\s*([.,;:!?])/g, '$1$2');
+        
+        // Agregar saltos de línea lógicos
+        // Después de puntos seguidos, puntos y comas, dos puntos, etc.
+        texto = texto.replace(/([.!?])\s+([A-ZÁÉÍÓÚÑ])/g, '$1\n\n$2');
+        texto = texto.replace(/([:;])\s+([A-ZÁÉÍÓÚÑ])/g, '$1\n$2');
+        
+        // Limpiar espacios al inicio de líneas
+        texto = texto.split('\n').map(function(linea) {
+            return linea.trim();
+        }).join('\n');
+        
+        // Limpiar líneas vacías múltiples
+        texto = texto.replace(/\n{3,}/g, '\n\n');
+        
+        // Capitalizar la primera letra de cada párrafo
+        texto = texto.split('\n\n').map(function(parrafo) {
+            parrafo = parrafo.trim();
+            if (parrafo && parrafo.length > 0) {
+                return parrafo.charAt(0).toUpperCase() + parrafo.slice(1);
+            }
+            return parrafo;
+        }).join('\n\n');
+        
+        return texto.trim();
+    }
+    
     // Usar delegación de eventos para que funcione incluso con contenido cargado dinámicamente
     (function() {
         function manejarClickConsultar(e) {
@@ -328,21 +438,24 @@
                                 html += '</div>';
                             }
                             
-                            html += '<div style="display: grid; gap: 1rem;">';
+                            html += '<div style="display: grid; gap: 1.25rem;">';
                             data.extractos.forEach(function(extracto, index) {
-                                html += '<div style="background: white; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-                                html += '<div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">';
-                                html += '<span style="background: #28a745; color: white; padding: 0.2rem 0.6rem; border-radius: 3px; font-size: 0.75rem; font-weight: 600;">#' + (index + 1) + '</span>';
-                                html += '<strong style="color: #155724; font-size: 0.95rem;">Término: ' + extracto.termino + '</strong>';
+                                // Formatear el texto para mejorar legibilidad
+                                let textoFormateado = formatearTextoBoib(extracto.texto);
+                                
+                                html += '<div class="texto-boib-formateado">';
+                                html += '<div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 2px solid #e0e0e0;">';
+                                html += '<span style="background: #28a745; color: white; padding: 0.3rem 0.75rem; border-radius: 5px; font-size: 0.85rem; font-weight: 700;">#' + (index + 1) + '</span>';
+                                html += '<span class="termino-destacado">🔍 ' + extracto.termino + '</span>';
                                 html += '</div>';
-                                html += '<div style="color: #333; line-height: 1.6; font-size: 0.9rem; white-space: pre-wrap; word-wrap: break-word;">';
-                                // Resaltar el término encontrado en el texto
-                                let textoResaltado = extracto.texto.replace(
+                                
+                                // Resaltar el término encontrado en el texto formateado
+                                let textoResaltado = textoFormateado.replace(
                                     new RegExp('(' + extracto.termino.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'),
-                                    '<mark style="background: #ffeb3b; padding: 0.1rem 0.2rem; border-radius: 2px; font-weight: 600;">$1</mark>'
+                                    '<mark>$1</mark>'
                                 );
-                                html += textoResaltado;
-                                html += '</div>';
+                                
+                                html += '<div style="margin-top: 0.5rem;">' + textoResaltado + '</div>';
                                 html += '</div>';
                             });
                             html += '</div>';
