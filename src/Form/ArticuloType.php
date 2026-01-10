@@ -34,6 +34,15 @@ class ArticuloType extends AbstractType
                 'required' => false,
                 'attr' => ['class' => 'form-control', 'placeholder' => 'Ej: Protección del honor, intimidad, propia imagen...']
             ])
+            ->add('textoLegal', TextareaType::class, [
+                'label' => 'Texto Legal',
+                'required' => false,
+                'attr' => [
+                    'class' => 'form-control texto-legal-editor',
+                    'rows' => 15
+                ],
+                'help' => 'Ingresa el texto completo del artículo según la ley'
+            ])
             ->add('explicacion', TextareaType::class, [
                 'label' => 'Explicación para el Opositor',
                 'required' => false,

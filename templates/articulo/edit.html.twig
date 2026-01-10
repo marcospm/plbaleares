@@ -5,6 +5,27 @@
 {% block stylesheets %}
     {{ parent() }}
     <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
+    <style>
+        .section-divider {
+            border-top: 2px solid #e0e0e0;
+            margin: 2rem 0;
+            padding-top: 1.5rem;
+        }
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--color-primary);
+        }
+        .form-section {
+            background-color: #f9f9f9;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+    </style>
 {% endblock %}
 
 {% block body %}
@@ -14,17 +35,52 @@
     </div>
     <div class="card-body">
         {{ form_start(form, {'attr': {'enctype': 'multipart/form-data'}}) }}
-            {{ form_row(form.numero) }}
-            {{ form_row(form.nombre) }}
-            {{ form_row(form.ley) }}
+        
+        <!-- Sección 1: Información Básica -->
+        <div class="form-section">
+            <h3 class="section-title">📋 Información Básica</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    {{ form_row(form.ley) }}
+                </div>
+                <div class="col-md-3">
+                    {{ form_row(form.numero) }}
+                </div>
+                <div class="col-md-3">
+                    {{ form_row(form.sufijo) }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    {{ form_row(form.nombre) }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección 2: Texto Legal -->
+        <div class="form-section">
+            <h3 class="section-title">⚖️ Texto Legal</h3>
+            {{ form_row(form.textoLegal) }}
+        </div>
+
+        <!-- Sección 3: Explicación para el Opositor -->
+        <div class="form-section">
+            <h3 class="section-title">📚 Explicación para el Opositor</h3>
             {{ form_row(form.explicacion) }}
+        </div>
+
+        <!-- Sección 4: Video Explicativo -->
+        <div class="form-section">
+            <h3 class="section-title">🎥 Video Explicativo</h3>
             {{ form_row(form.videoFile) }}
             {% if articulo.video %}
                 <div class="form-group">
                     <label class="form-label">Video Actual:</label>
-                    <div style="max-width: 400px;">
-                        <video controls style="width: 100%; border-radius: 8px;">
+                    <div style="max-width: 500px; margin-top: 0.5rem;">
+                        <video controls style="width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                             <source src="{{ articulo.video }}" type="video/mp4">
+                            <source src="{{ articulo.video }}" type="video/webm">
+                            <source src="{{ articulo.video }}" type="video/ogg">
                             Tu navegador no soporta el elemento de video.
                         </video>
                     </div>
@@ -33,23 +89,32 @@
                     </p>
                 </div>
             {% endif %}
-            
-            {% if filtros is defined %}
-                {% for key, value in filtros %}
-                    <input type="hidden" name="filtro_{{ key }}" value="{{ value }}">
-                {% endfor %}
-            {% endif %}
-            <div class="d-flex gap-2 mt-4">
-                <button type="submit" class="btn btn-primary">Actualizar</button>
-                {% set paramsFiltros = filtros|default({}) %}
-                <a href="{{ path('app_articulo_index', paramsFiltros) }}" class="btn btn-secondary">Cancelar</a>
-            </div>
+        </div>
+        
+        <!-- Campos ocultos para filtros -->
+        {% if filtros is defined %}
+            {% for key, value in filtros %}
+                <input type="hidden" name="filtro_{{ key }}" value="{{ value }}">
+            {% endfor %}
+        {% endif %}
+
+        <!-- Botones de acción -->
+        <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Actualizar
+            </button>
+            {% set paramsFiltros = filtros|default({}) %}
+            <a href="{{ path('app_articulo_index', paramsFiltros) }}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancelar
+            </a>
+        </div>
         {{ form_end(form) }}
     </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar editor para explicación (CKEditor)
     const editorElement = document.querySelector('.tinymce-editor');
     if (editorElement && typeof ClassicEditor !== 'undefined') {
         ClassicEditor
@@ -78,7 +143,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error al inicializar CKEditor:', error);
             });
     }
+
+    // Inicializar editor para texto legal (CKEditor simple, sin formato complejo)
+    const textoLegalElement = document.querySelector('.texto-legal-editor');
+    if (textoLegalElement && typeof ClassicEditor !== 'undefined') {
+        ClassicEditor
+            .create(textoLegalElement, {
+                toolbar: {
+                    items: [
+                        'bold', 'italic', 'underline', '|',
+                        'bulletedList', 'numberedList', '|',
+                        'alignment', '|',
+                        'undo', 'redo'
+                    ]
+                },
+                language: 'es',
+                placeholder: 'Ingresa el texto completo del artículo según la ley...'
+            })
+            .catch(error => {
+                console.error('Error al inicializar editor de texto legal:', error);
+            });
+    }
 });
 </script>
 {% endblock %}
-
