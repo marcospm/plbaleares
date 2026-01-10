@@ -2,6 +2,77 @@
 
 {% block title %}Artículo: {{ articulo.getNumeroCompleto() }}{% endblock %}
 
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        /* Estilos para contenido markdown renderizado */
+        .markdown-content {
+            line-height: 1.8;
+        }
+        
+        .markdown-content p {
+            margin: 0.75rem 0;
+        }
+        
+        .markdown-content p:first-child {
+            margin-top: 0;
+        }
+        
+        .markdown-content p:last-child {
+            margin-bottom: 0;
+        }
+        
+        .markdown-content strong {
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .markdown-content em {
+            font-style: italic;
+            color: #555;
+        }
+        
+        .markdown-content ul,
+        .markdown-content ol {
+            margin: 0.75rem 0;
+            padding-left: 2rem;
+        }
+        
+        .markdown-content li {
+            margin: 0.5rem 0;
+        }
+        
+        .markdown-content a {
+            color: var(--color-primary);
+            text-decoration: underline;
+        }
+        
+        .markdown-content a:hover {
+            color: var(--color-primary-dark, #0056b3);
+        }
+        
+        .markdown-content h1,
+        .markdown-content h2,
+        .markdown-content h3 {
+            margin: 1rem 0 0.75rem 0;
+            font-weight: 600;
+            color: var(--color-primary);
+        }
+        
+        .markdown-content h1 {
+            font-size: 1.5rem;
+        }
+        
+        .markdown-content h2 {
+            font-size: 1.3rem;
+        }
+        
+        .markdown-content h3 {
+            font-size: 1.1rem;
+        }
+    </style>
+{% endblock %}
+
 {% block body %}
 <div class="card">
     <div class="card-header">
@@ -46,7 +117,7 @@
 
         <div class="form-group">
             <label class="form-label"><strong>Explicación para el Opositor:</strong></label>
-            <div style="background-color: #f5f5f5; padding: 1rem; border-radius: 4px; border-left: 4px solid var(--color-primary); line-height: 1.6;">
+            <div class="markdown-content" style="background-color: #f5f5f5; padding: 1rem; border-radius: 4px; border-left: 4px solid var(--color-primary);">
                 {{ articulo.explicacion|default('Sin explicación')|markdown|raw }}
             </div>
         </div>
