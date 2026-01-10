@@ -1,0 +1,245 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ ley.nombre }} - Sistema de Oposiciones{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .ley-detail-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 2rem;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .ley-header {
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .ley-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .ley-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .btn-boe {
+            background-color: #0066cc;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .btn-boe:hover {
+            background-color: #0052a3;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .info-card {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 1.25rem;
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 1.25rem;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .ultima-actualizacion {
+            color: #28a745;
+        }
+
+        .sin-actualizacion {
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .ley-descripcion {
+            color: #555;
+            line-height: 1.8;
+            font-size: 1.05rem;
+            margin-top: 1rem;
+        }
+
+        .breadcrumb {
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .breadcrumb-item {
+            color: #666;
+            text-decoration: none;
+        }
+
+        .breadcrumb-item:hover {
+            color: var(--color-primary);
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            color: #999;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        @media (max-width: 768px) {
+            .ley-detail-card {
+                padding: 1.5rem;
+            }
+
+            .ley-title {
+                font-size: 1.5rem;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <div class="breadcrumb">
+        <a href="{{ path('app_ley_publico_index') }}" class="breadcrumb-item">Leyes</a>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-item">{{ ley.nombre|slice(0, 50) }}{% if ley.nombre|length > 50 %}...{% endif %}</span>
+    </div>
+
+    <div class="ley-detail-card">
+        <div class="ley-header">
+            <h1 class="ley-title">{{ ley.nombre }}</h1>
+            <div class="ley-actions">
+                {% if tiene_link %}
+                    <a href="{{ boe_link }}" target="_blank" rel="noopener noreferrer" class="btn-boe">
+                        <span>📄</span>
+                        Ver en BOE
+                    </a>
+                {% endif %}
+                <a href="{{ path('app_ley_publico_index') }}" class="btn btn-secondary">
+                    ← Volver a Leyes
+                </a>
+            </div>
+        </div>
+
+        {% if ley.descripcion %}
+            <div class="ley-descripcion">
+                {{ ley.descripcion|nl2br }}
+            </div>
+        {% endif %}
+
+        <div class="info-grid">
+            <div class="info-card">
+                <div class="info-label">📊 Total de Artículos</div>
+                <div class="info-value">{{ ley.articulos|length }} artículos</div>
+            </div>
+
+            <div class="info-card">
+                <div class="info-label">📚 Temas Relacionados</div>
+                <div class="info-value">{{ ley.temas|length }} temas</div>
+            </div>
+
+            {% if ultima_actualizacion %}
+                <div class="info-card">
+                    <div class="info-label">🔄 Última Actualización BOE</div>
+                    <div class="info-value ultima-actualizacion">
+                        {{ ultima_actualizacion|date('d/m/Y') }}
+                    </div>
+                </div>
+            {% else %}
+                <div class="info-card">
+                    <div class="info-label">🔄 Última Actualización BOE</div>
+                    <div class="info-value sin-actualizacion">
+                        No disponible
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if not tiene_link %}
+                <div class="info-card">
+                    <div class="info-label">🔗 Link BOE</div>
+                    <div class="info-value sin-actualizacion">
+                        No configurado
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if ley.articulos|length > 0 %}
+        <h2 class="section-title">📄 Artículos de esta Ley</h2>
+        <div class="alert alert-info">
+            <strong>{{ ley.articulos|length }}</strong> artículo(s) disponible(s).
+            <a href="{{ path('app_articulo_publico_index', {'ley': ley.id}) }}" class="btn btn-primary btn-sm ms-2">
+                Ver Artículos
+            </a>
+        </div>
+    {% endif %}
+
+    {% if ley.temas|length > 0 %}
+        <h2 class="section-title">📚 Temas Relacionados</h2>
+        <div class="row">
+            {% for tema in ley.temas %}
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ tema.nombre }}</h5>
+                            {% if tema.descripcion %}
+                                <p class="card-text">{{ tema.descripcion|slice(0, 150) }}{% if tema.descripcion|length > 150 %}...{% endif %}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}
+

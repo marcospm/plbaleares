@@ -13,6 +13,13 @@
             <p>{{ ley.descripcion|default('Sin descripción') }}</p>
         </div>
 
+        {% if ley.boeLink %}
+        <div class="form-group">
+            <label class="form-label"><strong>Link del BOE:</strong></label>
+            <p><a href="{{ ley.boeLink }}" target="_blank" rel="noopener noreferrer">{{ ley.boeLink }}</a></p>
+        </div>
+        {% endif %}
+
         <div class="form-group">
             <label class="form-label"><strong>Temas relacionados:</strong></label>
             {% if ley.temas|length > 0 %}

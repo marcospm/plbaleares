@@ -1,0 +1,365 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Leyes - Sistema de Oposiciones{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .ley-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            background-color: #fff;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .ley-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .ley-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .ley-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin: 0;
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .ley-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-boe {
+            background-color: #0066cc;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .btn-boe:hover {
+            background-color: #0052a3;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .ley-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .info-value {
+            font-size: 1rem;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .ultima-actualizacion {
+            color: #28a745;
+        }
+
+        .sin-actualizacion {
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .ley-descripcion {
+            color: #666;
+            margin-top: 0.75rem;
+            line-height: 1.6;
+        }
+
+        .no-leyes {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .no-leyes-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .page-header {
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .filtro-ano-container {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .filtro-ano-container label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            margin: 0;
+            user-select: none;
+        }
+
+        .filtro-ano-container input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .filtro-ano-container select {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 1rem;
+            min-width: 120px;
+            background-color: white;
+        }
+
+        .filtro-ano-container select:disabled {
+            background-color: #e9ecef;
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .ley-header {
+                flex-direction: column;
+            }
+
+            .ley-title {
+                min-width: auto;
+            }
+
+            .ley-actions {
+                width: 100%;
+            }
+
+            .btn-boe {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .filtro-ano-container {
+                padding: 1rem;
+            }
+
+            .filtro-ano-container > div {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .filtro-ano-container select {
+                width: 100%;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <div class="page-header">
+        <h1 class="page-title">📜 Leyes</h1>
+        <p class="page-subtitle">Consulta las leyes y sus últimas actualizaciones en el BOE</p>
+    </div>
+
+    <!-- Filtro por año de última actualización -->
+    <div class="filtro-ano-container" style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
+        <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 500; margin: 0;">
+                <input type="checkbox" id="filtrar-ano-checkbox" {{ filtrarPorAno ? 'checked' : '' }} 
+                       style="width: 18px; height: 18px; cursor: pointer;">
+                <span>Filtrar por año de última actualización</span>
+            </label>
+            <select id="ano-selector" name="ano" style="padding: 0.5rem 1rem; border: 1px solid #ced4da; border-radius: 4px; font-size: 1rem; min-width: 150px; {{ filtrarPorAno ? '' : 'display: none;' }}" {{ filtrarPorAno ? '' : 'disabled' }}>
+                <option value="">Seleccionar año</option>
+                {% for ano in anosDisponibles %}
+                    <option value="{{ ano }}" {{ ano == anoFiltro ? 'selected' : '' }}>{{ ano }}</option>
+                {% endfor %}
+            </select>
+            {% if filtrarPorAno %}
+                <a href="{{ path('app_ley_publico_index') }}" class="btn btn-secondary btn-sm" style="margin-left: auto;">
+                    Limpiar Filtro
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if leyesConBoe|length > 0 %}
+        <div class="leyes-list">
+            {% for item in leyesConBoe %}
+                <div class="ley-card">
+                    <div class="ley-header">
+                        <h2 class="ley-title">
+                            <a href="{{ path('app_ley_publico_show', {'id': item.ley.id}) }}" style="color: inherit; text-decoration: none;">
+                                {{ item.ley.nombre }}
+                            </a>
+                        </h2>
+                        <div class="ley-actions">
+                            {% if item.tiene_link %}
+                                <a href="{{ item.boe_link }}" target="_blank" rel="noopener noreferrer" class="btn-boe">
+                                    <span>📄</span>
+                                    Ver en BOE
+                                </a>
+                            {% endif %}
+                            <a href="{{ path('app_ley_publico_show', {'id': item.ley.id}) }}" class="btn btn-primary">
+                                Ver Detalles
+                            </a>
+                        </div>
+                    </div>
+
+                    {% if item.ley.descripcion %}
+                        <div class="ley-descripcion">
+                            {{ item.ley.descripcion|slice(0, 200) }}{% if item.ley.descripcion|length > 200 %}...{% endif %}
+                        </div>
+                    {% endif %}
+
+                    <div class="ley-info">
+                        <div class="info-item">
+                            <span class="info-label">📊 Artículos</span>
+                            <span class="info-value">{{ item.ley.articulos|length }} artículos</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">📚 Temas</span>
+                            <span class="info-value">{{ item.ley.temas|length }} temas</span>
+                        </div>
+                        {% if item.ultima_actualizacion %}
+                            <div class="info-item">
+                                <span class="info-label">🔄 Última Actualización</span>
+                                <span class="info-value ultima-actualizacion">
+                                    {{ item.ultima_actualizacion|date('d/m/Y') }}
+                                </span>
+                            </div>
+                        {% else %}
+                            <div class="info-item">
+                                <span class="info-label">🔄 Última Actualización</span>
+                                <span class="info-value sin-actualizacion">
+                                    No disponible
+                                </span>
+                            </div>
+                        {% endif %}
+                        {% if not item.tiene_link %}
+                            <div class="info-item">
+                                <span class="info-label">🔗 Link BOE</span>
+                                <span class="info-value sin-actualizacion">
+                                    No configurado
+                                </span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-leyes">
+            <div class="no-leyes-icon">📜</div>
+            <h3>No hay leyes disponibles</h3>
+            {% if filtrarPorAno %}
+                <p>No se encontraron leyes con última actualización en el año {{ anoFiltro }}.</p>
+                <a href="{{ path('app_ley_publico_index') }}" class="btn btn-primary mt-3">Ver todas las leyes</a>
+            {% else %}
+                <p>Actualmente no hay leyes activas en el sistema.</p>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkbox = document.getElementById('filtrar-ano-checkbox');
+            const selector = document.getElementById('ano-selector');
+            
+            function aplicarFiltro() {
+                const filtrar = checkbox.checked;
+                const ano = selector.value;
+                
+                const url = new URL(window.location.href);
+                if (filtrar && ano && ano !== '') {
+                    url.searchParams.set('filtrar_ano', '1');
+                    url.searchParams.set('ano', ano);
+                } else {
+                    url.searchParams.delete('filtrar_ano');
+                    url.searchParams.delete('ano');
+                }
+                
+                window.location.href = url.toString();
+            }
+            
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    selector.style.display = 'block';
+                    selector.disabled = false;
+                    selector.value = ''; // Por defecto: "Seleccionar año"
+                } else {
+                    selector.style.display = 'none';
+                    selector.disabled = true;
+                    selector.value = '';
+                    // Si se desmarca, quitar el filtro
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('filtrar_ano');
+                    url.searchParams.delete('ano');
+                    window.location.href = url.toString();
+                }
+            });
+            
+            selector.addEventListener('change', function() {
+                if (checkbox.checked && this.value !== '') {
+                    aplicarFiltro();
+                } else if (checkbox.checked && this.value === '') {
+                    // Si selecciona "Seleccionar año", quitar el filtro
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('filtrar_ano');
+                    url.searchParams.delete('ano');
+                    window.location.href = url.toString();
+                }
+            });
+        });
+    </script>
+{% endblock %}
+

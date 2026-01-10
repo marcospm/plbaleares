@@ -24,6 +24,9 @@ class Ley
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
     private bool $activo = true;
 
+    #[ORM\Column(type: 'string', length: 500, nullable: true)]
+    private ?string $boeLink = null;
+
     #[ORM\ManyToMany(targetEntity: Tema::class, mappedBy: 'leyes')]
     private Collection $temas;
 
@@ -77,6 +80,18 @@ class Ley
     public function setActivo(bool $activo): static
     {
         $this->activo = $activo;
+
+        return $this;
+    }
+
+    public function getBoeLink(): ?string
+    {
+        return $this->boeLink;
+    }
+
+    public function setBoeLink(?string $boeLink): static
+    {
+        $this->boeLink = $boeLink;
 
         return $this;
     }
