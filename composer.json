@@ -92,7 +92,11 @@
         ],
         "post-update-cmd": [
             "@auto-scripts"
-        ]
+        ],
+        "test": "php bin/phpunit",
+        "test:coverage": "php bin/phpunit --coverage-html coverage --coverage-text",
+        "test:verbose": "php bin/phpunit --verbose",
+        "test:filter": "php bin/phpunit --filter"
     },
     "conflict": {
         "symfony/symfony": "*"
