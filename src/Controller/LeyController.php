@@ -38,6 +38,7 @@ class LeyController extends AbstractController
                 'ley' => $ley,
                 'ultima_actualizacion' => $infoBoe['ultima_actualizacion'],
                 'tiene_link' => $infoBoe['tiene_link'],
+                'articulos_afectados' => $infoBoe['articulos_afectados'],
             ];
         }
 
@@ -69,10 +70,14 @@ class LeyController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_ley_show', methods: ['GET'])]
-    public function show(Ley $ley): Response
+    public function show(Ley $ley, BoeLeyService $boeLeyService): Response
     {
+        $infoBoe = $boeLeyService->getInfoLey($ley->getId());
+        
         return $this->render('ley/show.html.twig', [
             'ley' => $ley,
+            'articulos_afectados' => $infoBoe['articulos_afectados'],
+            'ultima_actualizacion' => $infoBoe['ultima_actualizacion'],
         ]);
     }
 

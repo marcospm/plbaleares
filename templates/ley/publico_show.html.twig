@@ -214,6 +214,25 @@
         </div>
     </div>
 
+    {% if articulos_afectados|length > 0 %}
+        <div class="alert alert-warning" style="background-color: #fff3cd; border-color: #ffc107; color: #856404; margin-bottom: 2rem;">
+            <h3 style="margin-top: 0; color: #856404;">⚠️ Artículos Afectados por Última Actualización</h3>
+            <p><strong>{{ articulos_afectados|length }}</strong> artículo(s) han sido afectados por la última actualización del BOE ({{ ultima_actualizacion|date('d/m/Y') }}):</p>
+            <ul style="margin-bottom: 0.5rem;">
+                {% for articulo in articulos_afectados %}
+                    <li>
+                        <a href="{{ path('app_articulo_publico_show', {'id': articulo.id}) }}" style="color: #856404; font-weight: 600;">
+                            Art. {{ articulo.getNumeroCompleto() }}{% if articulo.nombre %} - {{ articulo.nombre }}{% endif %}
+                        </a>
+                        {% if articulo.ley.temas|length > 0 %}
+                            <span class="badge" style="background-color: #28a745; color: white; margin-left: 0.5rem;">📚 En temario</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
     {% if ley.articulos|length > 0 %}
         <h2 class="section-title">📄 Artículos de esta Ley</h2>
         <div class="alert alert-info">
@@ -222,6 +241,26 @@
                 Ver Artículos
             </a>
         </div>
+        {% if articulos_afectados|length > 0 %}
+            <div class="card" style="margin-top: 1rem;">
+                <div class="card-body">
+                    <h4 style="color: #ffc107; margin-bottom: 1rem;">Artículos destacados (afectados por última actualización):</h4>
+                    <ul>
+                        {% for articulo in articulos_afectados %}
+                            <li style="margin-bottom: 0.5rem;">
+                                <a href="{{ path('app_articulo_publico_show', {'id': articulo.id}) }}" style="font-weight: 600;">
+                                    Art. {{ articulo.getNumeroCompleto() }}{% if articulo.nombre %} - {{ articulo.nombre }}{% endif %}
+                                </a>
+                                <span class="badge" style="background-color: #ffc107; color: #000; margin-left: 0.5rem;">Afectado</span>
+                                {% if articulo.ley.temas|length > 0 %}
+                                    <span class="badge" style="background-color: #28a745; color: white; margin-left: 0.5rem;">📚 En temario</span>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endif %}
     {% endif %}
 
     {% if ley.temas|length > 0 %}

@@ -5,16 +5,23 @@ namespace App\Service;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\DomCrawler\Crawler;
+use Psr\Cache\CacheItemPoolInterface;
 use App\Repository\LeyRepository;
+use App\Repository\ArticuloRepository;
+use \SimpleXMLElement;
 
 class BoeLeyService
 {
+    private const CACHE_PREFIX = 'boe_ley_';
+    private const CACHE_TTL = 86400; // 1 día en segundos
+
     public function __construct(
         private HttpClientInterface $httpClient,
         private ParameterBagInterface $parameterBag,
         private LoggerInterface $logger,
-        private LeyRepository $leyRepository
+        private LeyRepository $leyRepository,
+        private ArticuloRepository $articuloRepository,
+        private CacheItemPoolInterface $cache
     ) {
     }
 
@@ -33,10 +40,32 @@ class BoeLeyService
     }
 
     /**
-     * Obtiene la última actualización de una ley desde el BOE
-     * Busca en el desplegable "Seleccionar redacción" la fecha más reciente
+     * Convierte la URL de la API del BOE a la URL de visualización
+     * De: https://boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2025-12199
+     * A: https://www.boe.es/buscar/act.php?id=BOE-A-2025-12199
      */
-    public function getUltimaActualizacion(int $leyId): ?\DateTime
+    public function convertirUrlApiAVisualizacion(?string $apiUrl): ?string
+    {
+        if (!$apiUrl) {
+            return null;
+        }
+
+        // Patrón para extraer el ID de la norma de la URL de la API
+        // Ejemplo: https://boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2025-12199
+        if (preg_match('#/datosabiertos/api/legislacion-consolidada/id/([^/]+)#', $apiUrl, $matches)) {
+            $idNorma = $matches[1];
+            return 'https://www.boe.es/buscar/act.php?id=' . urlencode($idNorma);
+        }
+
+        // Si no coincide con el patrón de la API, devolver la URL original (por si acaso ya está en formato de visualización)
+        return $apiUrl;
+    }
+
+    /**
+     * Obtiene y cachea el XML parseado de una ley desde la API del BOE
+     * Cachea el resultado por 1 día para evitar múltiples peticiones
+     */
+    private function getXmlCached(int $leyId): ?\SimpleXMLElement
     {
         $boeLink = $this->getBoeLink($leyId);
         
@@ -44,180 +73,95 @@ class BoeLeyService
             return null;
         }
 
+        $cacheKey = self::CACHE_PREFIX . $leyId;
+        $cacheItem = $this->cache->getItem($cacheKey);
+
+        // Intentar obtener del caché
+        if ($cacheItem->isHit()) {
+            $xmlContent = $cacheItem->get();
+            if (!empty($xmlContent)) {
+                libxml_use_internal_errors(true);
+                $xml = simplexml_load_string($xmlContent);
+                if ($xml !== false) {
+                    return $xml;
+                }
+            }
+        }
+
+        // Si no está en caché o es inválido, hacer la petición
         try {
-            // Hacer la petición al BOE
             $response = $this->httpClient->request('GET', $boeLink, [
                 'headers' => [
                     'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Accept' => 'application/xml, text/xml, */*',
                 ],
                 'timeout' => 10,
             ]);
 
-            $html = $response->getContent();
-            $crawler = new Crawler($html);
+            $xmlContent = $response->getContent();
             
+            // Parsear el XML
+            libxml_use_internal_errors(true);
+            $xml = simplexml_load_string($xmlContent);
+            
+            if ($xml === false) {
+                $this->logger->warning('Error al parsear XML del BOE para ley ' . $leyId);
+                return null;
+            }
+
+            // Guardar en caché por 1 día
+            $cacheItem->set($xmlContent);
+            $cacheItem->expiresAfter(self::CACHE_TTL);
+            $this->cache->save($cacheItem);
+
+            return $xml;
+            
+        } catch (\Exception $e) {
+            $this->logger->error('Error al obtener XML del BOE para ley ' . $leyId . ': ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Obtiene la última actualización de una ley desde la API del BOE
+     * Busca en los tags <version> la fecha de publicación más reciente
+     * 
+     * @param int $leyId ID de la ley
+     * @param \SimpleXMLElement|null $xml XML parseado (opcional, si no se proporciona se obtiene del caché)
+     */
+    public function getUltimaActualizacion(int $leyId, ?\SimpleXMLElement $xml = null): ?\DateTime
+    {
+        if ($xml === null) {
+            $xml = $this->getXmlCached($leyId);
+        }
+        
+        if ($xml === null) {
+            return null;
+        }
+
+        try {
             $fechas = [];
             
-            // Buscar el texto "Última actualización publicada el DD/MM/YYYY" o 
-            // "Texto inicial publicado el DD/MM/YYYY" dentro de un span 
-            // que está dentro de un label con clase "version-actual"
-            try {
-                // Buscar el label con clase version-actual
-                $labelVersionActual = $crawler->filter('label.version-actual, .version-actual label, [class*="version-actual"]')->first();
-                
-                if ($labelVersionActual->count() > 0) {
-                    // Buscar el span dentro del label que contiene el texto de última actualización o texto inicial
-                    $spanTexto = $labelVersionActual->filter('span')->reduce(function (Crawler $span) {
-                        $texto = trim($span->text());
-                        return stripos($texto, 'Última actualización publicada el') !== false 
-                            || stripos($texto, 'Texto inicial publicado el') !== false
-                            || stripos($texto, 'Última actualización') !== false
-                            || stripos($texto, 'Texto inicial') !== false;
-                    })->first();
-                    
-                    if ($spanTexto->count() > 0) {
-                        $textoCompleto = trim($spanTexto->text());
-                        // Buscar el patrón de fecha: "Última actualización publicada el DD/MM/YYYY"
-                        if (preg_match('/Última actualización publicada el\s+(\d{1,2}\/\d{1,2}\/\d{4})/i', $textoCompleto, $matches)) {
-                            $fecha = $this->parsearFecha($matches[1]);
-                            if ($fecha) {
-                                $fechas[] = $fecha;
-                            }
-                        }
-                        // Buscar el patrón: "Texto inicial publicado el DD/MM/YYYY"
-                        elseif (preg_match('/Texto inicial publicado el\s+(\d{1,2}\/\d{1,2}\/\d{4})/i', $textoCompleto, $matches)) {
-                            $fecha = $this->parsearFecha($matches[1]);
-                            if ($fecha) {
-                                $fechas[] = $fecha;
-                            }
-                        }
-                        // También buscar variaciones sin "publicada el" o "publicado el"
-                        elseif (preg_match('/(?:Última actualización|Texto inicial)[^0-9]*(\d{1,2}\/\d{1,2}\/\d{4})/i', $textoCompleto, $matches)) {
-                            $fecha = $this->parsearFecha($matches[1]);
-                            if ($fecha) {
-                                $fechas[] = $fecha;
-                            }
-                        }
-                    }
-                }
-                
-                // Si no se encontró con el método anterior, buscar directamente en el HTML
-                if (empty($fechas)) {
-                    // Buscar el patrón "Última actualización publicada el" directamente en el HTML
-                    if (preg_match('/<label[^>]*class="[^"]*version-actual[^"]*"[^>]*>.*?<span[^>]*>.*?Última actualización publicada el\s+(\d{1,2}\/\d{1,2}\/\d{4})/is', $html, $matches)) {
-                        $fecha = $this->parsearFecha($matches[1]);
-                        if ($fecha) {
-                            $fechas[] = $fecha;
-                        }
-                    }
-                    // Buscar el patrón "Texto inicial publicado el" directamente en el HTML
-                    elseif (preg_match('/<label[^>]*class="[^"]*version-actual[^"]*"[^>]*>.*?<span[^>]*>.*?Texto inicial publicado el\s+(\d{1,2}\/\d{1,2}\/\d{4})/is', $html, $matches)) {
-                        $fecha = $this->parsearFecha($matches[1]);
-                        if ($fecha) {
-                            $fechas[] = $fecha;
-                        }
-                    }
-                    // Buscar con variaciones sin "publicada el" o "publicado el"
-                    elseif (preg_match('/<label[^>]*class="[^"]*version-actual[^"]*"[^>]*>.*?<span[^>]*>.*?(?:Última actualización|Texto inicial)[^0-9]*(\d{1,2}\/\d{1,2}\/\d{4})/is', $html, $matches)) {
-                        $fecha = $this->parsearFecha($matches[1]);
-                        if ($fecha) {
-                            $fechas[] = $fecha;
-                        }
-                    }
-                }
-                
-                // También buscar el select dentro de .version-actual para obtener todas las fechas disponibles
-                // y seleccionar la más reciente
-                $selectElement = $crawler->filter('.version-actual select, label.version-actual select, [class*="version-actual"] select')->first();
-                
-                if ($selectElement->count() > 0) {
-                    // Extraer todas las opciones del select
-                    $options = $selectElement->filter('option')->each(function (Crawler $option) {
-                        $texto = trim($option->text());
-                        $dataFecha = $option->attr('data-fecha');
-                        $dataFechaversion = $option->attr('data-fecha-version');
-                        $value = $option->attr('value');
-                        
-                        return [
-                            'texto' => $texto,
-                            'data-fecha' => $dataFecha,
-                            'data-fecha-version' => $dataFechaversion,
-                            'value' => $value,
-                        ];
-                    });
-                    
-                    foreach ($options as $option) {
-                        // Intentar parsear fecha del texto (formato común: DD/MM/YYYY)
-                        if (!empty($option['texto'])) {
-                            // Buscar fecha en formato DD/MM/YYYY o DD-MM-YYYY
-                            if (preg_match('/(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/', $option['texto'], $matches)) {
-                                $fecha = $this->parsearFecha($matches[1]);
-                                if ($fecha) {
-                                    $fechas[] = $fecha;
-                                }
-                            }
-                        }
-                        
-                        // Intentar parsear fecha de data-fecha
-                        if (!empty($option['data-fecha'])) {
-                            $fecha = $this->parsearFecha($option['data-fecha']);
-                            if ($fecha) {
-                                $fechas[] = $fecha;
-                            }
-                        }
-                        
-                        // Intentar parsear fecha de data-fecha-version
-                        if (!empty($option['data-fecha-version'])) {
-                            $fecha = $this->parsearFecha($option['data-fecha-version']);
-                            if ($fecha) {
-                                $fechas[] = $fecha;
-                            }
-                        }
-                        
-                        // Intentar parsear fecha del value si parece una fecha
-                        if (!empty($option['value'])) {
-                            // Buscar fechas en formato YYYYMMDD o similares
-                            if (preg_match('/(\d{4}[\-\.\/]\d{1,2}[\-\.\/]\d{1,2}|\d{1,2}[\-\.\/]\d{1,2}[\-\.\/]\d{4}|\d{8})/', $option['value'], $matches)) {
-                                $fecha = $this->parsearFecha($matches[1]);
-                                if ($fecha) {
-                                    $fechas[] = $fecha;
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (\Exception $e) {
-                $this->logger->warning('Error al buscar .version-actual: ' . $e->getMessage());
+            // Buscar todos los tags <version> con atributo fecha_publicacion
+            $versions = $xml->xpath('//version[@fecha_publicacion]');
+            
+            if ($versions === false || empty($versions)) {
+                // Intentar con namespace si existe
+                $xml->registerXPathNamespace('boe', 'http://www.boe.es/ns/XML/legislacion');
+                $versions = $xml->xpath('//boe:version[@fecha_publicacion] | //version[@fecha_publicacion]');
             }
             
-            // Si no se encontró nada con .version-actual, buscar también por texto "Seleccionar redacción" como fallback
-            if (empty($fechas) && stripos($html, 'Seleccionar redacción') !== false) {
-                try {
-                    // Buscar cualquier select cerca del texto "Seleccionar redacción"
-                    $allSelects = $crawler->filter('select');
-                    foreach ($allSelects as $selectNode) {
-                        $selectCrawler = new Crawler($selectNode);
-                        $selectHtml = $selectCrawler->html();
-                        $selectText = $selectCrawler->text();
-                        
-                        // Si el select o sus opciones contienen "redacción" o fechas
-                        if (stripos($selectHtml, 'redacción') !== false || stripos($selectText, 'redacción') !== false) {
-                            $options = $selectCrawler->filter('option');
-                            foreach ($options as $optionNode) {
-                                $optionCrawler = new Crawler($optionNode);
-                                $texto = trim($optionCrawler->text());
-                                
-                                if (preg_match('/(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/', $texto, $matches)) {
-                                    $fecha = $this->parsearFecha($matches[1]);
-                                    if ($fecha) {
-                                        $fechas[] = $fecha;
-                                    }
-                                }
-                            }
+            if ($versions && !empty($versions)) {
+                foreach ($versions as $version) {
+                    $fechaPublicacion = (string)$version['fecha_publicacion'];
+                    
+                    if (!empty($fechaPublicacion)) {
+                        // Formato: YYYYMMDD (ejemplo: 20250617)
+                        $fecha = $this->parsearFechaApi($fechaPublicacion);
+                        if ($fecha) {
+                            $fechas[] = $fecha;
                         }
                     }
-                } catch (\Exception $e) {
-                    $this->logger->warning('Error en fallback de búsqueda: ' . $e->getMessage());
                 }
             }
             
@@ -241,23 +185,6 @@ class BoeLeyService
                 return $fechas[0];
             }
             
-            // Si no se encuentra el desplegable, intentar buscar la fecha de publicación original
-            // que suele estar en el encabezado del documento
-            if (preg_match('/Publicado en.*?BOE.*?núm\.\s*\d+.*?de\s*([\d]{1,2})\s+de\s+([A-Za-z]+)\s+de\s+([\d]{4})/i', $html, $match)) {
-                $dia = (int)$match[1];
-                $mesStr = $match[2];
-                $ano = (int)$match[3];
-                $mes = $this->convertirMes($mesStr);
-                
-                if ($mes) {
-                    try {
-                        return new \DateTime(sprintf('%d-%02d-%02d', $ano, $mes, $dia));
-                    } catch (\Exception $e) {
-                        $this->logger->warning('Error al parsear fecha del BOE: ' . $e->getMessage());
-                    }
-                }
-            }
-            
         } catch (\Exception $e) {
             $this->logger->error('Error al obtener última actualización del BOE para ley ' . $leyId . ': ' . $e->getMessage());
         }
@@ -266,88 +193,165 @@ class BoeLeyService
     }
 
     /**
-     * Parsea una fecha en formato español (DD/MM/YYYY) a DateTime
+     * Parsea una fecha en formato YYYYMMDD (API del BOE) a DateTime
      */
-    private function parsearFecha(string $fechaStr): ?\DateTime
+    private function parsearFechaApi(string $fechaStr): ?\DateTime
     {
         $fechaStr = trim($fechaStr);
         
-        // Normalizar separadores
-        $fechaStr = str_replace(['.', '-'], '/', $fechaStr);
-        
-        // Intentar varios formatos
-        $formatos = [
-            'd/m/Y',    // 21/11/2003
-            'd/m/y',    // 21/11/03
-            'Y/m/d',    // 2003/11/21
-            'y/m/d',    // 03/11/21
-            'd-m-Y',    // 21-11-2003
-            'Y-m-d',    // 2003-11-21
-        ];
-        
-        foreach ($formatos as $formato) {
+        // Formato esperado: YYYYMMDD (ejemplo: 20250617)
+        if (preg_match('/^(\d{4})(\d{2})(\d{2})$/', $fechaStr, $matches)) {
             try {
-                $fecha = \DateTime::createFromFormat($formato, $fechaStr);
-                // Verificar que la fecha es válida (createFromFormat puede devolver false o fechas incorrectas)
-                if ($fecha && $fecha->format($formato) === $fechaStr) {
-                    // Si el año tiene solo 2 dígitos, convertirlo a 4
-                    if (strlen(explode('/', $fechaStr)[2] ?? '') === 2) {
-                        $ano = (int)$fecha->format('y');
-                        if ($ano < 50) {
-                            $fecha->setDate(2000 + $ano, (int)$fecha->format('m'), (int)$fecha->format('d'));
-                        } else {
-                            $fecha->setDate(1900 + $ano, (int)$fecha->format('m'), (int)$fecha->format('d'));
-                        }
-                    }
-                    return $fecha;
-                }
+                return new \DateTime(sprintf('%d-%02d-%02d', (int)$matches[1], (int)$matches[2], (int)$matches[3]));
             } catch (\Exception $e) {
-                continue;
+                $this->logger->warning('Error al parsear fecha de la API: ' . $fechaStr . ' - ' . $e->getMessage());
             }
-        }
-        
-        // Si no se pudo parsear con formatos conocidos, intentar con strtotime
-        try {
-            $timestamp = strtotime($fechaStr);
-            if ($timestamp !== false) {
-                return new \DateTime('@' . $timestamp);
-            }
-        } catch (\Exception $e) {
-            // Ignorar error
         }
         
         return null;
     }
 
     /**
-     * Convierte el nombre del mes en español a número
+     * Obtiene los artículos afectados por la última actualización
+     * Identifica los bloques que tienen una versión con la fecha de última actualización
+     * 
+     * @param int $leyId ID de la ley
+     * @param \SimpleXMLElement|null $xml XML parseado (opcional, si no se proporciona se obtiene del caché)
+     * @param \DateTime|null $ultimaActualizacion Fecha de última actualización (opcional, si no se proporciona se calcula)
      */
-    private function convertirMes(string $mesStr): ?int
+    public function getArticulosAfectados(int $leyId, ?\SimpleXMLElement $xml = null, ?\DateTime $ultimaActualizacion = null): array
     {
-        $meses = [
-            'enero' => 1, 'febrero' => 2, 'marzo' => 3, 'abril' => 4,
-            'mayo' => 5, 'junio' => 6, 'julio' => 7, 'agosto' => 8,
-            'septiembre' => 9, 'octubre' => 10, 'noviembre' => 11, 'diciembre' => 12
-        ];
+        if ($xml === null) {
+            $xml = $this->getXmlCached($leyId);
+        }
         
-        $mesLower = strtolower(trim($mesStr));
+        if ($xml === null) {
+            return [];
+        }
+
+        try {
+            // Obtener la última fecha de actualización si no se proporciona
+            if ($ultimaActualizacion === null) {
+                $ultimaActualizacion = $this->getUltimaActualizacion($leyId, $xml);
+            }
+            
+            if ($ultimaActualizacion === null) {
+                return [];
+            }
+            
+            $fechaUltimaStr = $ultimaActualizacion->format('Ymd');
+            
+            // Buscar todos los bloques que tienen una versión con la fecha de última actualización
+            $bloques = $xml->xpath("//bloque[version[@fecha_publicacion='{$fechaUltimaStr}']]");
+            
+            if ($bloques === false || empty($bloques)) {
+                // Intentar con namespace si existe
+                $xml->registerXPathNamespace('boe', 'http://www.boe.es/ns/XML/legislacion');
+                $bloques = $xml->xpath("//boe:bloque[boe:version[@fecha_publicacion='{$fechaUltimaStr}']] | //bloque[version[@fecha_publicacion='{$fechaUltimaStr}']]");
+            }
+            
+            $numerosArticulosAfectados = [];
+            
+            if ($bloques && !empty($bloques)) {
+                foreach ($bloques as $bloque) {
+                    $id = (string)$bloque['id'];
+                    
+                    // El id tiene formato "a5" donde 5 es el número del artículo
+                    // También puede ser "a5bis", "a5ter", etc.
+                    if (preg_match('/^a(\d+)([a-z]*)$/i', $id, $matches)) {
+                        $numero = (int)$matches[1];
+                        $sufijo = !empty($matches[2]) ? $matches[2] : null;
+                        
+                        $numerosArticulosAfectados[] = [
+                            'numero' => $numero,
+                            'sufijo' => $sufijo,
+                        ];
+                    }
+                }
+            }
+            
+            // Si encontramos números de artículos, buscar en la base de datos
+            if (!empty($numerosArticulosAfectados)) {
+                $articulosAfectados = [];
+                $ley = $this->leyRepository->find($leyId);
+                
+                if ($ley) {
+                    foreach ($numerosArticulosAfectados as $numArticulo) {
+                        $articulo = $this->articuloRepository->findOneBy([
+                            'ley' => $ley,
+                            'numero' => $numArticulo['numero'],
+                            'sufijo' => $numArticulo['sufijo'],
+                        ]);
+                        
+                        if ($articulo) {
+                            $articulosAfectados[] = $articulo;
+                        }
+                    }
+                }
+                
+                return $articulosAfectados;
+            }
+            
+        } catch (\Exception $e) {
+            $this->logger->error('Error al obtener artículos afectados del BOE para ley ' . $leyId . ': ' . $e->getMessage());
+        }
         
-        return $meses[$mesLower] ?? null;
+        return [];
     }
 
     /**
      * Obtiene información completa de una ley desde el BOE
+     * Hace una sola petición HTTP y reutiliza el XML parseado para obtener toda la información
+     * Los resultados se cachean por 1 día
      */
     public function getInfoLey(int $leyId): array
     {
-        $boeLink = $this->getBoeLink($leyId);
-        $ultimaActualizacion = $this->getUltimaActualizacion($leyId);
+        $boeLinkApi = $this->getBoeLink($leyId);
+        
+        if (!$boeLinkApi) {
+            return [
+                'boe_link' => null,
+                'ultima_actualizacion' => null,
+                'tiene_link' => false,
+                'articulos_afectados' => [],
+            ];
+        }
+
+        // Convertir URL de API a URL de visualización para mostrar a los usuarios
+        $boeLinkVisualizacion = $this->convertirUrlApiAVisualizacion($boeLinkApi);
+
+        // Obtener XML cacheado (hace una sola petición HTTP si no está en caché)
+        $xml = $this->getXmlCached($leyId);
+        
+        if ($xml === null) {
+            return [
+                'boe_link' => $boeLinkVisualizacion,
+                'ultima_actualizacion' => null,
+                'tiene_link' => true,
+                'articulos_afectados' => [],
+            ];
+        }
+
+        // Reutilizar el mismo XML para ambos métodos
+        $ultimaActualizacion = $this->getUltimaActualizacion($leyId, $xml);
+        $articulosAfectados = $this->getArticulosAfectados($leyId, $xml, $ultimaActualizacion);
         
         return [
-            'boe_link' => $boeLink,
+            'boe_link' => $boeLinkVisualizacion,
             'ultima_actualizacion' => $ultimaActualizacion,
-            'tiene_link' => $boeLink !== null,
+            'tiene_link' => true,
+            'articulos_afectados' => $articulosAfectados,
         ];
+    }
+
+    /**
+     * Limpia el caché de una ley específica
+     * Útil para forzar una actualización inmediata
+     */
+    public function clearCache(int $leyId): void
+    {
+        $cacheKey = self::CACHE_PREFIX . $leyId;
+        $this->cache->deleteItem($cacheKey);
     }
 }
 

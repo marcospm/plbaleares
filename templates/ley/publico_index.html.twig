@@ -285,6 +285,20 @@
                                 </span>
                             </div>
                         {% endif %}
+                        {% if item.articulos_afectados|length > 0 %}
+                            <div class="info-item">
+                                <span class="info-label">⚠️ Artículos Afectados</span>
+                                <span class="info-value" style="color: #ffc107; font-weight: 600;">
+                                    {{ item.articulos_afectados|length }} artículo(s)
+                                </span>
+                                {% set articulosEnTemario = item.articulos_afectados|filter(a => a.ley.temas|length > 0) %}
+                                {% if articulosEnTemario|length > 0 %}
+                                    <small style="display: block; color: #28a745; font-weight: 600; margin-top: 0.25rem;">
+                                        📚 {{ articulosEnTemario|length }} en temario
+                                    </small>
+                                {% endif %}
+                            </div>
+                        {% endif %}
                         {% if not item.tiene_link %}
                             <div class="info-item">
                                 <span class="info-label">🔗 Link BOE</span>

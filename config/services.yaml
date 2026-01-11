@@ -33,3 +33,8 @@ services:
     App\Service\PartidaPreguntasService:
         arguments:
             $cache: '@cache.partidas'
+    
+    # Servicio de BOE con caché (usa cache.app)
+    App\Service\BoeLeyService:
+        arguments:
+            $cache: '@cache.app'

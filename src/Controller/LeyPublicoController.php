@@ -32,6 +32,7 @@ class LeyPublicoController extends AbstractController
                 'boe_link' => $infoBoe['boe_link'],
                 'ultima_actualizacion' => $infoBoe['ultima_actualizacion'],
                 'tiene_link' => $infoBoe['tiene_link'],
+                'articulos_afectados' => $infoBoe['articulos_afectados'],
             ];
         }
 
@@ -87,6 +88,7 @@ class LeyPublicoController extends AbstractController
             'boe_link' => $infoBoe['boe_link'],
             'ultima_actualizacion' => $infoBoe['ultima_actualizacion'],
             'tiene_link' => $infoBoe['tiene_link'],
+            'articulos_afectados' => $infoBoe['articulos_afectados'],
         ]);
     }
 }

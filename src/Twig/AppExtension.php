@@ -19,6 +19,7 @@ class AppExtension extends AbstractExtension
     {
         return [
             new TwigFilter('markdown', [$this, 'markdownToHtml'], ['is_safe' => ['html']]),
+            new TwigFilter('boe_url_visualizacion', [$this, 'convertirBoeUrlAVisualizacion']),
         ];
     }
 
@@ -97,6 +98,28 @@ class AppExtension extends AbstractExtension
         $resultado = preg_replace('/<p><br><\/p>/', '', $resultado);
         
         return trim($resultado);
+    }
+
+    /**
+     * Convierte la URL de la API del BOE a la URL de visualización
+     * De: https://boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2025-12199
+     * A: https://www.boe.es/buscar/act.php?id=BOE-A-2025-12199
+     */
+    public function convertirBoeUrlAVisualizacion(?string $apiUrl): ?string
+    {
+        if (!$apiUrl) {
+            return null;
+        }
+
+        // Patrón para extraer el ID de la norma de la URL de la API
+        // Ejemplo: https://boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2025-12199
+        if (preg_match('#/datosabiertos/api/legislacion-consolidada/id/([^/]+)#', $apiUrl, $matches)) {
+            $idNorma = $matches[1];
+            return 'https://www.boe.es/buscar/act.php?id=' . urlencode($idNorma);
+        }
+
+        // Si no coincide con el patrón de la API, devolver la URL original (por si acaso ya está en formato de visualización)
+        return $apiUrl;
     }
 }
 
