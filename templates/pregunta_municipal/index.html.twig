@@ -64,29 +64,170 @@
         }
         
         @media (max-width: 768px) {
+            /* Header responsive */
+            .d-flex.justify-content-between {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .d-flex.justify-content-between h1 {
+                font-size: 1.5rem;
+                word-wrap: break-word;
+            }
+            
+            .d-flex.justify-content-between .btn {
+                width: 100%;
+                min-height: 48px;
+                font-size: 16px;
+            }
+            
+            /* Formulario responsive */
+            .card-body > div[style*="display: grid"] {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+            
+            .card-body .form-group {
+                width: 100%;
+            }
+            
+            .card-body label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-size: 0.95rem;
+            }
+            
+            .card-body input[type="text"] {
+                font-size: 16px !important;
+                min-height: 48px;
+                width: 100%;
+            }
+            
+            .card-body select {
+                font-size: 16px !important;
+                min-height: 48px;
+                width: 100%;
+            }
+            
+            .card-body > div > div:last-child {
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+            
+            .card-body > div > div:last-child .btn {
+                width: 100%;
+                min-height: 48px;
+                font-size: 16px;
+            }
+            
+            /* Checkbox */
+            .form-check {
+                margin-top: 1rem;
+                padding: 0.75rem;
+                background-color: #f8f9fa;
+                border-radius: 4px;
+            }
+            
+            .form-check-input {
+                width: 22px;
+                height: 22px;
+                min-width: 22px;
+                min-height: 22px;
+                cursor: pointer;
+            }
+            
+            .form-check-label {
+                font-size: 0.95rem;
+                margin-left: 0.5rem;
+            }
+            
+            /* Tabla responsive */
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .table {
+                font-size: 0.8rem;
+                min-width: 700px;
+            }
+            
+            /* Ocultar columnas menos importantes en móvil */
+            .table th:nth-child(1),
+            .table td:nth-child(1),
+            .table th:nth-child(3),
+            .table td:nth-child(3),
+            .table th:nth-child(4),
+            .table td:nth-child(4) {
+                display: none !important;
+            }
+            
+            /* Botones en tablas */
+            .table .btn {
+                min-height: 40px;
+                font-size: 14px;
+                padding: 0.5rem 0.75rem;
+                white-space: nowrap;
+            }
+            
+            .table .d-flex.gap-2 {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .table .d-flex.gap-2 .btn,
+            .table .d-flex.gap-2 form {
+                width: 100%;
+            }
+            
+            .table .d-flex.gap-2 form button {
+                width: 100%;
+            }
+            
+            /* Card header */
+            .card-header h3 {
+                font-size: 1rem;
+                word-wrap: break-word;
+            }
+            
+            /* Paginación */
             .pagination {
                 gap: 0.15rem;
+                flex-wrap: wrap;
             }
             
             .page-link {
-                padding: 0.4rem 0.6rem;
-                font-size: 0.875rem;
-                min-width: 35px;
+                padding: 0.5rem 0.75rem;
+                font-size: 16px;
+                min-width: 44px;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            /* Card footer */
+            .card-footer > div[style*="text-align: center"] {
+                font-size: 0.85rem;
+                word-wrap: break-word;
+                padding: 0.5rem;
             }
         }
     </style>
 {% endblock %}
 
 {% block body %}
-<div class="d-flex justify-content-between mb-4">
-    <h1>Preguntas Municipales</h1>
-    <a href="{{ path('app_pregunta_municipal_new') }}" class="btn btn-primary">Nueva Pregunta Municipal</a>
+<div class="d-flex justify-content-between mb-4" style="flex-wrap: wrap; gap: 1rem;">
+    <h1 style="flex: 1; min-width: 0;">Preguntas Municipales</h1>
+    <a href="{{ path('app_pregunta_municipal_new') }}" class="btn btn-primary" style="min-height: 48px; font-size: 16px; white-space: nowrap; align-self: flex-start;">Nueva Pregunta Municipal</a>
 </div>
 
 <form method="get" action="{{ path('app_pregunta_municipal_index') }}" style="margin-bottom: 2rem;">
     <div class="card">
         <div class="card-body">
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 1rem; align-items: end;" id="filtros-grid">
                 <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">Buscar:</label>
                     <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Buscar en el texto...">
@@ -142,11 +283,11 @@
 {% if totalItems > 0 %}
     <div class="card">
         <div class="card-header" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0; color: #333; font-size: 1.1rem; font-weight: 600;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                <h3 style="margin: 0; color: #333; font-size: 1.1rem; font-weight: 600; word-wrap: break-word;">
                     📚 Preguntas encontradas: <strong style="color: var(--color-primary);">{{ totalItems }}</strong>
                     {% if totalPages > 1 %}
-                        <span style="font-size: 0.9rem; color: #666; font-weight: normal;">
+                        <span style="font-size: 0.9rem; color: #666; font-weight: normal; display: block; margin-top: 0.25rem;">
                             (Página {{ currentPage }} de {{ totalPages }})
                         </span>
                     {% endif %}

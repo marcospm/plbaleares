@@ -2,15 +2,115 @@
 
 {% block title %}Convocatorias{% endblock %}
 
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        @media (max-width: 768px) {
+            /* Header responsive */
+            .d-flex.justify-content-between {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .d-flex.justify-content-between h1 {
+                font-size: 1.5rem;
+                word-wrap: break-word;
+            }
+            
+            .d-flex.justify-content-between .btn {
+                width: 100%;
+                min-height: 48px;
+                font-size: 16px;
+            }
+            
+            /* Tabla responsive */
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                margin: 0 -15px;
+                padding: 0 15px;
+            }
+            
+            .table {
+                font-size: 0.8rem;
+                min-width: 800px;
+            }
+            
+            /* Ocultar columnas menos importantes en móvil */
+            .table th:nth-child(1),
+            .table td:nth-child(1),
+            .table th:nth-child(4),
+            .table td:nth-child(4) {
+                display: none !important;
+            }
+            
+            /* Columna de fechas - hacer más compacta */
+            .table td:nth-child(5) {
+                font-size: 0.8rem !important;
+                padding: 0.5rem !important;
+            }
+            
+            .table td:nth-child(5) > div {
+                font-size: 0.8rem !important;
+            }
+            
+            .table td:nth-child(5) div > div {
+                margin-bottom: 0.25rem;
+                word-wrap: break-word;
+            }
+            
+            /* Botones en tablas */
+            .table .btn {
+                min-height: 40px;
+                font-size: 14px;
+                padding: 0.5rem 0.75rem;
+                white-space: nowrap;
+            }
+            
+            .table .d-flex.gap-2 {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .table .d-flex.gap-2 .btn,
+            .table .d-flex.gap-2 form {
+                width: 100%;
+            }
+            
+            .table .d-flex.gap-2 form button {
+                width: 100%;
+            }
+            
+            /* Badges responsive */
+            .table .badge {
+                font-size: 0.75rem;
+                padding: 0.4rem 0.6rem;
+                word-wrap: break-word;
+                display: inline-block;
+                margin: 0.25rem 0;
+            }
+            
+            /* Mensaje sin recursos */
+            .card-body.text-center .btn {
+                width: 100%;
+                min-height: 48px;
+                font-size: 16px;
+                margin-top: 0.75rem;
+            }
+        }
+    </style>
+{% endblock %}
+
 {% block body %}
-<div class="d-flex justify-content-between mb-4">
-    <h1>Convocatorias</h1>
-    <a href="{{ path('app_convocatoria_new') }}" class="btn btn-primary">Nueva Convocatoria</a>
+<div class="d-flex justify-content-between mb-4" style="flex-wrap: wrap; gap: 1rem;">
+    <h1 style="flex: 1; min-width: 0;">Convocatorias</h1>
+    <a href="{{ path('app_convocatoria_new') }}" class="btn btn-primary" style="min-height: 48px; font-size: 16px; white-space: nowrap; align-self: flex-start;">Nueva Convocatoria</a>
 </div>
 
 {% if convocatorias|length > 0 %}
     <div class="card">
-        <table class="table">
+        <div class="table-responsive">
+            <table class="table">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -91,6 +191,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     </div>
 {% else %}
     <div class="card">

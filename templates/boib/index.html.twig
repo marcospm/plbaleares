@@ -211,6 +211,134 @@
             font-size: 0.8rem;
             margin-right: 0.5rem;
         }
+        
+        @media (max-width: 768px) {
+            /* Header responsive */
+            .boib-header {
+                padding: 1.5rem 1rem !important;
+            }
+            
+            .boib-header h1 {
+                font-size: 1.5rem !important;
+                word-wrap: break-word;
+            }
+            
+            .boib-header p {
+                font-size: 1rem !important;
+                word-wrap: break-word;
+            }
+            
+            /* Cards responsive */
+            .resultado-item {
+                padding: 1rem !important;
+            }
+            
+            .resultado-item h3 {
+                font-size: 1.1rem !important;
+                word-wrap: break-word;
+            }
+            
+            .resultado-item .info {
+                flex-direction: column !important;
+                gap: 0.75rem !important;
+            }
+            
+            .resultado-item .info span {
+                word-wrap: break-word;
+                display: flex;
+                flex-wrap: wrap;
+            }
+            
+            /* Botones responsive */
+            .resultado-item > div[style*="display: flex"] {
+                flex-direction: column !important;
+                gap: 0.75rem !important;
+            }
+            
+            .resultado-item .btn {
+                width: 100%;
+                min-height: 48px;
+                font-size: 16px;
+                padding: 0.75rem 1rem !important;
+            }
+            
+            /* Enlaces responsive */
+            .resultado-item .enlaces {
+                flex-direction: column !important;
+                gap: 0.75rem !important;
+            }
+            
+            .resultado-item .enlace {
+                width: 100%;
+                min-height: 48px;
+                font-size: 16px;
+                text-align: center;
+                padding: 0.75rem 1rem !important;
+            }
+            
+            /* Consultar sumario button */
+            .consultar-sumario-btn {
+                width: 100% !important;
+                min-height: 48px !important;
+                font-size: 16px !important;
+                padding: 0.75rem 1rem !important;
+            }
+            
+            /* Resultado consulta responsive */
+            .resultado-consulta {
+                margin-top: 1rem !important;
+                padding: 0.75rem !important;
+                font-size: 0.9rem;
+            }
+            
+            .resultado-consulta-content {
+                font-size: 0.9rem !important;
+            }
+            
+            .texto-boib-formateado {
+                padding: 1rem !important;
+                font-size: 0.9rem !important;
+                line-height: 1.6 !important;
+            }
+            
+            .texto-boib-formateado mark {
+                padding: 0.1rem 0.2rem !important;
+                font-size: 0.9rem;
+            }
+            
+            /* Grid de resultados */
+            div[style*="display: grid"] {
+                gap: 1rem !important;
+            }
+            
+            /* Sin resultados */
+            .sin-resultados {
+                padding: 2rem 1rem !important;
+            }
+            
+            .sin-resultados h3 {
+                font-size: 1.2rem;
+            }
+            
+            /* Loading y error */
+            .loading,
+            .error-message {
+                padding: 1rem !important;
+                font-size: 0.95rem;
+            }
+            
+            /* XML content responsive */
+            div[style*="background: #f8f9fa"] pre {
+                font-size: 0.75rem !important;
+                padding: 0.75rem !important;
+                max-height: 400px !important;
+            }
+            
+            /* Card header */
+            .card-header {
+                padding: 1rem !important;
+            }
+        }
     </style>
 {% endblock %}
 

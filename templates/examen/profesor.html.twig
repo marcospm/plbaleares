@@ -61,14 +61,186 @@
         }
         
         @media (max-width: 768px) {
+            /* Header responsive */
+            .card-header h1,
+            .card-header h2 {
+                font-size: 1.3rem;
+                word-wrap: break-word;
+            }
+            
+            /* Descripción responsive */
+            p[style*="margin-bottom: 2rem"] {
+                font-size: 0.95rem;
+                word-wrap: break-word;
+            }
+            
+            /* Formulario de filtros principal */
+            #filtrosForm {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+            
+            #filtrosForm > div {
+                width: 100%;
+            }
+            
+            #filtrosForm label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-size: 0.95rem;
+            }
+            
+            #filtrosForm select {
+                font-size: 16px !important;
+                min-height: 48px;
+                width: 100%;
+            }
+            
+            #filtrosForm > div:last-child {
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
+                width: 100%;
+            }
+            
+            #filtrosForm > div:last-child .btn {
+                width: 100%;
+                min-height: 48px;
+                font-size: 16px;
+            }
+            
+            /* Formulario de ranking */
+            #filtrosRankingForm {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+            
+            #filtrosRankingForm > div {
+                width: 100%;
+            }
+            
+            #filtrosRankingForm label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-size: 0.95rem;
+            }
+            
+            #filtrosRankingForm select {
+                font-size: 16px !important;
+                min-height: 48px;
+                width: 100%;
+            }
+            
+            #filtrosRankingForm > div:last-child {
+                width: 100%;
+            }
+            
+            #filtrosRankingForm button {
+                width: 100%;
+                min-height: 48px;
+                font-size: 16px;
+            }
+            
+            /* Alertas informativas */
+            div[style*="background-color: #e3f2fd"],
+            div[style*="background-color: #f8f9fa"] {
+                font-size: 0.9rem;
+                padding: 0.75rem !important;
+                word-wrap: break-word;
+            }
+            
+            /* Tablas responsive */
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .table {
+                font-size: 0.8rem;
+                min-width: 800px;
+            }
+            
+            /* Tabla de exámenes - Temario General: 10 columnas */
+            /* Ocultar: Preguntas (5), Aciertos (7), Errores (8), En blanco (9) */
+            .table-examenes-general thead tr th:nth-child(5),
+            .table-examenes-general tbody tr td:nth-child(5),
+            .table-examenes-general thead tr th:nth-child(7),
+            .table-examenes-general tbody tr td:nth-child(7),
+            .table-examenes-general thead tr th:nth-child(8),
+            .table-examenes-general tbody tr td:nth-child(8),
+            .table-examenes-general thead tr th:nth-child(9),
+            .table-examenes-general tbody tr td:nth-child(9) {
+                display: none !important;
+            }
+            
+            /* Tabla de exámenes - Municipios: 11 columnas */
+            /* Ocultar: Preguntas (6), Aciertos (8), Errores (9), En blanco (10) */
+            .table-examenes-municipal thead tr th:nth-child(6),
+            .table-examenes-municipal tbody tr td:nth-child(6),
+            .table-examenes-municipal thead tr th:nth-child(8),
+            .table-examenes-municipal tbody tr td:nth-child(8),
+            .table-examenes-municipal thead tr th:nth-child(9),
+            .table-examenes-municipal tbody tr td:nth-child(9),
+            .table-examenes-municipal thead tr th:nth-child(10),
+            .table-examenes-municipal tbody tr td:nth-child(10) {
+                display: none !important;
+            }
+            
+            /* Tabla de ranking: 4-5 columnas (Pos, Alumno, Nota Media, Exámenes, [Opcional] Convocatoria) */
+            /* Ocultar columna "Exámenes" (4ta) solo si existe columna "Convocatoria" (5ta) */
+            .table-ranking thead tr th:nth-child(5) ~ th:nth-child(4),
+            .table-ranking tbody tr td:nth-child(5) ~ td:nth-child(4) {
+                /* No funciona así, mejor usar otra aproximación */
+            }
+            
+            /* Solución: ocultar columna 4 (Exámenes) en tabla de ranking si tiene 5 columnas */
+            .table-ranking thead tr th:nth-child(5) + * {
+                /* Si existe 5ta columna, la 4ta no será el último hijo */
+            }
+            
+            /* Más simple: usar selector que funcione con JavaScript o simplemente ocultar la 4ta siempre en ranking */
+            /* Ya que la columna "Exámenes" es menos importante que las otras */
+            .table-ranking thead tr th:nth-child(4),
+            .table-ranking tbody tr td:nth-child(4) {
+                display: none !important;
+            }
+            
+            /* Botones en tablas */
+            .table .btn {
+                min-height: 40px;
+                font-size: 14px;
+                padding: 0.5rem 0.75rem;
+                white-space: nowrap;
+            }
+            
+            /* Paginación */
             .pagination {
                 gap: 0.15rem;
+                flex-wrap: wrap;
             }
             
             .page-link {
-                padding: 0.4rem 0.6rem;
-                font-size: 0.875rem;
-                min-width: 35px;
+                padding: 0.5rem 0.75rem;
+                font-size: 16px;
+                min-width: 44px;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            /* Card footer */
+            .card-footer > div[style*="text-align: center"] {
+                font-size: 0.85rem;
+                word-wrap: break-word;
+                padding: 0.5rem;
+            }
+            
+            /* Mensajes de sin resultados */
+            .text-center p {
+                font-size: 1rem;
+                word-wrap: break-word;
+                padding: 0.75rem;
             }
         }
         
@@ -209,7 +381,8 @@
                 {% endif %}
                 
                 {% if examenesGeneral|length > 0 %}
-                    <table class="table">
+                    <div class="table-responsive">
+                        <table class="table table-examenes-general">
                         <thead>
                             <tr>
                                 <th>Fecha</th>
@@ -259,6 +432,7 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    </div>
                     
                     {% if totalPagesGeneral > 1 %}
                         <div class="card-footer" style="background-color: #f8f9fa; border-top: 1px solid #dee2e6; padding: 1rem;">
@@ -360,7 +534,8 @@
             </div>
             <div class="card-body">
                 {% if examenesMunicipal|length > 0 %}
-                    <table class="table">
+                    <div class="table-responsive">
+                        <table class="table table-examenes-municipal">
                         <thead>
                             <tr>
                                 <th>Fecha</th>
@@ -414,6 +589,7 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    </div>
                     
                     {% if totalPagesMunicipal > 1 %}
                         <div class="card-footer" style="background-color: #f8f9fa; border-top: 1px solid #dee2e6; padding: 1rem;">
@@ -568,7 +744,8 @@
                         <strong>ℹ️ Nota:</strong> El ranking muestra la nota media de los últimos 10 exámenes{% if tipoRanking == 'convocatoria' and convocatoriaRankingSeleccionada %} de la convocatoria seleccionada{% elseif tipoRanking == 'general' and temaSeleccionado %} del tema {{ temaSeleccionado.nombre }}{% endif %}{% if dificultadSeleccionada %} con dificultad {{ dificultadSeleccionada|capitalize }}{% endif %}.
                     </div>
                     
-                    <table class="table">
+                    <div class="table-responsive">
+                        <table class="table table-ranking">
                         <thead>
                             <tr>
                                 <th style="width: 60px;">Pos.</th>
@@ -618,6 +795,7 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    </div>
                     
                     {% if totalPagesRanking > 1 %}
                         <div class="card-footer" style="background-color: #f8f9fa; border-top: 1px solid #dee2e6; padding: 1rem;">

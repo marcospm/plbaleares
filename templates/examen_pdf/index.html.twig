@@ -59,14 +59,106 @@
             font-weight: 600;
             border-bottom: 2px solid #ddd;
         }
+        
+        @media (max-width: 768px) {
+            /* Header responsive */
+            .card-header.d-flex {
+                flex-direction: column !important;
+                gap: 1rem;
+                align-items: stretch !important;
+            }
+            
+            .card-header h1 {
+                font-size: 1.5rem;
+                word-wrap: break-word;
+                text-align: center;
+            }
+            
+            .card-header .btn {
+                width: 100%;
+                min-height: 48px;
+                font-size: 16px;
+            }
+            
+            /* Selector responsive */
+            .card-body .mb-3 {
+                width: 100%;
+            }
+            
+            .card-body label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-size: 0.95rem;
+            }
+            
+            select#filtroTema {
+                font-size: 16px !important;
+                min-height: 48px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
+            /* Tabla responsive */
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .table {
+                font-size: 0.85rem;
+                min-width: 500px;
+            }
+            
+            /* Ocultar fecha en móvil si es necesario */
+            .table th:nth-child(2),
+            .table td:nth-child(2) {
+                display: none !important;
+            }
+            
+            /* Botones en tablas */
+            .table .btn {
+                min-height: 40px;
+                font-size: 14px;
+                padding: 0.5rem 0.75rem;
+                white-space: nowrap;
+            }
+            
+            .table .d-flex.gap-2 {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .table .d-flex.gap-2 .btn,
+            .table .d-flex.gap-2 form {
+                width: 100%;
+            }
+            
+            .table .d-flex.gap-2 form button {
+                width: 100%;
+            }
+            
+            /* Alertas */
+            .alert {
+                padding: 1rem;
+                font-size: 0.95rem;
+            }
+            
+            .alert a {
+                display: block;
+                margin-top: 0.75rem;
+                min-height: 48px;
+                font-size: 16px;
+                text-align: center;
+            }
+        }
     </style>
 {% endblock %}
 
 {% block body %}
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h1>Exámenes PDF</h1>
-        <a href="{{ path('app_examen_pdf_new') }}" class="btn btn-primary">Nuevo Examen PDF</a>
+    <div class="card-header d-flex justify-content-between align-items-center" style="flex-wrap: wrap; gap: 1rem;">
+        <h1 style="flex: 1; min-width: 0; word-wrap: break-word;">Exámenes PDF</h1>
+        <a href="{{ path('app_examen_pdf_new') }}" class="btn btn-primary" style="min-height: 48px; font-size: 16px; white-space: nowrap; align-self: flex-start;">Nuevo Examen PDF</a>
     </div>
     <div class="card-body">
         {% if temas|length > 0 %}
