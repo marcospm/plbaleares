@@ -131,13 +131,45 @@
                 overflow: visible !important;
             }
             
+            /* Contenedor de tabla con scroll horizontal */
+            #historial-examenes .card > div.table-responsive {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                width: 100%;
+                display: block;
+                margin: 0;
+                padding: 0;
+            }
+            
+            /* Si no hay div con clase table-responsive, aplicar al card directamente */
+            #historial-examenes .card {
+                overflow: visible !important;
+            }
+            
+            #historial-examenes .card > div {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                width: 100%;
+                display: block;
+            }
+            
             #historial-examenes .table {
                 font-size: 0.85rem !important;
+                min-width: 700px !important;
+                width: auto !important;
+                margin: 0;
             }
             
             #historial-examenes .table th,
             #historial-examenes .table td {
                 padding: 0.5rem !important;
+                white-space: nowrap;
+            }
+            
+            /* Header responsive */
+            #historial-examenes .card-header h1 {
+                font-size: 1.3rem !important;
+                word-wrap: break-word;
             }
             
             /* Ocultar columnas menos importantes en móvil */
@@ -150,6 +182,14 @@
             #historial-examenes .table th:nth-child(8),
             #historial-examenes .table td:nth-child(8) {
                 display: none !important;
+            }
+            
+            /* Botones en la tabla */
+            #historial-examenes .table .btn {
+                min-height: 40px;
+                font-size: 14px;
+                padding: 0.5rem 0.75rem;
+                white-space: nowrap;
             }
             
             /* Asegurar que no haya max-height en el listado de exámenes */
@@ -1327,7 +1367,8 @@
         <div class="card-body" id="historial-examenes">
             {% if ultimosExamenes|length > 0 %}
                 <div class="card">
-                    <table class="table">
+                    <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                        <table class="table">
                         <thead>
                             <tr>
                                 <th>Fecha</th>
@@ -1372,6 +1413,7 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    </div>
                 </div>
                 <div style="text-align: center; margin-top: 1rem;">
                     <a href="{{ path('app_examen_historial') }}" class="btn btn-secondary">Ver Historial Completo</a>
