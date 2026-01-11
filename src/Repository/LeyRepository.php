@@ -5,15 +5,81 @@ namespace App\Repository;
 use App\Entity\Ley;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Psr\Cache\CacheItemPoolInterface;
 
 /**
  * @extends ServiceEntityRepository<Ley>
  */
 class LeyRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry)
+    private ?CacheItemPoolInterface $cache = null;
+
+    public function __construct(ManagerRegistry $registry, CacheItemPoolInterface $cache = null)
     {
         parent::__construct($registry, Ley::class);
+        $this->cache = $cache;
+    }
+
+    /**
+     * Obtiene todas las leyes ordenadas por nombre (con cache)
+     * @return Ley[]
+     */
+    public function findAllOrderedByNombre(): array
+    {
+        $cacheKey = 'leyes_all_ordered_nombre';
+        
+        if ($this->cache) {
+            $cacheItem = $this->cache->getItem($cacheKey);
+            if ($cacheItem->isHit()) {
+                return $cacheItem->get();
+            }
+        }
+
+        $leyes = $this->findBy([], ['nombre' => 'ASC']);
+
+        if ($this->cache) {
+            $cacheItem->set($leyes);
+            $cacheItem->expiresAfter(3600); // 1 hora
+            $this->cache->save($cacheItem);
+        }
+
+        return $leyes;
+    }
+
+    /**
+     * Obtiene todas las leyes activas ordenadas por nombre (con cache)
+     * @return Ley[]
+     */
+    public function findActivasOrderedByNombre(): array
+    {
+        $cacheKey = 'leyes_activas_ordered_nombre';
+        
+        if ($this->cache) {
+            $cacheItem = $this->cache->getItem($cacheKey);
+            if ($cacheItem->isHit()) {
+                return $cacheItem->get();
+            }
+        }
+
+        $leyes = $this->findBy(['activo' => true], ['nombre' => 'ASC']);
+
+        if ($this->cache) {
+            $cacheItem->set($leyes);
+            $cacheItem->expiresAfter(3600); // 1 hora
+            $this->cache->save($cacheItem);
+        }
+
+        return $leyes;
+    }
+
+    /**
+     * Limpia el cache de leyes (llamar después de crear/editar/eliminar leyes)
+     */
+    public function clearCache(): void
+    {
+        if ($this->cache) {
+            $this->cache->deleteItems(['leyes_all_ordered_nombre', 'leyes_activas_ordered_nombre']);
+        }
     }
 
     /**

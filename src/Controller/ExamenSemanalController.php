@@ -221,8 +221,8 @@ class ExamenSemanalController extends AbstractController
         }
 
         // GET: mostrar formulario
-        $temas = $this->temaRepository->findBy(['activo' => true], ['nombre' => 'ASC']);
-        $leyes = $this->leyRepository->findBy(['activo' => true], ['nombre' => 'ASC']);
+        $temas = $this->temaRepository->findActivosOrderedByNombre();
+        $leyes = $this->leyRepository->findActivasOrderedByNombre();
         $municipios = $this->municipioRepository->findBy(['activo' => true], ['nombre' => 'ASC']);
 
         return $this->render('examen_semanal/new_con_preguntas.html.twig', [
@@ -292,7 +292,7 @@ class ExamenSemanalController extends AbstractController
         }
 
         // GET: mostrar formulario
-        $convocatorias = $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']);
+        $convocatorias = $this->convocatoriaRepository->findActivasOrderedByNombre();
 
         return $this->render('examen_semanal/new_con_preguntas_convocatoria.html.twig', [
             'convocatorias' => $convocatorias,
@@ -345,7 +345,7 @@ class ExamenSemanalController extends AbstractController
                 return $this->render('examen_semanal/new.html.twig', [
                     'examenSemanal' => $examenSemanal,
                     'form' => $form,
-                    'convocatorias' => $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']),
+                    'convocatorias' => $this->convocatoriaRepository->findActivasOrderedByNombre(),
                 ]);
             }
 
@@ -355,7 +355,7 @@ class ExamenSemanalController extends AbstractController
                 return $this->render('examen_semanal/new.html.twig', [
                     'examenSemanal' => $examenSemanal,
                     'form' => $form,
-                    'convocatorias' => $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']),
+                    'convocatorias' => $this->convocatoriaRepository->findActivasOrderedByNombre(),
                 ]);
             }
 
@@ -365,7 +365,7 @@ class ExamenSemanalController extends AbstractController
                 return $this->render('examen_semanal/new.html.twig', [
                     'examenSemanal' => $examenSemanal,
                     'form' => $form,
-                    'convocatorias' => $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']),
+                    'convocatorias' => $this->convocatoriaRepository->findActivasOrderedByNombre(),
                 ]);
             }
 
@@ -376,7 +376,7 @@ class ExamenSemanalController extends AbstractController
                     return $this->render('examen_semanal/new.html.twig', [
                         'examenSemanal' => $examenSemanal,
                         'form' => $form,
-                        'convocatorias' => $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']),
+                        'convocatorias' => $this->convocatoriaRepository->findActivasOrderedByNombre(),
                     ]);
                 }
             } elseif (!$examenSemanal->getTemasMunicipales()->isEmpty()) {
@@ -385,7 +385,7 @@ class ExamenSemanalController extends AbstractController
                 return $this->render('examen_semanal/new.html.twig', [
                     'examenSemanal' => $examenSemanal,
                     'form' => $form,
-                    'convocatorias' => $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']),
+                    'convocatorias' => $this->convocatoriaRepository->findActivasOrderedByNombre(),
                 ]);
             }
 
@@ -395,7 +395,7 @@ class ExamenSemanalController extends AbstractController
                 return $this->render('examen_semanal/new.html.twig', [
                     'examenSemanal' => $examenSemanal,
                     'form' => $form,
-                    'convocatorias' => $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']),
+                    'convocatorias' => $this->convocatoriaRepository->findActivasOrderedByNombre(),
                 ]);
             }
 

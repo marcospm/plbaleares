@@ -60,6 +60,28 @@ class PreguntaMunicipalRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Obtiene preguntas municipales por sus IDs con eager loading
+     * @param array $ids Array de IDs de preguntas municipales
+     * @return PreguntaMunicipal[]
+     */
+    public function findByIds(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('p')
+            ->leftJoin('p.temaMunicipal', 'tm')
+            ->addSelect('tm')
+            ->leftJoin('p.municipio', 'm')
+            ->addSelect('m')
+            ->where('p.id IN (:ids)')
+            ->setParameter('ids', $ids)
+            ->getQuery()
+            ->getResult();
+    }
 }
 
 

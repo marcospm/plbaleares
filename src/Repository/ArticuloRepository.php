@@ -55,6 +55,86 @@ class ArticuloRepository extends ServiceEntityRepository
     }
 
     /**
+     * Obtiene artículos activos ordenados por número con paginación SQL
+     * 
+     * @param int|null $leyId ID de la ley para filtrar (opcional)
+     * @param string|null $search Término de búsqueda (opcional)
+     * @param int $offset Offset para paginación
+     * @param int $limit Límite de resultados
+     * @return Articulo[]
+     */
+    public function findActivosOrdenadosPorNumeroPaginated(?int $leyId = null, ?string $search = null, int $offset = 0, int $limit = 20): array
+    {
+        $qb = $this->createQueryBuilder('a')
+            ->innerJoin('a.ley', 'l')
+            ->where('a.activo = :activo')
+            ->andWhere('l.activo = :activo')
+            ->setParameter('activo', true)
+            ->orderBy('a.numero', 'ASC')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit);
+
+        if ($leyId !== null && $leyId > 0) {
+            $qb->andWhere('l.id = :leyId')
+               ->setParameter('leyId', $leyId);
+        }
+
+        if ($search !== null && $search !== '') {
+            // Para búsqueda en número, usar CONCAT para convertir a texto
+            $qb->andWhere(
+                $qb->expr()->orX(
+                    $qb->expr()->like('CONCAT(a.numero, \'\')', ':search'),
+                    $qb->expr()->like('COALESCE(a.sufijo, \'\')', ':search'),
+                    $qb->expr()->like('a.nombre', ':search'),
+                    $qb->expr()->like('a.explicacion', ':search'),
+                    $qb->expr()->like('l.nombre', ':search')
+                )
+            )
+            ->setParameter('search', '%' . $search . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Cuenta artículos activos sin cargar las entidades
+     * 
+     * @param int|null $leyId ID de la ley para filtrar (opcional)
+     * @param string|null $search Término de búsqueda (opcional)
+     * @return int
+     */
+    public function countActivosOrdenadosPorNumero(?int $leyId = null, ?string $search = null): int
+    {
+        $qb = $this->createQueryBuilder('a')
+            ->select('COUNT(a.id)')
+            ->innerJoin('a.ley', 'l')
+            ->where('a.activo = :activo')
+            ->andWhere('l.activo = :activo')
+            ->setParameter('activo', true);
+
+        if ($leyId !== null && $leyId > 0) {
+            $qb->andWhere('l.id = :leyId')
+               ->setParameter('leyId', $leyId);
+        }
+
+        if ($search !== null && $search !== '') {
+            // Para búsqueda en número, usar CONCAT para convertir a texto
+            $qb->andWhere(
+                $qb->expr()->orX(
+                    $qb->expr()->like('CONCAT(a.numero, \'\')', ':search'),
+                    $qb->expr()->like('COALESCE(a.sufijo, \'\')', ':search'),
+                    $qb->expr()->like('a.nombre', ':search'),
+                    $qb->expr()->like('a.explicacion', ':search'),
+                    $qb->expr()->like('l.nombre', ':search')
+                )
+            )
+            ->setParameter('search', '%' . $search . '%');
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
+
+    /**
      * Busca artículos con filtros avanzados
      * 
      * @param int|null $leyId ID de la ley para filtrar (opcional)
@@ -108,6 +188,120 @@ class ArticuloRepository extends ServiceEntityRepository
 
         // Ordenar por número (ahora es numérico, el ordenBy ya está en la línea 80)
         return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Busca artículos con filtros avanzados con paginación SQL
+     * 
+     * @param int|null $leyId ID de la ley para filtrar (opcional)
+     * @param string|null $search Término de búsqueda general (opcional)
+     * @param string|null $numero Número específico del artículo para filtrar (opcional)
+     * @param bool|null $activo Filtrar por estado activo/inactivo (opcional, null = todos)
+     * @param int $offset Offset para paginación
+     * @param int $limit Límite de resultados
+     * @return Articulo[]
+     */
+    public function buscarConFiltrosPaginated(?int $leyId = null, ?string $search = null, ?string $numero = null, ?bool $activo = null, int $offset = 0, int $limit = 20): array
+    {
+        $qb = $this->createQueryBuilder('a')
+            ->innerJoin('a.ley', 'l')
+            ->orderBy('a.numero', 'ASC')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit);
+
+        // Filtro por ley
+        if ($leyId !== null && $leyId > 0) {
+            $qb->andWhere('l.id = :leyId')
+               ->setParameter('leyId', $leyId);
+        }
+
+        // Filtro por número específico (ahora integer)
+        if ($numero !== null && $numero !== '') {
+            // Convertir a integer para búsqueda numérica
+            $numeroInt = is_numeric($numero) ? (int)$numero : null;
+            if ($numeroInt !== null) {
+                $qb->andWhere('a.numero = :numero')
+                   ->setParameter('numero', $numeroInt);
+            }
+        }
+
+        // Filtro por estado activo/inactivo
+        if ($activo !== null) {
+            $qb->andWhere('a.activo = :activo')
+               ->setParameter('activo', $activo);
+        }
+
+        // Filtro de búsqueda general (busca en número, sufijo, nombre, explicación y nombre de ley)
+        if ($search !== null && $search !== '') {
+            // Para búsqueda en número, usar CONCAT para convertir a texto
+            $qb->andWhere(
+                $qb->expr()->orX(
+                    $qb->expr()->like('CONCAT(a.numero, \'\')', ':search'),
+                    $qb->expr()->like('COALESCE(a.sufijo, \'\')', ':search'),
+                    $qb->expr()->like('a.nombre', ':search'),
+                    $qb->expr()->like('a.explicacion', ':search'),
+                    $qb->expr()->like('l.nombre', ':search')
+                )
+            )
+            ->setParameter('search', '%' . $search . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Cuenta artículos con filtros avanzados sin cargar las entidades
+     * 
+     * @param int|null $leyId ID de la ley para filtrar (opcional)
+     * @param string|null $search Término de búsqueda general (opcional)
+     * @param string|null $numero Número específico del artículo para filtrar (opcional)
+     * @param bool|null $activo Filtrar por estado activo/inactivo (opcional, null = todos)
+     * @return int
+     */
+    public function countConFiltros(?int $leyId = null, ?string $search = null, ?string $numero = null, ?bool $activo = null): int
+    {
+        $qb = $this->createQueryBuilder('a')
+            ->select('COUNT(a.id)')
+            ->innerJoin('a.ley', 'l');
+
+        // Filtro por ley
+        if ($leyId !== null && $leyId > 0) {
+            $qb->andWhere('l.id = :leyId')
+               ->setParameter('leyId', $leyId);
+        }
+
+        // Filtro por número específico (ahora integer)
+        if ($numero !== null && $numero !== '') {
+            // Convertir a integer para búsqueda numérica
+            $numeroInt = is_numeric($numero) ? (int)$numero : null;
+            if ($numeroInt !== null) {
+                $qb->andWhere('a.numero = :numero')
+                   ->setParameter('numero', $numeroInt);
+            }
+        }
+
+        // Filtro por estado activo/inactivo
+        if ($activo !== null) {
+            $qb->andWhere('a.activo = :activo')
+               ->setParameter('activo', $activo);
+        }
+
+        // Filtro de búsqueda general (busca en número, sufijo, nombre, explicación y nombre de ley)
+        if ($search !== null && $search !== '') {
+            // Para búsqueda en número, usar CONCAT para convertir a texto
+            $qb->andWhere(
+                $qb->expr()->orX(
+                    $qb->expr()->like('CONCAT(a.numero, \'\')', ':search'),
+                    $qb->expr()->like('COALESCE(a.sufijo, \'\')', ':search'),
+                    $qb->expr()->like('a.nombre', ':search'),
+                    $qb->expr()->like('a.explicacion', ':search'),
+                    $qb->expr()->like('l.nombre', ':search')
+                )
+            )
+            ->setParameter('search', '%' . $search . '%');
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
     }
 
     /**

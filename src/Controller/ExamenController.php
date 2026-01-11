@@ -541,23 +541,43 @@ class ExamenController extends AbstractController
 
         $esMunicipal = $config['es_municipal'] ?? false;
         
-        if ($esMunicipal) {
-            $pregunta = $this->preguntaMunicipalRepository->find($preguntasIds[$indice]);
+        // Pre-cargar todas las preguntas del examen para evitar N+1 queries
+        // Esto es especialmente útil en modo estudio donde se accede a todas las preguntas
+        $modoEstudio = false;
+        $preguntasMap = null;
+        
+        if (!isset($config['examen_semanal_id'])) {
+            $modoEstudio = $config['modo_estudio'] ?? false;
+            
+            // Pre-cargar todas las preguntas en batch
+            if ($esMunicipal) {
+                $todasPreguntas = $this->preguntaMunicipalRepository->findByIds($preguntasIds);
+            } else {
+                $todasPreguntas = $this->preguntaRepository->findByIds($preguntasIds);
+            }
+            
+            // Crear un mapa por ID para acceso rápido
+            $preguntasMap = [];
+            foreach ($todasPreguntas as $p) {
+                $preguntasMap[$p->getId()] = $p;
+            }
+            
+            // Obtener la pregunta actual del mapa
+            $pregunta = $preguntasMap[$preguntasIds[$indice]] ?? null;
         } else {
-            $pregunta = $this->preguntaRepository->find($preguntasIds[$indice]);
+            // Para exámenes semanales, solo cargar la pregunta actual
+            if ($esMunicipal) {
+                $pregunta = $this->preguntaMunicipalRepository->find($preguntasIds[$indice]);
+            } else {
+                $pregunta = $this->preguntaRepository->find($preguntasIds[$indice]);
+            }
         }
         
         if (!$pregunta) {
             $this->addFlash('error', 'Pregunta no encontrada.');
             return $this->redirectToRoute('app_examen_iniciar');
         }
-
-        // Guardar respuesta si se envía
-        // El modo estudio solo aplica a exámenes no semanales
-        $modoEstudio = false;
-        if (!isset($config['examen_semanal_id'])) {
-            $modoEstudio = $config['modo_estudio'] ?? false;
-        }
+        
         $preguntasBloqueadas = $session->get('examen_preguntas_bloqueadas', []);
         $preguntaBloqueada = in_array($pregunta->getId(), $preguntasBloqueadas);
         
@@ -676,11 +696,16 @@ class ExamenController extends AbstractController
             
             // En modo estudio, verificar si la respuesta es correcta
             if ($modoEstudio && $tieneRespuesta) {
-                // Obtener la pregunta para comparar respuestas
-                if ($esMunicipal) {
-                    $preguntaParaComparar = $this->preguntaMunicipalRepository->find($preguntaId);
+                // Usar el mapa de preguntas pre-cargadas si está disponible, sino cargar individualmente
+                if ($preguntasMap !== null && isset($preguntasMap[$preguntaId])) {
+                    $preguntaParaComparar = $preguntasMap[$preguntaId];
                 } else {
-                    $preguntaParaComparar = $this->preguntaRepository->find($preguntaId);
+                    // Fallback: cargar individualmente (solo para exámenes semanales)
+                    if ($esMunicipal) {
+                        $preguntaParaComparar = $this->preguntaMunicipalRepository->find($preguntaId);
+                    } else {
+                        $preguntaParaComparar = $this->preguntaRepository->find($preguntaId);
+                    }
                 }
                 
                 if ($preguntaParaComparar) {
@@ -1077,7 +1102,7 @@ class ExamenController extends AbstractController
         }
 
         // Obtener todos los temas activos para el filtro
-        $temas = $temaRepository->findBy(['activo' => true], ['id' => 'ASC']);
+        $temas = $temaRepository->findActivosOrderedById();
 
         // Obtener convocatorias activas del usuario
         $convocatorias = $this->convocatoriaRepository->findByUsuario($user);
@@ -1264,7 +1289,7 @@ class ExamenController extends AbstractController
         }
 
         // Obtener todos los temas activos para el filtro
-        $temas = $temaRepository->findBy(['activo' => true], ['id' => 'ASC']);
+        $temas = $temaRepository->findActivosOrderedById();
 
         // Obtener convocatorias activas de los alumnos del grupo
         $convocatorias = [];
@@ -1492,7 +1517,7 @@ class ExamenController extends AbstractController
         // Obtener convocatorias disponibles para el filtro de ranking
         $convocatoriasDisponibles = [];
         if ($esAdmin) {
-            $convocatoriasDisponibles = $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']);
+            $convocatoriasDisponibles = $this->convocatoriaRepository->findActivasOrderedByNombre();
         } else {
             // Para profesores, obtener convocatorias de sus alumnos
             $convocatoriasAlumnos = [];
@@ -1507,7 +1532,7 @@ class ExamenController extends AbstractController
         }
         
         // Obtener todos los temas activos para el filtro
-        $temas = $temaRepository->findBy(['activo' => true], ['id' => 'ASC']);
+        $temas = $temaRepository->findActivosOrderedById();
         
         // Obtener grupos disponibles para el filtro
         $todosGrupos = $grupoRepository->findAll();
@@ -1689,7 +1714,7 @@ class ExamenController extends AbstractController
         // Obtener convocatorias disponibles para el filtro de ranking
         $convocatoriasDisponibles = [];
         if ($esAdmin) {
-            $convocatoriasDisponibles = $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']);
+            $convocatoriasDisponibles = $this->convocatoriaRepository->findActivasOrderedByNombre();
         } else {
             // Para profesores, obtener convocatorias de sus alumnos
             $convocatoriasAlumnos = [];

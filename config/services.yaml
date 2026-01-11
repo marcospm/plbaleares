@@ -38,3 +38,43 @@ services:
     App\Service\BoeLeyService:
         arguments:
             $cache: '@cache.app'
+    
+    # Repositorios con cache para consultas comunes
+    App\Repository\LeyRepository:
+        arguments:
+            $cache: '@cache.queries'
+    
+    App\Repository\TemaRepository:
+        arguments:
+            $cache: '@cache.queries'
+    
+    App\Repository\ConvocatoriaRepository:
+        arguments:
+            $cache: '@cache.queries'
+    
+    App\Repository\ExamenRepository:
+        arguments:
+            $cache: '@cache.queries'
+    
+    App\Repository\MunicipioRepository:
+        arguments:
+            $cache: '@cache.queries'
+    
+    App\Repository\TemaMunicipalRepository:
+        arguments:
+            $cache: '@cache.queries'
+    
+    # Event listener para invalidar cache automáticamente
+    App\EventListener\CacheInvalidationSubscriber:
+        arguments:
+            $leyRepository: '@App\Repository\LeyRepository'
+            $temaRepository: '@App\Repository\TemaRepository'
+            $convocatoriaRepository: '@App\Repository\ConvocatoriaRepository'
+            $municipioRepository: '@App\Repository\MunicipioRepository'
+            $temaMunicipalRepository: '@App\Repository\TemaMunicipalRepository'
+            $examenRepository: '@App\Repository\ExamenRepository'
+            $cache: '@cache.queries'
+        tags:
+            - { name: doctrine.event_listener, event: postPersist }
+            - { name: doctrine.event_listener, event: postUpdate }
+            - { name: doctrine.event_listener, event: postRemove }

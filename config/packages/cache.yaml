@@ -20,3 +20,6 @@ framework:
                 adapter: cache.adapter.filesystem
             cache.boe:
                 adapter: cache.adapter.filesystem
+            cache.queries:
+                adapter: cache.adapter.filesystem
+                default_lifetime: 3600  # 1 hora para consultas comunes (leyes, temas, convocatorias)

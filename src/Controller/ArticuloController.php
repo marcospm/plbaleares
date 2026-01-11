@@ -42,33 +42,36 @@ class ArticuloController extends AbstractController
         $page = max(1, $request->query->getInt('page', 1));
 
         // Obtener todas las leyes ordenadas por nombre
-        $leyes = $leyRepository->findBy([], ['nombre' => 'ASC']);
+        $leyes = $leyRepository->findAllOrderedByNombre();
 
-        // Usar el método del repositorio para obtener artículos filtrados eficientemente
-        $articulos = $articuloRepository->buscarConFiltros(
+        // Obtener total de artículos con filtros (sin cargar entidades)
+        $totalItems = $articuloRepository->countConFiltros(
             $leyId > 0 ? $leyId : null,
             !empty($search) ? $search : null,
             !empty($numero) ? $numero : null,
             null // null = todos los estados (activos e inactivos)
         );
 
-        // Convertir a array indexado numéricamente
-        $articulos = array_values($articulos);
-
         // Calcular paginación
-        $totalItems = count($articulos);
         $totalPages = max(1, ceil($totalItems / $itemsPerPage));
         $page = min($page, $totalPages); // Asegurar que la página no exceda el total
         
-        // Obtener los items de la página actual
+        // Obtener los items de la página actual usando paginación SQL
         $offset = ($page - 1) * $itemsPerPage;
-        $articulosPaginated = array_slice($articulos, $offset, $itemsPerPage);
+        $articulosPaginated = $articuloRepository->buscarConFiltrosPaginated(
+            $leyId > 0 ? $leyId : null,
+            !empty($search) ? $search : null,
+            !empty($numero) ? $numero : null,
+            null, // null = todos los estados (activos e inactivos)
+            $offset,
+            $itemsPerPage
+        );
 
-        // Obtener contadores de mensajes para cada artículo de la página actual
-        $contadoresMensajes = [];
-        foreach ($articulosPaginated as $articulo) {
-            $contadoresMensajes[$articulo->getId()] = $mensajeArticuloRepository->countMensajesPrincipales($articulo);
-        }
+        // Obtener contadores de mensajes para todos los artículos de la página en una sola consulta
+        $articulosIds = array_map(function($articulo) {
+            return $articulo->getId();
+        }, $articulosPaginated);
+        $contadoresMensajes = $mensajeArticuloRepository->countMensajesPrincipalesPorArticulos($articulosIds);
 
         return $this->render('articulo/index.html.twig', [
             'articulos' => $articulosPaginated,

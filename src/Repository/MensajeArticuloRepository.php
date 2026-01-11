@@ -56,5 +56,37 @@ class MensajeArticuloRepository extends ServiceEntityRepository
         
         return (int) $result;
     }
+
+    /**
+     * Cuenta los mensajes principales de múltiples artículos en una sola consulta
+     * 
+     * @param array $articulosIds Array de IDs de artículos
+     * @return array Array asociativo [articuloId => cantidadMensajes]
+     */
+    public function countMensajesPrincipalesPorArticulos(array $articulosIds): array
+    {
+        if (empty($articulosIds)) {
+            return [];
+        }
+
+        $results = $this->createQueryBuilder('m')
+            ->select('m.articulo as articuloId, COUNT(m.id) as cantidad')
+            ->where('m.articulo IN (:articulosIds)')
+            ->andWhere('m.mensajePadre IS NULL')
+            ->setParameter('articulosIds', $articulosIds)
+            ->groupBy('m.articulo')
+            ->getQuery()
+            ->getResult();
+
+        // Inicializar todos los IDs con 0
+        $contadores = array_fill_keys($articulosIds, 0);
+
+        // Actualizar con los valores reales
+        foreach ($results as $result) {
+            $contadores[$result['articuloId']] = (int) $result['cantidad'];
+        }
+
+        return $contadores;
+    }
 }
 

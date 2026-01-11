@@ -26,27 +26,26 @@ class ArticuloPublicoController extends AbstractController
         $page = max(1, $request->query->getInt('page', 1));
 
         // Solo leyes activas
-        $leyes = array_filter($leyRepository->findAll(), function($ley) {
-            return $ley->isActivo();
-        });
+        $leyes = $leyRepository->findActivasOrderedByNombre();
         
-        // Obtener artículos activos ordenados por número, con filtros aplicados
-        $articulos = $articuloRepository->findActivosOrdenadosPorNumero(
+        // Obtener total de artículos activos con filtros (sin cargar entidades)
+        $totalItems = $articuloRepository->countActivosOrdenadosPorNumero(
             $leyId > 0 ? $leyId : null,
             !empty($search) ? $search : null
         );
 
-        // Convertir a array indexado numéricamente
-        $articulos = array_values($articulos);
-
         // Calcular paginación
-        $totalItems = count($articulos);
         $totalPages = max(1, ceil($totalItems / $itemsPerPage));
         $page = min($page, $totalPages); // Asegurar que la página no exceda el total
         
-        // Obtener los items de la página actual
+        // Obtener los items de la página actual usando paginación SQL
         $offset = ($page - 1) * $itemsPerPage;
-        $articulosPaginated = array_slice($articulos, $offset, $itemsPerPage);
+        $articulosPaginated = $articuloRepository->findActivosOrdenadosPorNumeroPaginated(
+            $leyId > 0 ? $leyId : null,
+            !empty($search) ? $search : null,
+            $offset,
+            $itemsPerPage
+        );
 
         return $this->render('articulo/publico_index.html.twig', [
             'articulos' => $articulosPaginated,

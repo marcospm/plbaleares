@@ -21,7 +21,7 @@ class LeyController extends AbstractController
     public function index(LeyRepository $leyRepository, BoeLeyService $boeLeyService, Request $request): Response
     {
         $search = $request->query->get('search', '');
-        $leyes = $leyRepository->findAll();
+        $leyes = $leyRepository->findAllOrderedByNombre();
 
         if (!empty($search)) {
             $leyes = array_filter($leyes, function($ley) use ($search) {
