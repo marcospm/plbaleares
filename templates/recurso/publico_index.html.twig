@@ -2,6 +2,142 @@
 
 {% block title %}Recursos - Sistema de Oposiciones{% endblock %}
 
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        /* Estilos responsivos para móviles (iPhone) */
+        @media (max-width: 768px) {
+            /* Card principal */
+            .card {
+                margin: 0.5rem !important;
+            }
+            
+            .card-header h1 {
+                font-size: 1.3rem !important;
+            }
+            
+            .card-body {
+                padding: 1rem !important;
+            }
+            
+            /* Grid de dos columnas a una columna */
+            .card-body > div[style*="display: grid; grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+                gap: 1.5rem !important;
+            }
+            
+            /* Headers de secciones */
+            .card-header h2 {
+                font-size: 1.1rem !important;
+            }
+            
+            /* Cards internos */
+            .card-body > div[style*="display: grid; grid-template-columns: 1fr 1fr"] > div > .card {
+                margin-bottom: 1rem !important;
+            }
+            
+            /* Temas - apilar elementos */
+            .card-body div[style*="display: flex"][style*="justify-content: space-between"] {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 0.75rem !important;
+            }
+            
+            /* Botones Ver PDF en temas */
+            .card-body div[style*="margin-left: 1rem"] {
+                width: 100% !important;
+                margin-left: 0 !important;
+                margin-top: 0.5rem !important;
+            }
+            
+            /* Todos los botones en recursos */
+            .card-body a.btn,
+            .card-body button.btn {
+                width: 100% !important;
+                padding: 0.75rem 1rem !important;
+                font-size: 1rem !important;
+                min-height: 48px !important;
+                text-align: center !important;
+                display: block !important;
+            }
+            
+            /* Exámenes PDF - apilar elementos */
+            .card-body div[style*="display: flex"][style*="justify-content: space-between"][style*="align-items: flex-start"] {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 1rem !important;
+            }
+            
+            /* Contenedores de botones */
+            .card-body div[style*="display: flex"][style*="flex-direction: column"] {
+                width: 100% !important;
+            }
+            
+            /* Contenedores de scroll */
+            .card-body > div[style*="max-height"] {
+                max-height: 300px !important;
+            }
+            
+            /* Modales */
+            [id^="modal-temas-"] {
+                padding: 0.5rem !important;
+            }
+            
+            [id^="modal-temas-"] > div {
+                width: 95% !important;
+                margin: 2% auto !important;
+                max-height: 90vh !important;
+            }
+            
+            [id^="modal-temas-"] > div > div:first-child {
+                padding: 0.75rem !important;
+            }
+            
+            [id^="modal-temas-"] > div > div:first-child h3 {
+                font-size: 1rem !important;
+            }
+            
+            [id^="modal-temas-"] > div > div:nth-child(2) {
+                padding: 1rem !important;
+                max-height: calc(90vh - 150px) !important;
+            }
+            
+            /* Texto descriptivo */
+            .card-body p {
+                font-size: 0.9rem !important;
+                line-height: 1.5 !important;
+            }
+            
+            /* Asegurar que el texto no se desborde */
+            * {
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+            }
+            
+            /* Botones más grandes para facilitar el toque */
+            button, .btn, a.btn {
+                min-height: 48px !important;
+                touch-action: manipulation !important;
+            }
+        }
+        
+        /* Estilos específicos para iPhone (pantallas muy pequeñas) */
+        @media (max-width: 480px) {
+            .card-header h1 {
+                font-size: 1.2rem !important;
+            }
+            
+            .card-header h2 {
+                font-size: 1rem !important;
+            }
+            
+            .card-body > div[style*="display: grid; grid-template-columns: 1fr 1fr"] > div > .card > .card-body > div > div > div {
+                padding: 0.5rem !important;
+            }
+        }
+    </style>
+{% endblock %}
+
 {% block body %}
 <div class="card">
     <div class="card-header">
@@ -297,6 +433,24 @@ window.onclick = function(event) {
         }
     });
 }
+
+// Ajustar estilos de modales en móvil
+function ajustarModales() {
+    if (window.innerWidth <= 768) {
+        const modales = document.querySelectorAll('[id^="modal-temas-"]');
+        modales.forEach(modal => {
+            const content = modal.querySelector('div');
+            if (content) {
+                content.style.width = '95%';
+                content.style.margin = '2% auto';
+                content.style.maxHeight = '90vh';
+            }
+        });
+    }
+}
+
+window.addEventListener('resize', ajustarModales);
+window.addEventListener('DOMContentLoaded', ajustarModales);
 </script>
 
 {% endblock %}

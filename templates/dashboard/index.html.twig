@@ -50,6 +50,201 @@
         }
     </style>
     {% endif %}
+    
+    <style>
+        /* Estilos responsivos para móviles (iPhone) - Dashboard Alumno */
+        @media (max-width: 768px) {
+            /* Cards principales */
+            .card {
+                margin: 0.5rem !important;
+            }
+            
+            .card-header h1,
+            .card-header h2,
+            .card-header h3 {
+                font-size: 1.2rem !important;
+            }
+            
+            .card-body {
+                padding: 1rem !important;
+            }
+            
+            /* Grid de dos columnas a una columna */
+            .dashboard-grid-2cols {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+            
+            /* Todos los grids con auto-fit a columna única */
+            div[style*="grid-template-columns: repeat(auto-fit"] {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Grids de 2 columnas a 1 columna */
+            div[style*="grid-template-columns: 1fr 1fr"],
+            div[style*="grid-template-columns: 2fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Grids de 3 columnas (rankings) a 1 columna */
+            div[style*="grid-template-columns: repeat(3"] {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Grids de fechas en convocatorias - mantener 3 columnas si cabe */
+            div[style*="grid-template-columns: repeat(auto-fit, minmax(120px"] {
+                grid-template-columns: repeat(3, 1fr) !important;
+            }
+            
+            /* Información de profesor/grupo - apilar verticalmente */
+            .card-body > div[style*="display: flex"] {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 1rem !important;
+            }
+            
+            /* Badges */
+            .badge {
+                margin: 0.25rem 0 !important;
+                display: inline-block !important;
+            }
+            
+            /* Botones */
+            .btn,
+            a.btn,
+            button.btn {
+                width: 100% !important;
+                padding: 0.75rem 1rem !important;
+                font-size: 1rem !important;
+                min-height: 48px !important;
+                text-align: center !important;
+            }
+            
+            /* Tabla de historial de exámenes - sin restricciones de altura */
+            #historial-examenes {
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            
+            #historial-examenes .card {
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            
+            #historial-examenes .table {
+                font-size: 0.85rem !important;
+            }
+            
+            #historial-examenes .table th,
+            #historial-examenes .table td {
+                padding: 0.5rem !important;
+            }
+            
+            /* Ocultar columnas menos importantes en móvil */
+            #historial-examenes .table th:nth-child(4),
+            #historial-examenes .table td:nth-child(4),
+            #historial-examenes .table th:nth-child(6),
+            #historial-examenes .table td:nth-child(6),
+            #historial-examenes .table th:nth-child(7),
+            #historial-examenes .table td:nth-child(7),
+            #historial-examenes .table th:nth-child(8),
+            #historial-examenes .table td:nth-child(8) {
+                display: none !important;
+            }
+            
+            /* Asegurar que no haya max-height en el listado de exámenes */
+            #historial-examenes .card-body > .card,
+            #historial-examenes > .card,
+            .card-body > .card {
+                max-height: none !important;
+                overflow: visible !important;
+                height: auto !important;
+            }
+            
+            /* Remover cualquier max-height del body principal */
+            #historial-examenes .card-body {
+                max-height: none !important;
+                overflow: visible !important;
+                height: auto !important;
+            }
+            
+            /* Tabla sin restricciones */
+            #historial-examenes table {
+                display: table !important;
+            }
+            
+            #historial-examenes tbody {
+                display: table-row-group !important;
+            }
+            
+            /* Selects */
+            select {
+                font-size: 16px !important; /* Previene zoom en iOS */
+                min-height: 44px !important;
+                padding: 0.5rem !important;
+            }
+            
+            /* Headers con toggle */
+            .card-header[style*="cursor: pointer"] {
+                padding: 1rem !important;
+            }
+            
+            /* Franjas horarias en planificación */
+            .card-body > div[style*="display: flex"][style*="flex-direction: column"] > div[style*="padding: 0.75rem"] {
+                padding: 0.75rem !important;
+            }
+            
+            /* Cards de convocatorias */
+            .card-body > div[style*="display: grid"] > div[style*="border: 1px solid"] {
+                padding: 1rem !important;
+            }
+            
+            /* Asegurar que el texto no se desborde */
+            * {
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+            }
+            
+            /* Botones más grandes para facilitar el toque */
+            button, .btn, a.btn {
+                min-height: 48px !important;
+                touch-action: manipulation !important;
+            }
+        }
+        
+        /* Estilos específicos para iPhone (pantallas muy pequeñas) */
+        @media (max-width: 480px) {
+            .card-header h1 {
+                font-size: 1.1rem !important;
+            }
+            
+            .card-header h2,
+            .card-header h3 {
+                font-size: 1rem !important;
+            }
+            
+            /* Grids de 3 columnas a 1 columna */
+            div[style*="grid-template-columns: repeat(3"] {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Grids de fechas en convocatorias a 1 columna */
+            div[style*="grid-template-columns: repeat(auto-fit, minmax(120px"] {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Grids de 2 columnas a 1 columna */
+            div[style*="grid-template-columns: repeat(2"] {
+                grid-template-columns: 1fr !important;
+            }
+            
+            /* Ocultar más columnas en tabla */
+            .table th:nth-child(5),
+            .table td:nth-child(5) {
+                display: none !important;
+            }
+        }
+    </style>
 {% endblock %}
 
 {% block javascripts %}
@@ -976,7 +1171,7 @@
         </div>
     {% endif %}
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+    <div class="dashboard-grid-2cols" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
         <div class="card">
             <div class="card-header" style="cursor: pointer; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-bottom: 2px solid #2196F3;" data-section="mi-planificacion" onclick="toggleSection('mi-planificacion')">
                 <div style="display: flex; justify-content: space-between; align-items: center;">

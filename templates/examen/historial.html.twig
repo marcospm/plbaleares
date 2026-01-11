@@ -93,25 +93,197 @@
         }
         
         @media (max-width: 768px) {
+            /* Header responsive */
+            .d-flex.justify-content-between {
+                flex-direction: column !important;
+                gap: 1rem;
+            }
+            
+            .d-flex.justify-content-between .btn,
+            .d-flex.justify-content-between a.btn {
+                width: 100%;
+                min-height: 48px;
+                font-size: 16px;
+                text-align: center;
+            }
+            
+            h1 {
+                font-size: 1.5rem !important;
+                word-wrap: break-word;
+                margin-bottom: 0.5rem;
+            }
+            
+            /* Selectores más grandes para evitar zoom en iOS */
+            select.form-control {
+                font-size: 16px !important;
+                min-height: 48px;
+                width: 100% !important;
+                margin-bottom: 0.75rem;
+            }
+            
+            /* Labels de filtros */
+            label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-size: 0.95rem;
+            }
+            
+            /* Filtros apilados verticalmente */
+            .card-body > div[style*="display: flex"],
+            div[style*="display: flex"][style*="flex-wrap"],
+            div[style*="display: flex"][style*="align-items: center"] {
+                flex-direction: column !important;
+                gap: 1rem !important;
+                align-items: stretch !important;
+            }
+            
+            /* Contenedores de filtros */
+            div[style*="margin-bottom: 1rem"][style*="display: flex"] > div {
+                width: 100%;
+            }
+            
+            /* Rankings: de 3 columnas a 1 columna */
+            div[style*="grid-template-columns: repeat(3"] {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+            
+            /* Rankings sin max-height para que se vea todo */
+            .ranking-list,
+            div[style*="max-height: 400px"] {
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            
+            /* Asegurar que los contenedores de rankings no tengan restricciones */
+            .card-body > div[class*="ranking"] {
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            
+            /* Tablas responsivas */
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .table {
+                font-size: 0.85rem;
+                min-width: 600px;
+            }
+            
+            /* Ocultar columnas menos importantes en móvil */
+            .table th:nth-child(4),
+            .table td:nth-child(4),
+            .table th:nth-child(7),
+            .table td:nth-child(7),
+            .table th:nth-child(8),
+            .table td:nth-child(8) {
+                display: none !important;
+            }
+            
+            /* Si es historial grupo, ajustar columna de alumno */
+            .table th:first-child,
+            .table td:first-child {
+                min-width: 120px;
+            }
+            
+            /* Botones en tablas */
+            .table .btn {
+                min-height: 40px;
+                font-size: 14px;
+                padding: 0.5rem 0.75rem;
+                white-space: nowrap;
+            }
+            
+            /* Paginación */
             .pagination {
                 gap: 0.15rem;
+                flex-wrap: wrap;
             }
             
             .page-link {
+                padding: 0.5rem 0.75rem;
+                font-size: 16px;
+                min-width: 44px;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            /* Cards más compactos */
+            .card-header h2 {
+                font-size: 1.25rem;
+            }
+            
+            .card-header h3 {
+                font-size: 1.1rem;
+            }
+            
+            /* Badges y textos */
+            .badge {
+                font-size: 0.8rem;
                 padding: 0.4rem 0.6rem;
-                font-size: 0.875rem;
-                min-width: 35px;
+            }
+            
+            /* Información de página más legible */
+            div[style*="text-align: center"] {
+                font-size: 0.9rem;
+                padding: 0.5rem;
+                word-wrap: break-word;
+            }
+            
+            /* Alertas y notas informativas */
+            div[style*="background-color: #e3f2fd"],
+            div[style*="background-color: #f3e5f5"],
+            div[style*="background-color: #f0f7ff"] {
+                font-size: 0.9rem;
+                padding: 0.75rem;
+                line-height: 1.5;
+            }
+            
+            /* Títulos más pequeños */
+            h2 {
+                font-size: 1.3rem;
+            }
+            
+            h3 {
+                font-size: 1.1rem;
+            }
+            
+            /* Entradas de ranking más compactas */
+            div[style*="padding: 0.75rem"][style*="margin-bottom"] {
+                padding: 0.75rem !important;
+                margin-bottom: 0.75rem !important;
+                font-size: 0.9rem;
+            }
+            
+            /* Badges en rankings */
+            span.badge {
+                font-size: 0.75rem;
+                padding: 0.3rem 0.5rem;
+            }
+            
+            /* Cards de rankings sin padding excesivo */
+            .card .card-body {
+                padding: 1rem;
+            }
+            
+            /* Espaciado de secciones */
+            .card {
+                margin-bottom: 1.5rem;
             }
         }
     </style>
 {% endblock %}
 
 {% block body %}
-<div class="d-flex justify-content-between mb-4">
-    <div>
-        <h1>{% if esHistorialGrupo %}Historial de Exámenes del Grupo{% else %}Historial de Exámenes{% endif %}</h1>
+<div class="d-flex justify-content-between mb-4" style="flex-wrap: wrap; gap: 1rem;">
+    <div style="flex: 1; min-width: 0;">
+        <h1 style="font-size: 1.75rem; word-wrap: break-word;">{% if esHistorialGrupo %}Historial de Exámenes del Grupo{% else %}Historial de Exámenes{% endif %}</h1>
         {% if esHistorialGrupo and grupo %}
-            <div style="margin-top: 0.5rem; padding: 0.75rem; background-color: #e3f2fd; border-left: 4px solid var(--color-primary); border-radius: 4px;">
+            <div style="margin-top: 0.5rem; padding: 0.75rem; background-color: #e3f2fd; border-left: 4px solid var(--color-primary); border-radius: 4px; font-size: 0.95rem;">
                 <strong>Grupo:</strong> {{ grupo.nombre }} 
                 <span style="color: #666; margin-left: 1rem;">
                     ({{ alumnosGrupo|length }} alumno{{ alumnosGrupo|length != 1 ? 's' : '' }})
@@ -119,7 +291,7 @@
             </div>
         {% endif %}
     </div>
-    <a href="{{ path('app_examen_iniciar') }}" class="btn btn-primary">Nuevo Examen</a>
+    <a href="{{ path('app_examen_iniciar') }}" class="btn btn-primary" style="min-height: 48px; font-size: 16px; white-space: nowrap; align-self: flex-start;">Nuevo Examen</a>
 </div>
 
 {# ========== SECCIÓN 1: EXÁMENES DEL TEMARIO GENERAL (EL) ========== #}
@@ -176,7 +348,7 @@
                             </div>
                             <div class="card-body">
                                 {% if ranking|length > 0 %}
-                                    <div style="max-height: 400px; overflow-y: auto;">
+                                    <div class="ranking-list" style="max-height: 400px; overflow-y: auto;">
                                         {% for index, entry in ranking %}
                                             {% set esUsuarioActual = entry.usuario.id == usuarioActual.id %}
                                             <div style="padding: 0.75rem; margin-bottom: 0.5rem; border-radius: 4px; {% if esUsuarioActual %}background-color: #e3f2fd; border: 2px solid var(--color-primary); font-weight: bold;{% else %}background-color: #f8f9fa; border: 1px solid #ddd;{% endif %}">
@@ -448,7 +620,7 @@
                                     </div>
                                     <div class="card-body">
                                         {% if ranking|length > 0 %}
-                                            <div style="max-height: 400px; overflow-y: auto;">
+                                            <div class="ranking-list" style="max-height: 400px; overflow-y: auto;">
                                                 {% for index, entry in ranking %}
                                                     {% set esUsuarioActual = entry.usuario.id == usuarioActual.id %}
                                                     <div style="padding: 0.75rem; margin-bottom: 0.5rem; border-radius: 4px; {% if esUsuarioActual %}background-color: #f3e5f5; border: 2px solid #9C27B0; font-weight: bold;{% else %}background-color: #f8f9fa; border: 1px solid #ddd;{% endif %}">

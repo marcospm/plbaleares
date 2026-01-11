@@ -708,26 +708,345 @@ window.onclick = function(event) {
 }
 
 @media (max-width: 768px) {
-    .week-navigation-wrapper {
-        width: 100%;
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-    
-    .week-info {
-        min-width: 100%;
-        margin: 0.5rem 0;
+    /* Header responsive */
+    .card-header .d-flex {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 1rem;
     }
     
     .card-header h1 {
         width: 100%;
         text-align: center;
-        margin-bottom: 1rem;
+        margin-bottom: 0.5rem;
+        font-size: 1.5rem;
+        word-wrap: break-word;
+    }
+    
+    /* Navegación de semanas */
+    .week-navigation-wrapper {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.5rem;
+    }
+    
+    .week-info {
+        min-width: 100%;
+        margin: 0.5rem 0;
+        order: -1;
+    }
+    
+    .week-date-range {
+        font-size: 1rem;
+    }
+    
+    .week-label {
+        font-size: 0.85rem;
+    }
+    
+    .week-nav-btn {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        min-height: 48px;
+    }
+    
+    .week-nav-icon {
+        font-size: 1.8rem;
     }
     
     .week-nav-btn-today {
+        width: 100%;
         margin-left: 0;
         margin-top: 0.5rem;
+        min-height: 48px;
+        font-size: 16px;
+    }
+    
+    /* Formulario PDF */
+    #pdf-form {
+        flex-direction: column !important;
+        gap: 0.75rem !important;
+        align-items: stretch !important;
+    }
+    
+    #pdf-form label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+    
+    #pdf-mes,
+    #pdf-anio {
+        font-size: 16px !important;
+        min-height: 48px !important;
+        width: 100% !important;
+        padding: 0.5rem 0.75rem !important;
+    }
+    
+    #pdf-form button[type="submit"] {
+        width: 100%;
+        min-height: 48px;
+        font-size: 16px;
+        padding: 0.75rem;
+    }
+    
+    /* Resumen de la semana */
+    .mb-4 .d-flex {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: stretch;
+    }
+    
+    .mb-4 .badge {
+        width: 100%;
+        text-align: center;
+        padding: 0.75rem;
+        font-size: 1rem;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Tabla de planificación */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -15px;
+        padding: 0 15px;
+    }
+    
+    .table {
+        font-size: 0.8rem;
+        min-width: 700px;
+    }
+    
+    .table th {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.25rem;
+        white-space: nowrap;
+    }
+    
+    .table td {
+        padding: 0.5rem 0.25rem;
+        vertical-align: top;
+    }
+    
+    /* Franjas horarias */
+    .franja-horaria {
+        padding: 0.75rem 0.5rem !important;
+        margin-bottom: 0.75rem !important;
+        min-height: 60px;
+        font-size: 0.85rem;
+    }
+    
+    .franja-horaria > div {
+        font-size: 0.85rem !important;
+    }
+    
+    .franja-horaria .badge {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.5rem;
+        display: inline-block;
+        margin-bottom: 0.25rem;
+    }
+    
+    .info-icon {
+        font-size: 1rem !important;
+        min-width: 32px;
+        min-height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Checkboxes más grandes para touch */
+    input[type="checkbox"].tarea-checkbox {
+        width: 22px;
+        height: 22px;
+        min-width: 22px;
+        min-height: 22px;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+    
+    /* Tareas pendientes */
+    .card-body .tarea-item {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        padding: 0.75rem !important;
+        gap: 0.75rem !important;
+        margin-bottom: 0.75rem !important;
+    }
+    
+    .card-body .tarea-item > div {
+        width: 100%;
+    }
+    
+    .card-body .tarea-item > div > div:first-child {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.5rem !important;
+    }
+    
+    .card-body .tarea-item .badge {
+        display: inline-block;
+        margin-top: 0.5rem;
+        font-size: 0.75rem;
+        padding: 0.4rem 0.6rem;
+        word-wrap: break-word;
+        white-space: normal;
+    }
+    
+    .card-body .tarea-item strong {
+        font-size: 0.95rem;
+        word-wrap: break-word;
+        display: block;
+        width: 100%;
+    }
+    
+    .card-body .tarea-item div[style*="font-size: 0.85rem"] {
+        font-size: 0.85rem !important;
+        margin-top: 0.5rem;
+        width: 100%;
+    }
+    
+    /* Tareas dentro de franjas */
+    .franja-horaria .tareas-container .tarea-item {
+        flex-direction: row !important;
+        align-items: flex-start !important;
+        gap: 0.5rem !important;
+    }
+    
+    .franja-horaria .tareas-container .tarea-item > div:first-child {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .franja-horaria .tareas-container .tarea-item div[style*="font-size: 0.75rem"] {
+        margin-left: 1.75rem !important;
+    }
+    
+    /* Modal responsive */
+    .modal {
+        padding: 0.5rem;
+    }
+    
+    .modal-content {
+        width: 95% !important;
+        max-width: 95% !important;
+        margin: 1% auto !important;
+        padding: 1rem !important;
+        max-height: 95vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .modal-content > div:first-child {
+        flex-shrink: 0;
+        padding-bottom: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .modal-content h2 {
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+        word-wrap: break-word;
+    }
+    
+    .modal-content h3 {
+        font-size: 1.1rem;
+        word-wrap: break-word;
+    }
+    
+    #modalInfoFranjaContent {
+        max-height: 75vh !important;
+        font-size: 0.9rem;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        flex: 1;
+    }
+    
+    .close-modal {
+        font-size: 2.5rem !important;
+        line-height: 1;
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+    }
+    
+    /* Contenido del modal responsive */
+    .modal-content div[style*="margin-bottom: 1.5rem"],
+    .modal-content div[style*="margin: 1rem 0"] {
+        padding: 0.75rem !important;
+        font-size: 0.9rem !important;
+        word-wrap: break-word;
+    }
+    
+    .modal-content div[style*="background-color"] {
+        margin: 0.75rem 0 !important;
+        padding: 0.75rem !important;
+    }
+    
+    .modal-content p {
+        word-wrap: break-word;
+        font-size: 0.9rem;
+    }
+    
+    .modal-content a {
+        font-size: 0.9rem;
+        word-break: break-all;
+        display: block;
+        margin: 0.5rem 0;
+    }
+    
+    /* Alerts */
+    .alert {
+        padding: 1rem !important;
+        font-size: 0.95rem;
+    }
+    
+    .alert h4 {
+        font-size: 1.1rem;
+    }
+    
+    .alert .btn {
+        width: 100%;
+        min-height: 48px;
+        font-size: 16px;
+        margin-top: 0.75rem;
+    }
+    
+    /* Tareas container */
+    .tareas-container {
+        margin-top: 0.75rem !important;
+        padding-top: 0.75rem !important;
+    }
+    
+    .tarea-item .tarea-item {
+        padding: 0.75rem !important;
+    }
+    
+    /* Textos más legibles */
+    .card-body {
+        font-size: 0.9rem;
+    }
+    
+    h3 {
+        font-size: 1.2rem;
+    }
+    
+    h4 {
+        font-size: 1.1rem;
     }
 }
 </style>
