@@ -25,7 +25,7 @@
     </div>
 </form>
 
-{% if leyes|length > 0 %}
+{% if leyesConBoe|length > 0 %}
     <div class="card">
         <table class="table">
             <thead>
@@ -35,12 +35,14 @@
                     <th>Descripción</th>
                     <th>Temas</th>
                     <th>Artículos</th>
+                    <th>Última Actualización BOE</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
-                {% for ley in leyes %}
+                {% for item in leyesConBoe %}
+                    {% set ley = item.ley %}
                     <tr>
                         <td>{{ ley.id }}</td>
                         <td><strong>{{ ley.nombre }}</strong></td>
@@ -54,6 +56,21 @@
                         </td>
                         <td>
                             <span class="badge badge-moderada">{{ ley.articulos|length }} artículo(s)</span>
+                        </td>
+                        <td>
+                            {% if item.ultima_actualizacion %}
+                                <span style="color: #28a745; font-weight: 500;">
+                                    {{ item.ultima_actualizacion|date('d/m/Y') }}
+                                </span>
+                            {% elseif item.tiene_link %}
+                                <span style="color: #6c757d; font-style: italic; font-size: 0.9rem;">
+                                    Cargando...
+                                </span>
+                            {% else %}
+                                <span style="color: #6c757d; font-style: italic; font-size: 0.9rem;">
+                                    Sin link BOE
+                                </span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if ley.isActivo %}

@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Ley;
 use App\Form\LeyType;
 use App\Repository\LeyRepository;
+use App\Service\BoeLeyService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,7 +18,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class LeyController extends AbstractController
 {
     #[Route('/', name: 'app_ley_index', methods: ['GET'])]
-    public function index(LeyRepository $leyRepository, Request $request): Response
+    public function index(LeyRepository $leyRepository, BoeLeyService $boeLeyService, Request $request): Response
     {
         $search = $request->query->get('search', '');
         $leyes = $leyRepository->findAll();
@@ -29,8 +30,19 @@ class LeyController extends AbstractController
             });
         }
 
+        // Obtener información del BOE para cada ley
+        $leyesConBoe = [];
+        foreach ($leyes as $ley) {
+            $infoBoe = $boeLeyService->getInfoLey($ley->getId());
+            $leyesConBoe[] = [
+                'ley' => $ley,
+                'ultima_actualizacion' => $infoBoe['ultima_actualizacion'],
+                'tiene_link' => $infoBoe['tiene_link'],
+            ];
+        }
+
         return $this->render('ley/index.html.twig', [
-            'leyes' => $leyes,
+            'leyesConBoe' => $leyesConBoe,
             'search' => $search,
         ]);
     }
