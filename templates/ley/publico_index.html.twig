@@ -299,7 +299,7 @@
                                 <span class="info-value" style="color: #ffc107; font-weight: 600;">
                                     {{ totalAfectados }} elemento(s)
                                 </span>
-                                {% set articulosEnTemario = item.articulos_afectados|filter(a => a.ley.temas|length > 0) %}
+                                {% set articulosEnTemario = item.articulos_afectados|filter(a => a.articulo.ley.temas|length > 0) %}
                                 {% if articulosEnTemario|length > 0 %}
                                     <small style="display: block; color: #28a745; font-weight: 600; margin-top: 0.25rem;">
                                         📚 {{ articulosEnTemario|length }} en temario

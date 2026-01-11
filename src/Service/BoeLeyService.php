@@ -261,6 +261,25 @@ class BoeLeyService
                     $tipo = (string)$bloque['tipo'] ?? 'precepto';
                     $titulo = (string)$bloque['titulo'] ?? $id;
                     
+                    // Buscar la nota_pie dentro de la versión con la fecha de última actualización
+                    $notaPie = '';
+                    $versiones = $bloque->xpath("version[@fecha_publicacion='{$fechaUltimaStr}']");
+                    if ($versiones && !empty($versiones)) {
+                        $version = $versiones[0];
+                        // Buscar p con class="nota_pie" (puede estar dentro de un blockquote)
+                        $notasPie = $version->xpath(".//p[@class='nota_pie'] | .//blockquote//p[@class='nota_pie']");
+                        if ($notasPie && !empty($notasPie)) {
+                            // Obtener el XML completo del párrafo para preservar enlaces y formato
+                            $notaPieXml = $notasPie[0]->asXML();
+                            // Convertir a string y limpiar espacios
+                            $notaPie = trim($notaPieXml);
+                            // Si está vacío, intentar obtener solo el texto
+                            if (empty($notaPie)) {
+                                $notaPie = trim((string)$notasPie[0]);
+                            }
+                        }
+                    }
+                    
                     // El id tiene formato "a5" donde 5 es el número del artículo
                     // También puede ser "a5bis", "a5ter", etc.
                     if (preg_match('/^a(\d+)([a-z]*)$/i', $id, $matches)) {
@@ -270,6 +289,7 @@ class BoeLeyService
                         $numerosArticulosAfectados[] = [
                             'numero' => $numero,
                             'sufijo' => $sufijo,
+                            'nota_pie' => $notaPie,
                         ];
                     } else {
                         // Es otro tipo de elemento (anexo, definición, etc.)
@@ -277,6 +297,7 @@ class BoeLeyService
                             'id' => $id,
                             'tipo' => $tipo,
                             'titulo' => $titulo,
+                            'nota_pie' => $notaPie,
                         ];
                     }
                 }
@@ -285,7 +306,7 @@ class BoeLeyService
             $articulosAfectados = [];
             $ley = $this->leyRepository->find($leyId);
             
-            // Buscar artículos en la base de datos
+            // Buscar artículos en la base de datos y asociar la nota_pie
             if (!empty($numerosArticulosAfectados) && $ley) {
                 foreach ($numerosArticulosAfectados as $numArticulo) {
                     $articulo = $this->articuloRepository->findOneBy([
@@ -295,7 +316,11 @@ class BoeLeyService
                     ]);
                     
                     if ($articulo) {
-                        $articulosAfectados[] = $articulo;
+                        // Crear un array con el artículo y su nota_pie
+                        $articulosAfectados[] = [
+                            'articulo' => $articulo,
+                            'nota_pie' => $numArticulo['nota_pie'] ?? '',
+                        ];
                     }
                 }
             }

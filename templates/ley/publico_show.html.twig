@@ -233,20 +233,31 @@
                 {% endif %}
             </p>
             <ul style="margin-bottom: 0.5rem;">
-                {% for articulo in articulos_afectados %}
-                    <li>
+                {% for item in articulos_afectados %}
+                    {% set articulo = item.articulo %}
+                    <li style="margin-bottom: 0.5rem;">
                         <a href="{{ path('app_articulo_publico_show', {'id': articulo.id}) }}" style="color: #856404; font-weight: 600;">
                             Art. {{ articulo.getNumeroCompleto() }}{% if articulo.nombre %} - {{ articulo.nombre }}{% endif %}
                         </a>
                         {% if articulo.ley.temas|length > 0 %}
                             <span class="badge" style="background-color: #28a745; color: white; margin-left: 0.5rem;">📚 En temario</span>
                         {% endif %}
+                        {% if item.nota_pie %}
+                            <div style="margin-top: 0.25rem; margin-left: 1.5rem; font-size: 0.9rem; color: #666; font-style: italic;">
+                                {{ item.nota_pie|raw }}
+                            </div>
+                        {% endif %}
                     </li>
                 {% endfor %}
                 {% for otro in otros_afectados %}
-                    <li>
+                    <li style="margin-bottom: 0.5rem;">
                         <strong style="color: #856404;">{{ otro.titulo }}</strong>
                         <span class="badge" style="background-color: #6c757d; color: white; margin-left: 0.5rem; font-size: 0.8rem;">{{ otro.tipo }}</span>
+                        {% if otro.nota_pie %}
+                            <div style="margin-top: 0.25rem; margin-left: 1.5rem; font-size: 0.9rem; color: #666; font-style: italic;">
+                                {{ otro.nota_pie|raw }}
+                            </div>
+                        {% endif %}
                     </li>
                 {% endfor %}
             </ul>
@@ -266,7 +277,8 @@
                 <div class="card-body">
                     <h4 style="color: #ffc107; margin-bottom: 1rem;">Artículos destacados (afectados por última actualización):</h4>
                     <ul>
-                        {% for articulo in articulos_afectados %}
+                        {% for item in articulos_afectados %}
+                            {% set articulo = item.articulo %}
                             <li style="margin-bottom: 0.5rem;">
                                 <a href="{{ path('app_articulo_publico_show', {'id': articulo.id}) }}" style="font-weight: 600;">
                                     Art. {{ articulo.getNumeroCompleto() }}{% if articulo.nombre %} - {{ articulo.nombre }}{% endif %}
@@ -274,6 +286,11 @@
                                 <span class="badge" style="background-color: #ffc107; color: #000; margin-left: 0.5rem;">Afectado</span>
                                 {% if articulo.ley.temas|length > 0 %}
                                     <span class="badge" style="background-color: #28a745; color: white; margin-left: 0.5rem;">📚 En temario</span>
+                                {% endif %}
+                                {% if item.nota_pie %}
+                                    <div style="margin-top: 0.25rem; margin-left: 1.5rem; font-size: 0.9rem; color: #666; font-style: italic;">
+                                        {{ item.nota_pie|raw }}
+                                    </div>
                                 {% endif %}
                             </li>
                         {% endfor %}
