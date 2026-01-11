@@ -1098,6 +1098,239 @@
         #timer-pause-btn:active {
             transform: scale(0.98);
         }
+        
+        /* Estilos responsivos para móviles (iPhone) */
+        @media (max-width: 768px) {
+            /* Header del examen - apilar elementos verticalmente */
+            .card-header > div {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 1rem !important;
+            }
+            
+            .card-header h2 {
+                font-size: 1.2rem !important;
+                margin-bottom: 0.5rem !important;
+            }
+            
+            /* Timer y botón de pausa - hacer más compactos */
+            #examen-timer-container {
+                flex-direction: column !important;
+                width: 100% !important;
+                gap: 0.5rem !important;
+            }
+            
+            #examen-timer {
+                width: 100% !important;
+                justify-content: center !important;
+                font-size: 1rem !important;
+                padding: 0.75rem !important;
+            }
+            
+            #timer-pause-btn {
+                width: 100% !important;
+                font-size: 0.9rem !important;
+                padding: 0.75rem !important;
+            }
+            
+            /* Barra de progreso */
+            .card-header > div > div[style*="flex: 1"] {
+                width: 100% !important;
+                min-width: 100% !important;
+            }
+            
+            /* Navegación rápida de preguntas */
+            .card-body > div[style*="background: #f8f9fa"] {
+                padding: 0.5rem !important;
+            }
+            
+            .card-body > div[style*="background: #f8f9fa"] > div:first-child {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 0.25rem !important;
+            }
+            
+            .card-body > div[style*="background: #f8f9fa"] > div:first-child span:last-child {
+                font-size: 0.7rem !important;
+            }
+            
+            /* Botones de navegación rápida - hacer más pequeños pero táctiles */
+            .pregunta-link {
+                min-width: 36px !important;
+                height: 36px !important;
+                font-size: 0.85rem !important;
+            }
+            
+            /* Leyenda de colores - apilar verticalmente */
+            .card-body > div[style*="background: #f8f9fa"] > div:last-child {
+                flex-direction: column !important;
+                gap: 0.5rem !important;
+                align-items: flex-start !important;
+            }
+            
+            /* Tipo de examen badge */
+            .card-body > div[style*="padding: 1rem"] {
+                padding: 0.75rem !important;
+            }
+            
+            .card-body > div[style*="padding: 1rem"] > div {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 0.5rem !important;
+            }
+            
+            /* Información de Ley y Tema */
+            .card-body > .form-group > div[style*="padding: 0.75rem 1rem"] {
+                padding: 0.75rem !important;
+            }
+            
+            .card-body > .form-group > div[style*="padding: 0.75rem 1rem"] > div {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 0.5rem !important;
+            }
+            
+            /* Texto de la pregunta */
+            #pregunta-texto h3 {
+                font-size: 1.1rem !important;
+                line-height: 1.5 !important;
+                word-wrap: break-word !important;
+            }
+            
+            /* Opciones de respuesta - hacer más táctiles */
+            .form-group > div[style*="display: flex; flex-direction: column"] > label {
+                padding: 1rem !important;
+                min-height: 60px !important;
+                font-size: 0.95rem !important;
+            }
+            
+            .form-group > div[style*="display: flex; flex-direction: column"] > label input[type="radio"] {
+                width: 24px !important;
+                height: 24px !important;
+                margin-right: 0.75rem !important;
+                margin-top: 0.5rem !important;
+            }
+            
+            /* Botones de navegación - apilar verticalmente */
+            .d-flex.gap-2.mt-4 {
+                flex-direction: column !important;
+                width: 100% !important;
+            }
+            
+            .d-flex.gap-2.mt-4 button,
+            .d-flex.gap-2.mt-4 a {
+                width: 100% !important;
+                padding: 0.75rem 1rem !important;
+                font-size: 1rem !important;
+                margin: 0 !important;
+            }
+            
+            /* Botón guardar borrador */
+            #btnGuardarBorrador {
+                margin-left: 0 !important;
+                margin-top: 0.5rem !important;
+            }
+            
+            /* Sección de reportar error */
+            .card[style*="border-left: 4px solid #FF9800"] {
+                max-width: 100% !important;
+            }
+            
+            /* Modal de mensajes */
+            #modalMensajesPregunta > div {
+                width: 95% !important;
+                margin: 2% auto !important;
+                max-height: 90vh !important;
+            }
+            
+            #modalMensajesPregunta > div > div:first-child {
+                padding: 1rem !important;
+            }
+            
+            #modalMensajesPregunta > div > div:first-child h3 {
+                font-size: 1rem !important;
+            }
+            
+            /* Modal de porcentajes */
+            #modalPorcentajes > div {
+                width: 95% !important;
+                margin: 2% auto !important;
+            }
+            
+            #modalPorcentajes > div > div:first-child {
+                padding: 1rem !important;
+            }
+            
+            #modalPorcentajes > div > div:first-child h3 {
+                font-size: 1rem !important;
+            }
+            
+            /* Retroalimentación y explicaciones */
+            #retroalimentacion-container,
+            .card-body > div[style*="margin-top: 1.5rem"] > div {
+                padding: 0.75rem !important;
+                font-size: 0.9rem !important;
+            }
+            
+            /* Ajustes generales del card */
+            .card {
+                margin: 0.5rem !important;
+                border-radius: 8px !important;
+            }
+            
+            .card-body {
+                padding: 1rem !important;
+            }
+            
+            .card-header {
+                padding: 1rem !important;
+            }
+            
+            /* Asegurar que el texto no se desborde */
+            * {
+                word-wrap: break-word !important;
+                overflow-wrap: break-word !important;
+            }
+            
+            /* Botones más grandes para facilitar el toque */
+            button, .btn, a.btn {
+                min-height: 44px !important;
+                touch-action: manipulation !important;
+            }
+            
+            /* Inputs y selects más grandes */
+            input, select, textarea {
+                font-size: 16px !important; /* Previene zoom en iOS */
+                min-height: 44px !important;
+            }
+        }
+        
+        /* Estilos específicos para iPhone (pantallas muy pequeñas) */
+        @media (max-width: 480px) {
+            .card-header h2 {
+                font-size: 1.1rem !important;
+            }
+            
+            #examen-timer {
+                font-size: 0.9rem !important;
+                padding: 0.6rem !important;
+            }
+            
+            #pregunta-texto h3 {
+                font-size: 1rem !important;
+            }
+            
+            .form-group > div[style*="display: flex; flex-direction: column"] > label {
+                padding: 0.75rem !important;
+                font-size: 0.9rem !important;
+            }
+            
+            .pregunta-link {
+                min-width: 32px !important;
+                height: 32px !important;
+                font-size: 0.8rem !important;
+            }
+        }
         </style>
     </div>
 </div>

@@ -128,6 +128,63 @@
                 font-size: 0.875rem;
                 min-width: 35px;
             }
+            
+            /* Formulario de búsqueda - apilar elementos verticalmente */
+            .card-body > form > div[style*="display: grid"] {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+            
+            /* Inputs y selects más grandes para iPhone */
+            .card-body input[type="text"],
+            .card-body select {
+                font-size: 16px !important; /* Previene zoom automático en iOS */
+                min-height: 48px !important;
+                padding: 0.75rem !important;
+                width: 100% !important;
+            }
+            
+            /* Labels */
+            .card-body .form-label {
+                font-size: 0.95rem !important;
+                margin-bottom: 0.5rem !important;
+            }
+            
+            /* Botones de acción */
+            .card-body > form > div > div:last-child {
+                display: flex !important;
+                flex-direction: column !important;
+                width: 100% !important;
+                gap: 0.5rem !important;
+            }
+            
+            .card-body > form > div > div:last-child button,
+            .card-body > form > div > div:last-child a {
+                width: 100% !important;
+                padding: 0.75rem 1rem !important;
+                font-size: 1rem !important;
+                min-height: 48px !important;
+            }
+            
+            /* Card principal */
+            .card {
+                margin: 0.5rem !important;
+            }
+            
+            .card-header h1 {
+                font-size: 1.3rem !important;
+            }
+            
+            .card-body {
+                padding: 1rem !important;
+            }
+        }
+        
+        /* Estilos específicos para iPhone (pantallas muy pequeñas) */
+        @media (max-width: 480px) {
+            .card-header h1 {
+                font-size: 1.2rem !important;
+            }
         }
     </style>
 {% endblock %}

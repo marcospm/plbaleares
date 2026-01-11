@@ -203,5 +203,200 @@
         </div>
     </div>
 </div>
+
+<style>
+/* Estilos responsivos para móviles (iPhone) */
+@media (max-width: 768px) {
+    /* Card principal */
+    .card {
+        margin: 0.5rem !important;
+    }
+    
+    .card-header h1 {
+        font-size: 1.3rem !important;
+    }
+    
+    .card-body {
+        padding: 1rem !important;
+    }
+    
+    /* Nota destacada */
+    .card-body > div[style*="text-align: center; padding: 2rem"] {
+        padding: 1.5rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    .card-body > div[style*="text-align: center; padding: 2rem"] h2 {
+        font-size: 2.5rem !important;
+    }
+    
+    /* Grid de estadísticas */
+    .card-body > div[style*="display: grid"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.75rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    .card-body > div[style*="display: grid"] .card {
+        margin: 0 !important;
+    }
+    
+    .card-body > div[style*="display: grid"] .card-body h3 {
+        font-size: 1.5rem !important;
+    }
+    
+    .card-body > div[style*="display: grid"] .card-body p {
+        font-size: 0.9rem !important;
+    }
+    
+    /* Información de dificultad y temas */
+    .mb-3, .mb-4 {
+        font-size: 0.95rem !important;
+        line-height: 1.6 !important;
+    }
+    
+    .mb-4 .badge {
+        display: inline-block !important;
+        margin: 0.25rem 0.25rem 0.25rem 0 !important;
+        font-size: 0.85rem !important;
+    }
+    
+    /* Título de detalle */
+    h3[style*="margin-top: 2rem"] {
+        font-size: 1.2rem !important;
+        margin-top: 1.5rem !important;
+    }
+    
+    /* Cards de preguntas */
+    .card.mb-3 {
+        margin-bottom: 1rem !important;
+    }
+    
+    .card.mb-3 .card-body {
+        padding: 1rem !important;
+    }
+    
+    /* Header de pregunta */
+    .card-body > div[style*="display: flex; justify-content: space-between"] {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.75rem !important;
+    }
+    
+    .card-body > div[style*="display: flex; justify-content: space-between"] > div:first-child h4 {
+        font-size: 1.1rem !important;
+    }
+    
+    .card-body > div[style*="display: flex; justify-content: space-between"] > div:first-child > div {
+        font-size: 0.7rem !important;
+        margin-top: 0.5rem !important;
+    }
+    
+    .card-body > div[style*="display: flex; justify-content: space-between"] > div:first-child > div span {
+        display: block !important;
+        margin: 0.25rem 0 !important;
+    }
+    
+    /* Texto de pregunta */
+    .card-body p strong {
+        font-size: 1rem !important;
+        line-height: 1.5 !important;
+        word-wrap: break-word !important;
+    }
+    
+    /* Opciones de respuesta */
+    .card-body > div[style*="margin: 1rem 0"] > div {
+        padding: 0.75rem !important;
+        font-size: 0.9rem !important;
+        line-height: 1.5 !important;
+        word-wrap: break-word !important;
+    }
+    
+    .card-body > div[style*="margin: 1rem 0"] > div span {
+        display: block !important;
+        margin-top: 0.5rem !important;
+        font-size: 0.85rem !important;
+    }
+    
+    /* Alertas y retroalimentación */
+    .alert {
+        padding: 0.75rem !important;
+        font-size: 0.9rem !important;
+        line-height: 1.5 !important;
+    }
+    
+    /* Details/Summary */
+    details {
+        font-size: 0.9rem !important;
+    }
+    
+    details summary {
+        font-size: 0.95rem !important;
+        padding: 0.5rem !important;
+    }
+    
+    details > div {
+        padding: 0.75rem !important;
+    }
+    
+    details > div > div {
+        padding: 0.75rem !important;
+        font-size: 0.9rem !important;
+    }
+    
+    /* Botones de acción */
+    .d-flex.gap-2.mt-4 {
+        flex-direction: column !important;
+        width: 100% !important;
+    }
+    
+    .d-flex.gap-2.mt-4 a {
+        width: 100% !important;
+        padding: 0.75rem 1rem !important;
+        font-size: 1rem !important;
+        min-height: 48px !important;
+        margin: 0 !important;
+    }
+    
+    /* Asegurar que el texto no se desborde */
+    * {
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    
+    /* Botones más grandes para facilitar el toque */
+    button, .btn, a.btn {
+        min-height: 48px !important;
+        touch-action: manipulation !important;
+    }
+}
+
+/* Estilos específicos para iPhone (pantallas muy pequeñas) */
+@media (max-width: 480px) {
+    .card-header h1 {
+        font-size: 1.2rem !important;
+    }
+    
+    .card-body > div[style*="text-align: center; padding: 2rem"] h2 {
+        font-size: 2rem !important;
+    }
+    
+    .card-body > div[style*="display: grid"] {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .card-body > div[style*="display: grid"] .card-body h3 {
+        font-size: 1.3rem !important;
+    }
+    
+    .card-body > div[style*="display: flex; justify-content: space-between"] > div:first-child h4 {
+        font-size: 1rem !important;
+    }
+    
+    .card-body p strong {
+        font-size: 0.95rem !important;
+    }
+}
+</style>
 {% endblock %}
 

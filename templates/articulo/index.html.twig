@@ -73,6 +73,93 @@
                 font-size: 0.875rem;
                 min-width: 35px;
             }
+            
+            /* Formulario de búsqueda - apilar elementos verticalmente */
+            #filtro-form .card-body > div[style*="display: grid"] {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+            
+            /* Inputs y selects más grandes para iPhone */
+            #filtro-form input[type="text"],
+            #filtro-form select {
+                font-size: 16px !important; /* Previene zoom automático en iOS */
+                min-height: 48px !important;
+                padding: 0.75rem !important;
+                width: 100% !important;
+            }
+            
+            /* Labels */
+            #filtro-form .form-label {
+                font-size: 0.95rem !important;
+                margin-bottom: 0.5rem !important;
+            }
+            
+            /* Botones de acción */
+            #filtro-form > div > div > div[style*="display: flex"] {
+                flex-direction: column !important;
+                width: 100% !important;
+                gap: 0.5rem !important;
+            }
+            
+            #filtro-form > div > div > div[style*="display: flex"] button,
+            #filtro-form > div > div > div[style*="display: flex"] a {
+                width: 100% !important;
+                padding: 0.75rem 1rem !important;
+                font-size: 1rem !important;
+                min-height: 48px !important;
+                justify-content: center !important;
+            }
+            
+            /* Filtros activos */
+            #filtro-form > div > div > div[style*="margin-top: 1rem"] {
+                padding: 0.75rem !important;
+            }
+            
+            #filtro-form > div > div > div[style*="margin-top: 1rem"] > div {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+            }
+            
+            /* Badges de filtros activos */
+            #filtro-form .badge {
+                display: block !important;
+                width: 100% !important;
+                margin: 0.25rem 0 !important;
+                padding: 0.5rem !important;
+                font-size: 0.9rem !important;
+            }
+            
+            /* Header con botón nuevo artículo */
+            .d-flex.justify-content-between.mb-4 {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 1rem !important;
+            }
+            
+            .d-flex.justify-content-between.mb-4 h1 {
+                font-size: 1.5rem !important;
+                margin: 0 !important;
+            }
+            
+            .d-flex.justify-content-between.mb-4 a {
+                width: 100% !important;
+                padding: 0.75rem 1rem !important;
+                font-size: 1rem !important;
+                min-height: 48px !important;
+                text-align: center !important;
+            }
+        }
+        
+        /* Estilos específicos para iPhone (pantallas muy pequeñas) */
+        @media (max-width: 480px) {
+            .d-flex.justify-content-between.mb-4 h1 {
+                font-size: 1.3rem !important;
+            }
+            
+            #filtro-form .card-header h3 {
+                font-size: 1rem !important;
+            }
         }
         
         /* Estilos para el select de ley */

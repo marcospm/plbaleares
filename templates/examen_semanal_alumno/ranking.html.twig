@@ -78,6 +78,106 @@
         </div>
     </div>
 </div>
+
+<style>
+/* Estilos responsivos para móviles (iPhone) */
+@media (max-width: 768px) {
+    /* Card principal */
+    .card {
+        margin: 0.5rem !important;
+    }
+    
+    .card-header h1 {
+        font-size: 1.3rem !important;
+    }
+    
+    .card-body {
+        padding: 1rem !important;
+    }
+    
+    /* Alertas */
+    .alert {
+        padding: 1rem !important;
+        font-size: 0.95rem !important;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    /* Tabla de ranking */
+    .table {
+        font-size: 0.85rem !important;
+    }
+    
+    .table th,
+    .table td {
+        padding: 0.5rem !important;
+    }
+    
+    /* Ocultar columnas menos importantes en móvil */
+    .table th:nth-child(5),
+    .table td:nth-child(5),
+    .table th:nth-child(6),
+    .table td:nth-child(6) {
+        display: none !important;
+    }
+    
+    /* Ajustar tamaño de fuente en celdas */
+    .table td strong {
+        font-size: 1rem !important;
+    }
+    
+    /* Botón volver */
+    .card-body > div[style*="margin-top: 2rem"] {
+        margin-top: 1.5rem !important;
+    }
+    
+    .card-body > div[style*="margin-top: 2rem"] .btn {
+        width: 100% !important;
+        padding: 0.75rem 1rem !important;
+        font-size: 1rem !important;
+        min-height: 48px !important;
+    }
+    
+    /* Asegurar que el texto no se desborde */
+    * {
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    
+    /* Botones más grandes para facilitar el toque */
+    button, .btn, a.btn {
+        min-height: 48px !important;
+        touch-action: manipulation !important;
+    }
+}
+
+/* Estilos específicos para iPhone (pantallas muy pequeñas) */
+@media (max-width: 480px) {
+    .card-header h1 {
+        font-size: 1.2rem !important;
+    }
+    
+    .table {
+        font-size: 0.8rem !important;
+    }
+    
+    .table th,
+    .table td {
+        padding: 0.4rem !important;
+    }
+    
+    /* Ocultar más columnas en pantallas muy pequeñas */
+    .table th:nth-child(4),
+    .table td:nth-child(4),
+    .table th:nth-child(7),
+    .table td:nth-child(7) {
+        display: none !important;
+    }
+    
+    .table td strong {
+        font-size: 0.95rem !important;
+    }
+}
+</style>
 {% endblock %}
 
 

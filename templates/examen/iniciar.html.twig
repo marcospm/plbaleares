@@ -130,7 +130,7 @@
                 </div>
             </div>
 
-            <div class="form-group mb-4" id="temas_municipales_group" style="display: none;">
+            <div class="form-group mb-4" id="temas_municipales_group" style="display: none !important; visibility: hidden !important; height: 0 !important; max-height: 0 !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; opacity: 0 !important;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                     <label class="form-label fw-bold mb-0" id="temas_municipales_label">Selecciona los Temas Municipales</label>
                     <div style="display: flex; gap: 0.5rem;">
@@ -239,6 +239,199 @@ select[name="examen_iniciar[convocatoria]"]:focus {
 .form-select option {
     padding: 0.5rem;
 }
+
+/* Asegurar que el grupo de temas municipales esté completamente oculto por defecto */
+#temas_municipales_group {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    max-height: 0 !important;
+    border: none !important;
+}
+
+/* Solo mostrar cuando el JavaScript lo activa explícitamente */
+#temas_municipales_group.show-temas-municipales {
+    display: block !important;
+    visibility: visible !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 0 1.5rem 0 !important;
+    padding: 0 !important;
+    opacity: 1 !important;
+    max-height: none !important;
+}
+
+/* Estilos responsivos para móviles (iPhone) */
+@media (max-width: 768px) {
+    /* Card de borradores */
+    .list-group-item {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 1rem !important;
+    }
+    
+    .list-group-item > div:last-child {
+        width: 100% !important;
+        margin-left: 0 !important;
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+    }
+    
+    .list-group-item > div:last-child > a,
+    .list-group-item > div:last-child > form {
+        width: 100% !important;
+    }
+    
+    .list-group-item > div:last-child > form button {
+        width: 100% !important;
+    }
+    
+    /* Información de borradores - apilar verticalmente */
+    .list-group-item > div:first-child > div:first-child {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.25rem !important;
+    }
+    
+    .list-group-item > div:first-child > div:nth-child(2) {
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+        align-items: flex-start !important;
+    }
+    
+    /* Card principal */
+    .card {
+        margin: 0.5rem !important;
+    }
+    
+    .card-header h1 {
+        font-size: 1.3rem !important;
+    }
+    
+    .card-body {
+        padding: 1rem !important;
+    }
+    
+    /* Formulario */
+    .form-group {
+        margin-bottom: 1.5rem !important;
+    }
+    
+    .form-label {
+        font-size: 1rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    /* Selectores más grandes para facilitar el toque */
+    #tipo_examen_select,
+    #municipio_select,
+    #convocatoria_select,
+    select[name="examen_iniciar[tipoExamen]"],
+    select[name="examen_iniciar[municipio]"],
+    select[name="examen_iniciar[convocatoria]"] {
+        min-height: 48px !important;
+        font-size: 16px !important; /* Previene zoom en iOS */
+    }
+    
+    /* Botones de seleccionar todos */
+    .form-group > div[style*="display: flex; justify-content: space-between"] {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.5rem !important;
+    }
+    
+    .form-group > div[style*="display: flex; justify-content: space-between"] > div {
+        width: 100% !important;
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+    }
+    
+    .form-group > div[style*="display: flex; justify-content: space-between"] > div button {
+        width: 100% !important;
+    }
+    
+    /* Contenedor de temas */
+    .border.rounded.p-3.bg-light {
+        max-height: 250px !important;
+        padding: 0.75rem !important;
+    }
+    
+    /* Checkboxes más grandes */
+    .form-check-input {
+        width: 22px !important;
+        height: 22px !important;
+        margin-right: 0.75rem !important;
+    }
+    
+    .form-check-label {
+        font-size: 0.95rem !important;
+        line-height: 1.5 !important;
+    }
+    
+    /* Botones del formulario */
+    .d-flex.gap-2.mt-4 {
+        flex-direction: column !important;
+        width: 100% !important;
+    }
+    
+    .d-flex.gap-2.mt-4 button,
+    .d-flex.gap-2.mt-4 a {
+        width: 100% !important;
+        padding: 0.75rem 1rem !important;
+        font-size: 1rem !important;
+        min-height: 48px !important;
+    }
+    
+    /* Alertas */
+    .alert {
+        padding: 0.75rem !important;
+        font-size: 0.9rem !important;
+    }
+    
+    /* Inputs numéricos y de tiempo */
+    input[type="number"],
+    input[type="text"],
+    textarea {
+        font-size: 16px !important; /* Previene zoom en iOS */
+        min-height: 48px !important;
+        padding: 0.75rem !important;
+    }
+    
+    /* Asegurar que todo el texto sea legible */
+    * {
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    
+    /* Botones más grandes para facilitar el toque */
+    button, .btn, a.btn {
+        min-height: 48px !important;
+        touch-action: manipulation !important;
+    }
+}
+
+/* Estilos específicos para iPhone (pantallas muy pequeñas) */
+@media (max-width: 480px) {
+    .card-header h1 {
+        font-size: 1.2rem !important;
+    }
+    
+    .list-group-item > div:first-child > div:first-child strong {
+        font-size: 0.95rem !important;
+    }
+    
+    .form-label {
+        font-size: 0.95rem !important;
+    }
+    
+    .border.rounded.p-3.bg-light {
+        max-height: 200px !important;
+    }
+}
 </style>
 
 <script>
@@ -278,7 +471,14 @@ select[name="examen_iniciar[convocatoria]"]:focus {
             if (municipioGroup) municipioGroup.style.display = 'none';
             if (convocatoriaGroup) convocatoriaGroup.style.display = 'none';
             if (temasGeneralGroup) temasGeneralGroup.style.display = 'none';
-            if (temasMunicipalesGroup) temasMunicipalesGroup.style.display = 'none';
+            if (temasMunicipalesGroup) {
+                temasMunicipalesGroup.classList.remove('show-temas-municipales');
+                temasMunicipalesGroup.style.setProperty('display', 'none', 'important');
+                temasMunicipalesGroup.style.setProperty('visibility', 'hidden', 'important');
+                temasMunicipalesGroup.style.setProperty('height', '0', 'important');
+                temasMunicipalesGroup.style.setProperty('overflow', 'hidden', 'important');
+                temasMunicipalesGroup.style.setProperty('opacity', '0', 'important');
+            }
             
             // Solo desmarcar checkboxes si se solicita explícitamente (al cambiar de tipo de examen)
             if (limpiarSelecciones) {
@@ -317,7 +517,13 @@ select[name="examen_iniciar[convocatoria]"]:focus {
                 // Mostrar temas municipales solo si hay municipio seleccionado
                 if (tieneMunicipio) {
                     if (temasMunicipalesGroup) {
-                        temasMunicipalesGroup.style.display = 'block';
+                        temasMunicipalesGroup.classList.add('show-temas-municipales');
+                        temasMunicipalesGroup.style.setProperty('display', 'block', 'important');
+                        temasMunicipalesGroup.style.setProperty('visibility', 'visible', 'important');
+                        temasMunicipalesGroup.style.setProperty('height', 'auto', 'important');
+                        temasMunicipalesGroup.style.setProperty('overflow', 'visible', 'important');
+                        temasMunicipalesGroup.style.setProperty('opacity', '1', 'important');
+                        temasMunicipalesGroup.style.setProperty('max-height', 'none', 'important');
                     }
                     // Actualizar label
                     const labelMunicipales = document.getElementById('temas_municipales_label');
@@ -338,7 +544,13 @@ select[name="examen_iniciar[convocatoria]"]:focus {
                 // Mostrar temas municipales solo si hay convocatoria seleccionada
                 if (tieneConvocatoria) {
                     if (temasMunicipalesGroup) {
-                        temasMunicipalesGroup.style.display = 'block';
+                        temasMunicipalesGroup.classList.add('show-temas-municipales');
+                        temasMunicipalesGroup.style.setProperty('display', 'block', 'important');
+                        temasMunicipalesGroup.style.setProperty('visibility', 'visible', 'important');
+                        temasMunicipalesGroup.style.setProperty('height', 'auto', 'important');
+                        temasMunicipalesGroup.style.setProperty('overflow', 'visible', 'important');
+                        temasMunicipalesGroup.style.setProperty('opacity', '1', 'important');
+                        temasMunicipalesGroup.style.setProperty('max-height', 'none', 'important');
                     }
                     // Actualizar label para indicar que son temas de todos los municipios de la convocatoria
                     const labelMunicipales = document.getElementById('temas_municipales_label');
@@ -469,6 +681,16 @@ select[name="examen_iniciar[convocatoria]"]:focus {
         // Si hay convocatoria en la URL, establecer el tipo a convocatoria
         if (convocatoriaIdFromUrl && tipoExamenSelect) {
             tipoExamenSelect.value = 'convocatoria';
+        }
+        
+        // Asegurar que el grupo de temas municipales esté oculto al inicio (antes de cualquier otra cosa)
+        if (temasMunicipalesGroup) {
+            temasMunicipalesGroup.classList.remove('show-temas-municipales');
+            temasMunicipalesGroup.style.setProperty('display', 'none', 'important');
+            temasMunicipalesGroup.style.setProperty('visibility', 'hidden', 'important');
+            temasMunicipalesGroup.style.setProperty('height', '0', 'important');
+            temasMunicipalesGroup.style.setProperty('overflow', 'hidden', 'important');
+            temasMunicipalesGroup.style.setProperty('opacity', '0', 'important');
         }
         
         // Inicializar vista al cargar
