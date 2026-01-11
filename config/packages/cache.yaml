@@ -18,3 +18,5 @@ framework:
         pools:
             cache.partidas:
                 adapter: cache.adapter.filesystem
+            cache.boe:
+                adapter: cache.adapter.filesystem
