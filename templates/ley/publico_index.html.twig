@@ -277,6 +277,13 @@
                                     {{ item.ultima_actualizacion|date('d/m/Y') }}
                                 </span>
                             </div>
+                        {% elseif item.tiene_link %}
+                            <div class="info-item">
+                                <span class="info-label">🔄 Última Actualización</span>
+                                <span class="info-value sin-actualizacion">
+                                    No hay actualizaciones recientes
+                                </span>
+                            </div>
                         {% else %}
                             <div class="info-item">
                                 <span class="info-label">🔄 Última Actualización</span>
@@ -285,11 +292,12 @@
                                 </span>
                             </div>
                         {% endif %}
-                        {% if item.articulos_afectados|length > 0 %}
+                        {% set totalAfectados = item.articulos_afectados|length + (item.otros_afectados|default([])|length) %}
+                        {% if totalAfectados > 0 %}
                             <div class="info-item">
-                                <span class="info-label">⚠️ Artículos Afectados</span>
+                                <span class="info-label">⚠️ Elementos Afectados</span>
                                 <span class="info-value" style="color: #ffc107; font-weight: 600;">
-                                    {{ item.articulos_afectados|length }} artículo(s)
+                                    {{ totalAfectados }} elemento(s)
                                 </span>
                                 {% set articulosEnTemario = item.articulos_afectados|filter(a => a.ley.temas|length > 0) %}
                                 {% if articulosEnTemario|length > 0 %}

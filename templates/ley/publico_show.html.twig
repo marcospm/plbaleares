@@ -194,6 +194,13 @@
                         {{ ultima_actualizacion|date('d/m/Y') }}
                     </div>
                 </div>
+            {% elseif tiene_link %}
+                <div class="info-card">
+                    <div class="info-label">🔄 Última Actualización BOE</div>
+                    <div class="info-value sin-actualizacion">
+                        No hay actualizaciones recientes
+                    </div>
+                </div>
             {% else %}
                 <div class="info-card">
                     <div class="info-label">🔄 Última Actualización BOE</div>
@@ -214,10 +221,17 @@
         </div>
     </div>
 
-    {% if articulos_afectados|length > 0 %}
+    {% if articulos_afectados|length > 0 or otros_afectados|length > 0 %}
         <div class="alert alert-warning" style="background-color: #fff3cd; border-color: #ffc107; color: #856404; margin-bottom: 2rem;">
-            <h3 style="margin-top: 0; color: #856404;">⚠️ Artículos Afectados por Última Actualización</h3>
-            <p><strong>{{ articulos_afectados|length }}</strong> artículo(s) han sido afectados por la última actualización del BOE ({{ ultima_actualizacion|date('d/m/Y') }}):</p>
+            <h3 style="margin-top: 0; color: #856404;">⚠️ Elementos Afectados</h3>
+            <p>
+                <strong>{{ articulos_afectados|length + otros_afectados|length }}</strong> elemento(s) han sido afectados
+                {% if ultima_actualizacion %}
+                    por la última actualización del BOE ({{ ultima_actualizacion|date('d/m/Y') }}):
+                {% else %}
+                    por actualizaciones del BOE:
+                {% endif %}
+            </p>
             <ul style="margin-bottom: 0.5rem;">
                 {% for articulo in articulos_afectados %}
                     <li>
@@ -227,6 +241,12 @@
                         {% if articulo.ley.temas|length > 0 %}
                             <span class="badge" style="background-color: #28a745; color: white; margin-left: 0.5rem;">📚 En temario</span>
                         {% endif %}
+                    </li>
+                {% endfor %}
+                {% for otro in otros_afectados %}
+                    <li>
+                        <strong style="color: #856404;">{{ otro.titulo }}</strong>
+                        <span class="badge" style="background-color: #6c757d; color: white; margin-left: 0.5rem; font-size: 0.8rem;">{{ otro.tipo }}</span>
                     </li>
                 {% endfor %}
             </ul>

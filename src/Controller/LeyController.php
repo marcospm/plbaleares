@@ -39,6 +39,7 @@ class LeyController extends AbstractController
                 'ultima_actualizacion' => $infoBoe['ultima_actualizacion'],
                 'tiene_link' => $infoBoe['tiene_link'],
                 'articulos_afectados' => $infoBoe['articulos_afectados'],
+                'otros_afectados' => $infoBoe['otros_afectados'],
             ];
         }
 
@@ -77,6 +78,7 @@ class LeyController extends AbstractController
         return $this->render('ley/show.html.twig', [
             'ley' => $ley,
             'articulos_afectados' => $infoBoe['articulos_afectados'],
+            'otros_afectados' => $infoBoe['otros_afectados'],
             'ultima_actualizacion' => $infoBoe['ultima_actualizacion'],
         ]);
     }

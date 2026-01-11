@@ -212,12 +212,14 @@ class BoeLeyService
     }
 
     /**
-     * Obtiene los artículos afectados por la última actualización
+     * Obtiene los artículos y otros elementos afectados por la última actualización
      * Identifica los bloques que tienen una versión con la fecha de última actualización
+     * Retorna un array con dos claves: 'articulos' (objetos Articulo) y 'otros' (arrays con info del XML)
      * 
      * @param int $leyId ID de la ley
      * @param \SimpleXMLElement|null $xml XML parseado (opcional, si no se proporciona se obtiene del caché)
      * @param \DateTime|null $ultimaActualizacion Fecha de última actualización (opcional, si no se proporciona se calcula)
+     * @return array{'articulos': array, 'otros': array}
      */
     public function getArticulosAfectados(int $leyId, ?\SimpleXMLElement $xml = null, ?\DateTime $ultimaActualizacion = null): array
     {
@@ -226,7 +228,7 @@ class BoeLeyService
         }
         
         if ($xml === null) {
-            return [];
+            return ['articulos' => [], 'otros' => []];
         }
 
         try {
@@ -236,7 +238,7 @@ class BoeLeyService
             }
             
             if ($ultimaActualizacion === null) {
-                return [];
+                return ['articulos' => [], 'otros' => []];
             }
             
             $fechaUltimaStr = $ultimaActualizacion->format('Ymd');
@@ -251,10 +253,13 @@ class BoeLeyService
             }
             
             $numerosArticulosAfectados = [];
+            $otrosElementosAfectados = [];
             
             if ($bloques && !empty($bloques)) {
                 foreach ($bloques as $bloque) {
                     $id = (string)$bloque['id'];
+                    $tipo = (string)$bloque['tipo'] ?? 'precepto';
+                    $titulo = (string)$bloque['titulo'] ?? $id;
                     
                     // El id tiene formato "a5" donde 5 es el número del artículo
                     // También puede ser "a5bis", "a5ter", etc.
@@ -266,37 +271,45 @@ class BoeLeyService
                             'numero' => $numero,
                             'sufijo' => $sufijo,
                         ];
+                    } else {
+                        // Es otro tipo de elemento (anexo, definición, etc.)
+                        $otrosElementosAfectados[] = [
+                            'id' => $id,
+                            'tipo' => $tipo,
+                            'titulo' => $titulo,
+                        ];
                     }
                 }
             }
             
-            // Si encontramos números de artículos, buscar en la base de datos
-            if (!empty($numerosArticulosAfectados)) {
-                $articulosAfectados = [];
-                $ley = $this->leyRepository->find($leyId);
-                
-                if ($ley) {
-                    foreach ($numerosArticulosAfectados as $numArticulo) {
-                        $articulo = $this->articuloRepository->findOneBy([
-                            'ley' => $ley,
-                            'numero' => $numArticulo['numero'],
-                            'sufijo' => $numArticulo['sufijo'],
-                        ]);
-                        
-                        if ($articulo) {
-                            $articulosAfectados[] = $articulo;
-                        }
+            $articulosAfectados = [];
+            $ley = $this->leyRepository->find($leyId);
+            
+            // Buscar artículos en la base de datos
+            if (!empty($numerosArticulosAfectados) && $ley) {
+                foreach ($numerosArticulosAfectados as $numArticulo) {
+                    $articulo = $this->articuloRepository->findOneBy([
+                        'ley' => $ley,
+                        'numero' => $numArticulo['numero'],
+                        'sufijo' => $numArticulo['sufijo'],
+                    ]);
+                    
+                    if ($articulo) {
+                        $articulosAfectados[] = $articulo;
                     }
                 }
-                
-                return $articulosAfectados;
             }
+            
+            return [
+                'articulos' => $articulosAfectados,
+                'otros' => $otrosElementosAfectados,
+            ];
             
         } catch (\Exception $e) {
             $this->logger->error('Error al obtener artículos afectados del BOE para ley ' . $leyId . ': ' . $e->getMessage());
         }
         
-        return [];
+        return ['articulos' => [], 'otros' => []];
     }
 
     /**
@@ -314,6 +327,7 @@ class BoeLeyService
                 'ultima_actualizacion' => null,
                 'tiene_link' => false,
                 'articulos_afectados' => [],
+                'otros_afectados' => [],
             ];
         }
 
@@ -329,18 +343,33 @@ class BoeLeyService
                 'ultima_actualizacion' => null,
                 'tiene_link' => true,
                 'articulos_afectados' => [],
+                'otros_afectados' => [],
             ];
         }
 
         // Reutilizar el mismo XML para ambos métodos
-        $ultimaActualizacion = $this->getUltimaActualizacion($leyId, $xml);
-        $articulosAfectados = $this->getArticulosAfectados($leyId, $xml, $ultimaActualizacion);
+        $ultimaActualizacionReal = $this->getUltimaActualizacion($leyId, $xml);
+        
+        // Obtener los elementos afectados solo si la actualización es de 2025 o 2026
+        $elementosAfectados = ['articulos' => [], 'otros' => []];
+        $ultimaActualizacion = null;
+        
+        if ($ultimaActualizacionReal) {
+            $ano = (int)$ultimaActualizacionReal->format('Y');
+            
+            // Solo mostrar elementos afectados si la actualización es de 2025 o 2026
+            if ($ano >= 2025 && $ano <= 2026) {
+                $elementosAfectados = $this->getArticulosAfectados($leyId, $xml, $ultimaActualizacionReal);
+                $ultimaActualizacion = $ultimaActualizacionReal;
+            }
+        }
         
         return [
             'boe_link' => $boeLinkVisualizacion,
             'ultima_actualizacion' => $ultimaActualizacion,
             'tiene_link' => true,
-            'articulos_afectados' => $articulosAfectados,
+            'articulos_afectados' => $elementosAfectados['articulos'],
+            'otros_afectados' => $elementosAfectados['otros'],
         ];
     }
 

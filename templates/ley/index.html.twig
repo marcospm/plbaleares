@@ -65,7 +65,7 @@
                                 </span>
                             {% elseif item.tiene_link %}
                                 <span style="color: #6c757d; font-style: italic; font-size: 0.9rem;">
-                                    Cargando...
+                                    No hay actualizaciones recientes
                                 </span>
                             {% else %}
                                 <span style="color: #6c757d; font-style: italic; font-size: 0.9rem;">
@@ -74,9 +74,10 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if item.articulos_afectados|length > 0 %}
+                            {% set totalAfectados = item.articulos_afectados|length + (item.otros_afectados|default([])|length) %}
+                            {% if totalAfectados > 0 %}
                                 <span class="badge badge-warning" style="background-color: #ffc107; color: #000;">
-                                    {{ item.articulos_afectados|length }} afectado(s)
+                                    {{ totalAfectados }} afectado(s)
                                 </span>
                                 {% set articulosEnTemario = item.articulos_afectados|filter(a => a.ley.temas|length > 0) %}
                                 {% if articulosEnTemario|length > 0 %}
@@ -89,7 +90,13 @@
                                     {% for articulo in item.articulos_afectados|slice(0, 3) %}
                                         Art. {{ articulo.getNumeroCompleto }}{% if articulo.ley.temas|length > 0 %} <span style="color: #28a745;">📚</span>{% endif %}{% if not loop.last %}, {% endif %}
                                     {% endfor %}
-                                    {% if item.articulos_afectados|length > 3 %}...{% endif %}
+                                    {% if item.otros_afectados|default([])|length > 0 %}
+                                        {% if item.articulos_afectados|length > 0 %}, {% endif %}
+                                        {% for otro in item.otros_afectados|slice(0, 1) %}
+                                            {{ otro.titulo }}<span style="color: #6c757d; font-size: 0.85em;"> ({{ otro.tipo }})</span>
+                                        {% endfor %}
+                                    {% endif %}
+                                    {% if totalAfectados > 3 %}...{% endif %}
                                 </small>
                             {% else %}
                                 <span style="color: #6c757d; font-style: italic; font-size: 0.9rem;">Ninguno</span>
