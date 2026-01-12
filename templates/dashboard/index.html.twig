@@ -1387,8 +1387,10 @@
                                 <tr>
                                     <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>
                                     <td>
-                                        <div style="display: flex; align-items: center; gap: 0.25rem;">
-                                            {% if examen.municipio %}
+                                        <div style="display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap;">
+                                            {% if examen.convocatoria %}
+                                                <span class="badge" style="background-color: #f3e5f5; color: #9C27B0; border: 1px solid #ce93d8; font-size: 0.75rem; padding: 0.25rem 0.5rem;" title="Convocatoria: {{ examen.convocatoria.nombre }}">{{ examen.convocatoria.nombre|slice(0, 20) }}{% if examen.convocatoria.nombre|length > 20 %}...{% endif %}</span>
+                                            {% elseif examen.municipio %}
                                                 <span class="badge" style="background-color: #e3f2fd; color: #1976D2; border: 1px solid #90caf9; font-size: 0.75rem; padding: 0.25rem 0.5rem;">{{ examen.municipio.nombre }}</span>
                                             {% else %}
                                                 <span class="badge" style="background-color: #f1f8e9; color: #558b2f; border: 1px solid #c5e1a5; font-size: 0.75rem; padding: 0.25rem 0.5rem;">General</span>
