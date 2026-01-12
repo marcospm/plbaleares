@@ -29,6 +29,20 @@
                 gap: 1rem !important;
             }
             
+            /* Buscador responsive */
+            form[method="get"] .card-body > div[style*="display: grid"] {
+                grid-template-columns: 1fr !important;
+            }
+            
+            form[method="get"] .card-body > div[style*="display: flex"] {
+                flex-direction: column !important;
+            }
+            
+            form[method="get"] .card-body button,
+            form[method="get"] .card-body a {
+                width: 100% !important;
+            }
+            
             .card-body .form-group {
                 width: 100%;
             }
@@ -107,12 +121,24 @@
 </div>
 
 <form method="get" action="{{ path('app_tema_municipal_index') }}" style="margin-bottom: 2rem;">
-    <div class="card">
-        <div class="card-body">
-            <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end;">
+    <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+        <div class="card-body" style="padding: 1.5rem;">
+            <h3 style="color: white; margin-bottom: 1rem; font-size: 1.2rem;">🔍 Filtros de Búsqueda</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label class="form-label">Filtrar por Municipio:</label>
-                    <select name="municipio" class="form-control">
+                    <label class="form-label" style="color: white; font-weight: 500; margin-bottom: 0.5rem;">Filtrar por Convocatoria:</label>
+                    <select name="convocatoria" class="form-control" style="min-height: 48px; font-size: 1rem; border-radius: 6px;">
+                        <option value="0">Todas las convocatorias</option>
+                        {% for convocatoria in convocatorias %}
+                            <option value="{{ convocatoria.id }}" {% if convocatoriaSeleccionada == convocatoria.id %}selected{% endif %}>
+                                {{ convocatoria.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" style="color: white; font-weight: 500; margin-bottom: 0.5rem;">Filtrar por Municipio:</label>
+                    <select name="municipio" class="form-control" style="min-height: 48px; font-size: 1rem; border-radius: 6px;">
                         <option value="0">Todos los municipios</option>
                         {% for municipio in municipios %}
                             <option value="{{ municipio.id }}" {% if municipioSeleccionado == municipio.id %}selected{% endif %}>
@@ -121,11 +147,32 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div>
-                    <button type="submit" class="btn btn-primary">Filtrar</button>
-                    <a href="{{ path('app_tema_municipal_index') }}" class="btn btn-secondary">Limpiar</a>
+                <div style="display: flex; gap: 0.5rem; flex-direction: column;">
+                    <button type="submit" class="btn" style="background: white; color: #667eea; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; min-height: 48px; font-size: 1rem; transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        Filtrar
+                    </button>
+                    <a href="{{ path('app_tema_municipal_index') }}" class="btn" style="background: rgba(255,255,255,0.2); color: white; border: 2px solid white; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; min-height: 48px; font-size: 1rem; transition: all 0.3s; text-decoration: none; text-align: center;">
+                        Limpiar
+                    </a>
                 </div>
             </div>
+            {% if municipioSeleccionado > 0 or convocatoriaSeleccionada > 0 %}
+                <div style="margin-top: 1rem; color: white; font-size: 0.95rem;">
+                    <strong>{{ temas|length }}</strong> tema(s) encontrado(s)
+                    {% if convocatoriaSeleccionada > 0 %}
+                        {% set convocatoria = convocatorias|filter(c => c.id == convocatoriaSeleccionada)|first %}
+                        {% if convocatoria %}
+                            para la convocatoria "<strong>{{ convocatoria.nombre }}</strong>"
+                        {% endif %}
+                    {% endif %}
+                    {% if municipioSeleccionado > 0 %}
+                        {% set municipio = municipios|filter(m => m.id == municipioSeleccionado)|first %}
+                        {% if municipio %}
+                            del municipio "<strong>{{ municipio.nombre }}</strong>"
+                        {% endif %}
+                    {% endif %}
+                </div>
+            {% endif %}
         </div>
     </div>
 </form>

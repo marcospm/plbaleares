@@ -6,6 +6,7 @@ use App\Entity\TemaMunicipal;
 use App\Form\TemaMunicipalType;
 use App\Repository\TemaMunicipalRepository;
 use App\Repository\MunicipioRepository;
+use App\Repository\ConvocatoriaRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
@@ -27,22 +28,42 @@ class TemaMunicipalController extends AbstractController
     }
 
     #[Route('/', name: 'app_tema_municipal_index', methods: ['GET'])]
-    public function index(TemaMunicipalRepository $temaMunicipalRepository, MunicipioRepository $municipioRepository, Request $request): Response
+    public function index(TemaMunicipalRepository $temaMunicipalRepository, MunicipioRepository $municipioRepository, ConvocatoriaRepository $convocatoriaRepository, Request $request): Response
     {
         $municipioId = $request->query->getInt('municipio');
-        $temas = $temaMunicipalRepository->findAll();
+        $convocatoriaId = $request->query->getInt('convocatoria');
         
+        $qb = $temaMunicipalRepository->createQueryBuilder('t');
+        
+        // Filtrar por municipio si está seleccionado
         if ($municipioId > 0) {
-            $municipio = $municipioRepository->find($municipioId);
-            if ($municipio) {
-                $temas = $temaMunicipalRepository->findByMunicipio($municipio);
+            $qb->andWhere('t.municipio = :municipioId')
+               ->setParameter('municipioId', $municipioId);
+        }
+        
+        // Filtrar por convocatoria si está seleccionada
+        if ($convocatoriaId > 0) {
+            $convocatoria = $convocatoriaRepository->find($convocatoriaId);
+            if ($convocatoria && $convocatoria->getMunicipios()->count() > 0) {
+                $municipiosIds = $convocatoria->getMunicipios()->map(fn($m) => $m->getId())->toArray();
+                $qb->andWhere('t.municipio IN (:municipiosIds)')
+                   ->setParameter('municipiosIds', $municipiosIds);
+            } else {
+                // Si la convocatoria no tiene municipios, no mostrar nada
+                $qb->andWhere('1 = 0');
             }
         }
+        
+        $temas = $qb->orderBy('t.nombre', 'ASC')
+                    ->getQuery()
+                    ->getResult();
 
         return $this->render('tema_municipal/index.html.twig', [
             'temas' => $temas,
-            'municipios' => $municipioRepository->findAll(),
+            'municipios' => $municipioRepository->findBy([], ['nombre' => 'ASC']),
+            'convocatorias' => $convocatoriaRepository->findBy([], ['nombre' => 'ASC']),
             'municipioSeleccionado' => $municipioId,
+            'convocatoriaSeleccionada' => $convocatoriaId,
         ]);
     }
 
