@@ -1,0 +1,451 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Informes Mensuales{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .informe-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        .header-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .header-section h1 {
+            margin: 0;
+            font-size: 1.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .search-section {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+        }
+        
+        .search-form {
+            display: flex;
+            gap: 0.75rem;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 0.625rem 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .search-btn {
+            padding: 0.625rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        .search-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .results-info {
+            background: #e3f2fd;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #1976d2;
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .alumnos-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .alumnos-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .alumnos-table th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .alumnos-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .alumnos-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .alumnos-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .alumno-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .alumno-email {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+        
+        .selector-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .selector-group select,
+        .selector-group input {
+            padding: 0.5rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .selector-group select:focus,
+        .selector-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .generate-btn {
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+        
+        .generate-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .pagination-wrapper {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 1rem;
+        }
+        
+        .pagination {
+            margin: 0;
+            justify-content: center;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .page-link {
+            padding: 0.5rem 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            color: #667eea;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        
+        .page-link:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .page-item.active .page-link {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            color: white;
+        }
+        
+        .page-item.disabled .page-link {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            color: #ccc;
+            margin-bottom: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .informe-container {
+                padding: 0.5rem;
+            }
+            
+            .header-section {
+                padding: 1rem;
+            }
+            
+            .header-section h1 {
+                font-size: 1.25rem;
+            }
+            
+            .search-form {
+                flex-direction: column;
+            }
+            
+            .search-btn {
+                width: 100%;
+            }
+            
+            .table-container {
+                overflow-x: auto;
+            }
+            
+            .alumnos-table {
+                min-width: 600px;
+            }
+            
+            .alumnos-table th,
+            .alumnos-table td {
+                padding: 0.75rem 0.5rem;
+                font-size: 0.85rem;
+            }
+            
+            .selector-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .selector-group select,
+            .selector-group input {
+                width: 100%;
+            }
+            
+            .generate-btn {
+                width: 100%;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="informe-container">
+    {# Header #}
+    <div class="header-section">
+        <h1>
+            <i class="fas fa-file-chart-line"></i>
+            Informes Mensuales
+        </h1>
+    </div>
+    
+    {# Búsqueda #}
+    <div class="search-section">
+        <form method="GET" action="{{ path('app_informe_mensual_index') }}" class="search-form">
+            <input type="text" 
+                   name="search" 
+                   class="search-input" 
+                   placeholder="Buscar por nombre de usuario o nombre..." 
+                   value="{{ search }}">
+            <button type="submit" class="search-btn">
+                <i class="fas fa-search"></i> Buscar
+            </button>
+            {% if search %}
+                <a href="{{ path('app_informe_mensual_index') }}" class="search-btn" style="text-decoration: none; display: inline-block; background: #6c757d;">
+                    <i class="fas fa-times"></i> Limpiar
+                </a>
+            {% endif %}
+        </form>
+    </div>
+    
+    {# Información de resultados #}
+    {% if search %}
+        <div class="results-info">
+            <i class="fas fa-info-circle"></i>
+            Mostrando {{ totalItems }} alumno(s) que coinciden con "{{ search }}"
+        </div>
+    {% else %}
+        <div class="results-info">
+            <i class="fas fa-users"></i>
+            Total de alumnos: {{ totalItems }}
+        </div>
+    {% endif %}
+    
+    {# Lista de alumnos #}
+    {% if alumnos|length > 0 %}
+        <div class="table-container">
+            <table class="alumnos-table">
+                <thead>
+                    <tr>
+                        <th>Alumno</th>
+                        <th>Mes</th>
+                        <th>Año</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alumno in alumnos %}
+                        <tr>
+                            <td>
+                                <div class="alumno-name">{{ alumno.username }}</div>
+                                {% if alumno.nombre %}
+                                    <div class="alumno-email">{{ alumno.nombre }}</div>
+                                {% endif %}
+                                {% if alumno.email %}
+                                    <div class="alumno-email">{{ alumno.email }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <select name="mes" id="mes{{ alumno.id }}" class="mes-selector" data-alumno-id="{{ alumno.id }}">
+                                    {% for i in 1..12 %}
+                                        <option value="{{ i }}" {% if i == mesActual %}selected{% endif %}>
+                                            {% set meses = {
+                                                1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+                                                5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+                                                9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+                                            } %}
+                                            {{ meses[i] }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <input type="number" 
+                                       name="anio" 
+                                       id="anio{{ alumno.id }}" 
+                                       class="anio-selector" 
+                                       data-alumno-id="{{ alumno.id }}"
+                                       value="{{ anioActual }}" 
+                                       min="2000" 
+                                       max="2100" 
+                                       style="width: 80px;">
+                            </td>
+                            <td>
+                                <button type="button" 
+                                        class="generate-btn" 
+                                        onclick="generarInforme({{ alumno.id }})">
+                                    <i class="fas fa-file-pdf"></i> Generar
+                                </button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {# Paginación #}
+        {% if totalPages > 1 %}
+            <div class="pagination-wrapper">
+                <nav aria-label="Paginación">
+                    <ul class="pagination">
+                        {% if page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('app_informe_mensual_index', {page: page - 1, search: search}) }}">
+                                    <i class="fas fa-chevron-left"></i> Anterior
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link"><i class="fas fa-chevron-left"></i> Anterior</span>
+                            </li>
+                        {% endif %}
+
+                        {% for i in 1..totalPages %}
+                            {% if i == 1 or i == totalPages or (i >= page - 2 and i <= page + 2) %}
+                                <li class="page-item {% if i == page %}active{% endif %}">
+                                    <a class="page-link" href="{{ path('app_informe_mensual_index', {page: i, search: search}) }}">
+                                        {{ i }}
+                                    </a>
+                                </li>
+                            {% elseif i == page - 3 or i == page + 3 %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page < totalPages %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('app_informe_mensual_index', {page: page + 1, search: search}) }}">
+                                    Siguiente <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">Siguiente <i class="fas fa-chevron-right"></i></span>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                <div style="text-align: center; margin-top: 0.75rem; color: #666; font-size: 0.85rem;">
+                    Página {{ page }} de {{ totalPages }} ({{ totalItems }} alumno{{ totalItems != 1 ? 's' : '' }})
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="empty-state">
+            <i class="fas fa-user-slash"></i>
+            <h3>No se encontraron alumnos</h3>
+            <p>
+                {% if search %}
+                    No hay alumnos que coincidan con "{{ search }}". Intenta con otro término de búsqueda.
+                {% else %}
+                    No hay alumnos disponibles para generar informes.
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    function generarInforme(alumnoId) {
+        const mes = document.getElementById('mes' + alumnoId).value;
+        const anio = document.getElementById('anio' + alumnoId).value;
+        const url = '{{ path('app_informe_mensual_generar', {id: '__ID__'}) }}'.replace('__ID__', alumnoId) + '?mes=' + mes + '&anio=' + anio;
+        window.open(url, '_blank');
+    }
+</script>
+{% endblock %}

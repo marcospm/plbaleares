@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Informe Mensual - {{ alumno.nombreDisplay }} - {{ nombreMes }} {{ anio }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 9pt;
+            color: #333;
+            line-height: 1.3;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .header h1 {
+            font-size: 18pt;
+            color: #667eea;
+            margin-bottom: 4px;
+            font-weight: bold;
+        }
+        
+        .header .subtitle {
+            font-size: 12pt;
+            color: #666;
+            font-weight: 600;
+        }
+        
+        .header .period {
+            font-size: 10pt;
+            color: #999;
+            margin-top: 3px;
+        }
+        
+        .info-box {
+            background: #f5f7fa;
+            border: 1px solid #dee2e6;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 12px;
+            font-size: 8pt;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .stat-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+            text-align: center;
+        }
+        
+        .stat-card.primary {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        
+        .stat-card.success {
+            border-color: #28a745;
+            background: #f0fff4;
+        }
+        
+        .stat-card.warning {
+            border-color: #ffc107;
+            background: #fffef0;
+        }
+        
+        .stat-card.danger {
+            border-color: #dc3545;
+            background: #fff5f5;
+        }
+        
+        .stat-value {
+            font-size: 20pt;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        
+        .stat-card.primary .stat-value {
+            color: #667eea;
+        }
+        
+        .stat-card.success .stat-value {
+            color: #28a745;
+        }
+        
+        .stat-card.warning .stat-value {
+            color: #ff9800;
+        }
+        
+        .stat-card.danger .stat-value {
+            color: #dc3545;
+        }
+        
+        .stat-label {
+            font-size: 8pt;
+            color: #666;
+            font-weight: 600;
+        }
+        
+        .stat-sub {
+            font-size: 7pt;
+            color: #999;
+            margin-top: 3px;
+        }
+        
+        .section {
+            margin-bottom: 15px;
+            page-break-inside: avoid;
+        }
+        
+        .section h2 {
+            color: #667eea;
+            font-size: 12pt;
+            margin-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 4px;
+            font-weight: bold;
+        }
+        
+        .compact-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .compact-box {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        
+        .compact-box h3 {
+            font-size: 9pt;
+            color: #667eea;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 3px;
+        }
+        
+        .compact-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 8pt;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .compact-item:last-child {
+            border-bottom: none;
+        }
+        
+        .compact-label {
+            color: #666;
+        }
+        
+        .compact-value {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .progress-bar-container {
+            background: #f0f0f0;
+            border-radius: 4px;
+            height: 18px;
+            margin: 6px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: #667eea;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 7pt;
+        }
+        
+        .progress-bar.excellent {
+            background: #28a745;
+        }
+        
+        .progress-bar.good {
+            background: #17a2b8;
+        }
+        
+        .progress-bar.regular {
+            background: #ffc107;
+        }
+        
+        .progress-bar.poor {
+            background: #dc3545;
+        }
+        
+        .examen-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+            font-size: 8pt;
+        }
+        
+        .examen-table thead th {
+            background: #667eea;
+            color: white;
+            padding: 6px 5px;
+            text-align: left;
+            font-weight: bold;
+            border: 1px solid #5568d3;
+        }
+        
+        .examen-table tbody td {
+            border: 1px solid #dee2e6;
+            padding: 5px;
+        }
+        
+        .examen-table tbody tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .nota-excelente {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .nota-buena {
+            color: #17a2b8;
+            font-weight: bold;
+        }
+        
+        .nota-regular {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        
+        .nota-baja {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        
+        .summary-table td {
+            padding: 6px;
+            border: 1px solid #e0e0e0;
+            font-size: 8pt;
+        }
+        
+        .summary-table td:first-child {
+            background: #f8f9fa;
+            font-weight: 600;
+            width: 50%;
+        }
+        
+        .footer {
+            margin-top: 20px;
+            padding-top: 8px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            font-size: 7pt;
+            color: #666;
+        }
+        
+        @page {
+            margin: 1cm;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Informe Mensual de Actividad</h1>
+        <div class="subtitle">{{ alumno.nombreDisplay }}</div>
+        <div class="period">{{ nombreMes }} {{ anio }}</div>
+    </div>
+    
+    <div class="info-box">
+        <strong>Periodo:</strong> {{ primerDiaMes|date('d/m/Y') }} - {{ ultimoDiaMes|date('d/m/Y') }}
+        {% set hoy = 'now'|date('Y-m-d') %}
+        {% set ultimoDiaStr = ultimoDiaMes|date('Y-m-d') %}
+        {% if hoy < ultimoDiaStr %}
+            | <strong>Nota:</strong> Mes en curso
+        {% endif %}
+    </div>
+    
+    {# Estadísticas principales #}
+    <div class="section">
+        <h2>Estadisticas Principales</h2>
+        <div class="stats-grid">
+            <div class="stat-card primary">
+                <div class="stat-value">{{ totalExamenes }}</div>
+                <div class="stat-label">Examenes</div>
+                {% if totalExamenes > 0 %}
+                    <div class="stat-sub">Media: {{ notaMedia|number_format(2, ',', '.') }}</div>
+                {% endif %}
+            </div>
+            <div class="stat-card success">
+                <div class="stat-value">{{ totalAciertos }}</div>
+                <div class="stat-label">Aciertos</div>
+                {% set totalRespuestas = totalAciertos + totalErrores + totalEnBlanco %}
+                {% if totalRespuestas > 0 %}
+                    {% set porcentajeAciertos = (totalAciertos / totalRespuestas * 100)|round(1) %}
+                    <div class="stat-sub">{{ porcentajeAciertos }}%</div>
+                {% endif %}
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-value">{{ totalErrores }}</div>
+                <div class="stat-label">Errores</div>
+                {% set totalRespuestas = totalAciertos + totalErrores + totalEnBlanco %}
+                {% if totalRespuestas > 0 %}
+                    {% set porcentajeErrores = (totalErrores / totalRespuestas * 100)|round(1) %}
+                    <div class="stat-sub">{{ porcentajeErrores }}%</div>
+                {% endif %}
+            </div>
+            <div class="stat-card primary">
+                <div class="stat-value">{{ notaMedia|number_format(2, ',', '.') }}</div>
+                <div class="stat-label">Nota Media</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-value">{{ mejorNota|number_format(2, ',', '.') }}</div>
+                <div class="stat-label">Mejor Nota</div>
+            </div>
+            <div class="stat-card danger">
+                <div class="stat-value">{{ peorNota|number_format(2, ',', '.') }}</div>
+                <div class="stat-label">Peor Nota</div>
+            </div>
+        </div>
+    </div>
+    
+    {# Análisis y resumen combinados #}
+    {% if totalExamenes > 0 %}
+        <div class="section">
+            <h2>Analisis de Rendimiento</h2>
+            <div class="compact-grid">
+                <div class="compact-box">
+                    <h3>Distribucion de Notas</h3>
+                    {% set excelentes = examenes|filter(e => e.nota >= 7)|length %}
+                    {% set buenas = examenes|filter(e => e.nota >= 5 and e.nota < 7)|length %}
+                    {% set regulares = examenes|filter(e => e.nota >= 4 and e.nota < 5)|length %}
+                    {% set bajas = examenes|filter(e => e.nota < 4)|length %}
+                    
+                    <div style="margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 8pt;">
+                            <span>Excelente (≥7.0)</span>
+                            <span style="font-weight: bold;">{{ excelentes }} ({{ (excelentes / totalExamenes * 100)|round(1) }}%)</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar excellent" style="width: {{ (excelentes / totalExamenes * 100)|round(1) }}%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 8pt;">
+                            <span>Buena (5.0-6.9)</span>
+                            <span style="font-weight: bold;">{{ buenas }} ({{ (buenas / totalExamenes * 100)|round(1) }}%)</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar good" style="width: {{ (buenas / totalExamenes * 100)|round(1) }}%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 8pt;">
+                            <span>Regular (4.0-4.9)</span>
+                            <span style="font-weight: bold;">{{ regulares }} ({{ (regulares / totalExamenes * 100)|round(1) }}%)</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar regular" style="width: {{ (regulares / totalExamenes * 100)|round(1) }}%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 8pt;">
+                            <span>Baja (<4.0)</span>
+                            <span style="font-weight: bold;">{{ bajas }} ({{ (bajas / totalExamenes * 100)|round(1) }}%)</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar poor" style="width: {{ (bajas / totalExamenes * 100)|round(1) }}%;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="compact-box">
+                    <h3>Rendimiento y Precision</h3>
+                    <div class="compact-item">
+                        <span class="compact-label">Nota Media</span>
+                        <span class="compact-value">{{ notaMedia|number_format(2, ',', '.') }}</span>
+                    </div>
+                    <div class="compact-item">
+                        <span class="compact-label">Rango</span>
+                        <span class="compact-value">{{ peorNota|number_format(2, ',', '.') }} - {{ mejorNota|number_format(2, ',', '.') }}</span>
+                    </div>
+                    <div class="compact-item">
+                        <span class="compact-label">Diferencia</span>
+                        <span class="compact-value">{{ (mejorNota - peorNota)|number_format(2, ',', '.') }}</span>
+                    </div>
+                    {% set totalRespuestas = totalAciertos + totalErrores + totalEnBlanco %}
+                    {% if totalRespuestas > 0 %}
+                        {% set porcentajeAciertos = (totalAciertos / totalRespuestas * 100)|round(1) %}
+                        {% set porcentajeErrores = (totalErrores / totalRespuestas * 100)|round(1) %}
+                        {% set porcentajeBlanco = (totalEnBlanco / totalRespuestas * 100)|round(1) %}
+                        <div class="compact-item">
+                            <span class="compact-label">% Aciertos</span>
+                            <span class="compact-value">{{ porcentajeAciertos }}%</span>
+                        </div>
+                        <div class="compact-item">
+                            <span class="compact-label">% Errores</span>
+                            <span class="compact-value">{{ porcentajeErrores }}%</span>
+                        </div>
+                        <div class="compact-item">
+                            <span class="compact-label">% En blanco</span>
+                            <span class="compact-value">{{ porcentajeBlanco }}%</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <table class="summary-table">
+                <tr>
+                    <td>Examenes Semanales</td>
+                    <td>{{ examenesSemanales|length }}</td>
+                </tr>
+                <tr>
+                    <td>Examenes Generales</td>
+                    <td>{{ examenesGenerales|length }}</td>
+                </tr>
+                <tr>
+                    <td>Examenes Municipales</td>
+                    <td>{{ examenesMunicipales|length }}</td>
+                </tr>
+                <tr>
+                    <td>Examenes Convocatoria</td>
+                    <td>{{ examenesConvocatoria|length }}</td>
+                </tr>
+            </table>
+        </div>
+    {% endif %}
+    
+    {# Exámenes semanales - solo si hay pocos, sino resumen #}
+    {% if examenesSemanales|length > 0 %}
+        <div class="section">
+            <h2>Examenes Semanales ({{ examenesSemanales|length }})</h2>
+            {% if examenesSemanales|length <= 10 %}
+                <table class="examen-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Examen</th>
+                            <th>Nota</th>
+                            <th>Aciertos</th>
+                            <th>Errores</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for examen in examenesSemanales %}
+                            {% set nota = examen.nota|number_format(2, ',', '.') %}
+                            {% set claseNota = '' %}
+                            {% if examen.nota >= 7 %}
+                                {% set claseNota = 'nota-excelente' %}
+                            {% elseif examen.nota >= 5 %}
+                                {% set claseNota = 'nota-buena' %}
+                            {% elseif examen.nota >= 4 %}
+                                {% set claseNota = 'nota-regular' %}
+                            {% else %}
+                                {% set claseNota = 'nota-baja' %}
+                            {% endif %}
+                            <tr>
+                                <td>{{ examen.fecha|date('d/m/Y') }}</td>
+                                <td>
+                                    {% if examen.examenSemanal and examen.examenSemanal.nombre %}
+                                        {{ examen.examenSemanal.nombre|slice(0, 30) }}
+                                    {% else %}
+                                        Examen Semanal
+                                    {% endif %}
+                                </td>
+                                <td class="{{ claseNota }}">{{ nota }}</td>
+                                <td>{{ examen.aciertos }}</td>
+                                <td>{{ examen.errores }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="compact-box">
+                    <p style="font-size: 8pt; color: #666;">Se realizaron {{ examenesSemanales|length }} exámenes semanales. Ver detalles en el sistema.</p>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+    
+    {# Tareas - resumen compacto #}
+    {% if tareas|length > 0 %}
+        <div class="section">
+            <h2>Tareas del Mes</h2>
+            <table class="summary-table">
+                <tr>
+                    <td>Total Tareas</td>
+                    <td>{{ tareas|length }}</td>
+                </tr>
+                <tr>
+                    <td>Completadas</td>
+                    <td style="color: #28a745; font-weight: bold;">{{ tareasCompletadas }}</td>
+                </tr>
+                <tr>
+                    <td>Pendientes</td>
+                    <td style="color: #ffc107; font-weight: bold;">{{ tareasPendientes }}</td>
+                </tr>
+                <tr>
+                    <td>% Completadas</td>
+                    <td style="font-weight: bold;">{{ (tareasCompletadas / tareas|length * 100)|round(1) }}%</td>
+                </tr>
+            </table>
+        </div>
+    {% endif %}
+    
+    {# Mensaje si no hay actividad #}
+    {% if totalExamenes == 0 and tareas|length == 0 %}
+        <div class="section">
+            <div style="text-align: center; color: #999; font-style: italic; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+                No se registró actividad durante este mes.
+            </div>
+        </div>
+    {% endif %}
+    
+    <div class="footer">
+        <p>Generado el {{ 'now'|date('d/m/Y H:i') }} - {{ alumno.nombreDisplay }}</p>
+    </div>
+</body>
+</html>
