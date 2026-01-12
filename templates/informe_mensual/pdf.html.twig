@@ -359,14 +359,14 @@
             <div class="compact-grid">
                 <div class="compact-box">
                     <h3>Distribucion de Notas</h3>
-                    {% set excelentes = examenes|filter(e => e.nota >= 7)|length %}
-                    {% set buenas = examenes|filter(e => e.nota >= 5 and e.nota < 7)|length %}
-                    {% set regulares = examenes|filter(e => e.nota >= 4 and e.nota < 5)|length %}
-                    {% set bajas = examenes|filter(e => e.nota < 4)|length %}
+                    {% set excelentes = examenes|filter(e => e.nota >= 14)|length %}
+                    {% set buenas = examenes|filter(e => e.nota >= 10 and e.nota < 14)|length %}
+                    {% set regulares = examenes|filter(e => e.nota >= 8 and e.nota < 10)|length %}
+                    {% set bajas = examenes|filter(e => e.nota < 8)|length %}
                     
                     <div style="margin-bottom: 8px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 8pt;">
-                            <span>Excelente (≥7.0)</span>
+                            <span>Excelente (>=14.0)</span>
                             <span style="font-weight: bold;">{{ excelentes }} ({{ (excelentes / totalExamenes * 100)|round(1) }}%)</span>
                         </div>
                         <div class="progress-bar-container">
@@ -376,7 +376,7 @@
                     
                     <div style="margin-bottom: 8px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 8pt;">
-                            <span>Buena (5.0-6.9)</span>
+                            <span>Buena (10.0-13.9)</span>
                             <span style="font-weight: bold;">{{ buenas }} ({{ (buenas / totalExamenes * 100)|round(1) }}%)</span>
                         </div>
                         <div class="progress-bar-container">
@@ -386,7 +386,7 @@
                     
                     <div style="margin-bottom: 8px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 8pt;">
-                            <span>Regular (4.0-4.9)</span>
+                            <span>Regular (8.0-9.9)</span>
                             <span style="font-weight: bold;">{{ regulares }} ({{ (regulares / totalExamenes * 100)|round(1) }}%)</span>
                         </div>
                         <div class="progress-bar-container">
@@ -396,7 +396,7 @@
                     
                     <div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 8pt;">
-                            <span>Baja (<4.0)</span>
+                            <span>Baja (&lt;8.0)</span>
                             <span style="font-weight: bold;">{{ bajas }} ({{ (bajas / totalExamenes * 100)|round(1) }}%)</span>
                         </div>
                         <div class="progress-bar-container">
@@ -480,11 +480,11 @@
                         {% for examen in examenesSemanales %}
                             {% set nota = examen.nota|number_format(2, ',', '.') %}
                             {% set claseNota = '' %}
-                            {% if examen.nota >= 7 %}
+                            {% if examen.nota >= 14 %}
                                 {% set claseNota = 'nota-excelente' %}
-                            {% elseif examen.nota >= 5 %}
+                            {% elseif examen.nota >= 10 %}
                                 {% set claseNota = 'nota-buena' %}
-                            {% elseif examen.nota >= 4 %}
+                            {% elseif examen.nota >= 8 %}
                                 {% set claseNota = 'nota-regular' %}
                             {% else %}
                                 {% set claseNota = 'nota-baja' %}
