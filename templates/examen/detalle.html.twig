@@ -210,9 +210,13 @@
                     <p><strong>{{ item.pregunta.texto }}</strong></p>
 
                     <div style="margin: 1rem 0;">
+                        {# Normalizar respuesta correcta y respuesta del alumno para comparación #}
+                        {% set respuestaCorrectaRaw = item.pregunta.respuestaCorrecta ?? item.pregunta.getRespuestaCorrecta() ?? '' %}
+                        {% set respuestaCorrectaNormalizada = respuestaCorrectaRaw ? (respuestaCorrectaRaw|trim|upper) : '' %}
+                        {% set respuestaAlumnoNormalizada = item.respuestaAlumno ? (item.respuestaAlumno|trim|upper) : '' %}
                         {# Opción A #}
-                        {% set esCorrectaA = item.pregunta.respuestaCorrecta == 'A' %}
-                        {% set esSeleccionadaA = item.respuestaAlumno == 'A' %}
+                        {% set esCorrectaA = respuestaCorrectaNormalizada == 'A' %}
+                        {% set esSeleccionadaA = respuestaAlumnoNormalizada == 'A' %}
                         {% set esIncorrectaA = esSeleccionadaA and not item.esCorrecta %}
                         {% set esCorrectaYSeleccionadaA = esSeleccionadaA and item.esCorrecta %}
                         <div style="padding: 0.5rem; margin: 0.25rem 0; {% if esIncorrectaA %}background: #ffebee;{% elseif esCorrectaA %}background: #e8f5e9; border-left: 3px solid var(--color-success);{% endif %}">
@@ -229,8 +233,8 @@
                             {% endif %}
                         </div>
                         {# Opción B #}
-                        {% set esCorrectaB = item.pregunta.respuestaCorrecta == 'B' %}
-                        {% set esSeleccionadaB = item.respuestaAlumno == 'B' %}
+                        {% set esCorrectaB = respuestaCorrectaNormalizada == 'B' %}
+                        {% set esSeleccionadaB = respuestaAlumnoNormalizada == 'B' %}
                         {% set esIncorrectaB = esSeleccionadaB and not item.esCorrecta %}
                         {% set esCorrectaYSeleccionadaB = esSeleccionadaB and item.esCorrecta %}
                         <div style="padding: 0.5rem; margin: 0.25rem 0; {% if esIncorrectaB %}background: #ffebee;{% elseif esCorrectaB %}background: #e8f5e9; border-left: 3px solid var(--color-success);{% endif %}">
@@ -247,8 +251,8 @@
                             {% endif %}
                         </div>
                         {# Opción C #}
-                        {% set esCorrectaC = item.pregunta.respuestaCorrecta == 'C' %}
-                        {% set esSeleccionadaC = item.respuestaAlumno == 'C' %}
+                        {% set esCorrectaC = respuestaCorrectaNormalizada == 'C' %}
+                        {% set esSeleccionadaC = respuestaAlumnoNormalizada == 'C' %}
                         {% set esIncorrectaC = esSeleccionadaC and not item.esCorrecta %}
                         {% set esCorrectaYSeleccionadaC = esSeleccionadaC and item.esCorrecta %}
                         <div style="padding: 0.5rem; margin: 0.25rem 0; {% if esIncorrectaC %}background: #ffebee;{% elseif esCorrectaC %}background: #e8f5e9; border-left: 3px solid var(--color-success);{% endif %}">
@@ -265,8 +269,8 @@
                             {% endif %}
                         </div>
                         {# Opción D #}
-                        {% set esCorrectaD = item.pregunta.respuestaCorrecta == 'D' %}
-                        {% set esSeleccionadaD = item.respuestaAlumno == 'D' %}
+                        {% set esCorrectaD = respuestaCorrectaNormalizada == 'D' %}
+                        {% set esSeleccionadaD = respuestaAlumnoNormalizada == 'D' %}
                         {% set esIncorrectaD = esSeleccionadaD and not item.esCorrecta %}
                         {% set esCorrectaYSeleccionadaD = esSeleccionadaD and item.esCorrecta %}
                         <div style="padding: 0.5rem; margin: 0.25rem 0; {% if esIncorrectaD %}background: #ffebee;{% elseif esCorrectaD %}background: #e8f5e9; border-left: 3px solid var(--color-success);{% endif %}">

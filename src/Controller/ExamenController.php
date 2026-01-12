@@ -2186,7 +2186,10 @@ class ExamenController extends AbstractController
                 if ($respuestaAlumno === null || $respuestaAlumno === '') {
                     $esCorrecta = null;
                 } else {
-                    $esCorrecta = ($respuestaAlumno === $pregunta->getRespuestaCorrecta());
+                    // Normalizar ambas respuestas para comparación (trim y uppercase)
+                    $respuestaAlumnoNormalizada = strtoupper(trim($respuestaAlumno));
+                    $respuestaCorrectaNormalizada = strtoupper(trim($pregunta->getRespuestaCorrecta() ?? ''));
+                    $esCorrecta = ($respuestaAlumnoNormalizada === $respuestaCorrectaNormalizada);
                 }
                 
                 $preguntas[] = [
