@@ -8,214 +8,219 @@
         <h1>Exámenes Semanales</h1>
     </div>
     <div class="card-body">
-        {% if examenGeneral or examenMunicipal or examenConvocatoria %}
-            <div style="display: grid; grid-template-columns: {% if (examenGeneral and examenMunicipal) or (examenGeneral and examenConvocatoria) or (examenMunicipal and examenConvocatoria) %}1fr 1fr{% else %}1fr{% endif %}; gap: 1.5rem; margin-bottom: 2rem;">
-                {% if examenGeneral %}
-                    <div class="card" style="border-left: 6px solid #4CAF50; background: linear-gradient(135deg, #f1f8f4 0%, #ffffff 100%); box-shadow: 0 4px 6px rgba(76, 175, 80, 0.1);">
-                        <div class="card-body">
-                            <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
-                                <div style="flex: 1;">
-                                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-                                        <span class="badge" style="background-color: #4CAF50; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: bold;">📚 TEMARIO GENERAL</span>
-                                        {% if examenGeneral.numeroPreguntas %}
-                                            <span class="badge" style="background-color: #2196F3; padding: 0.4rem 0.8rem; font-size: 0.85rem;">{{ examenGeneral.numeroPreguntas }} preguntas</span>
+        {% set totalDisponibles = examenesGenerales|length + examenesMunicipales|length + examenesConvocatorias|length %}
+        
+        {% if totalDisponibles > 0 %}
+            {% if examenesGenerales|length > 0 %}
+                <h2 style="margin-top: 0; margin-bottom: 1rem; color: #2E7D32; font-size: 1.5rem;">📚 Exámenes Generales</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                    {% for examen in examenesGenerales %}
+                        <div class="card" style="border-left: 6px solid #4CAF50; background: linear-gradient(135deg, #f1f8f4 0%, #ffffff 100%); box-shadow: 0 4px 6px rgba(76, 175, 80, 0.1);">
+                            <div class="card-body">
+                                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                    <div>
+                                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                                            <span class="badge" style="background-color: #4CAF50; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: bold;">📚 TEMARIO GENERAL</span>
+                                            {% if examen.numeroPreguntas %}
+                                                <span class="badge" style="background-color: #2196F3; padding: 0.4rem 0.8rem; font-size: 0.85rem;">{{ examen.numeroPreguntas }} preguntas</span>
+                                            {% endif %}
+                                        </div>
+                                        <h3 style="margin-top: 0; color: #2E7D32; font-weight: 600; font-size: 1.2rem;">{{ examen.nombre }}</h3>
+                                        {% if examen.descripcion %}
+                                            <p style="color: #666; margin-bottom: 1rem; font-size: 0.95rem;">{{ examen.descripcion }}</p>
                                         {% endif %}
-                                    </div>
-                                    <h3 style="margin-top: 0; color: #2E7D32; font-weight: 600;">{{ examenGeneral.nombre }}</h3>
-                                    {% if examenGeneral.descripcion %}
-                                        <p style="color: #666; margin-bottom: 1rem;">{{ examenGeneral.descripcion }}</p>
-                                    {% endif %}
-                                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
-                                        <div>
-                                            <strong>Dificultad:</strong> 
-                                            <span class="badge badge-{{ examenGeneral.dificultad }}">{{ examenGeneral.getDificultadLabel() }}</span>
-                                        </div>
-                                        <div>
-                                            <strong>Apertura:</strong> {{ examenGeneral.fechaApertura|date('d/m/Y H:i') }}
-                                        </div>
-                                        <div>
-                                            <strong>Cierre:</strong> {{ examenGeneral.fechaCierre|date('d/m/Y H:i') }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div>
-                                    {% if yaRealizadoGeneral %}
-                                        <span class="badge" style="background-color: #6c757d; padding: 0.5rem 1rem; font-size: 1rem;">Ya Realizado</span>
-                                        <div style="margin-top: 0.5rem;">
-                                            <a href="{{ path('app_examen_semanal_alumno_ranking', {'id': examenGeneral.id}) }}" class="btn btn-primary btn-sm">Ver Ranking</a>
-                                        </div>
-                                    {% elseif examenGeneral.estaDisponible() %}
-                                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                                            {% if borradoresSemanales[examenGeneral.id] is defined %}
-                                                <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 0.75rem; margin-bottom: 0.5rem;">
-                                                    <small style="display: block; color: #856404;">
-                                                        <strong>📝 Examen guardado en borrador</strong><br>
-                                                        Pregunta: {{ borradoresSemanales[examenGeneral.id].preguntaActual }}/{{ borradoresSemanales[examenGeneral.id].preguntasIds|length }} | 
-                                                        Respondidas: {{ borradoresSemanales[examenGeneral.id].respuestas|length }}
-                                                        {% if borradoresSemanales[examenGeneral.id].tiempoRestante %}
-                                                            | Tiempo restante: {{ (borradoresSemanales[examenGeneral.id].tiempoRestante / 60)|round }} min
-                                                        {% endif %}
-                                                    </small>
-                                                </div>
-                                            {% endif %}
-                                            <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenGeneral.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;">{{ borradoresSemanales[examenGeneral.id] is defined ? 'Continuar examen online' : 'Realizar Examen Online' }}</a>
-                                            {% if examenesPDFPorSemanal[examenGeneral.id] is defined %}
-                                                <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examenGeneral.id}) }}" class="btn btn-warning" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Editar Resultados PDF</a>
-                                            {% else %}
-                                                <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examenGeneral.id}) }}" class="btn btn-outline-secondary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Introducir Resultados PDF</a>
-                                            {% endif %}
-                                        </div>
-                                    {% elseif examenGeneral.estaPendiente() %}
-                                        <span class="badge" style="background-color: #ffc107; padding: 0.5rem 1rem; font-size: 1rem;">Pendiente</span>
-                                    {% else %}
-                                        <span class="badge" style="background-color: #6c757d; padding: 0.5rem 1rem; font-size: 1rem;">Cerrado</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
-
-                {% if examenMunicipal %}
-                    <div class="card" style="border-left: 6px solid #2196F3; background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%); box-shadow: 0 4px 6px rgba(33, 150, 243, 0.1);">
-                        <div class="card-body">
-                            <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
-                                <div style="flex: 1;">
-                                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-                                        <span class="badge" style="background-color: #2196F3; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: bold;">🏛️ EXAMEN MUNICIPAL</span>
-                                        {% if examenMunicipal.numeroPreguntas %}
-                                            <span class="badge" style="background-color: #4CAF50; padding: 0.4rem 0.8rem; font-size: 0.85rem;">{{ examenMunicipal.numeroPreguntas }} preguntas</span>
-                                        {% endif %}
-                                    </div>
-                                    <h3 style="margin-top: 0; color: #1565C0; font-weight: 600;">{{ examenMunicipal.nombre }}</h3>
-                                    {% if examenMunicipal.descripcion %}
-                                        <p style="color: #666; margin-bottom: 1rem;">{{ examenMunicipal.descripcion }}</p>
-                                    {% endif %}
-                                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
-                                        <div>
-                                            <strong>Dificultad:</strong> 
-                                            <span class="badge badge-{{ examenMunicipal.dificultad }}">{{ examenMunicipal.getDificultadLabel() }}</span>
-                                        </div>
-                                        <div>
-                                            <strong>Apertura:</strong> {{ examenMunicipal.fechaApertura|date('d/m/Y H:i') }}
-                                        </div>
-                                        <div>
-                                            <strong>Cierre:</strong> {{ examenMunicipal.fechaCierre|date('d/m/Y H:i') }}
-                                        </div>
-                                    </div>
-                                    <div style="margin-bottom: 1rem;">
-                                        <span class="badge" style="background-color: #1976D2; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: bold;">📍 {{ examenMunicipal.municipio.nombre }}</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    {% if yaRealizadoMunicipal %}
-                                        <span class="badge" style="background-color: #6c757d; padding: 0.5rem 1rem; font-size: 1rem;">Ya Realizado</span>
-                                        <div style="margin-top: 0.5rem;">
-                                            <a href="{{ path('app_examen_semanal_alumno_ranking', {'id': examenMunicipal.id}) }}" class="btn btn-primary btn-sm">Ver Ranking</a>
-                                        </div>
-                                    {% elseif examenMunicipal.estaDisponible() %}
-                                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                                            {% if borradoresSemanales[examenMunicipal.id] is defined %}
-                                                <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 0.75rem; margin-bottom: 0.5rem;">
-                                                    <small style="display: block; color: #856404;">
-                                                        <strong>📝 Examen guardado en borrador</strong><br>
-                                                        Pregunta: {{ borradoresSemanales[examenMunicipal.id].preguntaActual }}/{{ borradoresSemanales[examenMunicipal.id].preguntasIds|length }} | 
-                                                        Respondidas: {{ borradoresSemanales[examenMunicipal.id].respuestas|length }}
-                                                        {% if borradoresSemanales[examenMunicipal.id].tiempoRestante %}
-                                                            | Tiempo restante: {{ (borradoresSemanales[examenMunicipal.id].tiempoRestante / 60)|round }} min
-                                                        {% endif %}
-                                                    </small>
-                                                </div>
-                                            {% endif %}
-                                            <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenMunicipal.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;">{{ borradoresSemanales[examenMunicipal.id] is defined ? 'Continuar examen online' : 'Realizar Examen Online' }}</a>
-                                            {% if examenesPDFPorSemanal[examenMunicipal.id] is defined %}
-                                                <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examenMunicipal.id}) }}" class="btn btn-warning" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Editar Resultados PDF</a>
-                                            {% else %}
-                                                <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examenMunicipal.id}) }}" class="btn btn-outline-secondary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Introducir Resultados PDF</a>
-                                            {% endif %}
-                                        </div>
-                                    {% elseif examenMunicipal.estaPendiente() %}
-                                        <span class="badge" style="background-color: #ffc107; padding: 0.5rem 1rem; font-size: 1rem;">Pendiente</span>
-                                    {% else %}
-                                        <span class="badge" style="background-color: #6c757d; padding: 0.5rem 1rem; font-size: 1rem;">Cerrado</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
-
-                {% if examenConvocatoria %}
-                    <div class="card" style="border-left: 6px solid #9C27B0; background: linear-gradient(135deg, #f3e5f5 0%, #ffffff 100%); box-shadow: 0 4px 6px rgba(156, 39, 176, 0.1);">
-                        <div class="card-body">
-                            <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
-                                <div style="flex: 1;">
-                                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-                                        <span class="badge" style="background-color: #9C27B0; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: bold;">📋 EXAMEN DE CONVOCATORIA</span>
-                                        {% if examenConvocatoria.numeroPreguntas %}
-                                            <span class="badge" style="background-color: #4CAF50; padding: 0.4rem 0.8rem; font-size: 0.85rem;">{{ examenConvocatoria.numeroPreguntas }} preguntas</span>
-                                        {% endif %}
-                                    </div>
-                                    <h3 style="margin-top: 0; color: #7B1FA2; font-weight: 600;">{{ examenConvocatoria.nombre }}</h3>
-                                    {% if examenConvocatoria.descripcion %}
-                                        <p style="color: #666; margin-bottom: 1rem;">{{ examenConvocatoria.descripcion }}</p>
-                                    {% endif %}
-                                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
-                                        <div>
-                                            <strong>Dificultad:</strong> 
-                                            <span class="badge badge-{{ examenConvocatoria.dificultad }}">{{ examenConvocatoria.getDificultadLabel() }}</span>
-                                        </div>
-                                        <div>
-                                            <strong>Apertura:</strong> {{ examenConvocatoria.fechaApertura|date('d/m/Y H:i') }}
-                                        </div>
-                                        <div>
-                                            <strong>Cierre:</strong> {{ examenConvocatoria.fechaCierre|date('d/m/Y H:i') }}
-                                        </div>
-                                    </div>
-                                    <div style="margin-bottom: 1rem;">
-                                        <span class="badge" style="background-color: #7B1FA2; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: bold;">📋 {{ examenConvocatoria.convocatoria.nombre }}</span>
-                                        {% if examenConvocatoria.convocatoria.municipios|length > 0 %}
-                                            <div style="margin-top: 0.5rem;">
-                                                {% for municipio in examenConvocatoria.convocatoria.municipios %}
-                                                    <span class="badge" style="background-color: #2196F3; padding: 0.4rem 0.8rem; font-size: 0.85rem; margin-right: 0.5rem;">📍 {{ municipio.nombre }}</span>
-                                                {% endfor %}
+                                        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
+                                            <div>
+                                                <strong>Dificultad:</strong> 
+                                                <span class="badge badge-{{ examen.dificultad }}">{{ examen.getDificultadLabel() }}</span>
                                             </div>
+                                            <div>
+                                                <strong>Apertura:</strong> {{ examen.fechaApertura|date('d/m/Y H:i') }}
+                                            </div>
+                                            <div>
+                                                <strong>Cierre:</strong> {{ examen.fechaCierre|date('d/m/Y H:i') }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        {% if examen.estaDisponible() %}
+                                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                                {% if borradoresSemanales[examen.id] is defined %}
+                                                    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 0.75rem; margin-bottom: 0.5rem;">
+                                                        <small style="display: block; color: #856404;">
+                                                            <strong>📝 Examen guardado en borrador</strong><br>
+                                                            Pregunta: {{ borradoresSemanales[examen.id].preguntaActual }}/{{ borradoresSemanales[examen.id].preguntasIds|length }} | 
+                                                            Respondidas: {{ borradoresSemanales[examen.id].respuestas|length }}
+                                                            {% if borradoresSemanales[examen.id].tiempoRestante %}
+                                                                | Tiempo restante: {{ (borradoresSemanales[examen.id].tiempoRestante / 60)|round }} min
+                                                            {% endif %}
+                                                        </small>
+                                                    </div>
+                                                {% endif %}
+                                                <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examen.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem; width: 100%;">{{ borradoresSemanales[examen.id] is defined ? 'Continuar examen online' : 'Realizar Examen Online' }}</a>
+                                                {% if examenesPDFPorSemanal[examen.id] is defined %}
+                                                    <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examen.id}) }}" class="btn btn-warning" style="font-size: 0.9rem; padding: 0.5rem 1rem; width: 100%;">Editar Resultados PDF</a>
+                                                {% else %}
+                                                    <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examen.id}) }}" class="btn btn-outline-secondary" style="font-size: 0.9rem; padding: 0.5rem 1rem; width: 100%;">Introducir Resultados PDF</a>
+                                                {% endif %}
+                                            </div>
+                                        {% elseif examen.estaPendiente() %}
+                                            <span class="badge" style="background-color: #ffc107; padding: 0.5rem 1rem; font-size: 1rem; width: 100%; text-align: center;">Pendiente</span>
+                                        {% else %}
+                                            <span class="badge" style="background-color: #6c757d; padding: 0.5rem 1rem; font-size: 1rem; width: 100%; text-align: center;">Cerrado</span>
                                         {% endif %}
                                     </div>
                                 </div>
-                                <div>
-                                    {% if examenConvocatoria.estaDisponible() %}
-                                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                                            {% if borradoresSemanales[examenConvocatoria.id] is defined %}
-                                                <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 0.75rem; margin-bottom: 0.5rem;">
-                                                    <small style="display: block; color: #856404;">
-                                                        <strong>📝 Examen guardado en borrador</strong><br>
-                                                        Pregunta: {{ borradoresSemanales[examenConvocatoria.id].preguntaActual }}/{{ borradoresSemanales[examenConvocatoria.id].preguntasIds|length }} | 
-                                                        Respondidas: {{ borradoresSemanales[examenConvocatoria.id].respuestas|length }}
-                                                        {% if borradoresSemanales[examenConvocatoria.id].tiempoRestante %}
-                                                            | Tiempo restante: {{ (borradoresSemanales[examenConvocatoria.id].tiempoRestante / 60)|round }} min
-                                                        {% endif %}
-                                                    </small>
-                                                </div>
-                                            {% endif %}
-                                            <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examenConvocatoria.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;">{{ borradoresSemanales[examenConvocatoria.id] is defined ? 'Continuar examen online' : 'Realizar Examen Online' }}</a>
-                                            {% if examenesPDFPorSemanal[examenConvocatoria.id] is defined %}
-                                                <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examenConvocatoria.id}) }}" class="btn btn-warning" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Editar Resultados PDF</a>
-                                            {% else %}
-                                                <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examenConvocatoria.id}) }}" class="btn btn-outline-secondary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Introducir Resultados PDF</a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% if examenesMunicipales|length > 0 %}
+                <h2 style="margin-top: 1.5rem; margin-bottom: 1rem; color: #1565C0; font-size: 1.5rem;">🏛️ Exámenes Municipales</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                    {% for examen in examenesMunicipales %}
+                        <div class="card" style="border-left: 6px solid #2196F3; background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%); box-shadow: 0 4px 6px rgba(33, 150, 243, 0.1);">
+                            <div class="card-body">
+                                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                    <div>
+                                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                                            <span class="badge" style="background-color: #2196F3; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: bold;">🏛️ EXAMEN MUNICIPAL</span>
+                                            {% if examen.numeroPreguntas %}
+                                                <span class="badge" style="background-color: #4CAF50; padding: 0.4rem 0.8rem; font-size: 0.85rem;">{{ examen.numeroPreguntas }} preguntas</span>
                                             {% endif %}
                                         </div>
-                                    {% elseif examenConvocatoria.estaPendiente() %}
-                                        <span class="badge" style="background-color: #ffc107; padding: 0.5rem 1rem; font-size: 1rem;">Pendiente</span>
-                                    {% else %}
-                                        <span class="badge" style="background-color: #6c757d; padding: 0.5rem 1rem; font-size: 1rem;">Cerrado</span>
-                                    {% endif %}
+                                        <h3 style="margin-top: 0; color: #1565C0; font-weight: 600; font-size: 1.2rem;">{{ examen.nombre }}</h3>
+                                        {% if examen.descripcion %}
+                                            <p style="color: #666; margin-bottom: 1rem; font-size: 0.95rem;">{{ examen.descripcion }}</p>
+                                        {% endif %}
+                                        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
+                                            <div>
+                                                <strong>Dificultad:</strong> 
+                                                <span class="badge badge-{{ examen.dificultad }}">{{ examen.getDificultadLabel() }}</span>
+                                            </div>
+                                            <div>
+                                                <strong>Apertura:</strong> {{ examen.fechaApertura|date('d/m/Y H:i') }}
+                                            </div>
+                                            <div>
+                                                <strong>Cierre:</strong> {{ examen.fechaCierre|date('d/m/Y H:i') }}
+                                            </div>
+                                        </div>
+                                        <div style="margin-bottom: 1rem;">
+                                            <span class="badge" style="background-color: #1976D2; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: bold;">📍 {{ examen.municipio.nombre }}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        {% if examen.estaDisponible() %}
+                                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                                {% if borradoresSemanales[examen.id] is defined %}
+                                                    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 0.75rem; margin-bottom: 0.5rem;">
+                                                        <small style="display: block; color: #856404;">
+                                                            <strong>📝 Examen guardado en borrador</strong><br>
+                                                            Pregunta: {{ borradoresSemanales[examen.id].preguntaActual }}/{{ borradoresSemanales[examen.id].preguntasIds|length }} | 
+                                                            Respondidas: {{ borradoresSemanales[examen.id].respuestas|length }}
+                                                            {% if borradoresSemanales[examen.id].tiempoRestante %}
+                                                                | Tiempo restante: {{ (borradoresSemanales[examen.id].tiempoRestante / 60)|round }} min
+                                                            {% endif %}
+                                                        </small>
+                                                    </div>
+                                                {% endif %}
+                                                <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examen.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem; width: 100%;">{{ borradoresSemanales[examen.id] is defined ? 'Continuar examen online' : 'Realizar Examen Online' }}</a>
+                                                {% if examenesPDFPorSemanal[examen.id] is defined %}
+                                                    <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examen.id}) }}" class="btn btn-warning" style="font-size: 0.9rem; padding: 0.5rem 1rem; width: 100%;">Editar Resultados PDF</a>
+                                                {% else %}
+                                                    <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examen.id}) }}" class="btn btn-outline-secondary" style="font-size: 0.9rem; padding: 0.5rem 1rem; width: 100%;">Introducir Resultados PDF</a>
+                                                {% endif %}
+                                            </div>
+                                        {% elseif examen.estaPendiente() %}
+                                            <span class="badge" style="background-color: #ffc107; padding: 0.5rem 1rem; font-size: 1rem; width: 100%; text-align: center;">Pendiente</span>
+                                        {% else %}
+                                            <span class="badge" style="background-color: #6c757d; padding: 0.5rem 1rem; font-size: 1rem; width: 100%; text-align: center;">Cerrado</span>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                {% endif %}
-            </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% if examenesConvocatorias|length > 0 %}
+                <h2 style="margin-top: 1.5rem; margin-bottom: 1rem; color: #7B1FA2; font-size: 1.5rem;">📋 Exámenes de Convocatoria</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                    {% for examen in examenesConvocatorias %}
+                        <div class="card" style="border-left: 6px solid #9C27B0; background: linear-gradient(135deg, #f3e5f5 0%, #ffffff 100%); box-shadow: 0 4px 6px rgba(156, 39, 176, 0.1);">
+                            <div class="card-body">
+                                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                    <div>
+                                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                                            <span class="badge" style="background-color: #9C27B0; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: bold;">📋 EXAMEN DE CONVOCATORIA</span>
+                                            {% if examen.numeroPreguntas %}
+                                                <span class="badge" style="background-color: #4CAF50; padding: 0.4rem 0.8rem; font-size: 0.85rem;">{{ examen.numeroPreguntas }} preguntas</span>
+                                            {% endif %}
+                                        </div>
+                                        <h3 style="margin-top: 0; color: #7B1FA2; font-weight: 600; font-size: 1.2rem;">{{ examen.nombre }}</h3>
+                                        {% if examen.descripcion %}
+                                            <p style="color: #666; margin-bottom: 1rem; font-size: 0.95rem;">{{ examen.descripcion }}</p>
+                                        {% endif %}
+                                        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
+                                            <div>
+                                                <strong>Dificultad:</strong> 
+                                                <span class="badge badge-{{ examen.dificultad }}">{{ examen.getDificultadLabel() }}</span>
+                                            </div>
+                                            <div>
+                                                <strong>Apertura:</strong> {{ examen.fechaApertura|date('d/m/Y H:i') }}
+                                            </div>
+                                            <div>
+                                                <strong>Cierre:</strong> {{ examen.fechaCierre|date('d/m/Y H:i') }}
+                                            </div>
+                                        </div>
+                                        <div style="margin-bottom: 1rem;">
+                                            <span class="badge" style="background-color: #7B1FA2; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: bold;">📋 {{ examen.convocatoria.nombre }}</span>
+                                            {% if examen.convocatoria.municipios|length > 0 %}
+                                                <div style="margin-top: 0.5rem;">
+                                                    {% for municipio in examen.convocatoria.municipios %}
+                                                        <span class="badge" style="background-color: #2196F3; padding: 0.4rem 0.8rem; font-size: 0.85rem; margin-right: 0.5rem; margin-bottom: 0.25rem;">📍 {{ municipio.nombre }}</span>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        {% if examen.estaDisponible() %}
+                                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                                {% if borradoresSemanales[examen.id] is defined %}
+                                                    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 0.75rem; margin-bottom: 0.5rem;">
+                                                        <small style="display: block; color: #856404;">
+                                                            <strong>📝 Examen guardado en borrador</strong><br>
+                                                            Pregunta: {{ borradoresSemanales[examen.id].preguntaActual }}/{{ borradoresSemanales[examen.id].preguntasIds|length }} | 
+                                                            Respondidas: {{ borradoresSemanales[examen.id].respuestas|length }}
+                                                            {% if borradoresSemanales[examen.id].tiempoRestante %}
+                                                                | Tiempo restante: {{ (borradoresSemanales[examen.id].tiempoRestante / 60)|round }} min
+                                                            {% endif %}
+                                                        </small>
+                                                    </div>
+                                                {% endif %}
+                                                <a href="{{ path('app_examen_semanal_alumno_realizar', {'id': examen.id}) }}" class="btn btn-success" style="font-size: 1rem; padding: 0.75rem 1.5rem; width: 100%;">{{ borradoresSemanales[examen.id] is defined ? 'Continuar examen online' : 'Realizar Examen Online' }}</a>
+                                                {% if examenesPDFPorSemanal[examen.id] is defined %}
+                                                    <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examen.id}) }}" class="btn btn-warning" style="font-size: 0.9rem; padding: 0.5rem 1rem; width: 100%;">Editar Resultados PDF</a>
+                                                {% else %}
+                                                    <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examen.id}) }}" class="btn btn-outline-secondary" style="font-size: 0.9rem; padding: 0.5rem 1rem; width: 100%;">Introducir Resultados PDF</a>
+                                                {% endif %}
+                                            </div>
+                                        {% elseif examen.estaPendiente() %}
+                                            <span class="badge" style="background-color: #ffc107; padding: 0.5rem 1rem; font-size: 1rem; width: 100%; text-align: center;">Pendiente</span>
+                                        {% else %}
+                                            <span class="badge" style="background-color: #6c757d; padding: 0.5rem 1rem; font-size: 1rem; width: 100%; text-align: center;">Cerrado</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
         {% else %}
             <div class="alert alert-info" style="text-align: center; padding: 2rem;">
                 <p style="font-size: 1.1rem; margin: 0;">No hay exámenes semanales disponibles en este momento.</p>
@@ -273,9 +278,8 @@
 </div>
 
 <style>
-/* Estilos responsivos para móviles (iPhone) */
+/* Estilos responsivos para móviles */
 @media (max-width: 768px) {
-    /* Card principal */
     .card {
         margin: 0.5rem !important;
     }
@@ -288,7 +292,11 @@
         padding: 1rem !important;
     }
     
-    /* Grid de exámenes */
+    h2 {
+        font-size: 1.3rem !important;
+    }
+    
+    /* Grid de exámenes - una columna en móvil */
     .card-body > div[style*="display: grid"] {
         grid-template-columns: 1fr !important;
         gap: 1rem !important;
@@ -304,93 +312,13 @@
         padding: 1rem !important;
     }
     
-    /* Header de examen - apilar verticalmente */
-    .card-body > div[style*="display: flex; justify-content: space-between"] {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 1rem !important;
-    }
-    
-    /* Badges y etiquetas */
-    .card-body > div[style*="display: flex; align-items: center"] {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 0.5rem !important;
-    }
-    
-    .card-body > div[style*="display: flex; align-items: center"] .badge {
-        font-size: 0.85rem !important;
-        padding: 0.4rem 0.75rem !important;
-    }
-    
-    /* Título del examen */
-    h3[style*="margin-top: 0"] {
-        font-size: 1.1rem !important;
-        margin-bottom: 0.75rem !important;
-    }
-    
-    /* Descripción */
-    p[style*="color: #666"] {
-        font-size: 0.9rem !important;
-        line-height: 1.5 !important;
-    }
-    
-    /* Información de dificultad y fechas */
-    .card-body > div[style*="display: flex; gap: 1rem; flex-wrap: wrap"] {
-        flex-direction: column !important;
-        gap: 0.5rem !important;
-        font-size: 0.9rem !important;
-    }
-    
-    /* Municipio y convocatoria */
-    .card-body > div[style*="margin-bottom: 1rem"] {
-        margin-bottom: 0.75rem !important;
-    }
-    
-    .card-body > div[style*="margin-bottom: 1rem"] .badge {
-        display: block !important;
-        margin: 0.25rem 0 !important;
-        font-size: 0.85rem !important;
-    }
-    
     /* Botones de acción */
-    .card-body > div[style*="display: flex; justify-content: space-between"] > div:last-child {
-        width: 100% !important;
-    }
-    
-    .card-body > div[style*="display: flex; justify-content: space-between"] > div:last-child > div {
-        width: 100% !important;
-    }
-    
-    .card-body > div[style*="display: flex; justify-content: space-between"] > div:last-child > div > a,
-    .card-body > div[style*="display: flex; justify-content: space-between"] > div:last-child > div > div {
-        width: 100% !important;
-    }
-    
-    .card-body > div[style*="display: flex; justify-content: space-between"] > div:last-child .btn {
+    .card-body .btn {
         width: 100% !important;
         padding: 0.75rem 1rem !important;
         font-size: 0.95rem !important;
         min-height: 48px !important;
         margin: 0.25rem 0 !important;
-    }
-    
-    /* Alerta de borrador */
-    .card-body > div[style*="display: flex; justify-content: space-between"] > div:last-child > div > div[style*="background: #fff3cd"] {
-        padding: 0.75rem !important;
-        font-size: 0.85rem !important;
-    }
-    
-    /* Alerta de no hay exámenes */
-    .alert {
-        padding: 1.5rem !important;
-        font-size: 1rem !important;
-    }
-    
-    /* Historial de exámenes */
-    h3[style*="margin-top: 2rem"] {
-        font-size: 1.2rem !important;
-        margin-top: 1.5rem !important;
     }
     
     /* Tabla de historial */
@@ -411,44 +339,25 @@
         display: none !important;
     }
     
-    /* Botones de tabla */
     .table .btn {
         padding: 0.4rem 0.6rem !important;
         font-size: 0.8rem !important;
         min-height: 36px !important;
         margin: 0.25rem 0 !important;
     }
-    
-    /* Asegurar que el texto no se desborde */
-    * {
-        word-wrap: break-word !important;
-        overflow-wrap: break-word !important;
-    }
-    
-    /* Botones más grandes para facilitar el toque */
-    button, .btn, a.btn {
-        min-height: 48px !important;
-        touch-action: manipulation !important;
-    }
 }
 
-/* Estilos específicos para iPhone (pantallas muy pequeñas) */
 @media (max-width: 480px) {
     .card-header h1 {
         font-size: 1.2rem !important;
     }
     
+    h2 {
+        font-size: 1.2rem !important;
+    }
+    
     h3[style*="margin-top: 0"] {
         font-size: 1rem !important;
-    }
-    
-    .card-body > div[style*="display: flex; align-items: center"] .badge {
-        font-size: 0.8rem !important;
-        padding: 0.35rem 0.6rem !important;
-    }
-    
-    .card-body > div[style*="display: flex; gap: 1rem; flex-wrap: wrap"] {
-        font-size: 0.85rem !important;
     }
     
     .table {
@@ -460,7 +369,6 @@
         padding: 0.4rem !important;
     }
     
-    /* Ocultar más columnas en pantallas muy pequeñas */
     .table th:nth-child(5),
     .table td:nth-child(5) {
         display: none !important;
@@ -468,4 +376,3 @@
 }
 </style>
 {% endblock %}
-

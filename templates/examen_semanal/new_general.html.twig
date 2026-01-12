@@ -1,0 +1,281 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nuevo Examen Semanal - General{% endblock %}
+
+{% block body %}
+<style>
+    .examen-form-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+    
+    .examen-form-card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .examen-form-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .examen-form-header h1 {
+        margin: 0;
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+    
+    .examen-form-body {
+        padding: 2rem;
+    }
+    
+    .info-box {
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        border-left: 4px solid #2196F3;
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-bottom: 2rem;
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+    
+    .form-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .form-section-title::before {
+        content: '';
+        width: 4px;
+        height: 20px;
+        background: #667eea;
+        border-radius: 2px;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+    
+    .form-group label {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 0.5rem;
+        display: block;
+        font-size: 0.95rem;
+    }
+    
+    .form-group .form-control {
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+        padding: 0.625rem 0.875rem;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+    }
+    
+    .form-group .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        outline: none;
+    }
+    
+    .form-group small {
+        color: #6c757d;
+        font-size: 0.85rem;
+        margin-top: 0.25rem;
+        display: block;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid #e9ecef;
+        flex-wrap: wrap;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-secondary {
+        background: #6c757d;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 6px;
+        font-weight: 500;
+    }
+    
+    .alert-danger {
+        background: #fee;
+        border-left: 4px solid #dc3545;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    @media (max-width: 768px) {
+        .examen-form-container {
+            padding: 0.5rem;
+        }
+        
+        .examen-form-header {
+            padding: 1.5rem 1rem;
+        }
+        
+        .examen-form-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .examen-form-body {
+            padding: 1.5rem 1rem;
+        }
+        
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .btn-primary, .btn-secondary {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="examen-form-container">
+    <div class="examen-form-card">
+        <div class="examen-form-header">
+            <h1>📚 Nuevo Examen Semanal - Temario General</h1>
+        </div>
+        <div class="examen-form-body">
+            <div class="info-box">
+                <strong>💡 Información:</strong> Crea un examen del temario general seleccionando los temas. 
+                El sistema elegirá preguntas aleatoriamente de los temas seleccionados.
+            </div>
+
+            {{ form_start(form, {'attr': {'data-turbo': 'false', 'class': 'examen-form'}}) }}
+                {% if not form.vars.valid %}
+                    <div class="alert alert-danger">
+                        <strong>Errores en el formulario:</strong>
+                        {{ form_errors(form) }}
+                    </div>
+                {% endif %}
+                
+                <div class="form-section">
+                    <div class="form-section-title">Información Básica</div>
+                    <div class="form-group">
+                        {{ form_label(form.nombre) }}
+                        {{ form_widget(form.nombre, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.nombre) }}
+                        {{ form_help(form.nombre) }}
+                    </div>
+                    <div class="form-group">
+                        {{ form_label(form.descripcion) }}
+                        {{ form_widget(form.descripcion, {'attr': {'class': 'form-control', 'rows': 3}}) }}
+                        {{ form_errors(form.descripcion) }}
+                        {{ form_help(form.descripcion) }}
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Fechas y Horarios</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            {{ form_label(form.fechaApertura) }}
+                            {{ form_widget(form.fechaApertura, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.fechaApertura) }}
+                            {{ form_help(form.fechaApertura) }}
+                        </div>
+                        <div class="form-group">
+                            {{ form_label(form.fechaCierre) }}
+                            {{ form_widget(form.fechaCierre, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.fechaCierre) }}
+                            {{ form_help(form.fechaCierre) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Configuración del Examen</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            {{ form_label(form.dificultad) }}
+                            {{ form_widget(form.dificultad, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.dificultad) }}
+                            {{ form_help(form.dificultad) }}
+                        </div>
+                        <div class="form-group">
+                            {{ form_label(form.numeroPreguntas) }}
+                            {{ form_widget(form.numeroPreguntas, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.numeroPreguntas) }}
+                            {{ form_help(form.numeroPreguntas) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Temas y Asignación</div>
+                    <div class="form-group">
+                        {{ form_label(form.temas) }}
+                        {{ form_widget(form.temas, {'attr': {'class': 'form-control', 'size': 8}}) }}
+                        {{ form_errors(form.temas) }}
+                        {{ form_help(form.temas) }}
+                    </div>
+                    <div class="form-group">
+                        {{ form_label(form.grupo) }}
+                        {{ form_widget(form.grupo, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.grupo) }}
+                        {{ form_help(form.grupo) }}
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <span>✓</span> Crear Examen
+                    </button>
+                    <a href="{{ path('app_examen_semanal_new') }}" class="btn btn-secondary">
+                        ← Volver
+                    </a>
+                </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+</div>
+{% endblock %}

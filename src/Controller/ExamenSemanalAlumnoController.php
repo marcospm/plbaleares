@@ -102,26 +102,49 @@ class ExamenSemanalAlumnoController extends AbstractController
             return !in_array($examen->getId(), $examenesRealizadosIds);
         });
 
-        // Separar en examen general, municipal y convocatoria
-        $examenGeneral = null;
-        $examenMunicipal = null;
-        $examenConvocatoria = null;
+        // Separar TODOS los exámenes por tipo (no solo uno de cada tipo)
+        $examenesGenerales = [];
+        $examenesMunicipales = [];
+        $examenesConvocatorias = [];
 
         foreach ($examenesDisponibles as $examen) {
             if ($examen->getConvocatoria() !== null) {
                 // Es examen de convocatoria
-                if ($examenConvocatoria === null || $examen->getFechaApertura() > $examenConvocatoria->getFechaApertura()) {
-                    $examenConvocatoria = $examen;
-                }
+                $examenesConvocatorias[] = $examen;
             } elseif ($examen->getMunicipio() !== null) {
                 // Es examen municipal
-                if ($examenMunicipal === null || $examen->getFechaApertura() > $examenMunicipal->getFechaApertura()) {
-                    $examenMunicipal = $examen;
-                }
+                $examenesMunicipales[] = $examen;
             } else {
                 // Es examen general
-                if ($examenGeneral === null || $examen->getFechaApertura() > $examenGeneral->getFechaApertura()) {
-                    $examenGeneral = $examen;
+                $examenesGenerales[] = $examen;
+            }
+        }
+
+        // Ordenar por fecha de apertura descendente (más recientes primero)
+        usort($examenesGenerales, fn($a, $b) => $b->getFechaApertura() <=> $a->getFechaApertura());
+        usort($examenesMunicipales, fn($a, $b) => $b->getFechaApertura() <=> $a->getFechaApertura());
+        usort($examenesConvocatorias, fn($a, $b) => $b->getFechaApertura() <=> $a->getFechaApertura());
+
+        // Obtener todos los borradores del alumno para los exámenes disponibles
+        $borradoresSemanales = [];
+        $examenesIds = array_map(fn($e) => $e->getId(), $examenesDisponibles);
+        if (!empty($examenesIds)) {
+            $borradores = $this->examenBorradorRepository->createQueryBuilder('b')
+                ->where('b.usuario = :usuario')
+                ->andWhere('b.examenSemanal IN (:examenesIds)')
+                ->setParameter('usuario', $alumno)
+                ->setParameter('examenesIds', $examenesIds)
+                ->getQuery()
+                ->getResult();
+            
+            foreach ($borradores as $borrador) {
+                if ($borrador->getExamenSemanal()) {
+                    $borradoresSemanales[$borrador->getExamenSemanal()->getId()] = [
+                        'preguntaActual' => $borrador->getPreguntaActual(),
+                        'preguntasIds' => $borrador->getPreguntasIds(),
+                        'respuestas' => $borrador->getRespuestas(),
+                        'tiempoRestante' => $borrador->getTiempoRestante(),
+                    ];
                 }
             }
         }
@@ -136,13 +159,12 @@ class ExamenSemanalAlumnoController extends AbstractController
             ->getResult();
 
         return $this->render('examen_semanal_alumno/index.html.twig', [
-            'examenGeneral' => $examenGeneral,
-            'examenMunicipal' => $examenMunicipal,
-            'examenConvocatoria' => $examenConvocatoria,
-            'yaRealizadoGeneral' => false, // Ya no se muestran los realizados aquí
-            'yaRealizadoMunicipal' => false, // Ya no se muestran los realizados aquí
+            'examenesGenerales' => $examenesGenerales,
+            'examenesMunicipales' => $examenesMunicipales,
+            'examenesConvocatorias' => $examenesConvocatorias,
             'examenesRealizados' => $examenesRealizados,
             'examenesPDFPorSemanal' => $examenesPDFPorSemanal,
+            'borradoresSemanales' => $borradoresSemanales,
         ]);
     }
 

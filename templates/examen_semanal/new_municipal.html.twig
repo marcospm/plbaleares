@@ -1,0 +1,399 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nuevo Examen Semanal - Municipal{% endblock %}
+
+{% block body %}
+<style>
+    .examen-form-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+    
+    .examen-form-card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .examen-form-header {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .examen-form-header h1 {
+        margin: 0;
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+    
+    .examen-form-body {
+        padding: 2rem;
+    }
+    
+    .info-box {
+        background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+        border-left: 4px solid #00bcd4;
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-bottom: 2rem;
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+    
+    .form-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .form-section-title::before {
+        content: '';
+        width: 4px;
+        height: 20px;
+        background: #4facfe;
+        border-radius: 2px;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+    
+    .form-group label {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 0.5rem;
+        display: block;
+        font-size: 0.95rem;
+    }
+    
+    .form-group .form-control {
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+        padding: 0.625rem 0.875rem;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+    }
+    
+    .form-group .form-control:focus {
+        border-color: #4facfe;
+        box-shadow: 0 0 0 0.2rem rgba(79, 172, 254, 0.25);
+        outline: none;
+    }
+    
+    .form-group select[multiple] {
+        min-height: 150px;
+    }
+    
+    .form-group small {
+        color: #6c757d;
+        font-size: 0.85rem;
+        margin-top: 0.25rem;
+        display: block;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid #e9ecef;
+        flex-wrap: wrap;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 6px;
+        font-weight: 500;
+        color: white;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
+        color: white;
+    }
+    
+    .btn-secondary {
+        background: #6c757d;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 6px;
+        font-weight: 500;
+        color: white;
+    }
+    
+    .alert-danger {
+        background: #fee;
+        border-left: 4px solid #dc3545;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    @media (max-width: 768px) {
+        .examen-form-container {
+            padding: 0.5rem;
+        }
+        
+        .examen-form-header {
+            padding: 1.5rem 1rem;
+        }
+        
+        .examen-form-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .examen-form-body {
+            padding: 1.5rem 1rem;
+        }
+        
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .btn-primary, .btn-secondary {
+            width: 100%;
+        }
+        
+        .form-group select[multiple] {
+            min-height: 120px;
+        }
+    }
+</style>
+
+<div class="examen-form-container">
+    <div class="examen-form-card">
+        <div class="examen-form-header">
+            <h1>🏛️ Nuevo Examen Semanal - Municipal</h1>
+        </div>
+        <div class="examen-form-body">
+            <div class="info-box">
+                <strong>💡 Información:</strong> Crea un examen municipal seleccionando un municipio y sus temas municipales. 
+                El sistema elegirá preguntas aleatoriamente de los temas seleccionados.
+            </div>
+
+            {{ form_start(form, {'attr': {'data-turbo': 'false', 'class': 'examen-form'}}) }}
+                {% if not form.vars.valid %}
+                    <div class="alert alert-danger">
+                        <strong>Errores en el formulario:</strong>
+                        {{ form_errors(form) }}
+                    </div>
+                {% endif %}
+                
+                <div class="form-section">
+                    <div class="form-section-title">Información Básica</div>
+                    <div class="form-group">
+                        {{ form_label(form.nombre) }}
+                        {{ form_widget(form.nombre, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.nombre) }}
+                        {{ form_help(form.nombre) }}
+                    </div>
+                    <div class="form-group">
+                        {{ form_label(form.descripcion) }}
+                        {{ form_widget(form.descripcion, {'attr': {'class': 'form-control', 'rows': 3}}) }}
+                        {{ form_errors(form.descripcion) }}
+                        {{ form_help(form.descripcion) }}
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Fechas y Horarios</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            {{ form_label(form.fechaApertura) }}
+                            {{ form_widget(form.fechaApertura, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.fechaApertura) }}
+                            {{ form_help(form.fechaApertura) }}
+                        </div>
+                        <div class="form-group">
+                            {{ form_label(form.fechaCierre) }}
+                            {{ form_widget(form.fechaCierre, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.fechaCierre) }}
+                            {{ form_help(form.fechaCierre) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Configuración del Examen</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            {{ form_label(form.dificultad) }}
+                            {{ form_widget(form.dificultad, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.dificultad) }}
+                            {{ form_help(form.dificultad) }}
+                        </div>
+                        <div class="form-group">
+                            {{ form_label(form.numeroPreguntas) }}
+                            {{ form_widget(form.numeroPreguntas, {'attr': {'class': 'form-control'}}) }}
+                            {{ form_errors(form.numeroPreguntas) }}
+                            {{ form_help(form.numeroPreguntas) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Municipio y Temas</div>
+                    <div class="form-group">
+                        {{ form_label(form.municipio) }}
+                        {{ form_widget(form.municipio, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.municipio) }}
+                        {{ form_help(form.municipio) }}
+                    </div>
+                    <div class="form-group">
+                        {{ form_label(form.temasMunicipales) }}
+                        {{ form_widget(form.temasMunicipales, {'attr': {'class': 'form-control', 'size': 8}}) }}
+                        {{ form_errors(form.temasMunicipales) }}
+                        {{ form_help(form.temasMunicipales) }}
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Asignación</div>
+                    <div class="form-group">
+                        {{ form_label(form.grupo) }}
+                        {{ form_widget(form.grupo, {'attr': {'class': 'form-control'}}) }}
+                        {{ form_errors(form.grupo) }}
+                        {{ form_help(form.grupo) }}
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <span>✓</span> Crear Examen
+                    </button>
+                    <a href="{{ path('app_examen_semanal_new') }}" class="btn btn-secondary">
+                        ← Volver
+                    </a>
+                </div>
+            {{ form_end(form) }}
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                let municipioSelect = document.getElementById('examen_semanal_municipio');
+                let temasMunicipalesSelect = document.getElementById('examen_semanal_temasMunicipales');
+                
+                if (!municipioSelect) {
+                    municipioSelect = document.querySelector('select[name*="municipio"]');
+                }
+                if (!temasMunicipalesSelect) {
+                    temasMunicipalesSelect = document.querySelector('select[name*="temasMunicipales"]');
+                }
+                
+                if (!municipioSelect || !temasMunicipalesSelect) {
+                    console.error('No se encontraron los elementos del formulario');
+                    return;
+                }
+                
+                function cargarTemasMunicipales(municipioId) {
+                    if (!municipioId || municipioId === '') {
+                        temasMunicipalesSelect.innerHTML = '<option value="">Selecciona un municipio primero</option>';
+                        temasMunicipalesSelect.disabled = true;
+                        temasMunicipalesSelect.style.opacity = '0.6';
+                        return;
+                    }
+                    
+                    temasMunicipalesSelect.innerHTML = '<option value="">Cargando temas...</option>';
+                    temasMunicipalesSelect.disabled = true;
+                    temasMunicipalesSelect.style.opacity = '0.6';
+                    
+                    const url = '{{ path('app_examen_semanal_temas_municipales', {'municipioId': '__MUNICIPIO_ID__'}) }}'.replace('__MUNICIPIO_ID__', municipioId);
+                    
+                    fetch(url)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Error en la respuesta: ' + response.status);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            temasMunicipalesSelect.innerHTML = '';
+                            
+                            if (!data || data.length === 0) {
+                                const option = document.createElement('option');
+                                option.value = '';
+                                option.textContent = 'No hay temas disponibles para este municipio';
+                                temasMunicipalesSelect.appendChild(option);
+                                temasMunicipalesSelect.disabled = true;
+                                temasMunicipalesSelect.style.opacity = '0.6';
+                            } else {
+                                if (data.error) {
+                                    temasMunicipalesSelect.innerHTML = '<option value="">Error: ' + data.error + '</option>';
+                                    temasMunicipalesSelect.disabled = true;
+                                    temasMunicipalesSelect.style.opacity = '0.6';
+                                    return;
+                                }
+                                
+                                const placeholderOption = document.createElement('option');
+                                placeholderOption.value = '';
+                                placeholderOption.textContent = '-- Selecciona los temas municipales --';
+                                temasMunicipalesSelect.appendChild(placeholderOption);
+                                
+                                data.forEach(tema => {
+                                    const option = document.createElement('option');
+                                    option.value = tema.id;
+                                    option.textContent = tema.nombre;
+                                    temasMunicipalesSelect.appendChild(option);
+                                });
+                                
+                                temasMunicipalesSelect.disabled = false;
+                                temasMunicipalesSelect.style.opacity = '1';
+                                temasMunicipalesSelect.multiple = true;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error al cargar temas municipales:', error);
+                            temasMunicipalesSelect.innerHTML = '<option value="">Error al cargar temas</option>';
+                            temasMunicipalesSelect.disabled = true;
+                            temasMunicipalesSelect.style.opacity = '0.6';
+                        });
+                }
+                
+                municipioSelect.addEventListener('change', function() {
+                    cargarTemasMunicipales(this.value);
+                });
+                
+                if (!municipioSelect.value || municipioSelect.value === '') {
+                    temasMunicipalesSelect.innerHTML = '<option value="">Selecciona un municipio primero</option>';
+                    temasMunicipalesSelect.disabled = true;
+                    temasMunicipalesSelect.style.opacity = '0.6';
+                } else {
+                    cargarTemasMunicipales(municipioSelect.value);
+                }
+            }, 100);
+        });
+        </script>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -3,119 +3,374 @@
 {% block title %}Nuevo Examen Semanal - Crear Preguntas para Convocatoria{% endblock %}
 
 {% block body %}
-<div class="card">
-    <div class="card-header">
-        <h1>Nuevo Examen Semanal - Crear Preguntas en Tiempo Real para Convocatoria</h1>
-        <p class="text-muted">Tipo: Convocatoria</p>
-    </div>
-    <div class="card-body">
-        <div id="examenForm" class="mb-4">
-            <h3>Datos del Examen</h3>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>Nombre del Examen *</label>
-                        <input type="text" id="nombreExamen" class="form-control" required>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>Dificultad *</label>
-                        <select id="dificultadExamen" class="form-control" required>
-                            <option value="">Selecciona...</option>
-                            <option value="facil">Fácil</option>
-                            <option value="moderada">Moderada</option>
-                            <option value="dificil">Difícil</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Descripción (opcional)</label>
-                <textarea id="descripcionExamen" class="form-control" rows="2"></textarea>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>Fecha de Apertura *</label>
-                        <input type="datetime-local" id="fechaApertura" class="form-control" required>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>Fecha de Cierre *</label>
-                        <input type="datetime-local" id="fechaCierre" class="form-control" required>
-                    </div>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Convocatoria *</label>
-                <select id="convocatoriaSelect" class="form-control" required>
-                    <option value="">Selecciona una convocatoria...</option>
-                    {% for convocatoria in convocatorias %}
-                        <option value="{{ convocatoria.id }}">{{ convocatoria.nombre }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <button type="button" id="crearExamenBtn" class="btn btn-primary">Crear Examen</button>
-        </div>
+<style>
+    .examen-form-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+    
+    .examen-form-card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .examen-form-header {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        color: white;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .examen-form-header h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+    
+    .examen-form-header p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 1rem;
+    }
+    
+    .examen-form-body {
+        padding: 2rem;
+    }
+    
+    .info-box {
+        background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+        border-left: 4px solid #ff9800;
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+    
+    .form-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .form-section-title::before {
+        content: '';
+        width: 4px;
+        height: 24px;
+        background: #fa709a;
+        border-radius: 2px;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+    
+    .form-group label {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 0.5rem;
+        display: block;
+        font-size: 0.95rem;
+    }
+    
+    .form-group .form-control {
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+        padding: 0.625rem 0.875rem;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+        width: 100%;
+    }
+    
+    .form-group .form-control:focus {
+        border-color: #fa709a;
+        box-shadow: 0 0 0 0.2rem rgba(250, 112, 154, 0.25);
+        outline: none;
+    }
+    
+    .form-group textarea.form-control {
+        resize: vertical;
+        min-height: 60px;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 6px;
+        font-weight: 500;
+        color: white;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(250, 112, 154, 0.4);
+        color: white;
+    }
+    
+    .btn-success {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 6px;
+        font-weight: 500;
+        color: white;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
+        color: white;
+    }
+    
+    .btn-secondary {
+        background: #6c757d;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 6px;
+        font-weight: 500;
+        color: white;
+    }
+    
+    .btn-danger {
+        background: #dc3545;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        color: white;
+    }
+    
+    .preguntas-lista-card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-top: 1.5rem;
+    }
+    
+    .preguntas-lista-header {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .preguntas-lista-header h5 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+    
+    .preguntas-lista-body {
+        padding: 1.5rem;
+    }
+    
+    .pregunta-item {
+        background: #f8f9fa;
+        border-left: 4px solid #fa709a;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        transition: all 0.2s;
+    }
+    
+    .pregunta-item:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transform: translateX(4px);
+    }
+    
+    .pregunta-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .pregunta-item strong {
+        color: #495057;
+        font-size: 1rem;
+    }
+    
+    .pregunta-item p {
+        margin: 0.5rem 0;
+        color: #6c757d;
+        font-size: 0.95rem;
+    }
+    
+    .pregunta-item small {
+        color: #868e96;
+        font-size: 0.85rem;
+    }
+    
+    .actions-bar {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid #e9ecef;
+        flex-wrap: wrap;
+    }
+    
+    .btn-lg {
+        padding: 0.875rem 2.5rem;
+        font-size: 1rem;
+    }
+    
+    @media (max-width: 768px) {
+        .examen-form-container {
+            padding: 0.5rem;
+        }
+        
+        .examen-form-header {
+            padding: 1.5rem 1rem;
+        }
+        
+        .examen-form-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .examen-form-body {
+            padding: 1.5rem 1rem;
+        }
+        
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .actions-bar {
+            flex-direction: column;
+        }
+        
+        .btn-primary, .btn-success, .btn-secondary {
+            width: 100%;
+        }
+        
+        .pregunta-item {
+            padding: 0.875rem;
+        }
+    }
+</style>
 
-        <div id="preguntasSection" style="display: none;">
-            <hr>
-            <h3>Crear Preguntas</h3>
-            <div class="alert alert-info">
-                <strong>💡 Información:</strong> Al crear cada pregunta, podrás seleccionar el municipio de la convocatoria. 
-                Las preguntas que crees se guardarán en la base de datos y formarán parte del examen.
+<div class="examen-form-container">
+    <div class="examen-form-card">
+        <div class="examen-form-header">
+            <h1>🎯 Nuevo Examen Semanal - Crear Preguntas en Tiempo Real para Convocatoria</h1>
+            <p>Tipo: Convocatoria</p>
+        </div>
+        <div class="examen-form-body">
+            <div id="examenForm">
+                <div class="form-section">
+                    <div class="form-section-title">📋 Datos del Examen</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nombre del Examen *</label>
+                            <input type="text" id="nombreExamen" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Dificultad *</label>
+                            <select id="dificultadExamen" class="form-control" required>
+                                <option value="">Selecciona...</option>
+                                <option value="facil">Fácil</option>
+                                <option value="moderada">Moderada</option>
+                                <option value="dificil">Difícil</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Descripción (opcional)</label>
+                        <textarea id="descripcionExamen" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Fecha de Apertura *</label>
+                            <input type="datetime-local" id="fechaApertura" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha de Cierre *</label>
+                            <input type="datetime-local" id="fechaCierre" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Convocatoria *</label>
+                        <select id="convocatoriaSelect" class="form-control" required>
+                            <option value="">Selecciona una convocatoria...</option>
+                            {% for convocatoria in convocatorias %}
+                                <option value="{{ convocatoria.id }}">{{ convocatoria.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="button" id="crearExamenBtn" class="btn btn-primary">Crear Examen</button>
+                </div>
             </div>
-            <div id="preguntaForm" class="card mb-4">
-                <div class="card-body">
-                    <h5>Nueva Pregunta</h5>
-                    <div class="form-group">
-                        <label>Municipio de la Convocatoria *</label>
-                        <select id="municipioSelect" class="form-control" required>
-                            <option value="">Selecciona un municipio...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Tema Municipal *</label>
-                        <select id="temaMunicipalSelect" class="form-control" required>
-                            <option value="">Primero selecciona un municipio...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Texto de la Pregunta *</label>
-                        <textarea id="textoPregunta" class="form-control" rows="3" required></textarea>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
+
+            <div id="preguntasSection" style="display: none;">
+                <div class="info-box">
+                    <strong>💡 Información:</strong> Al crear cada pregunta, podrás seleccionar el municipio de la convocatoria. 
+                    Las preguntas que crees se guardarán en la base de datos y formarán parte del examen.
+                </div>
+                
+                <div class="form-section">
+                    <div class="form-section-title">➕ Crear Preguntas</div>
+                    <div id="preguntaForm">
+                        <div class="form-group">
+                            <label>Municipio de la Convocatoria *</label>
+                            <select id="municipioSelect" class="form-control" required>
+                                <option value="">Selecciona un municipio...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Tema Municipal *</label>
+                            <select id="temaMunicipalSelect" class="form-control" required>
+                                <option value="">Primero selecciona un municipio...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Texto de la Pregunta *</label>
+                            <textarea id="textoPregunta" class="form-control" rows="3" required></textarea>
+                        </div>
+                        <div class="form-row">
                             <div class="form-group">
                                 <label>Opción A *</label>
                                 <textarea id="opcionA" class="form-control" rows="2" required></textarea>
                             </div>
-                        </div>
-                        <div class="col-md-6">
                             <div class="form-group">
                                 <label>Opción B *</label>
                                 <textarea id="opcionB" class="form-control" rows="2" required></textarea>
                             </div>
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
+                        <div class="form-row">
                             <div class="form-group">
                                 <label>Opción C *</label>
                                 <textarea id="opcionC" class="form-control" rows="2" required></textarea>
                             </div>
-                        </div>
-                        <div class="col-md-6">
                             <div class="form-group">
                                 <label>Opción D *</label>
                                 <textarea id="opcionD" class="form-control" rows="2" required></textarea>
                             </div>
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
+                        <div class="form-row">
                             <div class="form-group">
                                 <label>Respuesta Correcta *</label>
                                 <select id="respuestaCorrecta" class="form-control" required>
@@ -126,8 +381,6 @@
                                     <option value="D">D</option>
                                 </select>
                             </div>
-                        </div>
-                        <div class="col-md-6">
                             <div class="form-group">
                                 <label>Dificultad *</label>
                                 <select id="dificultadPregunta" class="form-control" required>
@@ -138,29 +391,29 @@
                                 </select>
                             </div>
                         </div>
+                        <div class="form-group">
+                            <label>Retroalimentación (opcional)</label>
+                            <textarea id="retroalimentacion" class="form-control" rows="2"></textarea>
+                        </div>
+                        <button type="button" id="agregarPreguntaBtn" class="btn btn-success">➕ Agregar Pregunta</button>
                     </div>
-                    <div class="form-group">
-                        <label>Retroalimentación (opcional)</label>
-                        <textarea id="retroalimentacion" class="form-control" rows="2"></textarea>
-                    </div>
-                    <button type="button" id="agregarPreguntaBtn" class="btn btn-success">Agregar Pregunta</button>
                 </div>
-            </div>
 
-            <div id="preguntasLista" class="card">
-                <div class="card-header">
-                    <h5>Preguntas Añadidas (<span id="contadorPreguntas">0</span>)</h5>
-                </div>
-                <div class="card-body">
-                    <div id="listaPreguntas">
-                        <p class="text-muted">Aún no hay preguntas añadidas. Crea la primera pregunta arriba.</p>
+                <div class="preguntas-lista-card">
+                    <div class="preguntas-lista-header">
+                        <h5>📝 Preguntas Añadidas (<span id="contadorPreguntas">0</span>)</h5>
+                    </div>
+                    <div class="preguntas-lista-body">
+                        <div id="listaPreguntas">
+                            <p style="color: #6c757d; margin: 0;">Aún no hay preguntas añadidas. Crea la primera pregunta arriba.</p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="mt-4">
-                <button type="button" id="finalizarExamenBtn" class="btn btn-primary btn-lg">Finalizar Examen</button>
-                <a href="{{ path('app_examen_semanal_index') }}" class="btn btn-secondary btn-lg">Cancelar</a>
+                <div class="actions-bar">
+                    <button type="button" id="finalizarExamenBtn" class="btn btn-primary btn-lg">✓ Finalizar Examen</button>
+                    <a href="{{ path('app_examen_semanal_index') }}" class="btn btn-secondary btn-lg">← Cancelar</a>
+                </div>
             </div>
         </div>
     </div>
@@ -179,7 +432,6 @@ function inicializarEventListeners() {
     // Crear examen
     const crearExamenBtn = document.getElementById('crearExamenBtn');
     if (crearExamenBtn) {
-        // Usar onclick directamente como respaldo y también addEventListener
         crearExamenBtn.onclick = function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -253,7 +505,6 @@ function inicializarEventListeners() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', inicializarEventListeners);
 } else {
-    // Si el DOM ya está cargado, ejecutar inmediatamente
     inicializarEventListeners();
 }
 document.addEventListener('turbo:load', inicializarEventListeners);
@@ -369,24 +620,22 @@ function agregarPregunta() {
 
 function agregarPreguntaALista(preguntaId, datos, municipioNombre) {
     const lista = document.getElementById('listaPreguntas');
-    if (lista.querySelector('.text-muted')) {
+    if (lista.querySelector('p')) {
         lista.innerHTML = '';
     }
 
     const div = document.createElement('div');
-    div.className = 'card mb-2';
+    div.className = 'pregunta-item';
     div.id = `pregunta-${preguntaId}`;
     div.innerHTML = `
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="flex-grow-1">
-                    <strong>Pregunta #${document.getElementById('listaPreguntas').children.length + 1}</strong>
-                    <p class="mb-1"><strong>Municipio:</strong> ${municipioNombre}</p>
-                    <p class="mb-1">${datos.texto.substring(0, 100)}${datos.texto.length > 100 ? '...' : ''}</p>
-                    <small class="text-muted">Respuesta correcta: ${datos.respuestaCorrecta} | Dificultad: ${datos.dificultad}</small>
-                </div>
-                <button type="button" class="btn btn-sm btn-danger" onclick="eliminarPregunta(${preguntaId})">Eliminar</button>
+        <div style="display: flex; justify-content: space-between; align-items: start; gap: 1rem;">
+            <div style="flex: 1;">
+                <strong>Pregunta #${document.getElementById('listaPreguntas').children.length + 1}</strong>
+                <p><strong>Municipio:</strong> ${municipioNombre}</p>
+                <p>${datos.texto.substring(0, 100)}${datos.texto.length > 100 ? '...' : ''}</p>
+                <small>Respuesta correcta: ${datos.respuestaCorrecta} | Dificultad: ${datos.dificultad}</small>
             </div>
+            <button type="button" class="btn btn-danger" onclick="eliminarPregunta(${preguntaId})">Eliminar</button>
         </div>
     `;
     lista.appendChild(div);
@@ -406,7 +655,7 @@ function eliminarPregunta(preguntaId) {
             document.getElementById(`pregunta-${preguntaId}`).remove();
             actualizarContador();
             if (document.getElementById('listaPreguntas').children.length === 0) {
-                document.getElementById('listaPreguntas').innerHTML = '<p class="text-muted">Aún no hay preguntas añadidas. Crea la primera pregunta arriba.</p>';
+                document.getElementById('listaPreguntas').innerHTML = '<p style="color: #6c757d; margin: 0;">Aún no hay preguntas añadidas. Crea la primera pregunta arriba.</p>';
             }
         } else {
             alert('Error: ' + (data.error || 'No se pudo eliminar la pregunta'));
@@ -464,7 +713,7 @@ function limpiarFormularioPregunta() {
 }
 
 function actualizarContador() {
-    const contador = document.getElementById('listaPreguntas').querySelectorAll('.card').length;
+    const contador = document.getElementById('listaPreguntas').querySelectorAll('.pregunta-item').length;
     document.getElementById('contadorPreguntas').textContent = contador;
 }
 
@@ -505,4 +754,3 @@ function cargarTemasMunicipales(municipioId) {
 }
 </script>
 {% endblock %}
-

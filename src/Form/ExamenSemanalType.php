@@ -35,7 +35,7 @@ class ExamenSemanalType extends AbstractType
         $builder
             ->add('nombre', TextType::class, [
                 'label' => 'Nombre del Examen',
-                'required' => $isEditMode,
+                'required' => false, // No requerido en modo creación (se usan campos separados)
                 'mapped' => $isEditMode, // Solo mapear en modo edición
                 'attr' => ['class' => 'form-control']
             ])
@@ -47,7 +47,7 @@ class ExamenSemanalType extends AbstractType
             ])
             ->add('fechaApertura', DateTimeType::class, [
                 'label' => 'Fecha y Hora de Apertura',
-                'required' => $isEditMode,
+                'required' => false, // No requerido en modo creación (se usan campos separados)
                 'mapped' => $isEditMode, // Solo mapear en modo edición
                 'widget' => 'single_text',
                 'html5' => true,
@@ -58,7 +58,7 @@ class ExamenSemanalType extends AbstractType
             ])
             ->add('fechaCierre', DateTimeType::class, [
                 'label' => 'Fecha y Hora de Cierre',
-                'required' => $isEditMode,
+                'required' => false, // No requerido en modo creación (se usan campos separados)
                 'mapped' => $isEditMode, // Solo mapear en modo edición
                 'widget' => 'single_text',
                 'html5' => true,
@@ -75,7 +75,7 @@ class ExamenSemanalType extends AbstractType
                 'placeholder' => 'Todos los alumnos',
                 'help' => 'Si seleccionas un grupo, solo los alumnos de ese grupo podrán ver y realizar este examen.',
                 'attr' => ['class' => 'form-control'],
-                'mapped' => $isEditMode, // Solo mapear en modo edición
+                'mapped' => false, // No mapear en modo creación (se usa campo separado)
             ])
         ;
         
@@ -100,17 +100,8 @@ class ExamenSemanalType extends AbstractType
         if (!$isEditMode) {
             // Modo creación: incluir todos los campos (se ocultan en el template)
             // Estos campos no se mapean porque se usan campos separados (nombreGeneral, fechaAperturaGeneral, etc.)
+            // Nota: El campo 'grupo' ya está agregado arriba con 'mapped' => false
             $builder
-                ->add('grupo', EntityType::class, [
-                    'class' => Grupo::class,
-                    'choice_label' => 'nombre',
-                    'required' => false,
-                    'label' => 'Grupo (opcional)',
-                    'placeholder' => 'Todos los alumnos',
-                    'help' => 'Si seleccionas un grupo, solo los alumnos de ese grupo podrán ver y realizar este examen.',
-                    'attr' => ['class' => 'form-control'],
-                    'mapped' => false, // No mapear en modo creación
-                ])
                 ->add('numeroPreguntas', IntegerType::class, [
                     'label' => 'Número de Preguntas (opcional)',
                     'required' => false,

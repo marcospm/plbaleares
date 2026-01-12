@@ -9,28 +9,52 @@
     </div>
     <div class="card-body">
         <div class="alert alert-info" style="margin-bottom: 2rem;">
-            <strong>💡 Información:</strong> Puedes crear un examen del temario general, un examen municipal, o ambos a la vez. 
-            Cada tipo de examen debe tener su propio nombre, fechas de apertura y cierre, dificultad y cantidad de preguntas independientes.
-            Si seleccionas temas del temario general Y un municipio con temas municipales, se crearán dos exámenes completamente independientes.
-            <strong>Nota:</strong> Los temas municipales se filtrarán automáticamente según el municipio seleccionado.
+            <strong>💡 Información:</strong> Selecciona el tipo de examen que deseas crear usando preguntas existentes. 
+            El sistema elegirá preguntas aleatoriamente según los temas seleccionados.
         </div>
 
         <div style="margin-bottom: 2.5rem;">
             <h3 style="margin-bottom: 1.5rem; color: #333; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
-                <span style="font-size: 1.5rem;">⚙️</span>
-                <span>Método de Creación</span>
+                <span style="font-size: 1.5rem;">📚</span>
+                <span>Crear Examen con Preguntas Existentes</span>
             </h3>
-            <p style="color: #666; margin-bottom: 1.5rem; font-size: 0.95rem;">Selecciona cómo quieres crear el examen:</p>
+            <p style="color: #666; margin-bottom: 1.5rem; font-size: 0.95rem;">Selecciona el tipo de examen que deseas crear:</p>
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.25rem; margin-bottom: 1rem;">
-                <a href="{{ path('app_examen_semanal_new') }}" style="text-decoration: none; display: block;">
-                    <div class="method-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 1.5rem; color: white; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 100%;">
-                        <div style="font-size: 2.5rem; margin-bottom: 0.75rem; text-align: center;">📚</div>
-                        <h5 style="color: white; font-weight: 600; margin-bottom: 0.5rem; text-align: center; font-size: 1.1rem;">Usar Preguntas Existentes</h5>
-                        <p style="color: rgba(255,255,255,0.9); font-size: 0.85rem; text-align: center; margin: 0; line-height: 1.4;">Selecciona temas y el sistema elegirá preguntas aleatoriamente</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 1rem;">
+                <a href="{{ path('app_examen_semanal_new_general') }}" style="text-decoration: none; display: block;">
+                    <div class="method-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 2rem; color: white; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 100%;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem; text-align: center;">📚</div>
+                        <h4 style="color: white; font-weight: 600; margin-bottom: 0.75rem; text-align: center; font-size: 1.25rem;">Examen General</h4>
+                        <p style="color: rgba(255,255,255,0.9); font-size: 0.9rem; text-align: center; margin: 0; line-height: 1.5;">Crea un examen del temario general seleccionando temas. El sistema elegirá preguntas aleatoriamente.</p>
                     </div>
                 </a>
                 
+                <a href="{{ path('app_examen_semanal_new_municipal') }}" style="text-decoration: none; display: block;">
+                    <div class="method-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 12px; padding: 2rem; color: white; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 100%;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem; text-align: center;">🏛️</div>
+                        <h4 style="color: white; font-weight: 600; margin-bottom: 0.75rem; text-align: center; font-size: 1.25rem;">Examen Municipal</h4>
+                        <p style="color: rgba(255,255,255,0.9); font-size: 0.9rem; text-align: center; margin: 0; line-height: 1.5;">Crea un examen municipal seleccionando un municipio y sus temas municipales.</p>
+                    </div>
+                </a>
+                
+                <a href="{{ path('app_examen_semanal_new_convocatoria') }}" style="text-decoration: none; display: block;">
+                    <div class="method-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); border-radius: 12px; padding: 2rem; color: white; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 100%;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem; text-align: center;">🎯</div>
+                        <h4 style="color: white; font-weight: 600; margin-bottom: 0.75rem; text-align: center; font-size: 1.25rem;">Examen de Convocatoria</h4>
+                        <p style="color: rgba(255,255,255,0.9); font-size: 0.9rem; text-align: center; margin: 0; line-height: 1.5;">Crea un examen para una convocatoria específica. Incluirá automáticamente todos los temas de todos los municipios.</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #e0e0e0;">
+            <h3 style="margin-bottom: 1.5rem; color: #333; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.5rem;">✏️</span>
+                <span>Crear Examen con Preguntas Nuevas</span>
+            </h3>
+            <p style="color: #666; margin-bottom: 1.5rem; font-size: 0.95rem;">Si prefieres crear preguntas nuevas en tiempo real:</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.25rem;">
                 <a href="{{ path('app_examen_semanal_new_con_preguntas', {'tipo': 'general'}) }}" style="text-decoration: none; display: block;">
                     <div class="method-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; padding: 1.5rem; color: white; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 100%;">
                         <div style="font-size: 2.5rem; margin-bottom: 0.75rem; text-align: center;">✏️</div>
@@ -55,13 +79,6 @@
                     </div>
                 </a>
             </div>
-            
-            <div style="background: #f8f9fa; border-left: 4px solid #667eea; border-radius: 6px; padding: 1rem; margin-top: 1rem;">
-                <p style="margin: 0; color: #495057; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
-                    <span style="font-weight: 600; color: #667eea;">💡 Método actual:</span>
-                    <span>Usar Preguntas Existentes - Selecciona temas y el sistema elegirá preguntas aleatoriamente.</span>
-                </p>
-            </div>
         </div>
         
         <style>
@@ -71,221 +88,9 @@
             }
         </style>
 
-        {{ form_start(form, {'attr': {'data-turbo': 'false'}}) }}
-            {# Ocultar campos básicos mapeados ya que se usan campos no mapeados para la creación #}
-            <div style="display: none;">
-                {{ form_row(form.nombre) }}
-                {{ form_row(form.descripcion) }}
-                {{ form_row(form.fechaApertura) }}
-                {{ form_row(form.fechaCierre) }}
-                {{ form_row(form.dificultad) }}
-                {{ form_row(form.numeroPreguntas) }}
-            </div>
-            
-            {# Campo grupo común para todos los tipos de examen #}
-            <div class="card" style="background-color: #e3f2fd; border-left: 4px solid #2196F3; margin-bottom: 1.5rem;">
-                <div class="card-header" style="background-color: #e3f2fd; border-bottom: 1px solid #2196F3;">
-                    <h4 style="margin: 0; color: #1976D2; font-weight: 600;">👥 Asignación de Grupo (Opcional)</h4>
-                </div>
-                <div class="card-body">
-                    <p style="color: #666; margin-bottom: 1rem; font-size: 0.9rem;">Si seleccionas un grupo, solo los alumnos de ese grupo podrán ver y realizar este examen. Si no seleccionas ningún grupo, el examen será visible para todos los alumnos.</p>
-                    {{ form_row(form.grupo) }}
-                </div>
-            </div>
-            
-            <div class="card" style="background-color: #f1f8f4; border-left: 4px solid #4CAF50; margin-bottom: 1.5rem;">
-                <div class="card-header" style="cursor: pointer; background-color: #f1f8f4; border-bottom: 1px solid #4CAF50;" onclick="toggleSection('generalSection')">
-                    <h4 style="margin: 0; color: #2E7D32; font-weight: 600; display: flex; align-items: center; justify-content: space-between;">
-                        <span>📚 Examen del Temario General (Opcional)</span>
-                        <span id="generalSectionIcon" style="font-size: 1.2rem;">▼</span>
-                    </h4>
-                </div>
-                <div id="generalSection" class="card-body collapse-section" style="display: none;">
-                    <p style="color: #666; margin-bottom: 1.5rem; font-size: 0.9rem;">Configura los parámetros específicos para el examen del temario general.</p>
-                    {{ form_row(form.temas) }}
-                    <hr style="margin: 1.5rem 0;">
-                    <h5 style="color: #2E7D32; margin-bottom: 1rem;">Configuración del Examen General</h5>
-                    {{ form_row(form.nombreGeneral) }}
-                    {{ form_row(form.descripcionGeneral) }}
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        {{ form_row(form.fechaAperturaGeneral) }}
-                        {{ form_row(form.fechaCierreGeneral) }}
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        {{ form_row(form.dificultadGeneral) }}
-                        {{ form_row(form.numeroPreguntasGeneral) }}
-                    </div>
-                </div>
-            </div>
-
-            <div class="card" style="background-color: #f3e5f5; border-left: 4px solid #9C27B0; margin-bottom: 1.5rem;">
-                <div class="card-header" style="cursor: pointer; background-color: #f3e5f5; border-bottom: 1px solid #9C27B0;" onclick="toggleSection('convocatoriaSection')">
-                    <h4 style="margin: 0; color: #7B1FA2; font-weight: 600; display: flex; align-items: center; justify-content: space-between;">
-                        <span>📋 Examen de Convocatoria (Opcional)</span>
-                        <span id="convocatoriaSectionIcon" style="font-size: 1.2rem;">▼</span>
-                    </h4>
-                </div>
-                <div id="convocatoriaSection" class="card-body collapse-section" style="display: none;">
-                    <p style="color: #666; margin-bottom: 1.5rem; font-size: 0.9rem;">Configura los parámetros específicos para el examen de convocatoria. Este examen incluirá <strong>automáticamente todas las preguntas de todos los temas de todos los municipios</strong> de la convocatoria seleccionada.</p>
-                    {{ form_row(form.convocatoria) }}
-                    <div style="display: none;">
-                        {{ form_row(form.temasMunicipalesConvocatoria) }}
-                    </div>
-                    <hr style="margin: 1.5rem 0;">
-                    <h5 style="color: #7B1FA2; margin-bottom: 1rem;">Configuración del Examen de Convocatoria</h5>
-                    {{ form_row(form.nombreConvocatoria) }}
-                    {{ form_row(form.descripcionConvocatoria) }}
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        {{ form_row(form.fechaAperturaConvocatoria) }}
-                        {{ form_row(form.fechaCierreConvocatoria) }}
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        {{ form_row(form.dificultadConvocatoria) }}
-                        {{ form_row(form.numeroPreguntasConvocatoria) }}
-                    </div>
-                </div>
-            </div>
-
-            <div class="card" style="background-color: #e3f2fd; border-left: 4px solid #2196F3; margin-bottom: 1.5rem;">
-                <div class="card-header" style="cursor: pointer; background-color: #e3f2fd; border-bottom: 1px solid #2196F3;" onclick="toggleSection('municipalSection')">
-                    <h4 style="margin: 0; color: #1565C0; font-weight: 600; display: flex; align-items: center; justify-content: space-between;">
-                        <span>🏛️ Examen Municipal (Opcional)</span>
-                        <span id="municipalSectionIcon" style="font-size: 1.2rem;">▼</span>
-                    </h4>
-                </div>
-                <div id="municipalSection" class="card-body collapse-section" style="display: none;">
-                    <p style="color: #666; margin-bottom: 1.5rem; font-size: 0.9rem;">Configura los parámetros específicos para el examen municipal.</p>
-                    {{ form_row(form.municipio) }}
-                    {{ form_row(form.temasMunicipales) }}
-                    <hr style="margin: 1.5rem 0;">
-                    <h5 style="color: #1565C0; margin-bottom: 1rem;">Configuración del Examen Municipal</h5>
-                    {{ form_row(form.nombreMunicipal) }}
-                    {{ form_row(form.descripcionMunicipal) }}
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        {{ form_row(form.fechaAperturaMunicipal) }}
-                        {{ form_row(form.fechaCierreMunicipal) }}
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        {{ form_row(form.dificultadMunicipal) }}
-                        {{ form_row(form.numeroPreguntasMunicipal) }}
-                    </div>
-                </div>
-            </div>
-            
-            <div class="d-flex gap-2 mt-4">
-                <button type="submit" class="btn btn-primary">Crear Examen(es) Semanal(es)</button>
-                <a href="{{ path('app_examen_semanal_index') }}" class="btn btn-secondary">Cancelar</a>
-            </div>
-        {{ form_end(form) }}
-
-        <script>
-        // Función para toggle de secciones
-        function toggleSection(sectionId) {
-            const section = document.getElementById(sectionId);
-            const icon = document.getElementById(sectionId + 'Icon');
-            
-            if (section.style.display === 'none') {
-                section.style.display = 'block';
-                if (icon) icon.textContent = '▲';
-            } else {
-                section.style.display = 'none';
-                if (icon) icon.textContent = '▼';
-            }
-        }
-        
-        // Usar función inmediata para asegurar que se ejecute tan pronto como sea posible
-        (function() {
-            function initializeMunicipioTemas() {
-                const municipioSelect = document.getElementById('examen_semanal_municipio');
-                const temasMunicipalesSelect = document.getElementById('examen_semanal_temasMunicipales');
-                
-                if (!municipioSelect || !temasMunicipalesSelect) {
-                    // Si los elementos no están disponibles, intentar de nuevo en el siguiente ciclo
-                    setTimeout(initializeMunicipioTemas, 50);
-                    return;
-                }
-                
-                // Función para cargar temas municipales
-                function cargarTemasMunicipales(municipioId) {
-                    // Limpiar selección actual
-                    temasMunicipalesSelect.innerHTML = '<option value="">Cargando temas...</option>';
-                    temasMunicipalesSelect.disabled = true;
-                    temasMunicipalesSelect.style.opacity = '0.6';
-                    
-                    if (!municipioId || municipioId === '') {
-                        temasMunicipalesSelect.innerHTML = '<option value="">Selecciona un municipio primero</option>';
-                        temasMunicipalesSelect.disabled = true;
-                        temasMunicipalesSelect.style.opacity = '0.6';
-                        return;
-                    }
-                    
-                    // Obtener temas municipales del municipio seleccionado
-                    fetch('{{ path('app_examen_semanal_temas_municipales', {'municipioId': '__MUNICIPIO_ID__'}) }}'.replace('__MUNICIPIO_ID__', municipioId))
-                        .then(response => response.json())
-                        .then(data => {
-                            temasMunicipalesSelect.innerHTML = '';
-                            
-                            if (data.length === 0) {
-                                const option = document.createElement('option');
-                                option.value = '';
-                                option.textContent = 'No hay temas disponibles para este municipio';
-                                temasMunicipalesSelect.appendChild(option);
-                                temasMunicipalesSelect.disabled = true;
-                                temasMunicipalesSelect.style.opacity = '0.6';
-                            } else {
-                                // Agregar placeholder
-                                const placeholderOption = document.createElement('option');
-                                placeholderOption.value = '';
-                                placeholderOption.textContent = '-- Selecciona los temas municipales --';
-                                temasMunicipalesSelect.appendChild(placeholderOption);
-                                
-                                // Agregar opciones de temas
-                                data.forEach(tema => {
-                                    const option = document.createElement('option');
-                                    option.value = tema.id;
-                                    option.textContent = tema.nombre;
-                                    temasMunicipalesSelect.appendChild(option);
-                                });
-                                
-                                temasMunicipalesSelect.disabled = false;
-                                temasMunicipalesSelect.style.opacity = '1';
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error al cargar temas municipales:', error);
-                            temasMunicipalesSelect.innerHTML = '<option value="">Error al cargar temas</option>';
-                            temasMunicipalesSelect.disabled = true;
-                            temasMunicipalesSelect.style.opacity = '0.6';
-                        });
-                }
-                
-                // Event listener para cambios en el municipio
-                municipioSelect.addEventListener('change', function() {
-                    cargarTemasMunicipales(this.value);
-                });
-                
-                // Inicializar estado inmediatamente: si no hay municipio seleccionado, deshabilitar temas
-                if (!municipioSelect.value || municipioSelect.value === '') {
-                    // Limpiar cualquier contenido previo y establecer estado inicial
-                    temasMunicipalesSelect.innerHTML = '<option value="">Selecciona un municipio primero</option>';
-                    temasMunicipalesSelect.disabled = true;
-                    temasMunicipalesSelect.style.opacity = '0.6';
-                } else {
-                    // Si ya hay un municipio seleccionado, cargar sus temas
-                    cargarTemasMunicipales(municipioSelect.value);
-                }
-            }
-            
-            // Intentar inicializar inmediatamente
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initializeMunicipioTemas);
-            } else {
-                // DOM ya está listo, ejecutar inmediatamente
-                initializeMunicipioTemas();
-            }
-        })();
-        </script>
+        <div class="mt-4">
+            <a href="{{ path('app_examen_semanal_index') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
     </div>
 </div>
 {% endblock %}
-

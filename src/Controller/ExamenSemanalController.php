@@ -4,6 +4,9 @@ namespace App\Controller;
 
 use App\Entity\ExamenSemanal;
 use App\Form\ExamenSemanalType;
+use App\Form\ExamenSemanalGeneralType;
+use App\Form\ExamenSemanalMunicipalType;
+use App\Form\ExamenSemanalConvocatoriaType;
 use App\Repository\ExamenSemanalRepository;
 use App\Repository\UserRepository;
 use App\Repository\MunicipioRepository;
@@ -55,23 +58,27 @@ class ExamenSemanalController extends AbstractController
     #[Route('/temas-municipales/{municipioId}', name: 'app_examen_semanal_temas_municipales', methods: ['GET'])]
     public function getTemasMunicipales(int $municipioId): JsonResponse
     {
-        $municipio = $this->municipioRepository->find($municipioId);
-        
-        if (!$municipio) {
-            return new JsonResponse(['error' => 'Municipio no encontrado'], 404);
-        }
+        try {
+            $municipio = $this->municipioRepository->find($municipioId);
+            
+            if (!$municipio) {
+                return new JsonResponse(['error' => 'Municipio no encontrado'], 404);
+            }
 
-        $temas = $this->temaMunicipalRepository->findByMunicipio($municipio);
-        
-        $temasArray = [];
-        foreach ($temas as $tema) {
-            $temasArray[] = [
-                'id' => $tema->getId(),
-                'nombre' => $tema->getNombre(),
-            ];
-        }
+            $temas = $this->temaMunicipalRepository->findByMunicipio($municipio);
+            
+            $temasArray = [];
+            foreach ($temas as $tema) {
+                $temasArray[] = [
+                    'id' => $tema->getId(),
+                    'nombre' => $tema->getNombre(),
+                ];
+            }
 
-        return new JsonResponse($temasArray);
+            return new JsonResponse($temasArray);
+        } catch (\Exception $e) {
+            return new JsonResponse(['error' => 'Error al obtener temas: ' . $e->getMessage()], 500);
+        }
     }
 
     #[Route('/temas-municipales-convocatoria/{convocatoriaId}', name: 'app_examen_semanal_temas_municipales_convocatoria', methods: ['GET'])]
@@ -322,8 +329,232 @@ class ExamenSemanalController extends AbstractController
         ]);
     }
 
-    #[Route('/new', name: 'app_examen_semanal_new', methods: ['GET', 'POST'])]
-    public function new(Request $request): Response
+    #[Route('/new', name: 'app_examen_semanal_new', methods: ['GET'])]
+    public function new(): Response
+    {
+        // Página de selección de tipo de examen
+        $convocatorias = $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']);
+        return $this->render('examen_semanal/new.html.twig', [
+            'convocatorias' => $convocatorias,
+        ]);
+    }
+
+    #[Route('/new-general', name: 'app_examen_semanal_new_general', methods: ['GET', 'POST'])]
+    public function newGeneral(Request $request): Response
+    {
+        $examenSemanal = new ExamenSemanal();
+        $examenSemanal->setCreadoPor($this->getUser());
+        
+        $form = $this->createForm(ExamenSemanalGeneralType::class, $examenSemanal);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            // Validar que fechaCierre sea posterior a fechaApertura
+            if ($examenSemanal->getFechaCierre() <= $examenSemanal->getFechaApertura()) {
+                $this->addFlash('error', 'La fecha de cierre debe ser posterior a la fecha de apertura.');
+                return $this->render('examen_semanal/new_general.html.twig', [
+                    'examenSemanal' => $examenSemanal,
+                    'form' => $form,
+                ]);
+            }
+
+            $examenSemanal->setActivo(true);
+            $this->entityManager->persist($examenSemanal);
+            $this->entityManager->flush();
+
+            // Crear notificaciones
+            $this->crearNotificaciones($examenSemanal);
+
+            $this->addFlash('success', 'Examen semanal del temario general creado correctamente.');
+            return $this->redirectToRoute('app_examen_semanal_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('examen_semanal/new_general.html.twig', [
+            'examenSemanal' => $examenSemanal,
+            'form' => $form,
+        ]);
+    }
+
+    #[Route('/new-municipal', name: 'app_examen_semanal_new_municipal', methods: ['GET', 'POST'])]
+    public function newMunicipal(Request $request): Response
+    {
+        $examenSemanal = new ExamenSemanal();
+        $examenSemanal->setCreadoPor($this->getUser());
+        
+        $form = $this->createForm(ExamenSemanalMunicipalType::class, $examenSemanal);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted()) {
+            if (!$form->isValid()) {
+                // Mostrar errores de validación
+                $errors = [];
+                foreach ($form->getErrors(true) as $error) {
+                    $errors[] = $error->getMessage();
+                }
+                if (!empty($errors)) {
+                    $this->addFlash('error', 'Por favor, corrige los siguientes errores: ' . implode(', ', $errors));
+                }
+                
+                return $this->render('examen_semanal/new_municipal.html.twig', [
+                    'examenSemanal' => $examenSemanal,
+                    'form' => $form,
+                ]);
+            }
+
+            // Validar que fechaCierre sea posterior a fechaApertura
+            if ($examenSemanal->getFechaCierre() <= $examenSemanal->getFechaApertura()) {
+                $this->addFlash('error', 'La fecha de cierre debe ser posterior a la fecha de apertura.');
+                return $this->render('examen_semanal/new_municipal.html.twig', [
+                    'examenSemanal' => $examenSemanal,
+                    'form' => $form,
+                ]);
+            }
+
+            // Obtener temas municipales del formulario (campo no mapeado)
+            $temasMunicipales = $form->get('temasMunicipales')->getData();
+            
+            // Convertir ArrayCollection a array si es necesario
+            if ($temasMunicipales instanceof \Doctrine\Common\Collections\Collection) {
+                $temasMunicipales = $temasMunicipales->toArray();
+            }
+            
+            // Validar que haya temas municipales seleccionados
+            if (empty($temasMunicipales) || !is_array($temasMunicipales) || count($temasMunicipales) === 0) {
+                $this->addFlash('error', 'Debes seleccionar al menos un tema municipal.');
+                return $this->render('examen_semanal/new_municipal.html.twig', [
+                    'examenSemanal' => $examenSemanal,
+                    'form' => $form,
+                ]);
+            }
+
+            // Asignar los temas municipales manualmente
+            foreach ($temasMunicipales as $temaMunicipal) {
+                if ($temaMunicipal instanceof \App\Entity\TemaMunicipal) {
+                    $examenSemanal->addTemasMunicipale($temaMunicipal);
+                }
+            }
+
+            $examenSemanal->setActivo(true);
+            $this->entityManager->persist($examenSemanal);
+            $this->entityManager->flush();
+
+            // Crear notificaciones
+            $this->crearNotificaciones($examenSemanal);
+
+            $this->addFlash('success', 'Examen semanal municipal creado correctamente.');
+            return $this->redirectToRoute('app_examen_semanal_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('examen_semanal/new_municipal.html.twig', [
+            'examenSemanal' => $examenSemanal,
+            'form' => $form,
+        ]);
+    }
+
+    #[Route('/new-convocatoria', name: 'app_examen_semanal_new_convocatoria', methods: ['GET', 'POST'])]
+    public function newConvocatoria(Request $request): Response
+    {
+        $examenSemanal = new ExamenSemanal();
+        $examenSemanal->setCreadoPor($this->getUser());
+        
+        $form = $this->createForm(ExamenSemanalConvocatoriaType::class, $examenSemanal);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            // Validar que fechaCierre sea posterior a fechaApertura
+            if ($examenSemanal->getFechaCierre() <= $examenSemanal->getFechaApertura()) {
+                $this->addFlash('error', 'La fecha de cierre debe ser posterior a la fecha de apertura.');
+                return $this->render('examen_semanal/new_convocatoria.html.twig', [
+                    'examenSemanal' => $examenSemanal,
+                    'form' => $form,
+                ]);
+            }
+
+            // Validar que la convocatoria tenga municipios
+            if ($examenSemanal->getConvocatoria()->getMunicipios()->isEmpty()) {
+                $this->addFlash('error', 'La convocatoria seleccionada no tiene municipios asignados.');
+                return $this->render('examen_semanal/new_convocatoria.html.twig', [
+                    'examenSemanal' => $examenSemanal,
+                    'form' => $form,
+                ]);
+            }
+
+            // Añadir todos los temas municipales de todos los municipios de la convocatoria
+            $convocatoria = $examenSemanal->getConvocatoria();
+            $municipios = $convocatoria->getMunicipios();
+            $municipiosIds = array_map(fn($m) => $m->getId(), $municipios->toArray());
+            
+            // Obtener todos los temas municipales activos de todos los municipios de la convocatoria
+            $todosLosTemas = $this->temaMunicipalRepository->createQueryBuilder('t')
+                ->innerJoin('t.municipio', 'm')
+                ->where('m.id IN (:municipiosIds)')
+                ->andWhere('t.activo = :activo')
+                ->setParameter('municipiosIds', $municipiosIds)
+                ->setParameter('activo', true)
+                ->getQuery()
+                ->getResult();
+            
+            // Añadir todos los temas al examen
+            foreach ($todosLosTemas as $temaMunicipal) {
+                $examenSemanal->addTemasMunicipale($temaMunicipal);
+            }
+
+            $examenSemanal->setActivo(true);
+            $this->entityManager->persist($examenSemanal);
+            $this->entityManager->flush();
+
+            // Crear notificaciones
+            $this->crearNotificaciones($examenSemanal);
+
+            $this->addFlash('success', 'Examen semanal de convocatoria creado correctamente.');
+            return $this->redirectToRoute('app_examen_semanal_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('examen_semanal/new_convocatoria.html.twig', [
+            'examenSemanal' => $examenSemanal,
+            'form' => $form,
+        ]);
+    }
+
+    /**
+     * Método auxiliar para crear notificaciones
+     */
+    private function crearNotificaciones(ExamenSemanal $examenSemanal): void
+    {
+        try {
+            $grupoExamen = $examenSemanal->getGrupo();
+            $profesor = $examenSemanal->getCreadoPor();
+            
+            if ($grupoExamen) {
+                // Si el examen tiene grupo, solo notificar a alumnos de ese grupo
+                $alumnos = $grupoExamen->getAlumnos();
+            } else {
+                // Si no tiene grupo, notificar a todos los alumnos
+                $alumnos = $this->userRepository->createQueryBuilder('u')
+                    ->where('u.roles LIKE :role')
+                    ->andWhere('u.activo = :activo')
+                    ->setParameter('role', '%ROLE_USER%')
+                    ->setParameter('activo', true)
+                    ->getQuery()
+                    ->getResult();
+            }
+
+            foreach ($alumnos as $alumno) {
+                // Verificar que no sea profesor ni admin, y que no sea el mismo que el profesor que crea el examen
+                if (!in_array('ROLE_PROFESOR', $alumno->getRoles()) 
+                    && !in_array('ROLE_ADMIN', $alumno->getRoles())
+                    && $alumno->getId() !== $profesor->getId()) {
+                    $this->notificacionService->crearNotificacionExamenSemanal($examenSemanal, $alumno, $profesor);
+                }
+            }
+            $this->entityManager->flush();
+        } catch (\Exception $e) {
+            error_log('Error al crear notificaciones de examen semanal: ' . $e->getMessage());
+        }
+    }
+
+    #[Route('/new-old', name: 'app_examen_semanal_new_old', methods: ['GET', 'POST'])]
+    public function newOld(Request $request): Response
     {
         $examenSemanal = new ExamenSemanal();
         $examenSemanal->setCreadoPor($this->getUser());
@@ -331,7 +562,42 @@ class ExamenSemanalController extends AbstractController
         $form = $this->createForm(ExamenSemanalType::class, $examenSemanal);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
+        // En modo creación, los campos básicos (nombre, fechaApertura, fechaCierre, dificultad)
+        // no están mapeados porque se usan campos separados (nombreMunicipal, fechaAperturaMunicipal, etc.)
+        // Por lo tanto, la validación del formulario puede fallar, pero aún podemos procesar los datos
+        // Verificar si hay errores reales en campos mapeados (municipio, temas, temasMunicipales, convocatoria, grupo)
+        $hasRealErrors = false;
+        if ($form->isSubmitted() && !$form->isValid()) {
+            $errors = $form->getErrors(true);
+            foreach ($errors as $error) {
+                $origin = $error->getOrigin();
+                // Solo considerar errores de campos que están mapeados a la entidad
+                if ($origin && $origin->getConfig() && $origin->getConfig()->getMapped()) {
+                    $fieldName = $origin->getName();
+                    // Los campos mapeados son: municipio, temas, temasMunicipales, convocatoria, grupo
+                    $mappedFields = ['municipio', 'temas', 'temasMunicipales', 'convocatoria', 'grupo'];
+                    if (in_array($fieldName, $mappedFields)) {
+                        $hasRealErrors = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Si hay errores reales en campos mapeados, mostrar el formulario con errores
+            if ($hasRealErrors) {
+                $convocatorias = $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']);
+                return $this->render('examen_semanal/new.html.twig', [
+                    'examenSemanal' => $examenSemanal,
+                    'form' => $form,
+                    'convocatorias' => $convocatorias,
+                ]);
+            }
+        }
+
+        // Si el formulario está enviado y es válido, o si no hay errores reales en campos mapeados,
+        // procesar la creación del examen
+        // Nota: En modo creación, ignoramos errores de validación de campos no mapeados
+        if ($form->isSubmitted()) {
             // Validar que haya al menos un tipo de examen seleccionado
             $tieneTemasGenerales = !$examenSemanal->getTemas()->isEmpty();
             $tieneTemasMunicipales = $examenSemanal->getMunicipio() !== null && !$examenSemanal->getTemasMunicipales()->isEmpty();
