@@ -18,10 +18,11 @@ final class Version20260111203204 extends AbstractMigration
     }
 
     /**
-     * Elimina un índice si existe (compatible con MySQL/MariaDB)
+     * Elimina un índice si existe y no está siendo usado por una foreign key (compatible con MySQL/MariaDB)
      */
     private function dropIndexIfExists(string $tableName, string $indexName): void
     {
+        // Verificar si el índice existe
         $sql = "SELECT COUNT(*) as count 
                 FROM information_schema.statistics 
                 WHERE table_schema = DATABASE() 
@@ -31,7 +32,61 @@ final class Version20260111203204 extends AbstractMigration
         $result = $this->connection->fetchAssociative($sql, [$tableName, $indexName]);
         
         if ($result && (int)$result['count'] > 0) {
-            $this->addSql("ALTER TABLE {$tableName} DROP INDEX {$indexName}");
+            // Obtener las columnas del índice
+            $columnsSql = "SELECT column_name 
+                           FROM information_schema.statistics 
+                           WHERE table_schema = DATABASE() 
+                           AND table_name = ? 
+                           AND index_name = ?
+                           ORDER BY seq_in_index";
+            
+            $columns = $this->connection->fetchAllAssociative($columnsSql, [$tableName, $indexName]);
+            
+            if (!empty($columns)) {
+                $columnNames = array_column($columns, 'column_name');
+                $placeholders = implode(',', array_fill(0, count($columnNames), '?'));
+                
+                // Verificar si alguna de estas columnas está en una foreign key
+                $fkCheckSql = "SELECT COUNT(*) as count
+                               FROM information_schema.key_column_usage kcu
+                               INNER JOIN information_schema.table_constraints tc 
+                                   ON kcu.constraint_name = tc.constraint_name
+                                   AND kcu.table_schema = tc.table_schema
+                               WHERE kcu.table_schema = DATABASE()
+                               AND kcu.table_name = ?
+                               AND tc.constraint_type = 'FOREIGN KEY'
+                               AND kcu.column_name IN ({$placeholders})";
+                
+                $params = array_merge([$tableName], $columnNames);
+                $fkResult = $this->connection->fetchAssociative($fkCheckSql, $params);
+                
+                // Si el índice no está siendo usado por una foreign key, eliminarlo
+                if (!$fkResult || (int)$fkResult['count'] == 0) {
+                    $this->addSql("ALTER TABLE {$tableName} DROP INDEX {$indexName}");
+                }
+                // Si está siendo usado por una FK, simplemente no lo eliminamos (la FK ya tiene su índice)
+            } else {
+                // Si no hay columnas, intentar eliminar de todas formas
+                $this->addSql("ALTER TABLE {$tableName} DROP INDEX {$indexName}");
+            }
+        }
+    }
+
+    /**
+     * Crea un índice si no existe (compatible con MySQL/MariaDB)
+     */
+    private function createIndexIfNotExists(string $tableName, string $indexName, string $columnName): void
+    {
+        $sql = "SELECT COUNT(*) as count 
+                FROM information_schema.statistics 
+                WHERE table_schema = DATABASE() 
+                AND table_name = ? 
+                AND index_name = ?";
+        
+        $result = $this->connection->fetchAssociative($sql, [$tableName, $indexName]);
+        
+        if (!$result || (int)$result['count'] == 0) {
+            $this->addSql("CREATE INDEX {$indexName} ON {$tableName} ({$columnName})");
         }
     }
 
@@ -87,8 +142,9 @@ final class Version20260111203204 extends AbstractMigration
         $this->dropIndexIfExists('recurso_especifico', 'idx_recurso_especifico_profesor');
         $this->addSql('CREATE INDEX idx_recurso_especifico_profesor ON recurso_especifico (profesor_id)');
         
-        $this->dropIndexIfExists('recurso_especifico', 'idx_recurso_especifico_grupo');
-        $this->addSql('CREATE INDEX idx_recurso_especifico_grupo ON recurso_especifico (grupo_id)');
+        // El índice idx_recurso_especifico_grupo puede estar siendo usado por una FK,
+        // así que solo lo creamos si no existe (no intentamos eliminarlo primero)
+        $this->createIndexIfNotExists('recurso_especifico', 'idx_recurso_especifico_grupo', 'grupo_id');
         
         $this->dropIndexIfExists('recurso_especifico', 'idx_recurso_especifico_fecha_creacion');
         $this->addSql('CREATE INDEX idx_recurso_especifico_fecha_creacion ON recurso_especifico (fecha_creacion)');
