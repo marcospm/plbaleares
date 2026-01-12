@@ -196,7 +196,7 @@ final class Version20260111203204 extends AbstractMigration
         $this->recreateIndexIfExists('examen_tema_municipal', 'idx_examen_tema_municipal_examen', 'examen_id');
         $this->recreateIndexIfExists('examen_tema_municipal', 'idx_examen_tema_municipal_tema', 'tema_municipal_id');
         $this->recreateIndexIfExists('recurso_especifico_alumno', 'idx_recurso_especifico_alumno_recurso', 'recurso_especifico_id');
-        $this->recreateIndexIfExists('recurso_especifico_alumno', 'idx_recurso_especifico_alumno_alumno', 'alumno_id');
+        $this->recreateIndexIfExists('recurso_especifico_alumno', 'idx_recurso_especifico_alumno_alumno', 'user_id');
     }
 
     public function down(Schema $schema): void
