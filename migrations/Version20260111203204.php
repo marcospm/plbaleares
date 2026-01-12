@@ -17,53 +17,114 @@ final class Version20260111203204 extends AbstractMigration
         return 'Agregar índices para optimizar consultas frecuentes y mejorar rendimiento';
     }
 
+    /**
+     * Elimina un índice si existe (compatible con MySQL/MariaDB)
+     */
+    private function dropIndexIfExists(string $tableName, string $indexName): void
+    {
+        $sql = "SELECT COUNT(*) as count 
+                FROM information_schema.statistics 
+                WHERE table_schema = DATABASE() 
+                AND table_name = ? 
+                AND index_name = ?";
+        
+        $result = $this->connection->fetchAssociative($sql, [$tableName, $indexName]);
+        
+        if ($result && (int)$result['count'] > 0) {
+            $this->addSql("ALTER TABLE {$tableName} DROP INDEX {$indexName}");
+        }
+    }
+
     public function up(Schema $schema): void
     {
         // Índices para tabla Articulo
         // Usado en: findActivosOrdenadosPorNumero, buscarConFiltros
+        // Eliminar índices si existen antes de crearlos para evitar errores de duplicados
+        $this->dropIndexIfExists('articulo', 'idx_articulo_ley_activo');
         $this->addSql('CREATE INDEX idx_articulo_ley_activo ON articulo (ley_id, activo)');
+        
+        $this->dropIndexIfExists('articulo', 'idx_articulo_activo');
         $this->addSql('CREATE INDEX idx_articulo_activo ON articulo (activo)');
+        
+        $this->dropIndexIfExists('articulo', 'idx_articulo_numero');
         $this->addSql('CREATE INDEX idx_articulo_numero ON articulo (numero)');
 
         // Índices para tabla PreguntaMunicipal
         // Usado en: consultas por tema, municipio, dificultad y activo
+        $this->dropIndexIfExists('pregunta_municipal', 'idx_pregunta_municipal_tema_activo');
         $this->addSql('CREATE INDEX idx_pregunta_municipal_tema_activo ON pregunta_municipal (tema_municipal_id, activo)');
+        
+        $this->dropIndexIfExists('pregunta_municipal', 'idx_pregunta_municipal_municipio_activo');
         $this->addSql('CREATE INDEX idx_pregunta_municipal_municipio_activo ON pregunta_municipal (municipio_id, activo)');
+        
+        $this->dropIndexIfExists('pregunta_municipal', 'idx_pregunta_municipal_dificultad_activo');
         $this->addSql('CREATE INDEX idx_pregunta_municipal_dificultad_activo ON pregunta_municipal (dificultad, activo)');
+        
+        $this->dropIndexIfExists('pregunta_municipal', 'idx_pregunta_municipal_activo');
         $this->addSql('CREATE INDEX idx_pregunta_municipal_activo ON pregunta_municipal (activo)');
 
         // Índices adicionales para tabla Examen
         // Usado en: getRankingPorDificultad, getNotaMediaUsuario, etc.
+        $this->dropIndexIfExists('examen', 'idx_examen_usuario_dificultad_municipio');
         $this->addSql('CREATE INDEX idx_examen_usuario_dificultad_municipio ON examen (usuario_id, dificultad, municipio_id)');
+        
+        $this->dropIndexIfExists('examen', 'idx_examen_usuario_dificultad_fecha');
         $this->addSql('CREATE INDEX idx_examen_usuario_dificultad_fecha ON examen (usuario_id, dificultad, fecha)');
+        
+        $this->dropIndexIfExists('examen', 'idx_examen_convocatoria_dificultad');
         $this->addSql('CREATE INDEX idx_examen_convocatoria_dificultad ON examen (convocatoria_id, dificultad)');
 
         // Índices para tabla MensajeArticulo
         // Usado en: countMensajesPrincipales, countMensajesPrincipalesPorArticulos
+        $this->dropIndexIfExists('mensaje_articulo', 'idx_mensaje_articulo_articulo_padre');
         $this->addSql('CREATE INDEX idx_mensaje_articulo_articulo_padre ON mensaje_articulo (articulo_id, mensaje_padre_id)');
+        
+        $this->dropIndexIfExists('mensaje_articulo', 'idx_mensaje_articulo_fecha_creacion');
         $this->addSql('CREATE INDEX idx_mensaje_articulo_fecha_creacion ON mensaje_articulo (fecha_creacion)');
 
         // Índices para tabla RecursoEspecifico
         // Usado en: findByAlumno, findByProfesor
+        $this->dropIndexIfExists('recurso_especifico', 'idx_recurso_especifico_profesor');
         $this->addSql('CREATE INDEX idx_recurso_especifico_profesor ON recurso_especifico (profesor_id)');
+        
+        $this->dropIndexIfExists('recurso_especifico', 'idx_recurso_especifico_grupo');
         $this->addSql('CREATE INDEX idx_recurso_especifico_grupo ON recurso_especifico (grupo_id)');
+        
+        $this->dropIndexIfExists('recurso_especifico', 'idx_recurso_especifico_fecha_creacion');
         $this->addSql('CREATE INDEX idx_recurso_especifico_fecha_creacion ON recurso_especifico (fecha_creacion)');
 
         // Índices para tablas principales
         // Usado en: findActivas, findActivosOrderedByNombre, etc.
-        // Nota: Si estos índices ya existen, la migración fallará y deberás eliminarlos manualmente primero
+        $this->dropIndexIfExists('ley', 'idx_ley_activo');
         $this->addSql('CREATE INDEX idx_ley_activo ON ley (activo)');
+        
+        $this->dropIndexIfExists('tema', 'idx_tema_activo');
         $this->addSql('CREATE INDEX idx_tema_activo ON tema (activo)');
+        
+        $this->dropIndexIfExists('convocatoria', 'idx_convocatoria_activo');
         $this->addSql('CREATE INDEX idx_convocatoria_activo ON convocatoria (activo)');
+        
+        $this->dropIndexIfExists('municipio', 'idx_municipio_activo');
         $this->addSql('CREATE INDEX idx_municipio_activo ON municipio (activo)');
 
         // Índices para tablas de relación ManyToMany
         // Usado en: JOINs en consultas de exámenes y recursos
+        $this->dropIndexIfExists('examen_tema', 'idx_examen_tema_examen');
         $this->addSql('CREATE INDEX idx_examen_tema_examen ON examen_tema (examen_id)');
+        
+        $this->dropIndexIfExists('examen_tema', 'idx_examen_tema_tema');
         $this->addSql('CREATE INDEX idx_examen_tema_tema ON examen_tema (tema_id)');
+        
+        $this->dropIndexIfExists('examen_tema_municipal', 'idx_examen_tema_municipal_examen');
         $this->addSql('CREATE INDEX idx_examen_tema_municipal_examen ON examen_tema_municipal (examen_id)');
+        
+        $this->dropIndexIfExists('examen_tema_municipal', 'idx_examen_tema_municipal_tema');
         $this->addSql('CREATE INDEX idx_examen_tema_municipal_tema ON examen_tema_municipal (tema_municipal_id)');
+        
+        $this->dropIndexIfExists('recurso_especifico_alumno', 'idx_recurso_especifico_alumno_recurso');
         $this->addSql('CREATE INDEX idx_recurso_especifico_alumno_recurso ON recurso_especifico_alumno (recurso_especifico_id)');
+        
+        $this->dropIndexIfExists('recurso_especifico_alumno', 'idx_recurso_especifico_alumno_alumno');
         $this->addSql('CREATE INDEX idx_recurso_especifico_alumno_alumno ON recurso_especifico_alumno (alumno_id)');
     }
 
