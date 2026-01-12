@@ -8,7 +8,7 @@ class ArticuloPublicoControllerTest extends TestCase
 {
     public function testArticuloPublicoIndexRequiresAuthentication(): void
     {
-        $this->client->request('GET', '/articulo-publico');
+        $this->client->request('GET', '/articulos');
         
         $this->assertResponseRedirects('/login');
     }
@@ -18,7 +18,7 @@ class ArticuloPublicoControllerTest extends TestCase
         $user = $this->createTestUser();
         $this->loginAsUser($user);
         
-        $this->client->request('GET', '/articulo-publico');
+        $this->client->request('GET', '/articulos');
         
         $this->assertResponseIsSuccessful();
     }
@@ -30,7 +30,7 @@ class ArticuloPublicoControllerTest extends TestCase
         $ley = $this->createTestLey();
         $articulo = $this->createTestArticulo($ley, 1, 'Test Article');
         
-        $this->client->request('GET', '/articulo-publico/' . $articulo->getId());
+        $this->client->request('GET', '/articulos/' . $articulo->getId());
         
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextContains('h1', 'Artículo');

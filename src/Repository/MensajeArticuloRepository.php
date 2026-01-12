@@ -70,7 +70,7 @@ class MensajeArticuloRepository extends ServiceEntityRepository
         }
 
         $results = $this->createQueryBuilder('m')
-            ->select('m.articulo as articuloId, COUNT(m.id) as cantidad')
+            ->select('IDENTITY(m.articulo) as articuloId, COUNT(m.id) as cantidad')
             ->where('m.articulo IN (:articulosIds)')
             ->andWhere('m.mensajePadre IS NULL')
             ->setParameter('articulosIds', $articulosIds)

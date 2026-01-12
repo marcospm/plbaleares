@@ -19,7 +19,7 @@ class PlanificacionControllerTest extends TestCase
     {
         $this->loginAsProfesor();
         
-        $this->client->request('GET', '/planificacion');
+        $this->client->request('GET', '/planificacion/');
         
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextContains('h1', 'Planificaciones');
@@ -46,7 +46,8 @@ class PlanificacionControllerTest extends TestCase
         
         $this->assertResponseIsSuccessful();
         
-        $form = $crawler->selectButton('Guardar')->form([
+        // Buscar el formulario por nombre en lugar del botón
+        $form = $crawler->filter('form[name="planificacion_fecha_especifica"]')->form([
             'planificacion_fecha_especifica[nombre]' => 'Planificación de Prueba',
             'planificacion_fecha_especifica[descripcion]' => 'Descripción de prueba',
             'planificacion_fecha_especifica[fechaInicio]' => (new \DateTime('+1 day'))->format('Y-m-d'),
@@ -84,14 +85,18 @@ class PlanificacionControllerTest extends TestCase
         $crawler = $this->client->request('GET', '/planificacion/' . $planificacion->getId() . '/edit');
         
         $this->assertResponseIsSuccessful();
-        $form = $crawler->selectButton('Actualizar')->form([
-            'planificacion[nombre]' => 'Nombre Actualizado',
-        ]);
+        // Buscar el formulario por nombre en lugar del botón
+        // El formulario se crea con createFormBuilder sin nombre específico, así que usamos el primer formulario
+        $form = $crawler->filter('form')->first()->form();
+        $form['form[nombre]'] = 'Nombre Actualizado';
         
         $this->client->submit($form);
         
-        $this->entityManager->refresh($planificacion);
-        $this->assertEquals('Nombre Actualizado', $planificacion->getNombre());
+        // Buscar la planificación actualizada desde la base de datos
+        $this->entityManager->clear();
+        $planificacionActualizada = $this->entityManager->getRepository(PlanificacionPersonalizada::class)
+            ->find($planificacion->getId());
+        $this->assertEquals('Nombre Actualizado', $planificacionActualizada->getNombre());
     }
     
     public function testPlanificacionClonar(): void
@@ -105,7 +110,8 @@ class PlanificacionControllerTest extends TestCase
         
         $this->assertResponseIsSuccessful();
         
-        $form = $crawler->selectButton('Clonar Planificaciones')->form([
+        // Buscar el formulario por nombre o el primer formulario disponible
+        $form = $crawler->filter('form')->first()->form([
             'alumno_origen' => $alumnoOrigen->getId(),
             'alumno_destino' => $alumnoDestino->getId(),
         ]);
@@ -122,12 +128,12 @@ class PlanificacionControllerTest extends TestCase
     /**
      * Helper para crear una planificación de prueba
      */
-    protected function createTestPlanificacion($usuario, $creadoPor): PlanificacionPersonalizada
+    protected function createTestPlanificacion(\App\Entity\User $usuario, \App\Entity\User $creadoPor, string $nombre = 'Planificación Test'): \App\Entity\PlanificacionPersonalizada
     {
         $planificacion = new PlanificacionPersonalizada();
         $planificacion->setUsuario($usuario);
         $planificacion->setCreadoPor($creadoPor);
-        $planificacion->setNombre('Planificación Test');
+        $planificacion->setNombre($nombre);
         $planificacion->setDescripcion('Descripción test');
         $planificacion->setFechaInicio(new \DateTime('+1 day'));
         $planificacion->setFechaFin(new \DateTime('+7 days'));
@@ -153,10 +159,10 @@ class PlanificacionControllerTest extends TestCase
     /**
      * Helper para crear un tema de prueba
      */
-    protected function createTestTema($ley): \App\Entity\Tema
+    protected function createTestTema(\App\Entity\Ley $ley, string $nombre = 'Tema de Prueba'): \App\Entity\Tema
     {
         $tema = new \App\Entity\Tema();
-        $tema->setNombre('Tema de Prueba');
+        $tema->setNombre($nombre);
         $tema->setDescripcion('Descripción del tema');
         $tema->addLey($ley);
         

@@ -96,14 +96,18 @@ class PreguntaControllerTest extends TestCase
         
         $this->assertResponseIsSuccessful();
         
-        $form = $crawler->selectButton('Actualizar')->form([
+        // Buscar el formulario por nombre en lugar del botón
+        $form = $crawler->filter('form[name="pregunta"]')->form([
             'pregunta[texto]' => '¿Pregunta actualizada?',
         ]);
         
         $this->client->submit($form);
         
-        $this->entityManager->refresh($pregunta);
-        $this->assertEquals('¿Pregunta actualizada?', $pregunta->getTexto());
+        // Buscar la pregunta actualizada desde la base de datos
+        $this->entityManager->clear();
+        $preguntaActualizada = $this->entityManager->getRepository(Pregunta::class)
+            ->find($pregunta->getId());
+        $this->assertEquals('¿Pregunta actualizada?', $preguntaActualizada->getTexto());
     }
     
     public function testPreguntaDelete(): void
@@ -133,13 +137,13 @@ class PreguntaControllerTest extends TestCase
         $pregunta1 = $this->createTestPregunta($tema, $ley, $articulo, 'facil');
         $pregunta2 = $this->createTestPregunta($tema, $ley, $articulo, 'moderada');
         
-        // Filtrar por dificultad
-        $this->client->request('GET', '/pregunta?dificultad=facil');
+        // Filtrar por dificultad (usar la ruta con barra final)
+        $this->client->request('GET', '/pregunta/?dificultad=facil');
         
         $this->assertResponseIsSuccessful();
         
-        // Filtrar por tema
-        $this->client->request('GET', '/pregunta?tema=' . $tema->getId());
+        // Filtrar por tema (usar la ruta con barra final)
+        $this->client->request('GET', '/pregunta/?tema=' . $tema->getId());
         
         $this->assertResponseIsSuccessful();
         

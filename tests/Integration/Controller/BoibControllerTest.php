@@ -18,7 +18,7 @@ class BoibControllerTest extends TestCase
         $user = $this->createTestUser();
         $this->loginAsUser($user);
         
-        $this->client->request('GET', '/boib');
+        $this->client->request('GET', '/boib/');
         
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextContains('h1', 'BOIB');

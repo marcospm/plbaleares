@@ -83,15 +83,32 @@ class ExamenControllerTest extends TestCase
         $articulo = $this->createTestArticulo($ley);
         $pregunta = $this->createTestPregunta($tema, $ley, $articulo);
         
-        // Simular guardar un borrador
-        $this->client->request('POST', '/examen/borrador/guardar', [
-            'preguntas' => [$pregunta->getId()],
-            'tipoExamen' => 'general',
-            'dificultad' => 'facil',
+        // Primero iniciar un examen para tener datos en la sesión
+        $crawler = $this->client->request('GET', '/examen/iniciar');
+        $this->assertResponseIsSuccessful();
+        
+        // Obtener el formulario y usar el primer tema disponible (ID 1)
+        $form = $crawler->selectButton('Iniciar Examen')->form();
+        $form['examen_iniciar[tipoExamen]'] = 'general';
+        $form['examen_iniciar[dificultad]'] = 'facil';
+        $form['examen_iniciar[numeroPreguntas]'] = 20;
+        $form['examen_iniciar[tiempoLimite]'] = 30;
+        // Usar el tema con ID 1 que está disponible en el formulario (como string)
+        $form['examen_iniciar[temas]'] = ['1'];
+        
+        $this->client->submit($form);
+        
+        // Seguir la redirección para llegar a la primera pregunta
+        $this->client->followRedirect();
+        
+        // Ahora guardar el borrador desde la primera pregunta
+        $this->client->request('POST', '/examen/pregunta/1', [
+            'accion' => 'guardar_borrador',
+            'tiempo_restante' => 300,
         ]);
         
-        // El endpoint puede retornar JSON o redirección
-        $this->assertResponseIsSuccessful();
+        // Debe redirigir a iniciar
+        $this->assertResponseRedirects();
     }
     
     public function testExamenCompletar(): void
@@ -105,17 +122,49 @@ class ExamenControllerTest extends TestCase
         $pregunta1 = $this->createTestPregunta($tema, $ley, $articulo);
         $pregunta2 = $this->createTestPregunta($tema, $ley, $articulo, 'moderada');
         
-        // Simular completar un examen
-        $this->client->request('POST', '/examen/completar', [
-            'preguntas' => [
-                $pregunta1->getId() => 'A',
-                $pregunta2->getId() => 'B',
-            ],
-            'tipoExamen' => 'general',
-            'dificultad' => 'facil',
+        // Primero iniciar un examen
+        $crawler = $this->client->request('GET', '/examen/iniciar');
+        $this->assertResponseIsSuccessful();
+        
+        // Obtener el formulario y usar el primer tema disponible (ID 1)
+        $form = $crawler->selectButton('Iniciar Examen')->form();
+        $form['examen_iniciar[tipoExamen]'] = 'general';
+        $form['examen_iniciar[dificultad]'] = 'facil';
+        $form['examen_iniciar[numeroPreguntas]'] = 20;
+        $form['examen_iniciar[tiempoLimite]'] = 30;
+        // Usar el tema con ID 1 que está disponible en el formulario
+        $form['examen_iniciar[temas]'] = ['1'];
+        
+        $this->client->submit($form);
+        
+        // Seguir la redirección para llegar a la primera pregunta
+        $this->client->followRedirect();
+        
+        // Responder la primera pregunta
+        $this->client->request('POST', '/examen/pregunta/1', [
+            'respuesta' => 'A',
+            'accion' => 'siguiente',
         ]);
         
+        // Verificar que hay una respuesta (puede ser redirección o éxito)
+        $this->assertTrue($this->client->getResponse()->isRedirect() || $this->client->getResponse()->isSuccessful());
+        
+        // Si hay redirección, seguirla
+        if ($this->client->getResponse()->isRedirect()) {
+            $this->client->followRedirect();
+        }
+        
+        // Responder la segunda pregunta y finalizar
+        $this->client->request('POST', '/examen/pregunta/2', [
+            'respuesta' => 'B',
+            'accion' => 'finalizar',
+        ]);
+        
+        // Verificar que hay una respuesta (puede ser redirección o éxito)
+        $this->assertTrue($this->client->getResponse()->isRedirect() || $this->client->getResponse()->isSuccessful());
+        
         // Verificar que se creó el examen
+        $this->entityManager->clear();
         $examenes = $this->entityManager->getRepository(Examen::class)
             ->findBy(['usuario' => $user]);
         

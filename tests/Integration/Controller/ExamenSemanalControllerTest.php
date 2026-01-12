@@ -19,7 +19,7 @@ class ExamenSemanalControllerTest extends TestCase
     {
         $this->loginAsProfesor();
         
-        $this->client->request('GET', '/examen-semanal');
+        $this->client->request('GET', '/examen-semanal/');
         
         $this->assertResponseIsSuccessful();
     }
@@ -47,7 +47,8 @@ class ExamenSemanalControllerTest extends TestCase
         $fechaApertura = new \DateTime('+1 day');
         $fechaCierre = new \DateTime('+7 days');
         
-        $form = $crawler->selectButton('Guardar')->form([
+        // Buscar el formulario por nombre en lugar del botón
+        $form = $crawler->filter('form[name="examen_semanal"]')->form([
             'examen_semanal[nombre]' => 'Examen Semanal Test',
             'examen_semanal[descripcion]' => 'Descripción del examen',
             'examen_semanal[fechaApertura]' => $fechaApertura->format('Y-m-d H:i'),
@@ -86,14 +87,18 @@ class ExamenSemanalControllerTest extends TestCase
         
         $this->assertResponseIsSuccessful();
         
-        $form = $crawler->selectButton('Actualizar')->form([
+        // Buscar el formulario por nombre en lugar del botón
+        $form = $crawler->filter('form[name="examen_semanal"]')->form([
             'examen_semanal[nombre]' => 'Examen Actualizado',
         ]);
         
         $this->client->submit($form);
         
-        $this->entityManager->refresh($examen);
-        $this->assertEquals('Examen Actualizado', $examen->getNombre());
+        // Buscar el examen actualizado desde la base de datos
+        $this->entityManager->clear();
+        $examenActualizado = $this->entityManager->getRepository(ExamenSemanal::class)
+            ->find($examen->getId());
+        $this->assertEquals('Examen Actualizado', $examenActualizado->getNombre());
     }
     
     public function testExamenSemanalNewConPreguntas(): void
@@ -119,8 +124,10 @@ class ExamenSemanalControllerTest extends TestCase
         $this->loginAsProfesor();
         
         // Crear municipio y temas municipales para la prueba
+        // Usar un nombre único para evitar duplicados
+        $nombreUnico = 'Municipio Test ' . uniqid();
         $municipio = new \App\Entity\Municipio();
-        $municipio->setNombre('Municipio Test');
+        $municipio->setNombre($nombreUnico);
         $municipio->setActivo(true);
         $this->entityManager->persist($municipio);
         $this->entityManager->flush();

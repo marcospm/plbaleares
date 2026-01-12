@@ -22,7 +22,7 @@ class TareaControllerTest extends TestCase
     {
         $this->loginAsProfesor();
         
-        $this->client->request('GET', '/tarea');
+        $this->client->request('GET', '/tarea/');
         
         $this->assertResponseIsSuccessful();
     }
@@ -51,7 +51,8 @@ class TareaControllerTest extends TestCase
         
         $semanaAsignacion = new \DateTime('next monday');
         
-        $form = $crawler->selectButton('Guardar')->form([
+        // Buscar el formulario por nombre en lugar del botón
+        $form = $crawler->filter('form[name="tarea"]')->form([
             'tarea[nombre]' => 'Tarea de Prueba',
             'tarea[descripcion]' => 'Descripción de la tarea',
             'tarea[semanaAsignacion]' => $semanaAsignacion->format('Y-m-d'),
@@ -102,14 +103,18 @@ class TareaControllerTest extends TestCase
         $crawler = $this->client->request('GET', '/tarea/' . $tarea->getId() . '/edit');
         
         $this->assertResponseIsSuccessful();
-        $form = $crawler->selectButton('Actualizar Tarea')->form([
+        // Buscar el formulario por nombre en lugar del botón
+        $form = $crawler->filter('form[name="tarea"]')->form([
             'tarea[nombre]' => 'Tarea Actualizada',
         ]);
         
         $this->client->submit($form);
         
-        $this->entityManager->refresh($tarea);
-        $this->assertEquals('Tarea Actualizada', $tarea->getNombre());
+        // Buscar la tarea actualizada desde la base de datos
+        $this->entityManager->clear();
+        $tareaActualizada = $this->entityManager->getRepository(Tarea::class)
+            ->find($tarea->getId());
+        $this->assertEquals('Tarea Actualizada', $tareaActualizada->getNombre());
     }
     
     public function testTareaDelete(): void
@@ -158,10 +163,10 @@ class TareaControllerTest extends TestCase
     /**
      * Helper para crear un tema de prueba
      */
-    protected function createTestTema($ley): Tema
+    protected function createTestTema(\App\Entity\Ley $ley, string $nombre = 'Tema de Prueba'): \App\Entity\Tema
     {
         $tema = new Tema();
-        $tema->setNombre('Tema de Prueba');
+        $tema->setNombre($nombre);
         $tema->setDescripcion('Descripción del tema');
         $tema->addLey($ley);
         

@@ -18,7 +18,7 @@ class LeyControllerTest extends TestCase
     {
         $this->loginAsProfesor();
         
-        $this->client->request('GET', '/ley');
+        $this->client->request('GET', '/ley/');
         
         $this->assertResponseIsSuccessful();
     }

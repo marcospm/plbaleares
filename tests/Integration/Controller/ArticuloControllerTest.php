@@ -18,7 +18,7 @@ class ArticuloControllerTest extends TestCase
     {
         $this->loginAsProfesor();
         
-        $this->client->request('GET', '/articulo');
+        $this->client->request('GET', '/articulo/');
         
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextContains('h1', 'Artículos');
@@ -40,7 +40,7 @@ class ArticuloControllerTest extends TestCase
         
         $this->client->submit($form);
         
-        $this->assertResponseRedirects('/articulo');
+        $this->assertResponseRedirects('/articulo/');
         $articulo = $this->entityManager->getRepository(Articulo::class)
             ->findOneBy(['numero' => 1]);
         
@@ -53,8 +53,12 @@ class ArticuloControllerTest extends TestCase
         $this->loginAsProfesor();
         $ley = $this->createTestLey();
         $articulo = $this->createTestArticulo($ley, 1, 'Original');
+        $articuloId = $articulo->getId();
         
-        $crawler = $this->client->request('GET', '/articulo/' . $articulo->getId() . '/edit');
+        // Refrescar la entidad para asegurarnos de que esté gestionada
+        $this->entityManager->refresh($articulo);
+        
+        $crawler = $this->client->request('GET', '/articulo/' . $articuloId . '/edit');
         
         $this->assertResponseIsSuccessful();
         $form = $crawler->selectButton('Actualizar')->form([
@@ -63,7 +67,10 @@ class ArticuloControllerTest extends TestCase
         
         $this->client->submit($form);
         
-        $this->entityManager->refresh($articulo);
+        // Recargar la entidad desde la base de datos
+        $this->entityManager->clear();
+        $articulo = $this->entityManager->getRepository(Articulo::class)->find($articuloId);
+        $this->assertNotNull($articulo);
         $this->assertEquals('Updated Name', $articulo->getNombre());
     }
     

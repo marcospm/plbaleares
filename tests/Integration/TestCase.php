@@ -20,12 +20,11 @@ abstract class TestCase extends WebTestCase
     {
         parent::setUp();
         
-        // Obtener el cliente HTTP
+        // Obtener el cliente HTTP (esto bootea el kernel automáticamente)
         $this->client = static::createClient();
         
-        // Obtener el entity manager
-        $kernel = static::bootKernel();
-        $this->entityManager = $kernel->getContainer()->get('doctrine')->getManager();
+        // Obtener el entity manager del contenedor del cliente
+        $this->entityManager = $this->client->getContainer()->get('doctrine')->getManager();
         $this->connection = $this->entityManager->getConnection();
         
         // Limpiar y recrear el esquema de la base de datos de prueba
@@ -71,8 +70,6 @@ abstract class TestCase extends WebTestCase
             $user->setPassword(password_hash($password, PASSWORD_DEFAULT));
             $user->setRoles($roles);
             $user->setNombre('Test User');
-            $user->setApellidos('Test Apellidos');
-            $user->setNombreDisplay('Test User');
             $user->setActivo(true);
             
             $this->entityManager->persist($user);
@@ -89,6 +86,7 @@ abstract class TestCase extends WebTestCase
     {
         $ley = new \App\Entity\Ley();
         $ley->setNombre($nombre);
+        $ley->setActivo(true);
         
         $this->entityManager->persist($ley);
         $this->entityManager->flush();
@@ -126,6 +124,7 @@ abstract class TestCase extends WebTestCase
         $tema = new \App\Entity\Tema();
         $tema->setNombre($nombre);
         $tema->setDescripcion('Descripción del tema');
+        $tema->setActivo(true);
         $tema->addLey($ley);
         
         $this->entityManager->persist($tema);
@@ -217,14 +216,14 @@ abstract class TestCase extends WebTestCase
     ): \App\Entity\Examen {
         $examen = new \App\Entity\Examen();
         $examen->setUsuario($usuario);
-        $examen->setNota($nota);
+        $examen->setNota((string) $nota);
         $examen->setFecha(new \DateTime());
         $examen->setDificultad($dificultad);
-        $examen->setTipoExamen('general');
         $examen->setNumeroPreguntas(20);
-        $examen->setRespuestasCorrectas(15);
-        $examen->setRespuestasIncorrectas(3);
-        $examen->setSinResponder(2);
+        $examen->setAciertos(15);
+        $examen->setErrores(3);
+        $examen->setEnBlanco(2);
+        $examen->setRespuestas([]);
         
         $this->entityManager->persist($examen);
         $this->entityManager->flush();

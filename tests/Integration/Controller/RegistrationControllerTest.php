@@ -21,8 +21,8 @@ class RegistrationControllerTest extends TestCase
         $form = $crawler->selectButton('Registrarse')->form([
             'registration_form[username]' => 'newuser',
             'registration_form[email]' => 'newuser@test.com',
-            'registration_form[plainPassword]' => 'password123',
-            'registration_form[agreeTerms]' => true,
+            'registration_form[plainPassword][first]' => 'password123',
+            'registration_form[plainPassword][second]' => 'password123',
         ]);
         
         $this->client->submit($form);

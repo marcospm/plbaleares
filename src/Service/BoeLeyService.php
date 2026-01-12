@@ -277,6 +277,9 @@ class BoeLeyService
                             if (empty($notaPie)) {
                                 $notaPie = trim((string)$notasPie[0]);
                             }
+                            
+                            // Procesar referencias refPost y convertirlas en enlaces completos
+                            $notaPie = $this->procesarReferenciasBoe($notaPie);
                         }
                     }
                     
@@ -406,6 +409,55 @@ class BoeLeyService
     {
         $cacheKey = self::CACHE_PREFIX . $leyId;
         $this->cache->deleteItem($cacheKey);
+    }
+    
+    /**
+     * Procesa las referencias BOE en las notas de pie y las convierte en enlaces completos
+     * Busca etiquetas <a class="refPost"> y las convierte en enlaces al BOE
+     * 
+     * Ejemplo: <a class="refPost">Ref. BOE-A-2025-720#a4-4</a>
+     * Se convierte en: <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2025-720#a4-4" target="_blank">https://www.boe.es/buscar/act.php?id=BOE-A-2025-720#a4-4</a>
+     * 
+     * @param string $notaPie HTML de la nota de pie
+     * @return string HTML procesado con enlaces completos
+     */
+    private function procesarReferenciasBoe(string $notaPie): string
+    {
+        // Buscar todas las etiquetas <a class="refPost">...</a>
+        // Patrón para encontrar: <a class="refPost">Ref. BOE-A-2025-720#a4-4</a>
+        // También puede tener espacios o atributos adicionales: <a class="refPost" ...>...</a>
+        $pattern = '/<a\s+[^>]*class=["\']refPost["\'][^>]*>([^<]*)<\/a>/i';
+        
+        $notaPieProcesada = preg_replace_callback($pattern, function($matches) {
+            $contenido = trim($matches[1]);
+            
+            // Extraer la referencia BOE del contenido
+            // Puede venir como "Ref. BOE-A-2025-720#a4-4" o solo "BOE-A-2025-720#a4-4"
+            // El patrón busca BOE- seguido de letra, guion, año, guion, número y opcionalmente # y más caracteres
+            if (preg_match('/BOE-[A-Z]-\d{4}-\d+(?:#[^\s<>]*)?/i', $contenido, $refMatches)) {
+                $referenciaBoe = $refMatches[0];
+                
+                // Separar el ID del fragmento (el # y lo que sigue)
+                // El # es parte del fragmento de la URL y NO debe codificarse
+                if (strpos($referenciaBoe, '#') !== false) {
+                    list($idBoe, $fragmento) = explode('#', $referenciaBoe, 2);
+                    // Codificar solo el ID, mantener el fragmento sin codificar
+                    $urlBoe = 'https://www.boe.es/buscar/act.php?id=' . urlencode($idBoe) . '#' . $fragmento;
+                } else {
+                    // Si no hay fragmento, codificar solo el ID
+                    $urlBoe = 'https://www.boe.es/buscar/act.php?id=' . urlencode($referenciaBoe);
+                }
+                
+                // Reemplazar el contenido de la etiqueta con el enlace completo
+                // El texto del enlace será "Ver cambio en BOE"
+                return '<a href="' . htmlspecialchars($urlBoe, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener noreferrer">Ver cambio en BOE</a>';
+            }
+            
+            // Si no se encuentra la referencia, devolver el contenido original
+            return $matches[0];
+        }, $notaPie);
+        
+        return $notaPieProcesada;
     }
 }
 
