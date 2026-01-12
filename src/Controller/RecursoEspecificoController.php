@@ -28,13 +28,28 @@ class RecursoEspecificoController extends AbstractController
     }
 
     #[Route('/', name: 'app_recurso_especifico_index', methods: ['GET'])]
-    public function index(RecursoEspecificoRepository $recursoEspecificoRepository): Response
+    public function index(RecursoEspecificoRepository $recursoEspecificoRepository, Request $request): Response
     {
         $profesor = $this->getUser();
-        $recursos = $recursoEspecificoRepository->findByProfesor($profesor);
+        $search = trim($request->query->get('search', ''));
+        
+        // Filtrar recursos por búsqueda si existe
+        if (!empty($search)) {
+            $recursos = $recursoEspecificoRepository->createQueryBuilder('r')
+                ->where('r.profesor = :profesor')
+                ->andWhere('(r.nombre LIKE :search OR r.descripcion LIKE :search)')
+                ->setParameter('profesor', $profesor)
+                ->setParameter('search', '%' . $search . '%')
+                ->orderBy('r.fechaCreacion', 'DESC')
+                ->getQuery()
+                ->getResult();
+        } else {
+            $recursos = $recursoEspecificoRepository->findByProfesor($profesor);
+        }
 
         return $this->render('recurso_especifico/index.html.twig', [
             'recursos' => $recursos,
+            'search' => $search,
         ]);
     }
 

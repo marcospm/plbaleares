@@ -18,10 +18,25 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class ConvocatoriaController extends AbstractController
 {
     #[Route('/', name: 'app_convocatoria_index', methods: ['GET'])]
-    public function index(ConvocatoriaRepository $convocatoriaRepository): Response
+    public function index(ConvocatoriaRepository $convocatoriaRepository, Request $request): Response
     {
+        $search = trim($request->query->get('search', ''));
+        
+        // Filtrar convocatorias por búsqueda si existe
+        if (!empty($search)) {
+            $convocatorias = $convocatoriaRepository->createQueryBuilder('c')
+                ->where('c.nombre LIKE :search')
+                ->setParameter('search', '%' . $search . '%')
+                ->orderBy('c.fechaCreacion', 'DESC')
+                ->getQuery()
+                ->getResult();
+        } else {
+            $convocatorias = $convocatoriaRepository->findAll();
+        }
+        
         return $this->render('convocatoria/index.html.twig', [
-            'convocatorias' => $convocatoriaRepository->findAll(),
+            'convocatorias' => $convocatorias,
+            'search' => $search,
         ]);
     }
 

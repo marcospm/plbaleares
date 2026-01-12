@@ -19,9 +19,21 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class MunicipioController extends AbstractController
 {
     #[Route('/', name: 'app_municipio_index', methods: ['GET'])]
-    public function index(MunicipioRepository $municipioRepository, ConvocatoriaRepository $convocatoriaRepository): Response
+    public function index(MunicipioRepository $municipioRepository, ConvocatoriaRepository $convocatoriaRepository, Request $request): Response
     {
-        $municipios = $municipioRepository->findAll();
+        $search = trim($request->query->get('search', ''));
+        
+        // Filtrar municipios por búsqueda si existe
+        if (!empty($search)) {
+            $municipios = $municipioRepository->createQueryBuilder('m')
+                ->where('m.nombre LIKE :search')
+                ->setParameter('search', '%' . $search . '%')
+                ->orderBy('m.nombre', 'ASC')
+                ->getQuery()
+                ->getResult();
+        } else {
+            $municipios = $municipioRepository->findBy([], ['nombre' => 'ASC']);
+        }
         
         // Obtener convocatorias para cada municipio
         $convocatoriasPorMunicipio = [];
@@ -38,6 +50,7 @@ class MunicipioController extends AbstractController
         return $this->render('municipio/index.html.twig', [
             'municipios' => $municipios,
             'convocatoriasPorMunicipio' => $convocatoriasPorMunicipio,
+            'search' => $search,
         ]);
     }
 
