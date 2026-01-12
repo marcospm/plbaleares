@@ -15,7 +15,7 @@ class ConvocatoriaRepository extends ServiceEntityRepository
 {
     private ?CacheItemPoolInterface $cache = null;
 
-    public function __construct(ManagerRegistry $registry, CacheItemPoolInterface $cache = null)
+    public function __construct(ManagerRegistry $registry, ?CacheItemPoolInterface $cache = null)
     {
         parent::__construct($registry, Convocatoria::class);
         $this->cache = $cache;
@@ -108,15 +108,3 @@ class ConvocatoriaRepository extends ServiceEntityRepository
             ->getResult();
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
