@@ -50,9 +50,11 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {{ examen.usuario.nombreDisplay }}
                                     {% if examen.usuario.id == app.user.id %}
+                                        {{ examen.usuario.nombreDisplay }}
                                         <span class="badge" style="background-color: #2196F3;">Tú</span>
+                                    {% else %}
+                                        {{ ofuscar_nombre(examen.usuario.id) }}
                                     {% endif %}
                                 </td>
                                 <td>
