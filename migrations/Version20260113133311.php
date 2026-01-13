@@ -101,32 +101,43 @@ final class Version20260113133311 extends AbstractMigration
         ");
         
         // Migrar datos: Si existe la columna tema_id, migrar los datos
+        // Usar un procedimiento almacenado para verificar primero si la columna existe
         $this->addSql("
-            INSERT IGNORE INTO sesion_tema (sesion_id, tema_id)
-            SELECT s.id, s.tema_id
-            FROM sesion s
-            WHERE s.tema_id IS NOT NULL
-            AND EXISTS (
-                SELECT 1 
+            SET @col_exists = (
+                SELECT COUNT(*) 
                 FROM INFORMATION_SCHEMA.COLUMNS 
                 WHERE TABLE_SCHEMA = DATABASE() 
                 AND TABLE_NAME = 'sesion' 
                 AND COLUMN_NAME = 'tema_id'
-            )
+            );
+            SET @sql = IF(@col_exists > 0, 
+                'INSERT IGNORE INTO sesion_tema (sesion_id, tema_id)
+                 SELECT s.id, s.tema_id
+                 FROM sesion s
+                 WHERE s.tema_id IS NOT NULL', 
+                'SELECT 1');
+            PREPARE stmt FROM @sql;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
         ");
         
         $this->addSql("
-            INSERT IGNORE INTO sesion_tema_municipal (sesion_id, tema_municipal_id)
-            SELECT s.id, s.tema_municipal_id
-            FROM sesion s
-            WHERE s.tema_municipal_id IS NOT NULL
-            AND EXISTS (
-                SELECT 1 
+            SET @col_exists = (
+                SELECT COUNT(*) 
                 FROM INFORMATION_SCHEMA.COLUMNS 
                 WHERE TABLE_SCHEMA = DATABASE() 
                 AND TABLE_NAME = 'sesion' 
                 AND COLUMN_NAME = 'tema_municipal_id'
-            )
+            );
+            SET @sql = IF(@col_exists > 0, 
+                'INSERT IGNORE INTO sesion_tema_municipal (sesion_id, tema_municipal_id)
+                 SELECT s.id, s.tema_municipal_id
+                 FROM sesion s
+                 WHERE s.tema_municipal_id IS NOT NULL', 
+                'SELECT 1');
+            PREPARE stmt FROM @sql;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
         ");
         
         // Eliminar foreign keys antiguas si existen
