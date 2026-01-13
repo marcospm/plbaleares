@@ -1,0 +1,548 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sesiones{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        /* Estilos base */
+        .sesiones-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .page-header {
+            margin-bottom: 2rem;
+        }
+        
+        .page-header h1 {
+            font-size: 2.5rem;
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .page-header p {
+            font-size: 1.1rem;
+            color: #666;
+        }
+        
+        .filters-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .filter-label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-size: 0.95rem;
+        }
+        
+        .filter-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .filter-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(0,113,181,0.1);
+        }
+        
+        .filter-buttons {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .filter-btn-primary {
+            background: var(--color-primary);
+            color: white;
+        }
+        
+        .filter-btn-primary:hover {
+            background: #005a8f;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,113,181,0.3);
+        }
+        
+        .filter-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .filter-btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .results-info {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: #e7f3ff;
+            border-radius: 8px;
+            color: #004085;
+            font-weight: 500;
+        }
+        
+        .sesiones-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .sesion-item {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .sesion-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateX(4px);
+        }
+        
+        .sesion-content {
+            flex: 1;
+            min-width: 250px;
+        }
+        
+        .sesion-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .sesion-title a {
+            color: var(--color-primary);
+            text-decoration: none;
+        }
+        
+        .sesion-title a:hover {
+            text-decoration: underline;
+        }
+        
+        .sesion-description {
+            font-size: 0.95rem;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 0.75rem;
+        }
+        
+        .sesion-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .sesion-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .sesion-badge {
+            padding: 0.35rem 0.7rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .sesion-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .sesion-button {
+            padding: 0.75rem 1.5rem;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .sesion-button:hover {
+            background: #005a8f;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,113,181,0.3);
+        }
+        
+        /* Responsive - Tablet */
+        @media (max-width: 992px) {
+            .sesiones-container {
+                padding: 1.5rem;
+            }
+            
+        }
+        
+        /* Responsive - Mobile */
+        @media (max-width: 768px) {
+            .sesiones-container {
+                padding: 1rem !important;
+            }
+            
+            .page-header h1 {
+                font-size: 1.75rem !important;
+            }
+            
+            .page-header p {
+                font-size: 1rem !important;
+            }
+            
+            .filters-card {
+                padding: 1rem !important;
+                border-radius: 10px !important;
+            }
+            
+            .filters-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+            
+            .filter-group {
+                width: 100% !important;
+            }
+            
+            .filter-input {
+                width: 100% !important;
+                padding: 0.875rem !important;
+                font-size: 1rem !important;
+            }
+            
+            .filter-buttons {
+                flex-direction: column !important;
+                width: 100% !important;
+            }
+            
+            .filter-btn {
+                width: 100% !important;
+                padding: 0.875rem !important;
+                text-align: center !important;
+            }
+            
+            .results-info {
+                font-size: 0.9rem !important;
+                padding: 0.875rem !important;
+            }
+            
+            .sesion-item {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                padding: 1rem !important;
+            }
+            
+            .sesion-content {
+                width: 100% !important;
+            }
+            
+            .sesion-title {
+                font-size: 1.1rem !important;
+            }
+            
+            .sesion-description {
+                font-size: 0.9rem !important;
+            }
+            
+            .sesion-actions {
+                width: 100% !important;
+                justify-content: stretch !important;
+            }
+            
+            .sesion-button {
+                width: 100% !important;
+                padding: 0.875rem !important;
+                font-size: 0.95rem !important;
+                text-align: center !important;
+            }
+        }
+        
+        /* Responsive - Small Mobile */
+        @media (max-width: 480px) {
+            .sesiones-container {
+                padding: 0.75rem !important;
+            }
+            
+            .page-header h1 {
+                font-size: 1.5rem !important;
+            }
+            
+            .page-header p {
+                font-size: 0.95rem !important;
+            }
+            
+            .filters-card {
+                padding: 0.875rem !important;
+            }
+            
+            .filter-input {
+                padding: 0.75rem !important;
+                font-size: 0.95rem !important;
+            }
+            
+            .sesion-item {
+                padding: 0.875rem !important;
+            }
+            
+            .sesion-title {
+                font-size: 1rem !important;
+            }
+            
+            .sesion-button {
+                padding: 0.75rem !important;
+                font-size: 0.9rem !important;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="sesiones-container">
+    <div class="page-header">
+        <h1>🎥 Sesiones</h1>
+        <p>Accede a las sesiones de video creadas por los profesores. Puedes filtrar por nombre, tema, municipio o convocatoria.</p>
+    </div>
+    
+    <form method="get" action="{{ path('app_sesion_publico_index') }}">
+        <div class="filters-card">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label class="filter-label">🔍 Buscar por nombre</label>
+                    <input type="text" name="search" value="{{ search }}" class="filter-input" placeholder="Nombre de la sesión...">
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label">📚 Tema General</label>
+                    <select name="tema" class="filter-input">
+                        <option value="">Todos</option>
+                        {% for tema in temas %}
+                            <option value="{{ tema.id }}" {% if temaId == tema.id %}selected{% endif %}>{{ tema.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label">📍 Municipio</label>
+                    <select name="municipio" id="municipio-filter" class="filter-input">
+                        <option value="">Todos</option>
+                        {% for municipio in municipios %}
+                            <option value="{{ municipio.id }}" {% if municipioId == municipio.id %}selected{% endif %}>{{ municipio.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label">📋 Convocatoria</label>
+                    <select name="convocatoria" class="filter-input">
+                        <option value="">Todas</option>
+                        {% for convocatoria in convocatorias %}
+                            <option value="{{ convocatoria.id }}" {% if convocatoriaId == convocatoria.id %}selected{% endif %}>{{ convocatoria.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label">🏛️ Tema Municipal</label>
+                    <select name="tema_municipal" id="tema-municipal-filter" class="filter-input">
+                        <option value="">Todos</option>
+                        {% for temaMunicipal in temasMunicipales %}
+                            <option value="{{ temaMunicipal.id }}" {% if temaMunicipalId == temaMunicipal.id %}selected{% endif %}>{{ temaMunicipal.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="filter-buttons">
+                <button type="submit" class="filter-btn filter-btn-primary">🔍 Filtrar</button>
+                <a href="{{ path('app_sesion_publico_index') }}" class="filter-btn filter-btn-secondary">🔄 Limpiar Filtros</a>
+            </div>
+        </div>
+    </form>
+    
+    {% if sesiones|length > 0 %}
+        <div class="results-info">
+            Mostrando {{ sesiones|length }} de {{ totalItems }} sesiones
+        </div>
+        
+        <div class="sesiones-list">
+            {% for sesion in sesiones %}
+                <div class="sesion-item">
+                    <div class="sesion-content">
+                        <h3 class="sesion-title">
+                            <a href="{{ path('app_sesion_publico_show', {'id': sesion.id}) }}">{{ sesion.nombre }}</a>
+                        </h3>
+                        
+                        {% if sesion.descripcion %}
+                            <p class="sesion-description">
+                                {{ sesion.descripcion|slice(0, 150) }}{% if sesion.descripcion|length > 150 %}...{% endif %}
+                            </p>
+                        {% endif %}
+                        
+                        <div class="sesion-meta">
+                            {% if sesion.municipio %}
+                                <span>📍 <strong>Municipio:</strong> {{ sesion.municipio.nombre }}</span>
+                            {% endif %}
+                            
+                            {% if sesion.convocatoria %}
+                                <span>📋 <strong>Convocatoria:</strong> {{ sesion.convocatoria.nombre }}</span>
+                            {% endif %}
+                            
+                            <span>📅 <strong>Creado:</strong> {{ sesion.fechaCreacion|date('d/m/Y') }}</span>
+                        </div>
+                        
+                        <div class="sesion-badges">
+                            {% if sesion.temas|length > 0 %}
+                                {% for tema in sesion.temas %}
+                                    <span class="badge bg-success sesion-badge">{{ tema.nombre }}</span>
+                                {% endfor %}
+                            {% elseif sesion.temasMunicipales|length > 0 %}
+                                {% for temaMunicipal in sesion.temasMunicipales %}
+                                    <span class="badge bg-warning sesion-badge">{{ temaMunicipal.nombre }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="sesion-actions">
+                        <a href="{{ path('app_sesion_publico_show', {'id': sesion.id}) }}" class="sesion-button">
+                            ▶️ Ver Sesión
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        {% if totalPages > 1 %}
+            <div style="margin-top: 2rem;">
+                <ul class="pagination justify-content-center">
+                    {% if page > 1 %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ path('app_sesion_publico_index', {
+                                'page': page - 1,
+                                'search': search,
+                                'tema': temaId,
+                                'tema_municipal': temaMunicipalId,
+                                'municipio': municipioId,
+                                'convocatoria': convocatoriaId
+                            }) }}">Anterior</a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for p in 1..totalPages %}
+                        {% if p == page %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ p }}</span>
+                            </li>
+                        {% elseif p == 1 or p == totalPages or (p >= page - 2 and p <= page + 2) %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('app_sesion_publico_index', {
+                                    'page': p,
+                                    'search': search,
+                                    'tema': temaId,
+                                    'tema_municipal': temaMunicipalId,
+                                    'municipio': municipioId,
+                                    'convocatoria': convocatoriaId
+                                }) }}">{{ p }}</a>
+                            </li>
+                        {% elseif p == page - 3 or p == page + 3 %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page < totalPages %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ path('app_sesion_publico_index', {
+                                'page': page + 1,
+                                'search': search,
+                                'tema': temaId,
+                                'tema_municipal': temaMunicipalId,
+                                'municipio': municipioId,
+                                'convocatoria': convocatoriaId
+                            }) }}">Siguiente</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="card" style="background-color: #f8f9fa; border-radius: 12px;">
+            <div class="card-body text-center">
+                <p style="font-size: 1.1rem; margin-bottom: 1rem;">No se encontraron sesiones con los filtros seleccionados.</p>
+                <a href="{{ path('app_sesion_publico_index') }}" class="filter-btn filter-btn-primary">Ver Todas las Sesiones</a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const municipioFilter = document.getElementById('municipio-filter');
+    const temaMunicipalFilter = document.getElementById('tema-municipal-filter');
+    
+    if (municipioFilter) {
+        municipioFilter.addEventListener('change', function() {
+            const municipioId = this.value;
+            // Cuando se cambia el municipio, limpiar el filtro de tema municipal
+            // pero mantener todos los temas municipales disponibles en el selector
+            const url = new URL(window.location);
+            if (municipioId) {
+                url.searchParams.set('municipio', municipioId);
+            } else {
+                url.searchParams.delete('municipio');
+            }
+            url.searchParams.delete('tema_municipal');
+            window.location.href = url.toString();
+        });
+    }
+});
+</script>
+{% endblock %}

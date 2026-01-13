@@ -1,0 +1,261 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestión de Sesiones{% endblock %}
+
+{% block body %}
+<style>
+    @media (max-width: 768px) {
+        .d-flex.justify-content-between {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .d-flex.justify-content-between h1 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+        .d-flex.justify-content-between .btn {
+            width: 100%;
+        }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        .table {
+            font-size: 0.85rem;
+        }
+        .btn-sm {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const municipioFilter = document.getElementById('municipio-filter');
+    const temaMunicipalFilter = document.getElementById('tema-municipal-filter');
+    
+    if (municipioFilter) {
+        municipioFilter.addEventListener('change', function() {
+            const municipioId = this.value;
+            // Cuando se cambia el municipio, limpiar el filtro de tema municipal
+            // pero mantener todos los temas municipales disponibles en el selector
+            const url = new URL(window.location);
+            if (municipioId) {
+                url.searchParams.set('municipio', municipioId);
+            } else {
+                url.searchParams.delete('municipio');
+            }
+            url.searchParams.delete('tema_municipal');
+            window.location.href = url.toString();
+        });
+    }
+});
+</script>
+
+<div class="d-flex justify-content-between mb-4" style="flex-wrap: wrap; gap: 1rem;">
+    <h1>Gestión de Sesiones</h1>
+    <a href="{{ path('app_sesion_new') }}" class="btn btn-primary">Nueva Sesión</a>
+</div>
+
+<form method="get" action="{{ path('app_sesion_index') }}" style="margin-bottom: 2rem;">
+    <div class="card">
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">🔍 Buscar por nombre</label>
+                    <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Nombre de la sesión...">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">📚 Tema General</label>
+                    <select name="tema" class="form-control">
+                        <option value="">Todos</option>
+                        {% for tema in temas %}
+                            <option value="{{ tema.id }}" {% if temaId == tema.id %}selected{% endif %}>{{ tema.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">📍 Municipio</label>
+                    <select name="municipio" id="municipio-filter" class="form-control">
+                        <option value="">Todos</option>
+                        {% for municipio in municipios %}
+                            <option value="{{ municipio.id }}" {% if municipioId == municipio.id %}selected{% endif %}>{{ municipio.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">📋 Convocatoria</label>
+                    <select name="convocatoria" class="form-control">
+                        <option value="">Todas</option>
+                        {% for convocatoria in convocatorias %}
+                            <option value="{{ convocatoria.id }}" {% if convocatoriaId == convocatoria.id %}selected{% endif %}>{{ convocatoria.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">🏛️ Tema Municipal</label>
+                    <select name="tema_municipal" id="tema-municipal-filter" class="form-control">
+                        <option value="">Todos</option>
+                        {% for temaMunicipal in temasMunicipales %}
+                            <option value="{{ temaMunicipal.id }}" {% if temaMunicipalId == temaMunicipal.id %}selected{% endif %}>{{ temaMunicipal.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
+                <a href="{{ path('app_sesion_index') }}" class="btn btn-secondary">🔄 Limpiar Filtros</a>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if sesiones|length > 0 %}
+    <div class="card">
+        <div class="card-header">
+            <h3 style="margin: 0;">Sesiones ({{ totalItems }} total)</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%;">ID</th>
+                            <th style="width: 20%;">Nombre</th>
+                            <th style="width: 15%;">Tema</th>
+                            <th style="width: 10%;">Tipo</th>
+                            <th style="width: 10%;">Municipio</th>
+                            <th style="width: 10%;">Convocatoria</th>
+                            <th style="width: 10%;">Creado por</th>
+                            <th style="width: 10%;">Fecha</th>
+                            <th style="width: 10%;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sesion in sesiones %}
+                            <tr>
+                                <td><strong>{{ sesion.id }}</strong></td>
+                                <td><strong>{{ sesion.nombre }}</strong></td>
+                                <td>
+                                    {% if sesion.temas|length > 0 %}
+                                        {% for tema in sesion.temas %}
+                                            <span class="badge bg-primary" style="margin: 2px; display: inline-block;">{{ tema.nombre|slice(0, 25) }}{% if tema.nombre|length > 25 %}...{% endif %}</span>
+                                        {% endfor %}
+                                    {% elseif sesion.temasMunicipales|length > 0 %}
+                                        {% for temaMunicipal in sesion.temasMunicipales %}
+                                            <span class="badge bg-info" style="margin: 2px; display: inline-block;">{{ temaMunicipal.nombre|slice(0, 25) }}{% if temaMunicipal.nombre|length > 25 %}...{% endif %}</span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="badge bg-secondary">Sin tema</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if sesion.temas|length > 0 %}
+                                        <span class="badge bg-success">General ({{ sesion.temas|length }})</span>
+                                    {% elseif sesion.temasMunicipales|length > 0 %}
+                                        <span class="badge bg-warning">Municipal ({{ sesion.temasMunicipales|length }})</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if sesion.municipio %}
+                                        {{ sesion.municipio.nombre }}
+                                    {% else %}
+                                        <span style="color: var(--color-text-light);">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if sesion.convocatoria %}
+                                        {{ sesion.convocatoria.nombre|slice(0, 20) }}{% if sesion.convocatoria.nombre|length > 20 %}...{% endif %}
+                                    {% else %}
+                                        <span style="color: var(--color-text-light);">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ sesion.creadoPor.userIdentifier }}
+                                </td>
+                                <td>
+                                    {{ sesion.fechaCreacion|date('d/m/Y') }}
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-2" style="flex-wrap: wrap;">
+                                        <a href="{{ path('app_sesion_show', {'id': sesion.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
+                                        <a href="{{ path('app_sesion_edit', {'id': sesion.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                        {{ include('sesion/_delete_form.html.twig') }}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            {% if totalPages > 1 %}
+                <div style="margin-top: 2rem;">
+                    <ul class="pagination justify-content-center">
+                        {% if page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('app_sesion_index', {
+                                    'page': page - 1,
+                                    'search': search,
+                                    'tema': temaId,
+                                    'tema_municipal': temaMunicipalId,
+                                    'municipio': municipioId,
+                                    'convocatoria': convocatoriaId
+                                }) }}">Anterior</a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for p in 1..totalPages %}
+                            {% if p == page %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ p }}</span>
+                                </li>
+                            {% elseif p == 1 or p == totalPages or (p >= page - 2 and p <= page + 2) %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ path('app_sesion_index', {
+                                        'page': p,
+                                        'search': search,
+                                        'tema': temaId,
+                                        'tema_municipal': temaMunicipalId,
+                                        'municipio': municipioId,
+                                        'convocatoria': convocatoriaId
+                                    }) }}">{{ p }}</a>
+                                </li>
+                            {% elseif p == page - 3 or p == page + 3 %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page < totalPages %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('app_sesion_index', {
+                                    'page': page + 1,
+                                    'search': search,
+                                    'tema': temaId,
+                                    'tema_municipal': temaMunicipalId,
+                                    'municipio': municipioId,
+                                    'convocatoria': convocatoriaId
+                                }) }}">Siguiente</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <p>No hay sesiones registradas aún.</p>
+            <a href="{{ path('app_sesion_new') }}" class="btn btn-primary">Crear Primera Sesión</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

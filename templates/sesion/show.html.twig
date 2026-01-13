@@ -1,0 +1,138 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sesión: {{ sesion.nombre }}{% endblock %}
+
+{% block body %}
+<style>
+    @media (max-width: 768px) {
+        h1 {
+            font-size: 1.5rem;
+        }
+        .card {
+            margin-bottom: 1rem;
+        }
+        iframe {
+            width: 100% !important;
+            height: auto !important;
+            min-height: 250px;
+        }
+    }
+    
+    .video-container {
+        position: relative;
+        padding-bottom: 56.25%; /* 16:9 aspect ratio */
+        height: 0;
+        overflow: hidden;
+        max-width: 100%;
+        background: #000;
+    }
+    
+    .video-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+</style>
+
+<div class="d-flex justify-content-between mb-4" style="flex-wrap: wrap; gap: 1rem;">
+    <h1>{{ sesion.nombre }}</h1>
+    <div>
+        <a href="{{ path('app_sesion_edit', {'id': sesion.id}) }}" class="btn btn-primary">Editar</a>
+        <a href="{{ path('app_sesion_index') }}" class="btn btn-secondary">Volver al listado</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 style="margin: 0;">Información de la Sesión</h3>
+    </div>
+    <div class="card-body">
+        <table class="table">
+            <tbody>
+                <tr>
+                    <th style="width: 20%;">ID</th>
+                    <td>{{ sesion.id }}</td>
+                </tr>
+                <tr>
+                    <th>Nombre</th>
+                    <td><strong>{{ sesion.nombre }}</strong></td>
+                </tr>
+                <tr>
+                    <th>Descripción</th>
+                    <td>{{ sesion.descripcion|default('Sin descripción')|nl2br }}</td>
+                </tr>
+                <tr>
+                    <th>Tipo de Tema</th>
+                    <td>
+                        {% if sesion.temas|length > 0 %}
+                            <span class="badge bg-success">Tema General</span>
+                        {% elseif sesion.temasMunicipales|length > 0 %}
+                            <span class="badge bg-warning">Tema Municipal</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Sin tema</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Temas</th>
+                    <td>
+                        {% if sesion.temas|length > 0 %}
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                {% for tema in sesion.temas %}
+                                    <span class="badge bg-primary">{{ tema.nombre }}</span>
+                                {% endfor %}
+                            </div>
+                        {% elseif sesion.temasMunicipales|length > 0 %}
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                {% for temaMunicipal in sesion.temasMunicipales %}
+                                    <span class="badge bg-info">{{ temaMunicipal.nombre }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <span style="color: var(--color-text-light);">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% if sesion.municipio %}
+                <tr>
+                    <th>Municipio</th>
+                    <td>{{ sesion.municipio.nombre }}</td>
+                </tr>
+                {% endif %}
+                {% if sesion.convocatoria %}
+                <tr>
+                    <th>Convocatoria</th>
+                    <td>{{ sesion.convocatoria.nombre }}</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <th>Creado por</th>
+                    <td>{{ sesion.creadoPor.userIdentifier }}</td>
+                </tr>
+                <tr>
+                    <th>Fecha de creación</th>
+                    <td>{{ sesion.fechaCreacion|date('d/m/Y H:i') }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 2rem;">
+    <div class="card-header">
+        <h3 style="margin: 0;">Video</h3>
+    </div>
+    <div class="card-body">
+        <div class="video-container">
+            {{ sesion.enlaceVideo|raw }}
+        </div>
+    </div>
+</div>
+
+<div style="margin-top: 2rem;">
+    {{ include('sesion/_delete_form.html.twig') }}
+</div>
+
+{% endblock %}

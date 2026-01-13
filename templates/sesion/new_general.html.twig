@@ -1,0 +1,25 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nueva Sesión - Temario General{% endblock %}
+
+{% block body %}
+<style>
+    @media (max-width: 768px) {
+        h1 {
+            font-size: 1.5rem;
+        }
+        .card {
+            margin-bottom: 1rem;
+        }
+        .form-control {
+            font-size: 0.9rem;
+        }
+    }
+</style>
+
+<div class="container mt-4">
+    <h1>Crear Sesión de Temario General</h1>
+
+    {{ include('sesion/_form_general.html.twig', {'button_label': 'Crear Sesión'}) }}
+</div>
+{% endblock %}

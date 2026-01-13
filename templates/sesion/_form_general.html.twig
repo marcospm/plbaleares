@@ -1,0 +1,33 @@
+{{ form_start(form) }}
+    <div class="card">
+        <div class="card-body">
+            {# Mostrar errores globales del formulario #}
+            {% if form.vars.errors|length > 0 %}
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        {% for error in form.vars.errors %}
+                            <li>{{ error.message }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            
+            {{ form_row(form.nombre) }}
+            {{ form_row(form.descripcion) }}
+            
+            <div class="form-group mb-3">
+                {{ form_label(form.temas) }}
+                {{ form_widget(form.temas, {'attr': {'class': 'form-control', 'size': '10', 'multiple': 'multiple'}}) }}
+                {{ form_errors(form.temas) }}
+                <small class="form-text text-muted">Puedes seleccionar múltiples temas. Mantén presionada la tecla Ctrl (o Cmd en Mac) para seleccionar varios.</small>
+            </div>
+            
+            {{ form_row(form.enlaceVideo) }}
+        </div>
+    </div>
+    
+    <div style="margin-top: 1rem;">
+        <button type="submit" class="btn btn-primary">{{ button_label|default('Guardar') }}</button>
+        <a href="{{ path('app_sesion_new') }}" class="btn btn-secondary">Cancelar</a>
+    </div>
+{{ form_end(form) }}

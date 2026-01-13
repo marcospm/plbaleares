@@ -1,0 +1,289 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nueva Sesión{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        /* Estilos base */
+        .choice-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .choice-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .choice-header h1 {
+            font-size: 2.5rem;
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+        }
+        
+        .choice-header p {
+            font-size: 1.2rem;
+            color: #666;
+        }
+        
+        .choices-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .choice-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .choice-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+            border-color: var(--color-primary);
+        }
+        
+        .choice-icon {
+            font-size: 4rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .choice-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        .choice-description {
+            font-size: 1rem;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            flex-grow: 1;
+        }
+        
+        .choice-button {
+            width: 100%;
+            padding: 1.25rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+        }
+        
+        .choice-button-primary {
+            background: linear-gradient(135deg, #0071B5 0%, #005a8f 100%);
+            color: white;
+        }
+        
+        .choice-button-primary:hover {
+            background: linear-gradient(135deg, #005a8f 0%, #004a75 100%);
+            transform: scale(1.02);
+            box-shadow: 0 6px 12px rgba(0,113,181,0.3);
+        }
+        
+        .choice-button-success {
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+            color: white;
+        }
+        
+        .choice-button-success:hover {
+            background: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
+            transform: scale(1.02);
+            box-shadow: 0 6px 12px rgba(40,167,69,0.3);
+        }
+        
+        .back-button {
+            text-align: center;
+            margin-top: 2rem;
+        }
+        
+        .back-button a {
+            display: inline-block;
+            padding: 0.75rem 2rem;
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .back-button a:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        
+        /* Responsive - Tablet */
+        @media (max-width: 992px) {
+            .choice-container {
+                padding: 1.5rem;
+            }
+            
+            .choice-header h1 {
+                font-size: 2rem;
+            }
+            
+            .choice-header p {
+                font-size: 1.1rem;
+            }
+            
+            .choices-grid {
+                gap: 1.5rem;
+            }
+        }
+        
+        /* Responsive - Mobile */
+        @media (max-width: 768px) {
+            .choice-container {
+                padding: 1rem !important;
+            }
+            
+            .choice-header {
+                margin-bottom: 2rem !important;
+            }
+            
+            .choice-header h1 {
+                font-size: 1.75rem !important;
+                margin-bottom: 0.75rem !important;
+            }
+            
+            .choice-header p {
+                font-size: 1rem !important;
+            }
+            
+            .choices-grid {
+                grid-template-columns: 1fr !important;
+                gap: 1.5rem !important;
+                margin-bottom: 1.5rem !important;
+            }
+            
+            .choice-card {
+                padding: 1.5rem !important;
+                border-radius: 12px !important;
+            }
+            
+            .choice-icon {
+                font-size: 3rem !important;
+                margin-bottom: 1rem !important;
+            }
+            
+            .choice-title {
+                font-size: 1.25rem !important;
+                margin-bottom: 0.75rem !important;
+            }
+            
+            .choice-description {
+                font-size: 0.95rem !important;
+                margin-bottom: 1.5rem !important;
+            }
+            
+            .choice-button {
+                padding: 1rem 1.5rem !important;
+                font-size: 1rem !important;
+                border-radius: 10px !important;
+            }
+            
+            .back-button {
+                margin-top: 1.5rem !important;
+            }
+            
+            .back-button a {
+                width: 100% !important;
+                padding: 0.875rem 1.5rem !important;
+            }
+        }
+        
+        /* Responsive - Small Mobile */
+        @media (max-width: 480px) {
+            .choice-container {
+                padding: 0.75rem !important;
+            }
+            
+            .choice-header h1 {
+                font-size: 1.5rem !important;
+            }
+            
+            .choice-header p {
+                font-size: 0.9rem !important;
+            }
+            
+            .choice-card {
+                padding: 1.25rem !important;
+            }
+            
+            .choice-icon {
+                font-size: 2.5rem !important;
+            }
+            
+            .choice-title {
+                font-size: 1.1rem !important;
+            }
+            
+            .choice-description {
+                font-size: 0.9rem !important;
+            }
+            
+            .choice-button {
+                padding: 0.875rem 1.25rem !important;
+                font-size: 0.95rem !important;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="choice-container">
+    <div class="choice-header">
+        <h1>Crear Nueva Sesión</h1>
+        <p>Selecciona el tipo de sesión que deseas crear</p>
+    </div>
+    
+    <div class="choices-grid">
+        <div class="choice-card">
+            <div class="choice-icon">📚</div>
+            <h2 class="choice-title">Sesión de Temario General</h2>
+            <p class="choice-description">
+                Crea una sesión relacionada con temas del temario general. 
+                Esta sesión estará disponible para todos los alumnos.
+            </p>
+            <a href="{{ path('app_sesion_new_general') }}" class="choice-button choice-button-primary">
+                Crear Sesión General
+            </a>
+        </div>
+        
+        <div class="choice-card">
+            <div class="choice-icon">🏛️</div>
+            <h2 class="choice-title">Sesión de Temario Municipal</h2>
+            <p class="choice-description">
+                Crea una sesión relacionada con temas municipales de una convocatoria específica. 
+                Esta sesión estará disponible para alumnos de municipios específicos.
+            </p>
+            <a href="{{ path('app_sesion_new_municipal') }}" class="choice-button choice-button-success">
+                Crear Sesión Municipal
+            </a>
+        </div>
+    </div>
+    
+    <div class="back-button">
+        <a href="{{ path('app_sesion_index') }}">← Volver al listado</a>
+    </div>
+</div>
+{% endblock %}

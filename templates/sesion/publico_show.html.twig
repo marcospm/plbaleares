@@ -1,0 +1,123 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sesión: {{ sesion.nombre }}{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem !important;
+            }
+            .card {
+                margin-bottom: 1rem !important;
+            }
+            .card-body {
+                padding: 1rem !important;
+            }
+            .btn {
+                width: 100% !important;
+                margin-bottom: 0.5rem !important;
+            }
+        }
+        
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+            max-width: 100%;
+            background: #000;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+        
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        @media (max-width: 768px) {
+            .video-container {
+                padding-bottom: 56.25%;
+                margin: 1rem 0;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <h1 style="margin: 0;">{{ sesion.nombre }}</h1>
+            <a href="{{ path('app_sesion_publico_index') }}" class="btn btn-secondary">Volver al listado</a>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if sesion.descripcion %}
+            <div style="margin-bottom: 2rem;">
+                <h3 style="color: var(--color-primary); margin-bottom: 0.5rem;">Descripción</h3>
+                <p style="font-size: 1rem; line-height: 1.6; color: var(--color-text);">
+                    {{ sesion.descripcion|nl2br }}
+                </p>
+            </div>
+        {% endif %}
+        
+        <div style="margin-bottom: 2rem;">
+            <h3 style="color: var(--color-primary); margin-bottom: 1rem;">Información</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div>
+                    <strong>Tipo de Tema:</strong>
+                    {% if sesion.temas|length > 0 %}
+                        <span class="badge bg-success">Tema General</span>
+                    {% elseif sesion.temasMunicipales|length > 0 %}
+                        <span class="badge bg-warning">Tema Municipal</span>
+                    {% endif %}
+                </div>
+                
+                <div style="grid-column: 1 / -1;">
+                    <strong>Temas:</strong>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                        {% if sesion.temas|length > 0 %}
+                            {% for tema in sesion.temas %}
+                                <span class="badge bg-primary">{{ tema.nombre }}</span>
+                            {% endfor %}
+                        {% elseif sesion.temasMunicipales|length > 0 %}
+                            {% for temaMunicipal in sesion.temasMunicipales %}
+                                <span class="badge bg-info">{{ temaMunicipal.nombre }}</span>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if sesion.municipio %}
+                <div>
+                    <strong>Municipio:</strong> {{ sesion.municipio.nombre }}
+                </div>
+                {% endif %}
+                
+                {% if sesion.convocatoria %}
+                <div>
+                    <strong>Convocatoria:</strong> {{ sesion.convocatoria.nombre }}
+                </div>
+                {% endif %}
+                
+                <div>
+                    <strong>Fecha de creación:</strong> {{ sesion.fechaCreacion|date('d/m/Y') }}
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <h3 style="color: var(--color-primary); margin-bottom: 1rem;">Video</h3>
+            <div class="video-container">
+                {{ sesion.enlaceVideo|raw }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
