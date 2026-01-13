@@ -5,6 +5,54 @@
 {% block stylesheets %}
     {{ parent() }}
     <style>
+        /* Estilos para paginación */
+        .pagination {
+            display: flex;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            gap: 0.25rem;
+            flex-wrap: wrap;
+        }
+        
+        .page-item {
+            margin: 0;
+        }
+        
+        .page-link {
+            display: block;
+            padding: 0.5rem 0.75rem;
+            color: var(--color-primary);
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            min-width: 38px;
+            text-align: center;
+        }
+        
+        .page-link:hover {
+            background-color: #e9ecef;
+            border-color: #dee2e6;
+            color: var(--color-primary);
+        }
+        
+        .page-item.active .page-link {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+            color: white;
+            font-weight: bold;
+        }
+        
+        .page-item.disabled .page-link {
+            color: #6c757d;
+            pointer-events: none;
+            background-color: #fff;
+            border-color: #dee2e6;
+            cursor: not-allowed;
+        }
+
         @media (max-width: 768px) {
             /* Header responsive */
             .d-flex.justify-content-between {
@@ -21,6 +69,41 @@
                 width: 100%;
                 min-height: 48px;
                 font-size: 16px;
+            }
+
+            /* Formulario de filtros responsive */
+            #filtrosForm {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+            }
+            
+            #filtrosForm > div {
+                width: 100%;
+            }
+            
+            #filtrosForm label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-size: 0.95rem;
+            }
+            
+            #filtrosForm input,
+            #filtrosForm select {
+                font-size: 16px !important;
+                min-height: 48px;
+                width: 100%;
+            }
+            
+            #filtrosForm > div:last-child {
+                display: flex;
+                flex-direction: row;
+                gap: 0.75rem;
+                width: 100%;
+            }
+            
+            #filtrosForm > div:last-child .btn {
+                flex: 1;
+                min-height: 48px;
             }
             
             /* Tabla responsive */
@@ -114,6 +197,56 @@
     <a href="{{ path('app_examen_semanal_new') }}" class="btn btn-primary" style="min-height: 48px; font-size: 16px; white-space: nowrap; align-self: flex-start;">Nuevo Examen Semanal</a>
 </div>
 
+{# Formulario de búsqueda y filtros #}
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" action="{{ path('app_examen_semanal_index') }}" id="filtrosForm" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+            <div>
+                <label for="search" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Buscar por nombre:</label>
+                <input type="text" 
+                       id="search" 
+                       name="search" 
+                       value="{{ search }}" 
+                       placeholder="Buscar exámenes..."
+                       class="form-control"
+                       style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
+            </div>
+            <div>
+                <label for="dificultad" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Dificultad:</label>
+                <select id="dificultad" name="dificultad" class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
+                    <option value="">Todas</option>
+                    <option value="facil" {% if dificultad == 'facil' %}selected{% endif %}>Fácil</option>
+                    <option value="moderada" {% if dificultad == 'moderada' %}selected{% endif %}>Moderada</option>
+                    <option value="dificil" {% if dificultad == 'dificil' %}selected{% endif %}>Difícil</option>
+                </select>
+            </div>
+            <div>
+                <label for="estado" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Estado:</label>
+                <select id="estado" name="estado" class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
+                    <option value="">Todos</option>
+                    <option value="disponible" {% if estado == 'disponible' %}selected{% endif %}>Disponible</option>
+                    <option value="pendiente" {% if estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                    <option value="cerrado" {% if estado == 'cerrado' %}selected{% endif %}>Cerrado</option>
+                    <option value="inactivo" {% if estado == 'inactivo' %}selected{% endif %}>Inactivo</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-direction: column;">
+                <button type="submit" class="btn btn-primary" style="min-height: 48px; font-size: 16px; white-space: nowrap;">Buscar</button>
+                {% if search or dificultad or estado %}
+                    <a href="{{ path('app_examen_semanal_index') }}" class="btn btn-secondary" style="min-height: 48px; font-size: 16px; white-space: nowrap;">Limpiar</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+{# Información de resultados #}
+{% if totalItems > 0 %}
+    <div class="mb-3" style="color: #666; font-size: 0.9rem;">
+        Mostrando {{ ((currentPage - 1) * itemsPerPage) + 1 }} - {{ min(currentPage * itemsPerPage, totalItems) }} de {{ totalItems }} examen{{ totalItems != 1 ? 'es' : '' }}
+    </div>
+{% endif %}
+
 {% if examenes|length > 0 %}
     <div class="card">
         <div class="table-responsive">
@@ -183,6 +316,59 @@
         </table>
         </div>
     </div>
+
+    {# Paginación #}
+    {% if totalPages > 1 %}
+        <nav aria-label="Paginación de exámenes semanales" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {# Botón Anterior #}
+                <li class="page-item {% if currentPage == 1 %}disabled{% endif %}">
+                    <a class="page-link" href="{% if currentPage > 1 %}{{ path('app_examen_semanal_index', {'page': currentPage - 1, 'search': search, 'dificultad': dificultad, 'estado': estado}) }}{% else %}#{% endif %}" aria-label="Anterior">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+
+                {# Páginas #}
+                {% set startPage = max(1, currentPage - 2) %}
+                {% set endPage = min(totalPages, currentPage + 2) %}
+
+                {% if startPage > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ path('app_examen_semanal_index', {'page': 1, 'search': search, 'dificultad': dificultad, 'estado': estado}) }}">1</a>
+                    </li>
+                    {% if startPage > 2 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endif %}
+
+                {% for i in startPage..endPage %}
+                    <li class="page-item {% if i == currentPage %}active{% endif %}">
+                        <a class="page-link" href="{{ path('app_examen_semanal_index', {'page': i, 'search': search, 'dificultad': dificultad, 'estado': estado}) }}">{{ i }}</a>
+                    </li>
+                {% endfor %}
+
+                {% if endPage < totalPages %}
+                    {% if endPage < totalPages - 1 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ path('app_examen_semanal_index', {'page': totalPages, 'search': search, 'dificultad': dificultad, 'estado': estado}) }}">{{ totalPages }}</a>
+                    </li>
+                {% endif %}
+
+                {# Botón Siguiente #}
+                <li class="page-item {% if currentPage == totalPages %}disabled{% endif %}">
+                    <a class="page-link" href="{% if currentPage < totalPages %}{{ path('app_examen_semanal_index', {'page': currentPage + 1, 'search': search, 'dificultad': dificultad, 'estado': estado}) }}{% else %}#{% endif %}" aria-label="Siguiente">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    {% endif %}
 {% else %}
     <div class="card">
         <div class="card-body text-center" style="padding: 3rem;">

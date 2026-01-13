@@ -307,13 +307,75 @@ class ExamenSemanalController extends AbstractController
     }
 
     #[Route('/', name: 'app_examen_semanal_index', methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        // Ordenar por fecha de creación descendente (más reciente primero)
-        $examenes = $this->examenSemanalRepository->findBy(
-            [],
-            ['fechaCreacion' => 'DESC']
-        );
+        // Parámetros de paginación
+        $itemsPerPage = 20;
+        $page = max(1, $request->query->getInt('page', 1));
+        $search = trim($request->query->get('search', ''));
+        $dificultad = $request->query->get('dificultad', '');
+        $estado = $request->query->get('estado', '');
+
+        // Construir query builder
+        $qb = $this->examenSemanalRepository->createQueryBuilder('e')
+            ->orderBy('e.fechaCreacion', 'DESC');
+
+        // Filtro de búsqueda por nombre
+        if (!empty($search)) {
+            $qb->andWhere('e.nombre LIKE :search')
+               ->setParameter('search', '%' . $search . '%');
+        }
+
+        // Filtro por dificultad
+        if (!empty($dificultad) && in_array($dificultad, ['facil', 'moderada', 'dificil'])) {
+            $qb->andWhere('e.dificultad = :dificultad')
+               ->setParameter('dificultad', $dificultad);
+        }
+
+        // Filtro por estado
+        if (!empty($estado)) {
+            $now = new \DateTime();
+            switch ($estado) {
+                case 'disponible':
+                    $qb->andWhere('e.activo = :activo')
+                       ->andWhere('e.fechaApertura <= :now')
+                       ->andWhere('e.fechaCierre >= :now')
+                       ->setParameter('activo', true)
+                       ->setParameter('now', $now);
+                    break;
+                case 'pendiente':
+                    $qb->andWhere('e.activo = :activo')
+                       ->andWhere('e.fechaApertura > :now')
+                       ->setParameter('activo', true)
+                       ->setParameter('now', $now);
+                    break;
+                case 'cerrado':
+                    $qb->andWhere('e.fechaCierre < :now')
+                       ->setParameter('now', $now);
+                    break;
+                case 'inactivo':
+                    $qb->andWhere('e.activo = :activo')
+                       ->setParameter('activo', false);
+                    break;
+            }
+        }
+
+        // Contar total
+        $totalQb = clone $qb;
+        $totalItems = (int) $totalQb->select('COUNT(e.id)')
+                                   ->getQuery()
+                                   ->getSingleScalarResult();
+
+        // Calcular paginación
+        $totalPages = max(1, (int) ceil($totalItems / $itemsPerPage));
+        $page = min($page, $totalPages);
+        $offset = ($page - 1) * $itemsPerPage;
+
+        // Obtener exámenes paginados
+        $examenes = $qb->setFirstResult($offset)
+                       ->setMaxResults($itemsPerPage)
+                       ->getQuery()
+                       ->getResult();
 
         // Calcular porcentajes por tema para cada examen
         $porcentajesPorExamen = [];
@@ -326,6 +388,13 @@ class ExamenSemanalController extends AbstractController
         return $this->render('examen_semanal/index.html.twig', [
             'examenes' => $examenes,
             'porcentajesPorExamen' => $porcentajesPorExamen,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'totalItems' => $totalItems,
+            'itemsPerPage' => $itemsPerPage,
+            'search' => $search,
+            'dificultad' => $dificultad,
+            'estado' => $estado,
         ]);
     }
 
