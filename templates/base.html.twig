@@ -814,6 +814,12 @@
                 <div class="alert alert-danger">{{ message }}</div>
             {% endfor %}
             
+            {# Breadcrumbs - Solo para usuarios autenticados #}
+            {% if app.user %}
+                {% set breadcrumbs = generate_breadcrumbs(app.request.attributes.get('_route'), app.request.attributes.get('_route_params')) %}
+                {% include 'components/breadcrumbs.html.twig' with {breadcrumbs: breadcrumbs} %}
+            {% endif %}
+            
             {% block body %}{% endblock %}
         </div>
 

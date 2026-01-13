@@ -1,0 +1,111 @@
+{# Componente de Breadcrumbs #}
+{% set breadcrumbs = breadcrumbs|default([]) %}
+
+{% if breadcrumbs|length > 1 %}
+    <nav aria-label="breadcrumb" class="breadcrumb-nav" style="margin-bottom: 1.5rem;">
+        <ol class="breadcrumb" style="display: flex; flex-wrap: wrap; list-style: none; padding: 0.75rem 1rem; margin: 0; background-color: #f8f9fa; border-radius: 8px; align-items: center; gap: 0.5rem;">
+            {% for breadcrumb in breadcrumbs %}
+                {% if not loop.last %}
+                    <li class="breadcrumb-item" style="display: flex; align-items: center;">
+                        <a href="{{ breadcrumb.url }}" style="color: var(--color-primary); text-decoration: none; font-size: 0.9rem; transition: color 0.2s;">
+                            {% if loop.first %}
+                                <span style="margin-right: 0.25rem;">🏠</span>
+                            {% endif %}
+                            {{ breadcrumb.label }}
+                        </a>
+                        <span style="margin: 0 0.5rem; color: #6c757d; font-size: 0.8rem;">›</span>
+                    </li>
+                {% else %}
+                    <li class="breadcrumb-item active" aria-current="page" style="color: #495057; font-weight: 500; font-size: 0.9rem;">
+                        {{ breadcrumb.label }}
+                    </li>
+                {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
+{% endif %}
+
+<style>
+    .breadcrumb-nav {
+        width: 100%;
+    }
+    
+    .breadcrumb {
+        font-size: 0.9rem;
+    }
+    
+    .breadcrumb-item a:hover {
+        color: var(--color-primary);
+        text-decoration: underline;
+    }
+    
+    .breadcrumb-item.active {
+        color: #495057;
+    }
+    
+    @media (max-width: 768px) {
+        .breadcrumb {
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.8rem !important;
+            gap: 0.25rem !important;
+        }
+        
+        .breadcrumb-item {
+            font-size: 0.8rem !important;
+        }
+        
+        .breadcrumb-item span[style*="margin-right: 0.25rem"] {
+            font-size: 0.9rem !important;
+        }
+        
+        .breadcrumb-item span[style*="margin: 0 0.5rem"] {
+            margin: 0 0.25rem !important;
+            font-size: 0.7rem !important;
+        }
+        
+        /* Ocultar algunos breadcrumbs intermedios en móvil si hay muchos */
+        .breadcrumb-item:nth-last-child(n+4) {
+            display: none;
+        }
+        
+        /* Mostrar siempre el primero y los dos últimos */
+        .breadcrumb-item:first-child,
+        .breadcrumb-item:nth-last-child(2),
+        .breadcrumb-item:last-child {
+            display: flex !important;
+        }
+        
+        /* Añadir "..." si hay elementos ocultos */
+        .breadcrumb-item:nth-last-child(3)::before {
+            content: '...';
+            margin: 0 0.25rem;
+            color: #6c757d;
+        }
+        
+        .breadcrumb-item:nth-last-child(3) {
+            display: flex !important;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .breadcrumb {
+            padding: 0.4rem 0.5rem !important;
+            font-size: 0.75rem !important;
+        }
+        
+        .breadcrumb-item {
+            font-size: 0.75rem !important;
+        }
+        
+        /* En pantallas muy pequeñas, mostrar solo inicio y página actual */
+        .breadcrumb-item:not(:first-child):not(:last-child) {
+            display: none !important;
+        }
+        
+        .breadcrumb-item:first-child + .breadcrumb-item:not(:last-child)::before {
+            content: '›';
+            margin: 0 0.25rem;
+            color: #6c757d;
+        }
+    }
+</style>
