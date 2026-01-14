@@ -822,6 +822,9 @@
             {% for message in app.flashes('error') %}
                 <div class="alert alert-danger">{{ message }}</div>
             {% endfor %}
+            {% for message in app.flashes('info') %}
+                <div class="alert alert-info">{{ message }}</div>
+            {% endfor %}
             
             {# Breadcrumbs - Solo para usuarios autenticados #}
             {% if app.user %}

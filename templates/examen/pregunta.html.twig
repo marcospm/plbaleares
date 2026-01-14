@@ -219,12 +219,15 @@
                 {# Mostrar retroalimentación en modo estudio cuando la pregunta está bloqueada (después de responder) #}
                 {% if modoEstudio is defined and modoEstudio and preguntaBloqueada is defined and preguntaBloqueada %}
                     {% if retroalimentacion %}
-                    <div id="retroalimentacion-container" style="margin-top: 1.5rem; padding: 1rem; background: #e7f3ff; border-left: 4px solid #2196F3; border-radius: 4px;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                            <span style="font-size: 1.2rem;">💡</span>
-                            <strong style="color: #1565C0;">Retroalimentación:</strong>
+                    <div id="retroalimentacion-container" style="margin-top: 1.5rem; background: #e7f3ff; border-left: 4px solid #2196F3; border-radius: 4px; overflow: hidden;">
+                        <div class="collapsible-header" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; cursor: pointer; user-select: none; transition: background-color 0.2s;" onclick="toggleCollapsible('retroalimentacion-content', 'retroalimentacion-arrow')" onmouseover="this.style.backgroundColor='rgba(33,150,243,0.1)'" onmouseout="this.style.backgroundColor='transparent'">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-size: 1.2rem;">💡</span>
+                                <strong style="color: #1565C0;">Retroalimentación:</strong>
+                            </div>
+                            <span id="retroalimentacion-arrow" style="font-size: 1.2rem; transition: transform 0.3s; color: #1565C0;">▼</span>
                         </div>
-                        <div style="margin: 0; color: #333; line-height: 1.6;">{{ retroalimentacion|markdown|raw }}</div>
+                        <div id="retroalimentacion-content" class="collapsible-content" style="display: none; padding: 0 1rem 1rem 1rem; color: #333; line-height: 1.6;">{{ retroalimentacion|markdown|raw }}</div>
                     </div>
                     {% endif %}
                     
@@ -233,22 +236,28 @@
                         {% if pregunta.articulo and (pregunta.articulo.explicacion or pregunta.articulo.textoLegal) %}
                         <div style="margin-top: 1.5rem;">
                             {% if pregunta.articulo.explicacion %}
-                            <div style="padding: 1rem; background: #e3f2fd; border-left: 4px solid var(--color-secondary); border-radius: 4px; margin-bottom: 0.5rem;">
-                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                    <span style="font-size: 1.2rem;">📖</span>
-                                    <strong style="color: #1565C0;">Explicación para el Opositor:</strong>
+                            <div style="background: #e3f2fd; border-left: 4px solid var(--color-secondary); border-radius: 4px; margin-bottom: 0.5rem; overflow: hidden;">
+                                <div class="collapsible-header" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; cursor: pointer; user-select: none; transition: background-color 0.2s;" onclick="toggleCollapsible('explicacion-content', 'explicacion-arrow')" onmouseover="this.style.backgroundColor='rgba(33,150,243,0.1)'" onmouseout="this.style.backgroundColor='transparent'">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 1.2rem;">📖</span>
+                                        <strong style="color: #1565C0;">Explicación para el Opositor:</strong>
+                                    </div>
+                                    <span id="explicacion-arrow" style="font-size: 1.2rem; transition: transform 0.3s; color: #1565C0;">▼</span>
                                 </div>
-                                <div style="margin: 0; color: #333; line-height: 1.6;">{{ pregunta.articulo.explicacion|markdown|raw }}</div>
+                                <div id="explicacion-content" class="collapsible-content" style="display: none; padding: 0 1rem 1rem 1rem; color: #333; line-height: 1.6;">{{ pregunta.articulo.explicacion|markdown|raw }}</div>
                             </div>
                             {% endif %}
                             
                             {% if pregunta.articulo.textoLegal %}
-                            <div style="padding: 1rem; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
-                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                    <span style="font-size: 1.2rem;">⚖️</span>
-                                    <strong style="color: #856404;">Texto Legal:</strong>
+                            <div style="background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; overflow: hidden;">
+                                <div class="collapsible-header" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; cursor: pointer; user-select: none; transition: background-color 0.2s;" onclick="toggleCollapsible('texto-legal-content', 'texto-legal-arrow')" onmouseover="this.style.backgroundColor='rgba(255,193,7,0.1)'" onmouseout="this.style.backgroundColor='transparent'">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 1.2rem;">⚖️</span>
+                                        <strong style="color: #856404;">Texto Legal:</strong>
+                                    </div>
+                                    <span id="texto-legal-arrow" style="font-size: 1.2rem; transition: transform 0.3s; color: #856404;">▼</span>
                                 </div>
-                                <div style="margin: 0; color: #333; line-height: 1.6;">{{ pregunta.articulo.textoLegal|raw }}</div>
+                                <div id="texto-legal-content" class="collapsible-content" style="display: none; padding: 0 1rem 1rem 1rem; color: #333; line-height: 1.6;">{{ pregunta.articulo.textoLegal|raw }}</div>
                             </div>
                             {% endif %}
                         </div>
@@ -662,6 +671,30 @@
 
         {# Script para modo estudio y temporizador #}
         <script>
+        // Función global para plegar/desplegar secciones
+        function toggleCollapsible(contentId, arrowId) {
+            const content = document.getElementById(contentId);
+            const arrow = document.getElementById(arrowId);
+            
+            if (!content || !arrow) {
+                return;
+            }
+            
+            const isHidden = content.style.display === 'none' || content.style.display === '';
+            
+            if (isHidden) {
+                // Desplegar
+                content.style.display = 'block';
+                arrow.style.transform = 'rotate(180deg)';
+                arrow.textContent = '▲';
+            } else {
+                // Plegar
+                content.style.display = 'none';
+                arrow.style.transform = 'rotate(0deg)';
+                arrow.textContent = '▼';
+            }
+        }
+        
         (function() {
             'use strict';
             
@@ -1290,6 +1323,16 @@
             #retroalimentacion-container,
             .card-body > div[style*="margin-top: 1.5rem"] > div {
                 padding: 0.75rem !important;
+                font-size: 0.9rem !important;
+            }
+            
+            /* Encabezados colapsables */
+            .collapsible-header {
+                min-height: 44px !important;
+                touch-action: manipulation !important;
+            }
+            
+            .collapsible-content {
                 font-size: 0.9rem !important;
             }
             

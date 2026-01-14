@@ -554,6 +554,7 @@ class ExamenSemanalAlumnoController extends AbstractController
         // Seleccionar preguntas de cada tema según la distribución
         $preguntasSeleccionadas = [];
         $articulosUsados = [];
+        $preguntasIdsUsadas = []; // Rastrear IDs de preguntas usadas para evitar duplicados exactos
         
         foreach ($distribucionPorTema as $temaId => $cantidad) {
             if ($cantidad <= 0 || !isset($preguntasPorTema[$temaId])) {
@@ -582,7 +583,13 @@ class ExamenSemanalAlumnoController extends AbstractController
                     continue;
                 }
                 
+                // Evitar repetir la misma pregunta
+                if (in_array($pregunta->getId(), $preguntasIdsUsadas)) {
+                    continue;
+                }
+                
                 $preguntasSeleccionadasTema[] = $pregunta;
+                $preguntasIdsUsadas[] = $pregunta->getId();
                 
                 // Marcar el artículo como usado
                 if ($articuloId !== null) {
@@ -594,9 +601,10 @@ class ExamenSemanalAlumnoController extends AbstractController
         }
         
         // Si no se alcanzó la cantidad total, completar con preguntas aleatorias
+        // FASE 1: Intentar sin repetir artículos
         if (count($preguntasSeleccionadas) < $cantidadTotal) {
-            $preguntasRestantes = array_filter($preguntas, function($p) use ($preguntasSeleccionadas) {
-                return !in_array($p, $preguntasSeleccionadas, true);
+            $preguntasRestantes = array_filter($preguntas, function($p) use ($preguntasIdsUsadas) {
+                return !in_array($p->getId(), $preguntasIdsUsadas);
             });
             shuffle($preguntasRestantes);
             
@@ -612,11 +620,33 @@ class ExamenSemanalAlumnoController extends AbstractController
                     $articuloId = $articulo ? $articulo->getId() : null;
                 }
                 
+                // Intentar sin repetir artículos
                 if ($articuloId === null || !in_array($articuloId, $articulosUsados)) {
                     $preguntasSeleccionadas[] = $pregunta;
+                    $preguntasIdsUsadas[] = $pregunta->getId();
                     if ($articuloId !== null) {
                         $articulosUsados[] = $articuloId;
                     }
+                }
+            }
+        }
+        
+        // FASE 2: Si aún faltan preguntas, permitir repetir artículos (pero no la misma pregunta)
+        if (count($preguntasSeleccionadas) < $cantidadTotal) {
+            $preguntasRestantes = array_filter($preguntas, function($p) use ($preguntasIdsUsadas) {
+                return !in_array($p->getId(), $preguntasIdsUsadas);
+            });
+            shuffle($preguntasRestantes);
+            
+            foreach ($preguntasRestantes as $pregunta) {
+                if (count($preguntasSeleccionadas) >= $cantidadTotal) {
+                    break;
+                }
+                
+                // Solo verificar que no sea la misma pregunta (ya permitimos repetir artículo)
+                if (!in_array($pregunta->getId(), $preguntasIdsUsadas)) {
+                    $preguntasSeleccionadas[] = $pregunta;
+                    $preguntasIdsUsadas[] = $pregunta->getId();
                 }
             }
         }
@@ -634,15 +664,18 @@ class ExamenSemanalAlumnoController extends AbstractController
 
     /**
      * Selecciona preguntas asegurándose de que no haya dos preguntas del mismo artículo
+     * Si no hay suficientes, permite repetir artículos pero con preguntas diferentes
      * 
      * @param array $preguntas Array de preguntas disponibles
      * @param int $cantidad Cantidad de preguntas a seleccionar
-     * @return array Array de preguntas seleccionadas sin repetir artículos
+     * @return array Array de preguntas seleccionadas
      */
     private function seleccionarPreguntasSinRepetirArticulos(array $preguntas, int $cantidad): array
     {
+        // FASE 1: Intentar seleccionar sin repetir artículos
         $preguntasSeleccionadas = [];
         $articulosUsados = [];
+        $preguntasIdsUsadas = []; // Rastrear IDs de preguntas usadas para evitar duplicados exactos
         
         foreach ($preguntas as $pregunta) {
             // Si ya tenemos suficientes preguntas, parar
@@ -658,19 +691,48 @@ class ExamenSemanalAlumnoController extends AbstractController
                 $articuloId = $articulo ? $articulo->getId() : null;
             }
             
-            // Si el artículo ya fue usado, saltar esta pregunta
+            // Evitar repetir artículo Y evitar repetir la misma pregunta
             if ($articuloId !== null && in_array($articuloId, $articulosUsados)) {
+                continue;
+            }
+            
+            // Evitar repetir la misma pregunta
+            if (in_array($pregunta->getId(), $preguntasIdsUsadas)) {
                 continue;
             }
             
             // Agregar la pregunta a las seleccionadas
             $preguntasSeleccionadas[] = $pregunta;
+            $preguntasIdsUsadas[] = $pregunta->getId();
             
             // Marcar el artículo como usado
             if ($articuloId !== null) {
                 $articulosUsados[] = $articuloId;
             }
         }
+        
+        // FASE 2: Si faltan preguntas, permitir repetir artículos (pero no la misma pregunta)
+        if (count($preguntasSeleccionadas) < $cantidad) {
+            $preguntasRestantes = array_filter($preguntas, function($p) use ($preguntasIdsUsadas) {
+                return !in_array($p->getId(), $preguntasIdsUsadas);
+            });
+            shuffle($preguntasRestantes);
+            
+            foreach ($preguntasRestantes as $pregunta) {
+                if (count($preguntasSeleccionadas) >= $cantidad) {
+                    break;
+                }
+                
+                // Solo verificar que no sea la misma pregunta (ya permitimos repetir artículo)
+                if (!in_array($pregunta->getId(), $preguntasIdsUsadas)) {
+                    $preguntasSeleccionadas[] = $pregunta;
+                    $preguntasIdsUsadas[] = $pregunta->getId();
+                }
+            }
+        }
+        
+        // IMPORTANTE: Si después de la Fase 2 aún no se alcanza la cantidad solicitada,
+        // se devuelven todas las preguntas disponibles (aunque no llegue al número solicitado)
         
         return $preguntasSeleccionadas;
     }
