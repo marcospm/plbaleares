@@ -1491,6 +1491,7 @@ class ExamenController extends AbstractController
         $esAdmin = $this->isGranted('ROLE_ADMIN');
         $alumnosIds = [];
         
+        // Si es admin, puede ver todos los alumnos (no filtrar por alumnos asignados)
         // Si no es admin, obtener solo los alumnos asignados al profesor
         if (!$esAdmin) {
             $alumnosIds = array_map(function($alumno) {
