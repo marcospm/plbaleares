@@ -165,10 +165,14 @@ class PreguntaRepository extends ServiceEntityRepository
             ->setParameter('nombreLeyExcluida', 'Accidentes de Tráfico')
             ->setParameter('vacio', '');
 
-        // Filtrar por dificultad si se especifica
+        // Filtrar por dificultad si se especifica (normalizar el valor)
         if ($dificultad !== null && $dificultad !== '') {
-            $qb->andWhere('p.dificultad = :dificultad')
-               ->setParameter('dificultad', $dificultad);
+            // Asegurar que la dificultad sea válida
+            $dificultadesValidas = ['facil', 'media', 'dificil'];
+            if (in_array(strtolower($dificultad), $dificultadesValidas)) {
+                $qb->andWhere('p.dificultad = :dificultad')
+                   ->setParameter('dificultad', strtolower($dificultad));
+            }
         }
 
         $ids = $qb->getQuery()->getResult();
