@@ -1,0 +1,266 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mi Perfil{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .perfil-container {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .perfil-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .perfil-header h1 {
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .perfil-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 2rem;
+        }
+
+        .user-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .user-info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .user-info-item:last-child {
+            border-bottom: none;
+        }
+
+        .user-info-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .user-info-value {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(0, 113, 181, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0071B5 0%, #005a8f 100%);
+            color: white;
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #005a8f 0%, #004a75 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 113, 181, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .badge-admin {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .badge-profesor {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .badge-alumno {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .help-text {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+
+        /* Responsive para móviles */
+        @media (max-width: 768px) {
+            .perfil-container {
+                margin: 1rem auto;
+                padding: 0 0.75rem;
+            }
+
+            .perfil-card {
+                padding: 1.5rem;
+            }
+
+            .perfil-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .user-info {
+                padding: 1rem;
+            }
+
+            .user-info-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .form-control {
+                padding: 0.875rem;
+                font-size: 16px; /* Evita zoom en iOS */
+            }
+
+            .btn-primary,
+            .btn-secondary {
+                padding: 1rem 2rem;
+                font-size: 1rem;
+                min-height: 48px; /* Tamaño mínimo para facilitar el toque */
+            }
+        }
+
+        @media (max-width: 480px) {
+            .perfil-container {
+                padding: 0 0.5rem;
+            }
+
+            .perfil-card {
+                padding: 1rem;
+            }
+
+            .perfil-header h1 {
+                font-size: 1.25rem;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="perfil-container">
+    <div class="perfil-header">
+        <h1>Mi Perfil</h1>
+        <p style="color: #666;">Gestiona tu información personal y contraseña</p>
+    </div>
+
+    <div class="perfil-card">
+        <div class="user-info">
+            <div class="user-info-item">
+                <span class="user-info-label">Usuario:</span>
+                <span class="user-info-value">{{ user.userIdentifier }}</span>
+            </div>
+            <div class="user-info-item">
+                <span class="user-info-label">Nombre:</span>
+                <span class="user-info-value">{{ user.nombreDisplay }}</span>
+            </div>
+            <div class="user-info-item">
+                <span class="user-info-label">Rol:</span>
+                <span class="user-info-value">
+                    {% if is_granted('ROLE_ADMIN') %}
+                        <span class="badge badge-admin">Administrador</span>
+                    {% elseif is_granted('ROLE_PROFESOR') %}
+                        <span class="badge badge-profesor">Profesor</span>
+                    {% else %}
+                        <span class="badge badge-alumno">Alumno</span>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+
+        {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+            <div class="form-group">
+                {{ form_label(form.email) }}
+                {{ form_widget(form.email) }}
+                {{ form_errors(form.email) }}
+                <div class="help-text">Tu dirección de correo electrónico para notificaciones y recuperación de cuenta.</div>
+            </div>
+
+            <div class="form-group">
+                {{ form_label(form.plainPassword.first) }}
+                {{ form_widget(form.plainPassword.first) }}
+                {{ form_errors(form.plainPassword.first) }}
+                <div class="help-text">Deja en blanco si no deseas cambiar tu contraseña. Mínimo 6 caracteres.</div>
+            </div>
+
+            <div class="form-group">
+                {{ form_label(form.plainPassword.second) }}
+                {{ form_widget(form.plainPassword.second) }}
+                {{ form_errors(form.plainPassword.second) }}
+            </div>
+
+            <button type="submit" class="btn-primary">Guardar Cambios</button>
+        {{ form_end(form) }}
+
+        <a href="{{ path('app_dashboard') }}" class="btn-secondary">Volver al Dashboard</a>
+    </div>
+</div>
+{% endblock %}
