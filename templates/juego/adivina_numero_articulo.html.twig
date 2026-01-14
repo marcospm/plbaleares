@@ -179,6 +179,9 @@
             return;
         }
 
+        // Guardar partida cuando se responde
+        guardarPartida('adivina_numero_articulo');
+
         // Comparar de forma flexible (sin acentos, minúsculas)
         const respuestaNormalizada = normalizarTexto(respuesta);
         const numeroCompletoNormalizado = normalizarTexto(articuloActual.numeroCompleto);
@@ -202,6 +205,19 @@
         document.getElementById('respuesta').disabled = true;
         document.getElementById('btn-verificar').style.display = 'none';
         document.getElementById('btn-siguiente').style.display = 'block';
+    }
+
+    function guardarPartida(tipoJuego) {
+        fetch('{{ path('app_juego_api_guardar_partida') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ tipoJuego: tipoJuego })
+        }).catch(error => {
+            console.error('Error al guardar partida:', error);
+            // No mostrar error al usuario para no interrumpir el juego
+        });
     }
 
     document.getElementById('btn-verificar').addEventListener('click', verificarRespuesta);

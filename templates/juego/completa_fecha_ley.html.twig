@@ -262,6 +262,9 @@
             return;
         }
 
+        // Guardar partida cuando se responde
+        guardarPartida('completa_fecha_ley');
+
         // Verificar cada campo
         const numero1Correcto = compararNumero(numero1, leyActual.numero1);
         const numero2Correcto = compararNumero(numero2, leyActual.numero2);
@@ -292,6 +295,19 @@
         if (btnSiguiente) btnSiguiente.style.display = 'block';
     }
 
+    function guardarPartida(tipoJuego) {
+        fetch('{{ path('app_juego_api_guardar_partida') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ tipoJuego: tipoJuego })
+        }).catch(error => {
+            console.error('Error al guardar partida:', error);
+            // No mostrar error al usuario para no interrumpir el juego
+        });
+    }
+
     function inicializarEventListeners() {
         const btnVerificar = document.getElementById('btn-verificar');
         const btnSiguiente = document.getElementById('btn-siguiente');
@@ -301,7 +317,7 @@
             btnVerificar.replaceWith(btnVerificar.cloneNode(true));
             document.getElementById('btn-verificar').addEventListener('click', verificarRespuesta);
         }
-        
+
         if (btnSiguiente) {
             btnSiguiente.replaceWith(btnSiguiente.cloneNode(true));
             document.getElementById('btn-siguiente').addEventListener('click', mostrarSiguienteLey);

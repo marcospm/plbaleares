@@ -1,0 +1,190 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gamificación - Administración - BISPOL{% endblock %}
+
+{% block body %}
+<div class="container">
+    <div style="margin-bottom: 2rem;">
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">🎮 Gamificación - Administración</h1>
+        <p style="color: #666;">Gestiona y visualiza las partidas de todos los alumnos</p>
+    </div>
+
+    {# Tabs para cambiar entre vista de partidas y rankings #}
+    <div style="margin-bottom: 2rem; border-bottom: 2px solid #dee2e6;">
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <button id="tabPartidas" onclick="mostrarTab('partidas')" style="padding: 0.75rem 1.5rem; background: var(--color-primary); color: white; border: none; border-radius: 4px 4px 0 0; cursor: pointer; font-weight: 600; transition: all 0.2s;">
+                📊 Partidas por Jugador
+            </button>
+            <button id="tabRankings" onclick="mostrarTab('rankings')" style="padding: 0.75rem 1.5rem; background: #6c757d; color: white; border: none; border-radius: 4px 4px 0 0; cursor: pointer; font-weight: 600; transition: all 0.2s;">
+                🏆 Rankings por Juego
+            </button>
+        </div>
+    </div>
+
+    {# Tab: Partidas por Jugador #}
+    <div id="contenidoPartidas" class="tab-content">
+        <div class="card" style="margin-bottom: 2rem;">
+            <div class="card-header">
+                <h2 style="color:white;">📊 Partidas por Jugador</h2>
+            </div>
+            <div class="card-body">
+                {% if partidasPorUsuario|length > 0 %}
+                    <div style="overflow-x: auto;">
+                        <table class="table" style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>Jugador</th>
+                                    <th style="text-align: center;">🔢 Número</th>
+                                    <th style="text-align: center;">📝 Nombre</th>
+                                    <th style="text-align: center;">📅 Fecha</th>
+                                    <th style="text-align: center;">📄 Texto</th>
+                                    <th style="text-align: center;">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in partidasPorUsuario %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ entry.usuario.nombreDisplay }}</strong>
+                                            <div style="font-size: 0.85rem; color: #666;">{{ entry.usuario.username }}</div>
+                                        </td>
+                                        <td style="text-align: center; font-weight: 600; color: var(--color-primary);">
+                                            {{ entry.partidas['adivina_numero_articulo'] ?? 0 }}
+                                        </td>
+                                        <td style="text-align: center; font-weight: 600; color: var(--color-primary);">
+                                            {{ entry.partidas['adivina_nombre_articulo'] ?? 0 }}
+                                        </td>
+                                        <td style="text-align: center; font-weight: 600; color: var(--color-primary);">
+                                            {{ entry.partidas['completa_fecha_ley'] ?? 0 }}
+                                        </td>
+                                        <td style="text-align: center; font-weight: 600; color: var(--color-primary);">
+                                            {{ entry.partidas['completa_texto_legal'] ?? 0 }}
+                                        </td>
+                                        <td style="text-align: center; font-weight: bold; font-size: 1.1rem; color: var(--color-primary);">
+                                            {{ (entry.partidas['adivina_numero_articulo'] ?? 0) + (entry.partidas['adivina_nombre_articulo'] ?? 0) + (entry.partidas['completa_fecha_ley'] ?? 0) + (entry.partidas['completa_texto_legal'] ?? 0) }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div style="text-align: center; padding: 3rem; color: #666;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+                        <p style="font-size: 1.1rem;">No hay partidas registradas</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# Tab: Rankings por Juego #}
+    <div id="contenidoRankings" class="tab-content" style="display: none;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            {% for tipo, datos in rankings %}
+                <div class="card">
+                    <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                        <h3 style="margin: 0; font-size: 1.1rem;">
+                            {% if tipo == 'adivina_numero_articulo' %}🔢
+                            {% elseif tipo == 'adivina_nombre_articulo' %}📝
+                            {% elseif tipo == 'completa_fecha_ley' %}📅
+                            {% elseif tipo == 'completa_texto_legal' %}📄
+                            {% endif %}
+                            {{ datos.nombre }}
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        {% if datos.ranking|length > 0 %}
+                            <div style="max-height: 400px; overflow-y: auto;">
+                                <table class="table" style="width: 100%; font-size: 0.9rem;">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 50px;">#</th>
+                                            <th>Jugador</th>
+                                            <th style="text-align: right;">Partidas</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for entry in datos.ranking %}
+                                            <tr>
+                                                <td>
+                                                    {% if loop.index == 1 %}
+                                                        <span style="font-size: 1.2rem;">🥇</span>
+                                                    {% elseif loop.index == 2 %}
+                                                        <span style="font-size: 1.2rem;">🥈</span>
+                                                    {% elseif loop.index == 3 %}
+                                                        <span style="font-size: 1.2rem;">🥉</span>
+                                                    {% else %}
+                                                        <strong>#{{ loop.index }}</strong>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <strong>{{ entry.usuario.nombreDisplay }}</strong>
+                                                    <div style="font-size: 0.8rem; color: #666;">{{ entry.usuario.username }}</div>
+                                                </td>
+                                                <td style="text-align: right; font-weight: 600; color: var(--color-primary);">
+                                                    {{ entry.cantidad }}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div style="text-align: center; padding: 2rem; color: #666;">
+                                <p>No hay partidas registradas</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+function mostrarTab(tab) {
+    // Ocultar todos los contenidos
+    document.getElementById('contenidoPartidas').style.display = 'none';
+    document.getElementById('contenidoRankings').style.display = 'none';
+    
+    // Resetear estilos de botones
+    document.getElementById('tabPartidas').style.background = '#6c757d';
+    document.getElementById('tabRankings').style.background = '#6c757d';
+    
+    // Mostrar el contenido seleccionado
+    if (tab === 'partidas') {
+        document.getElementById('contenidoPartidas').style.display = 'block';
+        document.getElementById('tabPartidas').style.background = 'var(--color-primary)';
+    } else {
+        document.getElementById('contenidoRankings').style.display = 'block';
+        document.getElementById('tabRankings').style.background = 'var(--color-primary)';
+    }
+}
+</script>
+
+<style>
+@media (max-width: 768px) {
+    .card-body > div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+    
+    table {
+        font-size: 0.85rem !important;
+    }
+    
+    table th, table td {
+        padding: 0.5rem 0.25rem !important;
+    }
+    
+    .card-header h3 {
+        font-size: 1rem !important;
+    }
+    
+    button[onclick*="mostrarTab"] {
+        padding: 0.5rem 1rem !important;
+        font-size: 0.9rem !important;
+    }
+}
+</style>
+{% endblock %}

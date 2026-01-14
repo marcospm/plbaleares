@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Historial de Gamificación - BISPOL{% endblock %}
+
+{% block body %}
+<div class="container">
+    <div style="margin-bottom: 2rem;">
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">🎮 Historial de Gamificación</h1>
+        <p style="color: #666;">Consulta tus partidas y estadísticas de juegos</p>
+    </div>
+
+    {# Estadísticas por juego #}
+    <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-header">
+            <h2 style="margin: 0; color: var(--color-primary);color:white;">📊 Estadísticas por Juego</h2>
+        </div>
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                {% set tiposJuegos = {
+                    'adivina_numero_articulo': '¿Qué Número Tiene el Artículo?',
+                    'adivina_nombre_articulo': '¿Cómo se Llama el Artículo?',
+                    'completa_fecha_ley': '¿Cuándo se Publicó la Ley?',
+                    'completa_texto_legal': 'Completa el Artículo'
+                } %}
+                {% for tipo, nombre in tiposJuegos %}
+                    <div style="padding: 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">
+                            {% if tipo == 'adivina_numero_articulo' %}🔢
+                            {% elseif tipo == 'adivina_nombre_articulo' %}📝
+                            {% elseif tipo == 'completa_fecha_ley' %}📅
+                            {% elseif tipo == 'completa_texto_legal' %}📄
+                            {% endif %}
+                        </div>
+                        <h3 style="margin: 0.5rem 0; font-size: 1.1rem; font-weight: 600;">{{ nombre }}</h3>
+                        <div style="font-size: 2rem; font-weight: bold; margin-top: 0.5rem;">
+                            {{ conteoPorTipo[tipo] ?? 0 }}
+                        </div>
+                        <div style="font-size: 0.9rem; opacity: 0.9; margin-top: 0.25rem;">partidas</div>
+                        <a href="{{ path('app_gamificacion_ranking', {'juego': tipo}) }}" style="display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem; background: rgba(255,255,255,0.2); color: white; text-decoration: none; border-radius: 4px; font-size: 0.9rem; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                            Ver Ranking →
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+@media (max-width: 768px) {
+    .card-body > div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .card-body > div[style*="grid-template-columns"] > div {
+        padding: 1rem !important;
+    }
+    
+    .card-body > div[style*="grid-template-columns"] > div h3 {
+        font-size: 1rem !important;
+    }
+    
+    .card-body > div[style*="grid-template-columns"] > div > div[style*="font-size: 2rem"] {
+        font-size: 1.5rem !important;
+    }
+    
+    table {
+        font-size: 0.9rem !important;
+    }
+    
+    table th, table td {
+        padding: 0.75rem 0.5rem !important;
+    }
+}
+</style>
+{% endblock %}

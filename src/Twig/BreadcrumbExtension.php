@@ -191,6 +191,13 @@ class BreadcrumbExtension extends AbstractExtension
             'app_juego_adivina_nombre_articulo' => ['label' => '¿Cómo se Llama el Artículo?', 'parent' => 'app_dashboard'],
             'app_juego_completa_fecha_ley' => ['label' => '¿Cuándo se Publicó la Ley?', 'parent' => 'app_dashboard'],
             
+            // Alumno - Gamificación
+            'app_gamificacion_historial' => ['label' => 'Historial de Gamificación', 'parent' => 'app_dashboard'],
+            'app_gamificacion_ranking' => ['label' => 'Rankings de Gamificación', 'parent' => 'app_gamificacion_historial'],
+            
+            // Profesor/Admin - Gamificación
+            'app_gamificacion_admin' => ['label' => 'Gamificación', 'parent' => 'app_dashboard'],
+            
             // Alumno - Partidas Multijugador
             'app_partida_preguntas_index' => ['label' => 'Partidas Multijugador', 'parent' => 'app_dashboard'],
             'app_partida_preguntas_new' => ['label' => 'Nueva Partida', 'parent' => 'app_partida_preguntas_index'],

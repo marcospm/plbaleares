@@ -367,6 +367,11 @@
             respuestas[index] = campo.value.trim();
         });
         
+        // Guardar partida cuando se responde (solo si hay al menos una respuesta)
+        if (respuestas.some(r => r.trim() !== '')) {
+            guardarPartida('completa_texto_legal');
+        }
+        
         // Contar respuestas correctas e incorrectas
         let correctas = 0;
         let incorrectas = 0;
@@ -528,6 +533,19 @@
     document.addEventListener('turbo:load', function() {
         inicializarEventListeners();
     });
+
+    function guardarPartida(tipoJuego) {
+        fetch('{{ path('app_juego_api_guardar_partida') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ tipoJuego: tipoJuego })
+        }).catch(error => {
+            console.error('Error al guardar partida:', error);
+            // No mostrar error al usuario para no interrumpir el juego
+        });
+    }
 </script>
 {% endblock %}
 

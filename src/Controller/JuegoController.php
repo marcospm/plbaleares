@@ -2,16 +2,25 @@
 
 namespace App\Controller;
 
+use App\Entity\PartidaJuego;
 use App\Repository\ArticuloRepository;
 use App\Repository\LeyRepository;
 use App\Repository\PreguntaRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 class JuegoController extends AbstractController
 {
+    public function __construct(
+        private EntityManagerInterface $entityManager
+    ) {
+    }
+
     #[Route('/juegos', name: 'app_juego_index')]
     public function index(): Response
     {
@@ -19,27 +28,90 @@ class JuegoController extends AbstractController
     }
 
     #[Route('/juegos/adivina-numero-articulo', name: 'app_juego_adivina_numero_articulo')]
+    #[IsGranted('ROLE_USER')]
     public function adivinaNumeroArticulo(): Response
     {
         return $this->render('juego/adivina_numero_articulo.html.twig');
     }
 
     #[Route('/juegos/adivina-nombre-articulo', name: 'app_juego_adivina_nombre_articulo')]
+    #[IsGranted('ROLE_USER')]
     public function adivinaNombreArticulo(): Response
     {
         return $this->render('juego/adivina_nombre_articulo.html.twig');
     }
 
     #[Route('/juegos/completa-fecha-ley', name: 'app_juego_completa_fecha_ley')]
+    #[IsGranted('ROLE_USER')]
     public function completaFechaLey(): Response
     {
         return $this->render('juego/completa_fecha_ley.html.twig');
     }
 
     #[Route('/juegos/completa-texto-legal', name: 'app_juego_completa_texto_legal')]
+    #[IsGranted('ROLE_USER')]
     public function completaTextoLegal(): Response
     {
         return $this->render('juego/completa_texto_legal.html.twig');
+    }
+
+    #[Route('/api/juegos/guardar-partida', name: 'app_juego_api_guardar_partida', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function guardarPartidaApi(Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        $tipoJuego = $data['tipoJuego'] ?? null;
+
+        // Validar tipo de juego
+        $tiposValidos = [
+            'adivina_numero_articulo',
+            'adivina_nombre_articulo',
+            'completa_fecha_ley',
+            'completa_texto_legal',
+        ];
+
+        if (!$tipoJuego || !in_array($tipoJuego, $tiposValidos)) {
+            return new JsonResponse(['error' => 'Tipo de juego inválido'], 400);
+        }
+
+        $this->guardarPartida($tipoJuego);
+
+        return new JsonResponse(['success' => true]);
+    }
+
+    /**
+     * Guarda una partida de juego en la base de datos
+     */
+    private function guardarPartida(string $tipoJuego): void
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return;
+        }
+
+        // Verificar que el usuario no sea profesor ni admin (solo alumnos)
+        $roles = $user->getRoles();
+        if (in_array('ROLE_PROFESOR', $roles) || in_array('ROLE_ADMIN', $roles)) {
+            return;
+        }
+
+        try {
+            $partida = new PartidaJuego();
+            $partida->setUsuario($user);
+            $partida->setTipoJuego($tipoJuego);
+            // fechaCreacion se establece automáticamente en el constructor
+
+            $this->entityManager->persist($partida);
+            // Usar flush sin esperar para no bloquear la respuesta
+            $this->entityManager->flush();
+        } catch (\Exception $e) {
+            // Silenciar errores para no interrumpir el juego
+            // En producción, podrías loguear el error
+            // Resetear el entity manager en caso de error
+            if ($this->entityManager->isOpen()) {
+                $this->entityManager->clear();
+            }
+        }
     }
 
     #[Route('/api/juegos/pregunta-aleatoria', name: 'app_juego_api_pregunta_aleatoria')]

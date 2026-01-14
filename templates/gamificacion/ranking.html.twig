@@ -1,0 +1,130 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Ranking de Gamificación - BISPOL{% endblock %}
+
+{% block body %}
+<div class="container">
+    <div style="margin-bottom: 2rem;">
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">🏆 Rankings de Gamificación</h1>
+        <p style="color: #666;">Compara tus partidas con otros alumnos de forma anónima</p>
+    </div>
+
+    {# Selector de juego #}
+    <div class="card" style="margin-bottom: 2rem;">
+        <div class="card-body">
+            <label for="selectorJuego" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--color-primary);">Selecciona un juego:</label>
+            <select id="selectorJuego" class="form-control" onchange="window.location.href='{{ path('app_gamificacion_ranking') }}?juego=' + this.value" style="max-width: 400px;">
+                {% for tipo, nombre in tiposJuegos %}
+                    <option value="{{ tipo }}" {% if tipo == tipoJuego %}selected{% endif %}>{{ nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    {# Posición del usuario #}
+    {% if posicionUsuario %}
+        <div class="card" style="margin-bottom: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <div class="card-body" style="text-align: center;">
+                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎯</div>
+                <h2 style="margin: 0.5rem 0; font-size: 1.3rem;">Tu Posición</h2>
+                <div style="font-size: 3rem; font-weight: bold; margin: 0.5rem 0;">#{{ posicionUsuario }}</div>
+                <p style="margin: 0; opacity: 0.9;">de {{ ranking|length }} jugadores</p>
+            </div>
+        </div>
+    {% endif %}
+
+    {# Ranking #}
+    <div class="card">
+        <div class="card-header">
+            <h2 style="margin: 0; color: var(--color-primary);">
+                {% if tipoJuego == 'adivina_numero_articulo' %}🔢
+                {% elseif tipoJuego == 'adivina_nombre_articulo' %}📝
+                {% elseif tipoJuego == 'completa_fecha_ley' %}📅
+                {% elseif tipoJuego == 'completa_texto_legal' %}📄
+                {% endif %}
+                {{ nombreJuego }}
+            </h2>
+        </div>
+        <div class="card-body">
+            {% if ranking|length > 0 %}
+                <div style="overflow-x: auto;">
+                    <table class="table" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;">Posición</th>
+                                <th>Jugador</th>
+                                <th style="text-align: right;">Partidas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in ranking %}
+                                {% set esUsuarioActual = (app.user and entry.usuario.id == app.user.id) %}
+                                <tr style="{% if esUsuarioActual %}background: #e3f2fd; font-weight: 600;{% endif %}">
+                                    <td>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            {% if loop.index == 1 %}
+                                                <span style="font-size: 1.5rem;">🥇</span>
+                                            {% elseif loop.index == 2 %}
+                                                <span style="font-size: 1.5rem;">🥈</span>
+                                            {% elseif loop.index == 3 %}
+                                                <span style="font-size: 1.5rem;">🥉</span>
+                                            {% else %}
+                                                <span style="font-weight: bold; color: var(--color-primary);">#{{ loop.index }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if esUsuarioActual %}
+                                            <span style="color: var(--color-primary);">👤 Tú</span>
+                                        {% else %}
+                                            <span style="color: #666;">👤 Jugador Anónimo #{{ loop.index }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="text-align: right; font-weight: 600; color: var(--color-primary);">
+                                        {{ entry.cantidad }} partida{{ entry.cantidad != 1 ? 's' : '' }}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div style="text-align: center; padding: 3rem; color: #666;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🏆</div>
+                    <p style="font-size: 1.1rem;">Aún no hay partidas registradas para este juego</p>
+                    <p style="color: #999;">¡Sé el primero en jugar!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Enlace al historial #}
+    <div style="text-align: center; margin-top: 2rem;">
+        <a href="{{ path('app_gamificacion_historial') }}" class="btn btn-secondary">← Volver al Historial</a>
+    </div>
+</div>
+
+<style>
+@media (max-width: 768px) {
+    .card-header h2 {
+        font-size: 1.1rem !important;
+    }
+    
+    table {
+        font-size: 0.9rem !important;
+    }
+    
+    table th, table td {
+        padding: 0.75rem 0.5rem !important;
+    }
+    
+    table th:first-child, table td:first-child {
+        width: 60px !important;
+    }
+    
+    .card-body > div[style*="font-size: 3rem"] {
+        font-size: 2rem !important;
+    }
+}
+</style>
+{% endblock %}
