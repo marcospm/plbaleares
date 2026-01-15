@@ -633,6 +633,26 @@ class ExamenController extends AbstractController
             $accion = $request->request->get('accion');
             $numeroDestino = $request->request->getInt('numero_destino');
             
+            // Si la acción es anular respuesta (solo para peticiones no AJAX, mantener compatibilidad)
+            if ($accion === 'anular_respuesta' && !$request->isXmlHttpRequest()) {
+                // Eliminar la respuesta de la sesión
+                if (isset($respuestas[$pregunta->getId()])) {
+                    unset($respuestas[$pregunta->getId()]);
+                    $session->set('examen_respuestas', $respuestas);
+                }
+                
+                // En modo estudio, desbloquear la pregunta si estaba bloqueada
+                if ($modoEstudio && $preguntaBloqueada) {
+                    $preguntasBloqueadas = array_values(array_filter($preguntasBloqueadas, function($id) use ($pregunta) {
+                        return $id !== $pregunta->getId();
+                    }));
+                    $session->set('examen_preguntas_bloqueadas', $preguntasBloqueadas);
+                }
+                
+                // Redirigir a la misma pregunta para actualizar la vista
+                return $this->redirectToRoute('app_examen_pregunta', ['numero' => $numero]);
+            }
+            
             // Si la acción es guardar borrador
             if ($accion === 'guardar_borrador') {
                 $tiempoRestante = $request->request->getInt('tiempo_restante');
@@ -2624,6 +2644,56 @@ class ExamenController extends AbstractController
         
         // Redirigir a la pregunta actual
         return $this->redirectToRoute('app_examen_pregunta', ['numero' => $borrador->getPreguntaActual()]);
+    }
+
+    /**
+     * Anula una respuesta mediante AJAX (sin recargar la página)
+     */
+    #[Route('/pregunta/{numero}/anular-respuesta', name: 'app_examen_anular_respuesta_ajax', methods: ['POST'])]
+    public function anularRespuestaAjax(int $numero, Request $request, SessionInterface $session): Response
+    {
+        $user = $this->getUser();
+        $preguntasIds = $session->get('examen_preguntas', []);
+        $respuestas = $session->get('examen_respuestas', []);
+        $config = $session->get('examen_config', []);
+        
+        if (empty($preguntasIds)) {
+            return $this->json(['success' => false, 'error' => 'No hay un examen activo.'], 400);
+        }
+        
+        $numero = max(1, min($numero, count($preguntasIds)));
+        $indice = $numero - 1;
+        
+        if ($indice < 0 || $indice >= count($preguntasIds)) {
+            return $this->json(['success' => false, 'error' => 'Pregunta no válida.'], 400);
+        }
+        
+        $esMunicipal = $config['es_municipal'] ?? false;
+        $modoEstudio = $config['modo_estudio'] ?? false;
+        
+        // Obtener la pregunta
+        if ($esMunicipal) {
+            $pregunta = $this->preguntaMunicipalRepository->find($preguntasIds[$indice]);
+        } else {
+            $pregunta = $this->preguntaRepository->find($preguntasIds[$indice]);
+        }
+        
+        if (!$pregunta) {
+            return $this->json(['success' => false, 'error' => 'Pregunta no encontrada.'], 404);
+        }
+        
+        // Verificar que no esté en modo estudio
+        if ($modoEstudio) {
+            return $this->json(['success' => false, 'error' => 'No se puede anular respuesta en modo estudio.'], 403);
+        }
+        
+        // Eliminar la respuesta de la sesión
+        if (isset($respuestas[$pregunta->getId()])) {
+            unset($respuestas[$pregunta->getId()]);
+            $session->set('examen_respuestas', $respuestas);
+        }
+        
+        return $this->json(['success' => true, 'message' => 'Respuesta anulada correctamente.']);
     }
 
     /**

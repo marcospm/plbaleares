@@ -216,6 +216,15 @@
                     {% endfor %}
                 </div>
                 
+                {# Botón Anular Respuesta - Solo disponible cuando NO está en modo estudio #}
+                {% if not (modoEstudio is defined and modoEstudio) %}
+                <div id="btnAnularRespuestaContainer" style="margin-top: 1rem; display: {% if respuestaActual %}flex{% else %}none{% endif %}; justify-content: center;">
+                    <button type="button" id="btnAnularRespuesta" class="btn btn-outline-danger" style="padding: 0.75rem 1.5rem; font-size: 1rem; border-radius: 8px; transition: all 0.2s; min-height: 44px; touch-action: manipulation;">
+                        <span style="margin-right: 0.5rem;">↺</span> Anular Respuesta
+                    </button>
+                </div>
+                {% endif %}
+                
                 {# Mostrar retroalimentación en modo estudio cuando la pregunta está bloqueada (después de responder) #}
                 {% if modoEstudio is defined and modoEstudio and preguntaBloqueada is defined and preguntaBloqueada %}
                     {% if retroalimentacion %}
@@ -1116,6 +1125,149 @@
                             return false;
                         });
                     });
+                    
+                    // Botón Anular Respuesta
+                    const btnAnularRespuesta = document.getElementById('btnAnularRespuesta');
+                    
+                    // Función para manejar el clic del botón anular respuesta (sin recargar página)
+                    function manejarClicAnularRespuesta(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        if (!btnAnularRespuesta) return;
+                        
+                        // Deshabilitar el botón mientras se procesa
+                        btnAnularRespuesta.disabled = true;
+                        const textoOriginal = btnAnularRespuesta.innerHTML;
+                        btnAnularRespuesta.innerHTML = '<span style="margin-right: 0.5rem;">⏳</span> Anulando...';
+                        
+                        // Deseleccionar todos los radio buttons visualmente
+                        const radioButtons = formPregunta.querySelectorAll('input[name="respuesta"]');
+                        radioButtons.forEach(function(radio) {
+                            radio.checked = false;
+                            // Remover el estilo de selección del label padre
+                            const label = radio.closest('label');
+                            if (label) {
+                                // Restaurar el borde gris original completo (incluyendo el izquierdo)
+                                label.style.background = '';
+                                label.style.border = '2px solid var(--color-border)';
+                                label.style.borderLeft = '2px solid var(--color-border)';
+                            }
+                        });
+                        
+                        // Ocultar el botón inmediatamente
+                        const btnAnularRespuestaContainer = document.getElementById('btnAnularRespuestaContainer');
+                        if (btnAnularRespuestaContainer) {
+                            btnAnularRespuestaContainer.style.display = 'none';
+                        }
+                        
+                        // Enviar petición AJAX para guardar el cambio en el servidor
+                        fetch('{{ path('app_examen_anular_respuesta_ajax', {'numero': numero}) }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({})
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Actualizar el estado visual de la navegación rápida si es necesario
+                                // La respuesta ya fue eliminada del servidor, solo actualizamos la UI
+                                console.log('Respuesta anulada correctamente');
+                            } else {
+                                // Si hay error, volver a mostrar el botón y restaurar la selección
+                                console.error('Error al anular respuesta:', data.error);
+                                if (btnAnularRespuestaContainer) {
+                                    btnAnularRespuestaContainer.style.display = 'flex';
+                                }
+                                btnAnularRespuesta.disabled = false;
+                                btnAnularRespuesta.innerHTML = textoOriginal;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error en la petición:', error);
+                            // En caso de error, volver a mostrar el botón
+                            if (btnAnularRespuestaContainer) {
+                                btnAnularRespuestaContainer.style.display = 'flex';
+                            }
+                            btnAnularRespuesta.disabled = false;
+                            btnAnularRespuesta.innerHTML = textoOriginal;
+                        });
+                    }
+                    
+                    if (btnAnularRespuesta) {
+                        btnAnularRespuesta.addEventListener('click', manejarClicAnularRespuesta);
+                    }
+                    
+                    // Agregar listeners a los radio buttons para mostrar/ocultar el botón dinámicamente
+                    // Solo si NO estamos en modo estudio
+                    {% if not (modoEstudio is defined and modoEstudio) %}
+                    const radioButtons = formPregunta.querySelectorAll('input[name="respuesta"]');
+                    const btnAnularRespuestaContainer = document.getElementById('btnAnularRespuestaContainer');
+                    
+                    // Función para restaurar el estado del botón a su estado normal
+                    function restaurarEstadoBotonAnular() {
+                        if (!btnAnularRespuesta) return;
+                        
+                        // Restaurar el texto original del botón
+                        btnAnularRespuesta.innerHTML = '<span style="margin-right: 0.5rem;">↺</span> Anular Respuesta';
+                        // Habilitar el botón
+                        btnAnularRespuesta.disabled = false;
+                    }
+                    
+                    // Función para mostrar/ocultar el botón según si hay respuesta seleccionada
+                    function actualizarVisibilidadBotonAnular() {
+                        if (!btnAnularRespuestaContainer) return;
+                        
+                        const hayRespuestaSeleccionada = Array.from(radioButtons).some(function(radio) {
+                            return radio.checked;
+                        });
+                        
+                        if (hayRespuestaSeleccionada) {
+                            // Restaurar el estado del botón antes de mostrarlo
+                            restaurarEstadoBotonAnular();
+                            btnAnularRespuestaContainer.style.display = 'flex';
+                        } else {
+                            btnAnularRespuestaContainer.style.display = 'none';
+                        }
+                    }
+                    
+                    // Función para actualizar estilos de los labels cuando se selecciona/deselecciona una opción
+                    function actualizarEstilosLabels() {
+                        radioButtons.forEach(function(radio) {
+                            const label = radio.closest('label');
+                            if (!label) return;
+                            
+                            if (radio.checked) {
+                                // Aplicar estilo de selección
+                                label.style.background = '#e3f2fd';
+                                label.style.border = '2px solid var(--color-primary)';
+                                label.style.borderLeft = '2px solid var(--color-primary)';
+                            } else {
+                                // Restaurar el borde gris original completo (solo si no está en modo estudio con retroalimentación)
+                                {% if not (modoEstudio is defined and modoEstudio and preguntaBloqueada is defined and preguntaBloqueada) %}
+                                label.style.background = '';
+                                label.style.border = '2px solid var(--color-border)';
+                                label.style.borderLeft = '2px solid var(--color-border)';
+                                {% endif %}
+                            }
+                        });
+                    }
+                    
+                    // Agregar listener a cada radio button para mostrar el botón cuando se selecciona una opción
+                    radioButtons.forEach(function(radio) {
+                        radio.addEventListener('change', function() {
+                            actualizarVisibilidadBotonAnular();
+                            actualizarEstilosLabels();
+                        });
+                    });
+                    
+                    // Verificar estado inicial (por si hay una respuesta ya guardada al cargar la página)
+                    actualizarVisibilidadBotonAnular();
+                    actualizarEstilosLabels();
+                    {% endif %}
                 } else {
                     console.error('No se encontró el formulario formPregunta');
                 }
@@ -1265,6 +1417,16 @@
                 margin-top: 0.5rem !important;
             }
             
+            /* Botón Anular Respuesta - móvil */
+            #btnAnularRespuesta {
+                width: 100% !important;
+                padding: 0.875rem 1.25rem !important;
+                font-size: 1rem !important;
+                min-height: 48px !important;
+                touch-action: manipulation !important;
+                border-width: 2px !important;
+            }
+            
             /* Botones de navegación - apilar verticalmente */
             .d-flex.gap-2.mt-4 {
                 flex-direction: column !important;
@@ -1394,6 +1556,31 @@
                 height: 32px !important;
                 font-size: 0.8rem !important;
             }
+            
+            /* Botón Anular Respuesta - pantallas muy pequeñas */
+            #btnAnularRespuesta {
+                padding: 0.75rem 1rem !important;
+                font-size: 0.95rem !important;
+                min-height: 44px !important;
+            }
+        }
+        
+        /* Estilos generales para el botón Anular Respuesta */
+        #btnAnularRespuesta {
+            transition: all 0.2s ease !important;
+            box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2) !important;
+        }
+        
+        #btnAnularRespuesta:hover {
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3) !important;
+            background-color: #dc3545 !important;
+            color: white !important;
+        }
+        
+        #btnAnularRespuesta:active {
+            transform: translateY(0) !important;
+            box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2) !important;
         }
         </style>
     </div>
