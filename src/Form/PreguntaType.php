@@ -67,7 +67,10 @@ class PreguntaType extends AbstractType
             ->add('retroalimentacion', TextareaType::class, [
                 'label' => 'Retroalimentación',
                 'required' => false,
-                'attr' => ['class' => 'form-control', 'rows' => 4]
+                'attr' => [
+                    'class' => 'form-control tinymce-editor',
+                    'rows' => 10
+                ]
             ])
             ->add('tema', EntityType::class, [
                 'class' => Tema::class,

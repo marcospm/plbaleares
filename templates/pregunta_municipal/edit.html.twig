@@ -2,6 +2,11 @@
 
 {% block title %}Editar Pregunta Municipal{% endblock %}
 
+{% block stylesheets %}
+    {{ parent() }}
+    <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
+{% endblock %}
+
 {% block body %}
 <div class="card">
     <div class="card-header">
@@ -30,6 +35,87 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Función para convertir markdown a HTML antes de cargar en el editor
+    function convertMarkdownToHtml(text) {
+        if (!text) return '';
+        
+        // Convertir saltos de línea dobles a párrafos
+        const paragraphs = text.split(/\n\n+/);
+        const convertedParagraphs = [];
+        
+        for (let para of paragraphs) {
+            para = para.trim();
+            if (para) {
+                // Convertir **texto** a <strong>texto</strong> (negritas)
+                para = para.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                // Convertir *texto* a <em>texto</em> (cursiva, solo si no está entre **)
+                para = para.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
+                // Convertir saltos de línea simples dentro del párrafo a <br>
+                para = para.replace(/\n/g, '<br>');
+                convertedParagraphs.push('<p>' + para + '</p>');
+            }
+        }
+        
+        // Si no hay párrafos (texto sin dobles saltos de línea), convertir directamente
+        if (convertedParagraphs.length === 0) {
+            text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
+            text = text.replace(/\n/g, '<br>');
+            return text;
+        }
+        
+        return convertedParagraphs.join('');
+    }
+
+    // Inicializar editor para retroalimentación (CKEditor)
+    const editorElement = document.querySelector('.tinymce-editor');
+    if (editorElement && typeof ClassicEditor !== 'undefined') {
+        // Si el contenido tiene markdown, convertirlo primero
+        let originalValue = editorElement.value || '';
+        const textarea = editorElement;
+        
+        // Verificar si el contenido es Markdown y no HTML
+        if (originalValue && (originalValue.includes('**') || originalValue.includes('*'))) {
+            // Verificar si no es HTML ya (si tiene tags HTML, asumimos que ya está en HTML)
+            if (!originalValue.includes('<strong>') && !originalValue.includes('<em>') && 
+                !originalValue.includes('<p>') && !originalValue.includes('<div>')) {
+                // Es Markdown, convertir a HTML
+                originalValue = convertMarkdownToHtml(originalValue);
+                textarea.value = originalValue;
+            }
+        }
+
+        ClassicEditor
+            .create(textarea, {
+                toolbar: {
+                    items: [
+                        'heading', '|',
+                        'bold', 'italic', 'underline', '|',
+                        'bulletedList', 'numberedList', '|',
+                        'alignment', '|',
+                        'link', '|',
+                        'undo', 'redo'
+                    ]
+                },
+                language: 'es',
+                heading: {
+                    options: [
+                        { model: 'paragraph', title: 'Párrafo', class: 'ck-heading_paragraph' },
+                        { model: 'heading1', view: 'h1', title: 'Título 1', class: 'ck-heading_heading1' },
+                        { model: 'heading2', view: 'h2', title: 'Título 2', class: 'ck-heading_heading2' },
+                        { model: 'heading3', view: 'h3', title: 'Título 3', class: 'ck-heading_heading3' }
+                    ]
+                }
+            })
+            .then(editor => {
+                console.log('CKEditor inicializado correctamente para retroalimentación');
+            })
+            .catch(error => {
+                console.error('Error al inicializar CKEditor:', error);
+            });
+    }
+    
+    // Manejo de municipio y tema
     const municipioSelect = document.getElementById('pregunta_municipal_municipio');
     const temaSelect = document.getElementById('pregunta_municipal_temaMunicipal');
     
