@@ -88,6 +88,62 @@
             background-color: #e3f2fd;
             border-left: 3px solid var(--color-primary);
         }
+        
+        @media (max-width: 768px) {
+            /* Resultados del participante - apilar columnas */
+            .resultados-participante .row {
+                flex-direction: column;
+            }
+            
+            .resultados-participante .col-md-3 {
+                width: 100%;
+                margin-bottom: 1rem;
+                text-align: center;
+            }
+            
+            /* Ranking - hacer más compacto */
+            .ranking-item {
+                padding: 0.75rem;
+            }
+            
+            .ranking-item .medalla {
+                font-size: 1.5rem;
+                margin-right: 0.5rem;
+            }
+            
+            .ranking-item h4 {
+                font-size: 1rem;
+            }
+            
+            .ranking-stats {
+                flex-direction: column !important;
+                gap: 0.5rem !important;
+            }
+            
+            .ranking-stats > span {
+                display: block;
+                margin-bottom: 0.25rem;
+            }
+            
+            /* Preguntas resultado - más compacto */
+            .pregunta-resultado {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .pregunta-resultado h4 {
+                font-size: 1rem;
+            }
+            
+            .pregunta-resultado p {
+                font-size: 0.95rem;
+            }
+            
+            .opcion-resultado {
+                padding: 0.4rem;
+                font-size: 0.9rem;
+            }
+        }
     </style>
 {% endblock %}
 
@@ -117,7 +173,7 @@
                 </div>
                 <div class="col-md-3">
                     <p style="margin: 0;"><strong>Nota:</strong></p>
-                    <p style="font-size: 1.5rem; color: var(--color-primary); font-weight: bold;">{{ miResultado.nota|number_format(2) }}/10</p>
+                    <p style="font-size: 1.5rem; color: var(--color-primary); font-weight: bold;">{{ miResultado.nota|number_format(2) }}/20</p>
                 </div>
             </div>
             {% if miResultado.tiempoTotal %}
@@ -151,11 +207,11 @@
                                         <span style="color: var(--color-primary);">(Tú)</span>
                                     {% endif %}
                                 </h4>
-                                <div style="display: flex; gap: 2rem; margin-top: 0.5rem;">
+                                <div style="display: flex; gap: 2rem; margin-top: 0.5rem; flex-wrap: wrap;" class="ranking-stats">
                                     <span><strong>Aciertos:</strong> {{ participante.aciertos }}</span>
                                     <span><strong>Errores:</strong> {{ participante.errores }}</span>
                                     <span><strong>En blanco:</strong> {{ participante.enBlanco }}</span>
-                                    <span><strong>Nota:</strong> {{ participante.nota|number_format(2) }}/10</span>
+                                    <span><strong>Nota:</strong> {{ participante.nota|number_format(2) }}/20</span>
                                     {% if participante.tiempoTotal %}
                                         {% set minutos = (participante.tiempoTotal // 60) %}
                                         {% set segundos = (participante.tiempoTotal % 60) %}

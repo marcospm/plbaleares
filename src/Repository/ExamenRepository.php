@@ -63,39 +63,57 @@ class ExamenRepository extends ServiceEntityRepository
     }
 
     /**
+     * Calcula la nota sobre 20 basándose en aciertos, errores y en blanco
+     * Usa la misma fórmula que se usa para calcular la nota de un examen individual
+     */
+    private function calcularNotaDesdeAciertosErrores(int $aciertos, int $errores, int $enBlanco): float
+    {
+        $totalPreguntas = $aciertos + $errores + $enBlanco;
+        
+        if ($totalPreguntas <= 0) {
+            return 0.0;
+        }
+        
+        $puntosPorAcierto = 20 / $totalPreguntas;
+        $puntosPorError = $puntosPorAcierto / 4; // Cada error resta 1/4 del valor de un acierto
+        $nota = ($aciertos * $puntosPorAcierto) - ($errores * $puntosPorError);
+        
+        return max(0, min(20, round($nota, 2)));
+    }
+
+    /**
+     * Calcula la nota media desde una lista de exámenes sumando aciertos, errores y en blanco
+     * @param Examen[] $examenes
+     * @return float|null
+     */
+    public function calcularNotaMediaDesdeExamenes(array $examenes): ?float
+    {
+        if (empty($examenes)) {
+            return null;
+        }
+
+        // Sumar todos los aciertos, errores y en blanco
+        $totalAciertos = 0;
+        $totalErrores = 0;
+        $totalEnBlanco = 0;
+
+        foreach ($examenes as $examen) {
+            $totalAciertos += $examen->getAciertos();
+            $totalErrores += $examen->getErrores();
+            $totalEnBlanco += $examen->getEnBlanco();
+        }
+
+        // Calcular nota sobre 20
+        return $this->calcularNotaDesdeAciertosErrores($totalAciertos, $totalErrores, $totalEnBlanco);
+    }
+
+    /**
      * Obtiene la nota media de un usuario para los últimos N exámenes de una dificultad específica
-     * OPTIMIZADO: Usa AVG() directamente en SQL cuando no hay filtro de tema
+     * Calcula la nota sumando todos los aciertos, errores y en blanco de los exámenes
      * Si se proporciona un tema, solo considera exámenes íntegramente de ese tema (que tengan exactamente ese tema único)
      */
     public function getNotaMediaUsuario(User $usuario, string $dificultad, int $cantidadExamenes, ?Tema $tema = null): ?float
     {
-        // Si no hay filtro de tema, podemos usar AVG() directamente en SQL con subconsulta
-        if ($tema === null) {
-            // Primero obtener los IDs de los últimos N exámenes
-            $idsSubquery = $this->createQueryBuilder('e2')
-                ->select('e2.id')
-                ->where('e2.usuario = :usuario')
-                ->andWhere('e2.dificultad = :dificultad')
-                ->andWhere('e2.municipio IS NULL')
-                ->setParameter('usuario', $usuario)
-                ->setParameter('dificultad', $dificultad)
-                ->orderBy('e2.fecha', 'DESC')
-                ->setMaxResults($cantidadExamenes)
-                ->getDQL();
-
-            // Calcular AVG sobre esos IDs
-            $result = $this->createQueryBuilder('e')
-                ->select('AVG(e.nota) as promedio')
-                ->where('e.id IN (' . $idsSubquery . ')')
-                ->setParameter('usuario', $usuario)
-                ->setParameter('dificultad', $dificultad)
-                ->getQuery()
-                ->getSingleScalarResult();
-
-            return $result ? round((float) $result, 2) : null;
-        }
-
-        // Si hay tema, necesitamos filtrar en PHP porque debemos verificar que tenga exactamente 1 tema
         $qb = $this->createQueryBuilder('e')
             ->where('e.usuario = :usuario')
             ->andWhere('e.dificultad = :dificultad')
@@ -103,36 +121,46 @@ class ExamenRepository extends ServiceEntityRepository
             ->setParameter('usuario', $usuario)
             ->setParameter('dificultad', $dificultad);
 
-        $qb->innerJoin('e.temas', 't')
-           ->andWhere('t.id = :temaId')
-           ->setParameter('temaId', $tema->getId())
-           ->groupBy('e.id')
-           ->having('COUNT(t.id) = 1');
+        // Si hay tema, filtrar por tema
+        if ($tema !== null) {
+            $qb->innerJoin('e.temas', 't')
+               ->andWhere('t.id = :temaId')
+               ->setParameter('temaId', $tema->getId())
+               ->groupBy('e.id')
+               ->having('COUNT(t.id) = 1');
+        }
 
         $qb->orderBy('e.fecha', 'DESC')
-           ->setMaxResults($cantidadExamenes * 2); // Obtener más para filtrar después
+           ->setMaxResults($tema !== null ? $cantidadExamenes * 2 : $cantidadExamenes);
 
         $examenes = $qb->getQuery()->getResult();
 
-        // Filtrar en PHP para asegurar que solo sean exámenes íntegramente del tema
-        $examenes = array_filter($examenes, function($examen) use ($tema) {
-            return $examen->getTemas()->count() === 1 && $examen->getTemas()->contains($tema);
-        });
-
-        // Tomar solo los primeros N después del filtro
-        $examenes = array_slice($examenes, 0, $cantidadExamenes);
+        // Si hay tema, filtrar solo exámenes íntegramente de ese tema
+        if ($tema !== null) {
+            $examenes = array_filter($examenes, function($examen) use ($tema) {
+                return $examen->getTemas()->count() === 1 && $examen->getTemas()->contains($tema);
+            });
+            // Tomar solo los primeros N después del filtro
+            $examenes = array_slice($examenes, 0, $cantidadExamenes);
+        }
 
         if (empty($examenes)) {
             return null;
         }
 
-        // Calcular promedio (en este caso es necesario en PHP por el filtro complejo)
-        $suma = 0;
+        // Sumar todos los aciertos, errores y en blanco
+        $totalAciertos = 0;
+        $totalErrores = 0;
+        $totalEnBlanco = 0;
+
         foreach ($examenes as $examen) {
-            $suma += (float) $examen->getNota();
+            $totalAciertos += $examen->getAciertos();
+            $totalErrores += $examen->getErrores();
+            $totalEnBlanco += $examen->getEnBlanco();
         }
 
-        return round($suma / count($examenes), 2);
+        // Calcular nota sobre 20
+        return $this->calcularNotaDesdeAciertosErrores($totalAciertos, $totalErrores, $totalEnBlanco);
     }
 
     /**
@@ -195,7 +223,7 @@ class ExamenRepository extends ServiceEntityRepository
         }
 
         // Calcular nota media para cada usuario (solo últimos N exámenes)
-        // OPTIMIZADO: Usar array_sum y array_map para cálculos más eficientes
+        // Sumar todos los aciertos, errores y en blanco de todos los exámenes
         $ranking = [];
         foreach ($examenesPorUsuario as $data) {
             $examenesUsuario = array_slice($data['examenes'], 0, $cantidadExamenes);
@@ -204,12 +232,19 @@ class ExamenRepository extends ServiceEntityRepository
                 continue;
             }
 
-            // Extraer notas y calcular promedio
-            $notas = array_map(function($examen) {
-                return (float) $examen->getNota();
-            }, $examenesUsuario);
-            
-            $notaMedia = round(array_sum($notas) / count($notas), 2);
+            // Sumar todos los aciertos, errores y en blanco
+            $totalAciertos = 0;
+            $totalErrores = 0;
+            $totalEnBlanco = 0;
+
+            foreach ($examenesUsuario as $examen) {
+                $totalAciertos += $examen->getAciertos();
+                $totalErrores += $examen->getErrores();
+                $totalEnBlanco += $examen->getEnBlanco();
+            }
+
+            // Calcular nota sobre 20
+            $notaMedia = $this->calcularNotaDesdeAciertosErrores($totalAciertos, $totalErrores, $totalEnBlanco);
 
             $ranking[] = [
                 'usuario' => $data['usuario'],
@@ -284,12 +319,19 @@ class ExamenRepository extends ServiceEntityRepository
             return null;
         }
 
-        // Calcular promedio (necesario en PHP por el filtro complejo de tema municipal único)
-        $notas = array_map(function($examen) {
-            return (float) $examen->getNota();
-        }, $examenes);
-        
-        return round(array_sum($notas) / count($notas), 2);
+        // Sumar todos los aciertos, errores y en blanco
+        $totalAciertos = 0;
+        $totalErrores = 0;
+        $totalEnBlanco = 0;
+
+        foreach ($examenes as $examen) {
+            $totalAciertos += $examen->getAciertos();
+            $totalErrores += $examen->getErrores();
+            $totalEnBlanco += $examen->getEnBlanco();
+        }
+
+        // Calcular nota sobre 20
+        return $this->calcularNotaDesdeAciertosErrores($totalAciertos, $totalErrores, $totalEnBlanco);
     }
 
     /**
@@ -362,7 +404,7 @@ class ExamenRepository extends ServiceEntityRepository
         }
 
         // Calcular nota media para cada usuario (solo últimos N exámenes)
-        // OPTIMIZADO: Usar array_sum y array_map para cálculos más eficientes
+        // Sumar todos los aciertos, errores y en blanco de todos los exámenes
         $ranking = [];
         foreach ($examenesPorUsuario as $data) {
             $examenesUsuario = array_slice($data['examenes'], 0, $cantidadExamenes);
@@ -371,12 +413,19 @@ class ExamenRepository extends ServiceEntityRepository
                 continue;
             }
 
-            // Extraer notas y calcular promedio
-            $notas = array_map(function($examen) {
-                return (float) $examen->getNota();
-            }, $examenesUsuario);
-            
-            $notaMedia = round(array_sum($notas) / count($notas), 2);
+            // Sumar todos los aciertos, errores y en blanco
+            $totalAciertos = 0;
+            $totalErrores = 0;
+            $totalEnBlanco = 0;
+
+            foreach ($examenesUsuario as $examen) {
+                $totalAciertos += $examen->getAciertos();
+                $totalErrores += $examen->getErrores();
+                $totalEnBlanco += $examen->getEnBlanco();
+            }
+
+            // Calcular nota sobre 20
+            $notaMedia = $this->calcularNotaDesdeAciertosErrores($totalAciertos, $totalErrores, $totalEnBlanco);
 
             $ranking[] = [
                 'usuario' => $data['usuario'],
@@ -442,43 +491,45 @@ class ExamenRepository extends ServiceEntityRepository
 
     /**
      * Obtiene la nota media de un usuario para los últimos N exámenes de una convocatoria específica
-     * OPTIMIZADO: Usa AVG() directamente en SQL
+     * Calcula la nota sumando todos los aciertos, errores y en blanco de los exámenes
      */
     public function getNotaMediaUsuarioPorConvocatoria(User $usuario, \App\Entity\Convocatoria $convocatoria, string $dificultad, int $cantidadExamenes, ?\App\Entity\Municipio $municipio = null): ?float
     {
-        // Primero obtener los IDs de los últimos N exámenes
-        $idsSubquery = $this->createQueryBuilder('e2')
-            ->select('e2.id')
-            ->where('e2.usuario = :usuario')
-            ->andWhere('e2.convocatoria = :convocatoria')
-            ->andWhere('e2.dificultad = :dificultad')
+        $qb = $this->createQueryBuilder('e')
+            ->where('e.usuario = :usuario')
+            ->andWhere('e.convocatoria = :convocatoria')
+            ->andWhere('e.dificultad = :dificultad')
             ->setParameter('usuario', $usuario)
             ->setParameter('convocatoria', $convocatoria)
             ->setParameter('dificultad', $dificultad);
         
         if ($municipio) {
-            $idsSubquery->andWhere('e2.municipio = :municipio')
-                       ->setParameter('municipio', $municipio);
+            $qb->andWhere('e.municipio = :municipio')
+               ->setParameter('municipio', $municipio);
         }
         
-        $idsSubquery->orderBy('e2.fecha', 'DESC')
-                    ->setMaxResults($cantidadExamenes);
+        $qb->orderBy('e.fecha', 'DESC')
+           ->setMaxResults($cantidadExamenes);
 
-        // Calcular AVG sobre esos IDs
-        $avgQuery = $this->createQueryBuilder('e')
-            ->select('AVG(e.nota) as promedio')
-            ->where('e.id IN (' . $idsSubquery->getDQL() . ')')
-            ->setParameter('usuario', $usuario)
-            ->setParameter('convocatoria', $convocatoria)
-            ->setParameter('dificultad', $dificultad);
+        $examenes = $qb->getQuery()->getResult();
 
-        if ($municipio) {
-            $avgQuery->setParameter('municipio', $municipio);
+        if (empty($examenes)) {
+            return null;
         }
 
-        $result = $avgQuery->getQuery()->getSingleScalarResult();
+        // Sumar todos los aciertos, errores y en blanco
+        $totalAciertos = 0;
+        $totalErrores = 0;
+        $totalEnBlanco = 0;
 
-        return $result ? round((float) $result, 2) : null;
+        foreach ($examenes as $examen) {
+            $totalAciertos += $examen->getAciertos();
+            $totalErrores += $examen->getErrores();
+            $totalEnBlanco += $examen->getEnBlanco();
+        }
+
+        // Calcular nota sobre 20
+        return $this->calcularNotaDesdeAciertosErrores($totalAciertos, $totalErrores, $totalEnBlanco);
     }
 
     /**
@@ -535,7 +586,7 @@ class ExamenRepository extends ServiceEntityRepository
         }
 
         // Calcular nota media para cada usuario (solo últimos N exámenes)
-        // OPTIMIZADO: Usar array_sum y array_map para cálculos más eficientes
+        // Sumar todos los aciertos, errores y en blanco de todos los exámenes
         $ranking = [];
         foreach ($examenesPorUsuario as $data) {
             $examenesUsuario = array_slice($data['examenes'], 0, $cantidadExamenes);
@@ -544,12 +595,19 @@ class ExamenRepository extends ServiceEntityRepository
                 continue;
             }
 
-            // Extraer notas y calcular promedio
-            $notas = array_map(function($examen) {
-                return (float) $examen->getNota();
-            }, $examenesUsuario);
-            
-            $notaMedia = round(array_sum($notas) / count($notas), 2);
+            // Sumar todos los aciertos, errores y en blanco
+            $totalAciertos = 0;
+            $totalErrores = 0;
+            $totalEnBlanco = 0;
+
+            foreach ($examenesUsuario as $examen) {
+                $totalAciertos += $examen->getAciertos();
+                $totalErrores += $examen->getErrores();
+                $totalEnBlanco += $examen->getEnBlanco();
+            }
+
+            // Calcular nota sobre 20
+            $notaMedia = $this->calcularNotaDesdeAciertosErrores($totalAciertos, $totalErrores, $totalEnBlanco);
 
             $ranking[] = [
                 'usuario' => $data['usuario'],

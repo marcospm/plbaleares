@@ -296,8 +296,16 @@ class PartidaPreguntasService
             }
         }
 
-        // Calcular nota
-        $nota = ($partida['numPreguntas'] > 0) ? ($aciertos / $partida['numPreguntas']) * 10 : 0;
+        // Calcular nota sobre 20 usando la misma fórmula que los exámenes
+        $totalPreguntas = $aciertos + $errores + $enBlanco;
+        if ($totalPreguntas > 0) {
+            $puntosPorAcierto = 20 / $totalPreguntas;
+            $puntosPorError = $puntosPorAcierto / 4; // Cada error resta 1/4 del valor de un acierto
+            $nota = ($aciertos * $puntosPorAcierto) - ($errores * $puntosPorError);
+            $nota = max(0, min(20, round($nota, 2)));
+        } else {
+            $nota = 0;
+        }
 
         // Actualizar participante
         $participante['fechaFin'] = $fechaFin;
@@ -386,7 +394,16 @@ class PartidaPreguntasService
                         }
                     }
 
-                    $nota = ($partida['numPreguntas'] > 0) ? ($aciertos / $partida['numPreguntas']) * 10 : 0;
+                    // Calcular nota sobre 20 usando la misma fórmula que los exámenes
+                    $totalPreguntas = $aciertos + $errores + $enBlanco;
+                    if ($totalPreguntas > 0) {
+                        $puntosPorAcierto = 20 / $totalPreguntas;
+                        $puntosPorError = $puntosPorAcierto / 4; // Cada error resta 1/4 del valor de un acierto
+                        $nota = ($aciertos * $puntosPorAcierto) - ($errores * $puntosPorError);
+                        $nota = max(0, min(20, round($nota, 2)));
+                    } else {
+                        $nota = 0;
+                    }
 
                     $participante['fechaFin'] = $fechaFin;
                     $participante['tiempoTotal'] = $tiempoTotal;

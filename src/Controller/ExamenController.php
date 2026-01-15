@@ -1825,12 +1825,6 @@ class ExamenController extends AbstractController
             $convocatoriaRanking = $this->convocatoriaRepository->find($convocatoriaRankingId);
         }
         
-        // Obtener dificultad específica para el ranking (independiente del filtro principal) - segunda vez
-        if (!isset($dificultadRankingSeleccionada)) {
-            $dificultadRankingParam = $request->query->get('dificultad_ranking');
-            $dificultadRankingSeleccionada = ($dificultadRankingParam !== null && $dificultadRankingParam !== '' && in_array($dificultadRankingParam, ['facil', 'moderada', 'dificil'])) ? $dificultadRankingParam : null;
-        }
-        
         // Obtener convocatorias disponibles para el filtro de ranking
         $convocatoriasDisponibles = [];
         if ($esAdmin) {
@@ -1848,9 +1842,10 @@ class ExamenController extends AbstractController
             $convocatoriasDisponibles = $convocatoriasAlumnos;
         }
         
-        // Calcular ranking según los filtros
-        $ranking = [];
+        // Calcular rankings para las 3 dificultades siempre
+        $rankings = [];
         $cantidadExamenesRanking = 10; // Últimos 10 exámenes para el ranking
+        $dificultades = ['facil', 'moderada', 'dificil'];
         
         // Determinar qué alumnos incluir en el ranking
         // Si hay filtros específicos (grupo o alumno), usarlos; si no, usar todos los alumnos del profesor
@@ -1868,9 +1863,6 @@ class ExamenController extends AbstractController
         }
         // Si no hay filtros específicos, $alumnosParaRanking será null
         // y se aplicará el filtro por alumnos del profesor después (si no es admin)
-        
-        // Usar la dificultad específica del ranking si está seleccionada, si no, usar null para indicar "todas las dificultades"
-        $dificultadRanking = $dificultadRankingSeleccionada ?: null;
         
         // Verificar y corregir $alumnosIds si es necesario
         // Asegurar que tenemos los alumnos correctos del profesor
@@ -1892,138 +1884,71 @@ class ExamenController extends AbstractController
             }
         }
         
-        if ($tipoRanking === 'convocatoria' && $convocatoriaRanking !== null) {
-            // Ranking por convocatoria
-            if ($dificultadRanking !== null) {
-                // Hay dificultad seleccionada: usar el método normal
+        // Calcular ranking para cada dificultad
+        foreach ($dificultades as $dificultad) {
+            $rankingDificultad = [];
+            
+            if ($tipoRanking === 'convocatoria' && $convocatoriaRanking !== null) {
+                // Ranking por convocatoria y dificultad
                 $rankingCompleto = $this->examenRepository->getRankingPorConvocatoriaYDificultad(
                     $convocatoriaRanking,
-                    $dificultadRanking,
+                    $dificultad,
                     $cantidadExamenesRanking
                 );
                 
                 // Filtrar por alumnos del profesor/grupo
                 if ($hayFiltrosEspecificos && $alumnosParaRanking !== null && !empty($alumnosParaRanking)) {
                     // Filtrar por filtros específicos (grupo o alumno)
-                    $ranking = array_filter($rankingCompleto, function($entry) use ($alumnosParaRanking) {
+                    $rankingDificultad = array_filter($rankingCompleto, function($entry) use ($alumnosParaRanking) {
                         return in_array($entry['usuario']->getId(), $alumnosParaRanking);
                     });
-                    $ranking = array_values($ranking); // Reindexar
+                    $rankingDificultad = array_values($rankingDificultad); // Reindexar
                 } elseif (!$esAdmin && !empty($alumnosIds)) {
                     // Si no es admin y no hay filtros específicos, filtrar por todos los alumnos del profesor
-                    $ranking = array_filter($rankingCompleto, function($entry) use ($alumnosIds) {
+                    $rankingDificultad = array_filter($rankingCompleto, function($entry) use ($alumnosIds) {
                         return in_array($entry['usuario']->getId(), $alumnosIds);
                     });
-                    $ranking = array_values($ranking); // Reindexar
+                    $rankingDificultad = array_values($rankingDificultad); // Reindexar
                 } else {
                     // Admin sin filtros: mostrar todos
-                    $ranking = $rankingCompleto;
+                    $rankingDificultad = $rankingCompleto;
                 }
             } else {
-                // Sin filtro de dificultad: calcular ranking usando todos los exámenes de la convocatoria
-                $ranking = [];
-                $alumnosParaCalcular = [];
-                
+                // Ranking por temario general y dificultad
+                // Determinar qué alumnos incluir en el cálculo del ranking
+                $alumnosParaCalcularRanking = null;
                 if ($hayFiltrosEspecificos && $alumnosParaRanking !== null && !empty($alumnosParaRanking)) {
-                    $alumnosParaCalcular = $alumnosParaRanking;
+                    // Si hay filtros específicos, usar esos alumnos
+                    $alumnosParaCalcularRanking = $alumnosParaRanking;
                 } elseif (!$esAdmin && !empty($alumnosIds)) {
-                    $alumnosParaCalcular = $alumnosIds;
-                } else {
-                    // Admin: obtener todos los alumnos de la convocatoria
-                    $alumnosParaCalcular = array_map(function($u) {
-                        return $u->getId();
-                    }, $convocatoriaRanking->getUsuarios()->toArray());
+                    // Si no es admin, usar todos los alumnos del profesor
+                    $alumnosParaCalcularRanking = $alumnosIds;
                 }
+                // Si es admin y no hay filtros, $alumnosParaCalcularRanking será null (todos los alumnos)
                 
-                foreach ($alumnosParaCalcular as $alumnoId) {
-                    $alumno = $userRepository->find($alumnoId);
-                    if (!$alumno || !$alumno->isActivo()) {
-                        continue;
-                    }
-                    
-                    $roles = $alumno->getRoles();
-                    if (in_array('ROLE_PROFESOR', $roles) || in_array('ROLE_ADMIN', $roles)) {
-                        continue;
-                    }
-                    
-                    // Obtener todos los exámenes de la convocatoria (sin filtrar por dificultad)
-                    $qb = $this->examenRepository->createQueryBuilder('e')
-                        ->where('e.usuario = :usuario')
-                        ->andWhere('e.convocatoria = :convocatoria')
-                        ->setParameter('usuario', $alumno)
-                        ->setParameter('convocatoria', $convocatoriaRanking);
-                    
-                    $examenesReales = $qb->orderBy('e.fecha', 'DESC')
-                        ->setMaxResults($cantidadExamenesRanking)
-                        ->getQuery()
-                        ->getResult();
-                    
-                    if (!empty($examenesReales)) {
-                        $suma = 0;
-                        foreach ($examenesReales as $examen) {
-                            $suma += (float) $examen->getNota();
+                // Calcular ranking solo para los alumnos especificados
+                if ($alumnosParaCalcularRanking !== null && !empty($alumnosParaCalcularRanking)) {
+                    // Calcular ranking solo para los alumnos del profesor/filtros
+                    foreach ($alumnosParaCalcularRanking as $alumnoId) {
+                        $alumno = $userRepository->find($alumnoId);
+                        if (!$alumno) {
+                            continue; // Saltar si el alumno no existe
                         }
-                        $notaMedia = round($suma / count($examenesReales), 2);
                         
-                        $ranking[] = [
-                            'usuario' => $alumno,
-                            'notaMedia' => $notaMedia,
-                            'cantidadExamenes' => count($examenesReales),
-                        ];
-                    }
-                }
-                
-                // Ordenar por nota media descendente
-                usort($ranking, function($a, $b) {
-                    if ($a['notaMedia'] == $b['notaMedia']) {
-                        return 0;
-                    }
-                    return ($a['notaMedia'] > $b['notaMedia']) ? -1 : 1;
-                });
-            }
-        } else {
-            // Ranking por temario general
-            // Determinar qué alumnos incluir en el cálculo del ranking
-            $alumnosParaCalcularRanking = null;
-            if ($hayFiltrosEspecificos && $alumnosParaRanking !== null && !empty($alumnosParaRanking)) {
-                // Si hay filtros específicos, usar esos alumnos
-                $alumnosParaCalcularRanking = $alumnosParaRanking;
-            } elseif (!$esAdmin && !empty($alumnosIds)) {
-                // Si no es admin, usar todos los alumnos del profesor
-                $alumnosParaCalcularRanking = $alumnosIds;
-            }
-            // Si es admin y no hay filtros, $alumnosParaCalcularRanking será null (todos los alumnos)
-            
-            // Calcular ranking solo para los alumnos especificados
-            $ranking = [];
-            if ($alumnosParaCalcularRanking !== null && !empty($alumnosParaCalcularRanking)) {
-                // Calcular ranking solo para los alumnos del profesor/filtros
-                foreach ($alumnosParaCalcularRanking as $alumnoId) {
-                    $alumno = $userRepository->find($alumnoId);
-                    if (!$alumno) {
-                        continue; // Saltar si el alumno no existe
-                    }
-                    
-                    if (!$alumno->isActivo()) {
-                        continue; // Saltar si el alumno no está activo
-                    }
-                    
-                    // Verificar que no sea profesor o admin
-                    $roles = $alumno->getRoles();
-                    if (in_array('ROLE_PROFESOR', $roles) || in_array('ROLE_ADMIN', $roles)) {
-                        continue;
-                    }
-                    
-                    // Calcular nota media
-                    // Si hay dificultad seleccionada, usar esa; si no, usar todos los exámenes de temario general
-                    $notaMedia = null;
-                    $examenesReales = [];
-                    
-                    if ($dificultadRanking !== null) {
-                        // Hay dificultad seleccionada: usar el método normal
+                        if (!$alumno->isActivo()) {
+                            continue; // Saltar si el alumno no está activo
+                        }
+                        
+                        // Verificar que no sea profesor o admin
+                        $roles = $alumno->getRoles();
+                        if (in_array('ROLE_PROFESOR', $roles) || in_array('ROLE_ADMIN', $roles)) {
+                            continue;
+                        }
+                        
+                        // Calcular nota media para esta dificultad
                         $notaMedia = $this->examenRepository->getNotaMediaUsuario(
                             $alumno,
-                            $dificultadRanking,
+                            $dificultad,
                             $cantidadExamenesRanking,
                             $tema
                         );
@@ -2035,7 +1960,7 @@ class ExamenController extends AbstractController
                                 ->andWhere('e.dificultad = :dificultad')
                                 ->andWhere('e.municipio IS NULL')
                                 ->setParameter('usuario', $alumno)
-                                ->setParameter('dificultad', $dificultadRanking);
+                                ->setParameter('dificultad', $dificultad);
                             
                             if ($tema !== null) {
                                 $qb->innerJoin('e.temas', 't')
@@ -2056,116 +1981,9 @@ class ExamenController extends AbstractController
                                     return $examen->getTemas()->count() === 1 && $examen->getTemas()->contains($tema);
                                 });
                             }
-                        }
-                    } else {
-                        // No hay dificultad seleccionada: usar todos los exámenes de temario general
-                        $qb = $this->examenRepository->createQueryBuilder('e')
-                            ->where('e.usuario = :usuario')
-                            ->andWhere('e.municipio IS NULL')
-                            ->setParameter('usuario', $alumno);
-                        
-                        if ($tema !== null) {
-                            $qb->innerJoin('e.temas', 't')
-                               ->andWhere('t.id = :temaId')
-                               ->setParameter('temaId', $tema->getId())
-                               ->groupBy('e.id')
-                               ->having('COUNT(t.id) = 1');
-                        }
-                        
-                        $examenesReales = $qb->orderBy('e.fecha', 'DESC')
-                            ->setMaxResults($cantidadExamenesRanking)
-                            ->getQuery()
-                            ->getResult();
-                        
-                        // Filtrar en PHP para asegurar que solo sean exámenes íntegramente del tema
-                        if ($tema !== null) {
-                            $examenesReales = array_filter($examenesReales, function($examen) use ($tema) {
-                                return $examen->getTemas()->count() === 1 && $examen->getTemas()->contains($tema);
-                            });
-                        }
-                        
-                        // Calcular nota media de todos los exámenes
-                        if (!empty($examenesReales)) {
-                            $suma = 0;
-                            foreach ($examenesReales as $examen) {
-                                $suma += (float) $examen->getNota();
-                            }
-                            $notaMedia = round($suma / count($examenesReales), 2);
-                        }
-                    }
-                    
-                    if ($notaMedia !== null) {
-                        $ranking[] = [
-                            'usuario' => $alumno,
-                            'notaMedia' => $notaMedia,
-                            'cantidadExamenes' => count($examenesReales),
-                        ];
-                    }
-                }
-                
-                // Ordenar por nota media descendente
-                usort($ranking, function($a, $b) {
-                    if ($a['notaMedia'] == $b['notaMedia']) {
-                        return 0;
-                    }
-                    return ($a['notaMedia'] > $b['notaMedia']) ? -1 : 1;
-                });
-            } else {
-                // Admin sin filtros: usar el método completo que obtiene todos los alumnos
-                if ($dificultadRanking !== null) {
-                    $ranking = $this->examenRepository->getRankingPorDificultad(
-                        $dificultadRanking,
-                        $cantidadExamenesRanking,
-                        $tema
-                    );
-                } else {
-                    // Sin filtro de dificultad: calcular para todos los alumnos activos
-                    $todosUsuarios = $userRepository->createQueryBuilder('u')
-                        ->where('u.activo = :activo')
-                        ->setParameter('activo', true)
-                        ->getQuery()
-                        ->getResult();
-                    
-                    $ranking = [];
-                    foreach ($todosUsuarios as $usuario) {
-                        $roles = $usuario->getRoles();
-                        if (in_array('ROLE_PROFESOR', $roles) || in_array('ROLE_ADMIN', $roles)) {
-                            continue;
-                        }
-                        
-                        $qb = $this->examenRepository->createQueryBuilder('e')
-                            ->where('e.usuario = :usuario')
-                            ->andWhere('e.municipio IS NULL')
-                            ->setParameter('usuario', $usuario);
-                        
-                        if ($tema !== null) {
-                            $qb->innerJoin('e.temas', 't')
-                               ->andWhere('t.id = :temaId')
-                               ->setParameter('temaId', $tema->getId())
-                               ->groupBy('e.id')
-                               ->having('COUNT(t.id) = 1');
-                        }
-                        
-                        $examenesReales = $qb->orderBy('e.fecha', 'DESC')
-                            ->setMaxResults($cantidadExamenesRanking)
-                            ->getQuery()
-                            ->getResult();
-                        
-                        if ($tema !== null) {
-                            $examenesReales = array_filter($examenesReales, function($examen) use ($tema) {
-                                return $examen->getTemas()->count() === 1 && $examen->getTemas()->contains($tema);
-                            });
-                        }
-                        
-                        if (!empty($examenesReales)) {
-                            $suma = 0;
-                            foreach ($examenesReales as $examen) {
-                                $suma += (float) $examen->getNota();
-                            }
-                            $notaMedia = round($suma / count($examenesReales), 2);
                             
-                            $ranking[] = [
-                                'usuario' => $usuario,
+                            $rankingDificultad[] = [
+                                'usuario' => $alumno,
                                 'notaMedia' => $notaMedia,
                                 'cantidadExamenes' => count($examenesReales),
                             ];
@@ -2173,27 +1991,24 @@ class ExamenController extends AbstractController
                     }
                     
                     // Ordenar por nota media descendente
-                    usort($ranking, function($a, $b) {
+                    usort($rankingDificultad, function($a, $b) {
                         if ($a['notaMedia'] == $b['notaMedia']) {
                             return 0;
                         }
                         return ($a['notaMedia'] > $b['notaMedia']) ? -1 : 1;
                     });
+                } else {
+                    // Admin sin filtros: usar el método completo que obtiene todos los alumnos
+                    $rankingDificultad = $this->examenRepository->getRankingPorDificultad(
+                        $dificultad,
+                        $cantidadExamenesRanking,
+                        $tema
+                    );
                 }
             }
             
-            // Debug: Verificar que tenemos alumnos
-            // Si no hay ranking pero hay alumnos asignados, puede ser que no tengan exámenes con esa dificultad
+            $rankings[$dificultad] = $rankingDificultad;
         }
-        
-        // Paginación del ranking
-        $itemsPerPageRanking = 20;
-        $pageRanking = max(1, $request->query->getInt('page_ranking', 1));
-        $totalItemsRanking = count($ranking);
-        $totalPagesRanking = max(1, ceil($totalItemsRanking / $itemsPerPageRanking));
-        $pageRanking = min($pageRanking, $totalPagesRanking);
-        $offsetRanking = ($pageRanking - 1) * $itemsPerPageRanking;
-        $rankingPaginated = array_slice($ranking, $offsetRanking, $itemsPerPageRanking);
         
         return $this->render('examen/profesor.html.twig', [
             'examenesGeneral' => $examenesGeneralPaginated,
@@ -2208,8 +2023,7 @@ class ExamenController extends AbstractController
             'grupoSeleccionado' => $grupoId !== null && $grupoId > 0 ? $grupoId : null,
             'tipoRanking' => $tipoRanking,
             'convocatoriaRankingSeleccionada' => $convocatoriaRankingId !== null && $convocatoriaRankingId > 0 ? $convocatoriaRankingId : null,
-            'dificultadRankingSeleccionada' => $dificultadRankingSeleccionada,
-            'ranking' => $rankingPaginated,
+            'rankings' => $rankings,
             // Paginación general
             'currentPageGeneral' => $pageGeneral,
             'totalPagesGeneral' => $totalPagesGeneral,
@@ -2219,10 +2033,6 @@ class ExamenController extends AbstractController
             'currentPageMunicipal' => $pageMunicipal,
             'totalPagesMunicipal' => $totalPagesMunicipal,
             'totalItemsMunicipal' => $totalItemsMunicipal,
-            // Paginación ranking
-            'currentPageRanking' => $pageRanking,
-            'totalPagesRanking' => $totalPagesRanking,
-            'totalItemsRanking' => $totalItemsRanking,
         ]);
     }
 

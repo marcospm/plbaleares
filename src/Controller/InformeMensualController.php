@@ -159,14 +159,8 @@ class InformeMensualController extends AbstractController
 
         // Calcular estadísticas de exámenes
         $totalExamenes = count($examenes);
-        $notas = array_map(function($examen) {
-            return (float) $examen->getNota();
-        }, $examenes);
         
-        $notaMedia = $totalExamenes > 0 ? round(array_sum($notas) / $totalExamenes, 2) : 0;
-        $mejorNota = $totalExamenes > 0 ? max($notas) : 0;
-        $peorNota = $totalExamenes > 0 ? min($notas) : 0;
-        
+        // Sumar todos los aciertos, errores y en blanco para calcular nota media
         $totalAciertos = array_sum(array_map(function($examen) {
             return $examen->getAciertos();
         }, $examenes));
@@ -178,6 +172,17 @@ class InformeMensualController extends AbstractController
         $totalEnBlanco = array_sum(array_map(function($examen) {
             return $examen->getEnBlanco();
         }, $examenes));
+        
+        // Calcular nota media sumando aciertos, errores y en blanco (mismo método que rankings)
+        $notaMedia = $this->examenRepository->calcularNotaMediaDesdeExamenes($examenes) ?? 0;
+        
+        // Para mejor y peor nota, usar las notas individuales de los exámenes
+        $notas = array_map(function($examen) {
+            return (float) $examen->getNota();
+        }, $examenes);
+        
+        $mejorNota = $totalExamenes > 0 ? max($notas) : 0;
+        $peorNota = $totalExamenes > 0 ? min($notas) : 0;
 
         // Obtener exámenes semanales realizados en el mes
         $examenesSemanales = $this->examenRepository->createQueryBuilder('e')
