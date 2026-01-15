@@ -1816,13 +1816,19 @@ class ExamenController extends AbstractController
             return !in_array('ROLE_PROFESOR', $roles) && !in_array('ROLE_ADMIN', $roles);
         });
         
-        // Obtener parámetros para el ranking
+        // Obtener parámetros para el ranking (segunda vez, después de obtener usuarios)
         $tipoRanking = $request->query->get('tipo_ranking', 'general'); // 'general' o 'convocatoria'
         $convocatoriaIdParam = $request->query->get('convocatoria_ranking');
         $convocatoriaRankingId = ($convocatoriaIdParam !== null && $convocatoriaIdParam !== '') ? (int)$convocatoriaIdParam : null;
         $convocatoriaRanking = null;
         if ($convocatoriaRankingId !== null && $convocatoriaRankingId > 0) {
             $convocatoriaRanking = $this->convocatoriaRepository->find($convocatoriaRankingId);
+        }
+        
+        // Obtener dificultad específica para el ranking (independiente del filtro principal) - segunda vez
+        if (!isset($dificultadRankingSeleccionada)) {
+            $dificultadRankingParam = $request->query->get('dificultad_ranking');
+            $dificultadRankingSeleccionada = ($dificultadRankingParam !== null && $dificultadRankingParam !== '' && in_array($dificultadRankingParam, ['facil', 'moderada', 'dificil'])) ? $dificultadRankingParam : null;
         }
         
         // Obtener convocatorias disponibles para el filtro de ranking
@@ -1863,8 +1869,8 @@ class ExamenController extends AbstractController
         // Si no hay filtros específicos, $alumnosParaRanking será null
         // y se aplicará el filtro por alumnos del profesor después (si no es admin)
         
-        // Si hay dificultad seleccionada, usar esa; si no, usar null para indicar "todas las dificultades"
-        $dificultadRanking = $dificultad ?: null;
+        // Usar la dificultad específica del ranking si está seleccionada, si no, usar null para indicar "todas las dificultades"
+        $dificultadRanking = $dificultadRankingSeleccionada ?: null;
         
         // Verificar y corregir $alumnosIds si es necesario
         // Asegurar que tenemos los alumnos correctos del profesor
@@ -2202,6 +2208,7 @@ class ExamenController extends AbstractController
             'grupoSeleccionado' => $grupoId !== null && $grupoId > 0 ? $grupoId : null,
             'tipoRanking' => $tipoRanking,
             'convocatoriaRankingSeleccionada' => $convocatoriaRankingId !== null && $convocatoriaRankingId > 0 ? $convocatoriaRankingId : null,
+            'dificultadRankingSeleccionada' => $dificultadRankingSeleccionada,
             'ranking' => $rankingPaginated,
             // Paginación general
             'currentPageGeneral' => $pageGeneral,

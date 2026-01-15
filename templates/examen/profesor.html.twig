@@ -119,6 +119,10 @@
                 width: 100%;
             }
             
+            #filtrosRankingForm > div {
+                width: 100%;
+            }
+            
             #filtrosRankingForm label {
                 display: block;
                 margin-bottom: 0.5rem;
@@ -693,7 +697,7 @@
                 {# Filtros para el ranking #}
                 <div class="card" style="margin-bottom: 2rem; background-color: #f8f9fa;">
                     <div class="card-body">
-                        <form method="GET" action="{{ path('app_examen_profesor') }}" id="filtrosRankingForm" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
+                        <form method="GET" action="{{ path('app_examen_profesor') }}" id="filtrosRankingForm" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
                             {# Preservar filtros existentes #}
                             {% if grupoSeleccionado %}
                                 <input type="hidden" name="grupo" value="{{ grupoSeleccionado }}">
@@ -719,6 +723,15 @@
                                 <select name="tipo_ranking" id="tipo_ranking" class="form-control" onchange="document.getElementById('filtrosRankingForm').submit();">
                                     <option value="general" {% if tipoRanking == 'general' %}selected{% endif %}>Temario General</option>
                                     <option value="convocatoria" {% if tipoRanking == 'convocatoria' %}selected{% endif %}>Por Convocatoria</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="dificultad_ranking" class="form-label">Nivel de Dificultad:</label>
+                                <select name="dificultad_ranking" id="dificultad_ranking" class="form-control" onchange="document.getElementById('filtrosRankingForm').submit();">
+                                    <option value="">Todas las dificultades</option>
+                                    <option value="facil" {% if dificultadRankingSeleccionada == 'facil' %}selected{% endif %}>Fácil</option>
+                                    <option value="moderada" {% if dificultadRankingSeleccionada == 'moderada' %}selected{% endif %}>Moderada</option>
+                                    <option value="dificil" {% if dificultadRankingSeleccionada == 'dificil' %}selected{% endif %}>Difícil</option>
                                 </select>
                             </div>
                             <div>
@@ -807,6 +820,7 @@
                                         'dificultad': dificultadSeleccionada ? dificultadSeleccionada : '',
                                         'tema': temaSeleccionado ? temaSeleccionado.id : '',
                                         'tipo_ranking': tipoRanking,
+                                        'dificultad_ranking': dificultadRankingSeleccionada ? dificultadRankingSeleccionada : '',
                                         'convocatoria_ranking': convocatoriaRankingSeleccionada ? convocatoriaRankingSeleccionada : '',
                                         'page_general': currentPageGeneral > 1 ? currentPageGeneral : '',
                                         'page_municipal': currentPageMunicipal > 1 ? currentPageMunicipal : ''
