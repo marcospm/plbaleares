@@ -848,13 +848,35 @@ select[name="examen_iniciar[convocatoria]"]:focus {
         }
     }
     
+    // Función para enfocar el selector de tipo de examen
+    function enfocarTipoExamen() {
+        const tipoExamenSelect = document.getElementById('tipo_examen_select') || 
+                                 document.querySelector('select[name="examen_iniciar[tipoExamen]"]');
+        if (tipoExamenSelect) {
+            // Usar setTimeout para asegurar que el DOM esté completamente renderizado
+            setTimeout(function() {
+                tipoExamenSelect.focus();
+            }, 100);
+        }
+    }
+    
     // Ejecutar cuando el DOM esté listo
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', inicializarFormulario);
+        document.addEventListener('DOMContentLoaded', function() {
+            inicializarFormulario();
+            enfocarTipoExamen();
+        });
     } else {
         // DOM ya está listo
         inicializarFormulario();
+        enfocarTipoExamen();
     }
+    
+    // También enfocar en eventos de Turbo (si se usa)
+    document.addEventListener('turbo:load', function() {
+        enfocarTipoExamen();
+    });
+    
     // Limpiar temporizador al iniciar un nuevo examen
     localStorage.removeItem('examen_tiempo_inicio');
     localStorage.removeItem('examen_tiempo_limite');
