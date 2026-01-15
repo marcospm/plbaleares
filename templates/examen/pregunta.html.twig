@@ -153,7 +153,7 @@
 
         {# Pregunta #}
         <div class="form-group mb-4" id="pregunta-texto">
-            <h3 style="color: var(--color-primary); margin-bottom: 1rem;">{{ pregunta.texto }}</h3>
+            <h3 style="color: var(--color-primary); margin-bottom: 1rem;"><span style="font-weight: 600;">Pregunta {{ numero }}:</span> {{ pregunta.texto }}</h3>
         </div>
 
         <form method="post" action="{{ path('app_examen_pregunta', {'numero': numero}) }}" id="formPregunta">
@@ -283,10 +283,11 @@
                     <button type="submit" name="accion" value="siguiente" class="btn btn-primary">Siguiente</button>
                 {% endif %}
                 {# Botón Finalizar Examen siempre visible #}
-                <button type="submit" name="accion" value="finalizar" class="btn btn-success" id="btnFinalizarExamen" onclick="return confirm('¿Estás seguro de finalizar el examen?');">Finalizar Examen</button>
+                <button type="submit" name="accion" value="finalizar" class="btn btn-success" onclick="return confirm('¿Estás seguro de que deseas finalizar el examen?');">Finalizar Examen</button>
                 <button type="submit" name="accion" value="guardar_borrador" class="btn btn-secondary" id="btnGuardarBorrador" style="margin-left: auto;">💾 Guardar y continuar más tarde</button>
             </div>
         </form>
+
 
         {% if is_granted('ROLE_USER') and not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
         <div style="margin-top: 2rem; border-top: 2px solid #ddd; padding-top: 1.5rem;">
@@ -791,8 +792,19 @@
                         // Si hay redirección, seguirla para mostrar la respuesta correcta
                         window.location.href = response.url;
                     } else if (response.ok) {
-                        // Si la respuesta es OK pero no hay redirección, recargar la página
-                        window.location.reload();
+                        // Intentar parsear como JSON primero (modo estudio con AJAX)
+                        return response.json().then(data => {
+                            if (data.success) {
+                                // Actualizar UI dinámicamente sin recargar
+                                actualizarUIModoEstudio(data, respuesta);
+                            } else {
+                                // Si no es JSON válido o no tiene success, recargar
+                                window.location.reload();
+                            }
+                        }).catch(() => {
+                            // Si no es JSON, recargar la página
+                            window.location.reload();
+                        });
                     } else {
                         throw new Error('Error en la respuesta del servidor');
                     }
@@ -802,6 +814,227 @@
                     // En caso de error, recargar la página
                     window.location.reload();
                 });
+            }
+            
+            // Función para actualizar la UI en modo estudio sin recargar
+            function actualizarUIModoEstudio(data, respuestaSeleccionada) {
+                const respuestaCorrecta = data.respuestaCorrecta ? data.respuestaCorrecta.trim().toUpperCase() : '';
+                const respuestaAlumno = data.respuestaAlumno ? data.respuestaAlumno.trim().toUpperCase() : '';
+                const esCorrecta = data.esCorrecta;
+                
+                // Actualizar estilos de las opciones
+                const radioButtons = document.querySelectorAll('input[name="respuesta"]');
+                radioButtons.forEach(function(radio) {
+                    const letra = radio.value.trim().toUpperCase();
+                    const label = radio.closest('label');
+                    if (!label) return;
+                    
+                    // Deshabilitar todos los radio buttons
+                    radio.disabled = true;
+                    
+                    // Determinar si es la respuesta correcta
+                    const esCorrectaOpcion = (letra === respuestaCorrecta);
+                    // Determinar si es la respuesta del alumno
+                    const esRespuestaAlumno = (letra === respuestaAlumno);
+                    // Determinar si es incorrecta (seleccionada pero no correcta)
+                    const esIncorrectaOpcion = esRespuestaAlumno && !esCorrectaOpcion;
+                    
+                    // Actualizar estilos del label
+                    if (esCorrectaOpcion) {
+                        label.style.background = '#e8f5e9';
+                        label.style.border = '2px solid var(--color-border)';
+                        label.style.borderLeft = '3px solid var(--color-success)';
+                    } else if (esIncorrectaOpcion) {
+                        label.style.background = '#ffebee';
+                        label.style.border = '2px solid var(--color-border)';
+                        label.style.borderLeft = '3px solid var(--color-danger)';
+                    } else {
+                        label.style.background = '';
+                        label.style.border = '2px solid var(--color-border)';
+                        label.style.borderLeft = '2px solid var(--color-border)';
+                        label.style.opacity = '0.7';
+                    }
+                    
+                    // Actualizar mensajes dentro del label
+                    const divTexto = label.querySelector('div[style*="flex: 1"]');
+                    if (divTexto) {
+                        // Eliminar mensajes anteriores
+                        const mensajesAnteriores = divTexto.querySelectorAll('span[style*="display: block"]');
+                        mensajesAnteriores.forEach(function(span) {
+                            span.remove();
+                        });
+                        
+                        // Agregar mensajes según corresponda
+                        if (esCorrectaOpcion && esRespuestaAlumno) {
+                            const mensaje = document.createElement('span');
+                            mensaje.style.cssText = 'display: block; margin-top: 0.5rem; color: var(--color-success); font-weight: bold;';
+                            mensaje.textContent = '← Tu respuesta (correcta)';
+                            divTexto.appendChild(mensaje);
+                        } else if (esIncorrectaOpcion) {
+                            const mensaje = document.createElement('span');
+                            mensaje.style.cssText = 'display: block; margin-top: 0.5rem; color: var(--color-danger);';
+                            mensaje.textContent = '← Tu respuesta (incorrecta)';
+                            divTexto.appendChild(mensaje);
+                        } else if (esCorrectaOpcion && !esRespuestaAlumno) {
+                            const mensaje = document.createElement('span');
+                            mensaje.style.cssText = 'display: block; margin-top: 0.5rem; color: var(--color-success); font-weight: bold;';
+                            mensaje.textContent = '← Respuesta correcta';
+                            divTexto.appendChild(mensaje);
+                        }
+                    }
+                });
+                
+                // Actualizar colores de los números en la guía de navegación
+                if (data.estadoPreguntas) {
+                    Object.keys(data.estadoPreguntas).forEach(function(numStr) {
+                        const num = parseInt(numStr);
+                        const estado = data.estadoPreguntas[num];
+                        const preguntaLink = document.querySelector(`.pregunta-link[data-pregunta-num="${num}"]`);
+                        
+                        if (preguntaLink) {
+                            if (estado.esActual) {
+                                preguntaLink.style.background = 'var(--color-primary)';
+                                preguntaLink.style.color = 'white';
+                                preguntaLink.style.border = '2px solid var(--color-primary)';
+                            } else if (estado.esCorrecta !== undefined && estado.esCorrecta) {
+                                preguntaLink.style.background = '#28a745';
+                                preguntaLink.style.color = 'white';
+                                preguntaLink.style.border = '2px solid #28a745';
+                            } else if (estado.tieneRespuesta && estado.esCorrecta !== undefined && !estado.esCorrecta) {
+                                preguntaLink.style.background = '#dc3545';
+                                preguntaLink.style.color = 'white';
+                                preguntaLink.style.border = '2px solid #dc3545';
+                            } else if (estado.tieneRespuesta) {
+                                preguntaLink.style.background = '#28a745';
+                                preguntaLink.style.color = 'white';
+                                preguntaLink.style.border = '2px solid #28a745';
+                            } else {
+                                preguntaLink.style.background = 'white';
+                                preguntaLink.style.color = '#666';
+                                preguntaLink.style.border = '2px solid #dee2e6';
+                            }
+                        }
+                    });
+                }
+                
+                // Mostrar retroalimentación si existe
+                if (data.retroalimentacion) {
+                    mostrarRetroalimentacion(data.retroalimentacion);
+                }
+                
+                // Mostrar explicación y texto legal si existen
+                if (data.explicacion || data.textoLegal) {
+                    mostrarExplicacionYTextoLegal(data.explicacion, data.textoLegal);
+                }
+                
+                // Marcar pregunta como bloqueada
+                preguntaBloqueada = true;
+                enviandoRespuesta = false;
+            }
+            
+            // Función para mostrar retroalimentación
+            function mostrarRetroalimentacion(retroalimentacion) {
+                let container = document.getElementById('retroalimentacion-container');
+                if (!container) {
+                    // Crear el contenedor si no existe
+                    const formGroup = document.querySelector('.form-group');
+                    if (formGroup) {
+                        container = document.createElement('div');
+                        container.id = 'retroalimentacion-container';
+                        container.style.cssText = 'margin-top: 1.5rem; background: #e7f3ff; border-left: 4px solid #2196F3; border-radius: 4px; overflow: hidden;';
+                        formGroup.appendChild(container);
+                    } else {
+                        return;
+                    }
+                }
+                
+                // Crear o actualizar el contenido
+                let header = container.querySelector('.collapsible-header');
+                if (!header) {
+                    header = document.createElement('div');
+                    header.className = 'collapsible-header';
+                    header.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 1rem; cursor: pointer; user-select: none; transition: background-color 0.2s;';
+                    header.onclick = function() { toggleCollapsible('retroalimentacion-content', 'retroalimentacion-arrow'); };
+                    header.onmouseover = function() { this.style.backgroundColor = 'rgba(33,150,243,0.1)'; };
+                    header.onmouseout = function() { this.style.backgroundColor = 'transparent'; };
+                    header.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 1.2rem;">💡</span>
+                            <strong style="color: #1565C0;">Retroalimentación:</strong>
+                        </div>
+                        <span id="retroalimentacion-arrow" style="font-size: 1.2rem; transition: transform 0.3s; color: #1565C0;">▼</span>
+                    `;
+                    container.appendChild(header);
+                }
+                
+                let content = container.querySelector('#retroalimentacion-content');
+                if (!content) {
+                    content = document.createElement('div');
+                    content.id = 'retroalimentacion-content';
+                    content.className = 'collapsible-content';
+                    content.style.cssText = 'display: none; padding: 0 1rem 1rem 1rem; color: #333; line-height: 1.6;';
+                    container.appendChild(content);
+                }
+                
+                // Convertir markdown básico a HTML (simplificado)
+                // Reemplazar saltos de línea por <br> y preservar formato básico
+                let htmlRetro = retroalimentacion
+                    .replace(/\n\n/g, '</p><p>')
+                    .replace(/\n/g, '<br>');
+                if (!htmlRetro.startsWith('<p>')) {
+                    htmlRetro = '<p>' + htmlRetro + '</p>';
+                }
+                content.innerHTML = htmlRetro;
+            }
+            
+            // Función para mostrar explicación y texto legal
+            function mostrarExplicacionYTextoLegal(explicacion, textoLegal) {
+                const formGroup = document.querySelector('.form-group');
+                if (!formGroup) return;
+                
+                // Eliminar contenedores anteriores si existen
+                const contenedorAnterior = document.getElementById('explicacion-texto-legal-container');
+                if (contenedorAnterior) {
+                    contenedorAnterior.remove();
+                }
+                
+                const container = document.createElement('div');
+                container.id = 'explicacion-texto-legal-container';
+                container.style.cssText = 'margin-top: 1.5rem;';
+                
+                if (explicacion) {
+                    const explicacionDiv = document.createElement('div');
+                    explicacionDiv.style.cssText = 'background: #e3f2fd; border-left: 4px solid var(--color-secondary); border-radius: 4px; margin-bottom: 0.5rem; overflow: hidden;';
+                    explicacionDiv.innerHTML = `
+                        <div class="collapsible-header" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; cursor: pointer; user-select: none; transition: background-color 0.2s;" onclick="toggleCollapsible('explicacion-content', 'explicacion-arrow')" onmouseover="this.style.backgroundColor='rgba(33,150,243,0.1)'" onmouseout="this.style.backgroundColor='transparent'">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-size: 1.2rem;">📖</span>
+                                <strong style="color: #1565C0;">Explicación para el Opositor:</strong>
+                            </div>
+                            <span id="explicacion-arrow" style="font-size: 1.2rem; transition: transform 0.3s; color: #1565C0;">▼</span>
+                        </div>
+                        <div id="explicacion-content" class="collapsible-content" style="display: none; padding: 0 1rem 1rem 1rem; color: #333; line-height: 1.6;">${explicacion ? explicacion.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>') : ''}</div>
+                    `;
+                    container.appendChild(explicacionDiv);
+                }
+                
+                if (textoLegal) {
+                    const textoLegalDiv = document.createElement('div');
+                    textoLegalDiv.style.cssText = 'background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; overflow: hidden;';
+                    textoLegalDiv.innerHTML = `
+                        <div class="collapsible-header" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; cursor: pointer; user-select: none; transition: background-color 0.2s;" onclick="toggleCollapsible('texto-legal-content', 'texto-legal-arrow')" onmouseover="this.style.backgroundColor='rgba(255,193,7,0.1)'" onmouseout="this.style.backgroundColor='transparent'">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-size: 1.2rem;">⚖️</span>
+                                <strong style="color: #856404;">Texto Legal:</strong>
+                            </div>
+                            <span id="texto-legal-arrow" style="font-size: 1.2rem; transition: transform 0.3s; color: #856404;">▼</span>
+                        </div>
+                        <div id="texto-legal-content" class="collapsible-content" style="display: none; padding: 0 1rem 1rem 1rem; color: #333; line-height: 1.6;">${textoLegal}</div>
+                    `;
+                    container.appendChild(textoLegalDiv);
+                }
+                
+                formGroup.appendChild(container);
             }
             {% else %}
             const modoEstudioActivo = false;
@@ -878,18 +1111,16 @@
                     intervalo = null;
                 }
                 
-                if (window.confirm) {
-                    if (confirm('⏱️ Se ha agotado el tiempo del examen. El examen se finalizará automáticamente.')) {
-            const formPregunta = document.getElementById('formPregunta');
-                        if (formPregunta) {
-                            const inputFinalizar = document.createElement('input');
-                            inputFinalizar.type = 'hidden';
-                            inputFinalizar.name = 'accion';
-                            inputFinalizar.value = 'finalizar';
-                            formPregunta.appendChild(inputFinalizar);
-                            formPregunta.submit();
-                        }
-                    }
+                // Mostrar alerta y luego finalizar automáticamente
+                alert('⏱️ Se ha agotado el tiempo del examen. El examen se finalizará automáticamente.');
+                const formPregunta = document.getElementById('formPregunta');
+                if (formPregunta) {
+                    const inputFinalizar = document.createElement('input');
+                    inputFinalizar.type = 'hidden';
+                    inputFinalizar.name = 'accion';
+                    inputFinalizar.value = 'finalizar';
+                    formPregunta.appendChild(inputFinalizar);
+                    formPregunta.submit();
                 }
             }
             
@@ -1050,15 +1281,7 @@
                     console.error('No se encontró el botón timer-pause-btn');
                 }
                 
-                // Limpiar temporizador al hacer clic en "Finalizar Examen"
-                const btnFinalizar = document.getElementById('btnFinalizarExamen') || document.querySelector('button[name="accion"][value="finalizar"]');
-                if (btnFinalizar) {
-                    btnFinalizar.addEventListener('click', function() {
-                        limpiarTemporizador();
-                    });
-                }
-                
-                // También limpiar al enviar el formulario con acción finalizar
+                // Limpiar al enviar el formulario
                 const formPregunta = document.getElementById('formPregunta');
                 if (formPregunta) {
                     formPregunta.addEventListener('submit', function(e) {

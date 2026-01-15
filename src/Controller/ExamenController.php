@@ -668,6 +668,65 @@ class ExamenController extends AbstractController
                 }
             }
             
+            // En modo estudio, si se respondió sin acción específica y es AJAX, devolver JSON
+            if ($modoEstudio && $preguntaBloqueada && empty($accion) && $numeroDestino <= 0 && $request->isXmlHttpRequest()) {
+                // Devolver información para actualizar la UI sin recargar
+                $respuestaCorrecta = $pregunta->getRespuestaCorrecta();
+                $retroalimentacion = $pregunta->getRetroalimentacion();
+                $explicacion = null;
+                $textoLegal = null;
+                
+                if (!$esMunicipal && $pregunta->getArticulo()) {
+                    $explicacion = $pregunta->getArticulo()->getExplicacion();
+                    $textoLegal = $pregunta->getArticulo()->getTextoLegal();
+                }
+                
+                // Calcular si la respuesta es correcta
+                $respuestaCorrectaStr = strtoupper(trim($respuestaCorrecta ?? ''));
+                $respuestaAlumnoStr = strtoupper(trim($respuestaActual ?? ''));
+                $esCorrecta = ($respuestaCorrectaStr === $respuestaAlumnoStr);
+                
+                // Obtener estado de todas las preguntas para actualizar la guía
+                $estadoPreguntas = [];
+                foreach ($preguntasIds as $idx => $preguntaId) {
+                    $numPregunta = $idx + 1;
+                    $tieneRespuesta = isset($respuestas[$preguntaId]);
+                    $esActual = ($numPregunta === $numero);
+                    
+                    // Si es la pregunta actual y está bloqueada, determinar si es correcta
+                    $esCorrectaPregunta = false;
+                    if ($esActual && $tieneRespuesta) {
+                        if ($esMunicipal) {
+                            $preguntaTemp = $this->preguntaMunicipalRepository->find($preguntaId);
+                        } else {
+                            $preguntaTemp = $this->preguntaRepository->find($preguntaId);
+                        }
+                        if ($preguntaTemp) {
+                            $respCorrectaTemp = strtoupper(trim($preguntaTemp->getRespuestaCorrecta() ?? ''));
+                            $respAlumnoTemp = strtoupper(trim($respuestas[$preguntaId] ?? ''));
+                            $esCorrectaPregunta = ($respCorrectaTemp === $respAlumnoTemp);
+                        }
+                    }
+                    
+                    $estadoPreguntas[$numPregunta] = [
+                        'tieneRespuesta' => $tieneRespuesta,
+                        'esActual' => $esActual,
+                        'esCorrecta' => $esCorrectaPregunta,
+                    ];
+                }
+                
+                return $this->json([
+                    'success' => true,
+                    'respuestaCorrecta' => $respuestaCorrecta,
+                    'respuestaAlumno' => $respuestaActual,
+                    'esCorrecta' => $esCorrecta,
+                    'retroalimentacion' => $retroalimentacion,
+                    'explicacion' => $explicacion,
+                    'textoLegal' => $textoLegal,
+                    'estadoPreguntas' => $estadoPreguntas,
+                ]);
+            }
+            
             // En modo estudio, si se respondió sin acción específica, redirigir a la misma pregunta para mostrar feedback
             if ($modoEstudio && $preguntaBloqueada && empty($accion) && $numeroDestino <= 0) {
                 return $this->redirectToRoute('app_examen_pregunta', ['numero' => $numero]);
