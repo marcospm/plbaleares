@@ -358,7 +358,7 @@
                     </div>
                     <div>
                         <label for="dificultad" class="form-label">Filtrar por Dificultad:</label>
-                        <select name="dificultad" id="dificultad" class="form-control" autocomplete="off" onchange="document.getElementById('filtrosForm').submit();">
+                        <select name="dificultad" id="dificultad" class="form-control" autocomplete="off" data-dificultad-seleccionada="{{ dificultadSeleccionada ?? '' }}" onchange="document.getElementById('filtrosForm').submit();">
                             <option value="" {% if dificultadSeleccionada is null or dificultadSeleccionada == '' %}selected="selected"{% endif %}>Todas las dificultades</option>
                             <option value="facil" {% if dificultadSeleccionada == 'facil' %}selected="selected"{% endif %}>Fácil</option>
                             <option value="moderada" {% if dificultadSeleccionada == 'moderada' %}selected="selected"{% endif %}>Moderada</option>
@@ -367,13 +367,44 @@
                         <script>
                         // Script inline para forzar el valor correcto inmediatamente
                         (function() {
-                            const urlParams = new URLSearchParams(window.location.search);
-                            const dificultadParam = urlParams.get('dificultad');
-                            const select = document.getElementById('dificultad');
-                            if (select && (!dificultadParam || dificultadParam === '')) {
-                                select.value = '';
-                                select.selectedIndex = 0;
+                            function resetearSelectDificultad() {
+                                const urlParams = new URLSearchParams(window.location.search);
+                                const dificultadParam = urlParams.get('dificultad');
+                                const select = document.getElementById('dificultad');
+                                if (select) {
+                                    // Leer el valor correcto desde el atributo data
+                                    const dificultadCorrecta = select.getAttribute('data-dificultad-seleccionada') || '';
+                                    
+                                    if (!dificultadParam || dificultadParam === '') {
+                                        // Si no hay parámetro en la URL, usar el valor del atributo data (que viene del servidor)
+                                        if (!dificultadCorrecta || dificultadCorrecta === '') {
+                                            select.value = '';
+                                            select.selectedIndex = 0;
+                                        } else {
+                                            select.value = dificultadCorrecta;
+                                        }
+                                    } else {
+                                        // Si hay parámetro en la URL, validarlo
+                                        if (['facil', 'moderada', 'dificil'].includes(dificultadParam)) {
+                                            select.value = dificultadParam;
+                                        } else {
+                                            // Si el parámetro no es válido, forzar "Todas las dificultades"
+                                            select.value = '';
+                                            select.selectedIndex = 0;
+                                        }
+                                    }
+                                }
                             }
+                            
+                            // Ejecutar inmediatamente
+                            resetearSelectDificultad();
+                            
+                            // También ejecutar cuando se hace clic en enlaces de paginación
+                            document.addEventListener('click', function(e) {
+                                if (e.target.closest('.pagination') || e.target.closest('.page-link')) {
+                                    setTimeout(resetearSelectDificultad, 100);
+                                }
+                            });
                         })();
                         </script>
                     </div>
@@ -629,10 +660,12 @@
                                     {% set paramsBaseMunicipal = {
                                         'grupo': grupoSeleccionado ? grupoSeleccionado : '',
                                         'usuario': usuarioSeleccionado ? usuarioSeleccionado : '',
-                                        'dificultad': dificultadSeleccionada ? dificultadSeleccionada : '',
                                         'tema': temaSeleccionado ? temaSeleccionado.id : '',
                                         'page_general': currentPageGeneral > 1 ? currentPageGeneral : ''
                                     } %}
+                                    {% if dificultadSeleccionada %}
+                                        {% set paramsBaseMunicipal = paramsBaseMunicipal|merge({'dificultad': dificultadSeleccionada}) %}
+                                    {% endif %}
                                     {% set paramsBaseMunicipal = paramsBaseMunicipal|filter(v => v != '' and v != 0) %}
                                     
                                     {# Botón Anterior #}
@@ -889,6 +922,13 @@ document.getElementById('tipo_ranking').addEventListener('change', function() {
     // Ejecutar después de que Turbo cargue la página
     document.addEventListener('turbo:load', resetearDificultad);
     document.addEventListener('turbo:frame-load', resetearDificultad);
+    
+    // Ejecutar cuando se hace clic en enlaces de paginación
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.pagination') || e.target.closest('.page-link')) {
+            setTimeout(resetearDificultad, 200);
+        }
+    });
 })();
 </script>
 {% endblock %}
