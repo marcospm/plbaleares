@@ -358,12 +358,24 @@
                     </div>
                     <div>
                         <label for="dificultad" class="form-label">Filtrar por Dificultad:</label>
-                        <select name="dificultad" id="dificultad" class="form-control" onchange="document.getElementById('filtrosForm').submit();">
-                            <option value="">Todas las dificultades</option>
-                            <option value="facil" {% if dificultadSeleccionada == 'facil' %}selected{% endif %}>Fácil</option>
-                            <option value="moderada" {% if dificultadSeleccionada == 'moderada' %}selected{% endif %}>Moderada</option>
-                            <option value="dificil" {% if dificultadSeleccionada == 'dificil' %}selected{% endif %}>Difícil</option>
+                        <select name="dificultad" id="dificultad" class="form-control" autocomplete="off" onchange="document.getElementById('filtrosForm').submit();">
+                            <option value="" {% if dificultadSeleccionada is null or dificultadSeleccionada == '' %}selected="selected"{% endif %}>Todas las dificultades</option>
+                            <option value="facil" {% if dificultadSeleccionada == 'facil' %}selected="selected"{% endif %}>Fácil</option>
+                            <option value="moderada" {% if dificultadSeleccionada == 'moderada' %}selected="selected"{% endif %}>Moderada</option>
+                            <option value="dificil" {% if dificultadSeleccionada == 'dificil' %}selected="selected"{% endif %}>Difícil</option>
                         </select>
+                        <script>
+                        // Script inline para forzar el valor correcto inmediatamente
+                        (function() {
+                            const urlParams = new URLSearchParams(window.location.search);
+                            const dificultadParam = urlParams.get('dificultad');
+                            const select = document.getElementById('dificultad');
+                            if (select && (!dificultadParam || dificultadParam === '')) {
+                                select.value = '';
+                                select.selectedIndex = 0;
+                            }
+                        })();
+                        </script>
                     </div>
                     <div>
                         <label for="tema" class="form-label">Filtrar por Tema (Temario General):</label>
@@ -720,9 +732,7 @@
                             {% if usuarioSeleccionado %}
                                 <input type="hidden" name="usuario" value="{{ usuarioSeleccionado }}">
                             {% endif %}
-                            {% if dificultadSeleccionada %}
-                                <input type="hidden" name="dificultad" value="{{ dificultadSeleccionada }}">
-                            {% endif %}
+                            {# No preservar dificultad en el formulario de ranking - siempre mostrar todas las dificultades #}
                             {% if temaSeleccionado %}
                                 <input type="hidden" name="tema" value="{{ temaSeleccionado.id }}">
                             {% endif %}
@@ -840,6 +850,46 @@ document.getElementById('tipo_ranking').addEventListener('change', function() {
         convocatoriaSelect.value = '';
     }
 });
+
+// Asegurar que el select de dificultad muestre "Todas las dificultades" si no hay parámetro en la URL
+(function() {
+    function resetearDificultad() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const dificultadParam = urlParams.get('dificultad');
+        const dificultadSelect = document.getElementById('dificultad');
+        
+        if (dificultadSelect) {
+            if (!dificultadParam || dificultadParam === '') {
+                // Si no hay parámetro, forzar "Todas las dificultades"
+                dificultadSelect.value = '';
+                dificultadSelect.selectedIndex = 0;
+            } else {
+                // Si hay parámetro válido, establecer ese valor
+                if (['facil', 'moderada', 'dificil'].includes(dificultadParam)) {
+                    dificultadSelect.value = dificultadParam;
+                } else {
+                    // Si el parámetro no es válido, forzar "Todas las dificultades"
+                    dificultadSelect.value = '';
+                    dificultadSelect.selectedIndex = 0;
+                }
+            }
+        }
+    }
+    
+    // Ejecutar inmediatamente
+    resetearDificultad();
+    
+    // También ejecutar cuando se carga la página
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', resetearDificultad);
+    } else {
+        setTimeout(resetearDificultad, 0);
+    }
+    
+    // Ejecutar después de que Turbo cargue la página
+    document.addEventListener('turbo:load', resetearDificultad);
+    document.addEventListener('turbo:frame-load', resetearDificultad);
+})();
 </script>
 {% endblock %}
 

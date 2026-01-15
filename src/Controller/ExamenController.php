@@ -1588,7 +1588,12 @@ class ExamenController extends AbstractController
         $usuarioId = ($usuarioIdParam !== null && $usuarioIdParam !== '') ? (int)$usuarioIdParam : null;
         
         $dificultad = $request->query->get('dificultad');
-        $dificultad = ($dificultad !== null && $dificultad !== '') ? $dificultad : null;
+        // Validar que la dificultad sea un valor válido, si no, establecer como null
+        if ($dificultad !== null && $dificultad !== '' && in_array($dificultad, ['facil', 'moderada', 'dificil'])) {
+            $dificultad = $dificultad;
+        } else {
+            $dificultad = null;
+        }
         
         $temaIdParam = $request->query->get('tema');
         $temaId = ($temaIdParam !== null && $temaIdParam !== '') ? (int)$temaIdParam : null;
