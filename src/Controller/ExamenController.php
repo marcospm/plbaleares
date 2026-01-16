@@ -2604,5 +2604,40 @@ class ExamenController extends AbstractController
         $this->addFlash('success', 'Borrador eliminado correctamente.');
         return $this->redirectToRoute('app_examen_iniciar');
     }
+
+    /**
+     * Elimina un examen realizado
+     */
+    #[Route('/{id}/eliminar', name: 'app_examen_delete', methods: ['POST'])]
+    public function delete(Examen $examen, Request $request): Response
+    {
+        $user = $this->getUser();
+        
+        // Verificar que el examen pertenezca al usuario actual
+        if ($examen->getUsuario() !== $user) {
+            $this->addFlash('error', 'No tienes permiso para eliminar este examen.');
+            return $this->redirectToRoute('app_examen_historial');
+        }
+        
+        // Verificar token CSRF
+        $token = $request->request->get('_token');
+        if (!$this->isCsrfTokenValid('delete_examen_' . $examen->getId(), $token)) {
+            $this->addFlash('error', 'Token de seguridad inválido.');
+            return $this->redirectToRoute('app_examen_historial');
+        }
+        
+        $this->entityManager->remove($examen);
+        $this->entityManager->flush();
+        
+        $this->addFlash('success', 'Examen eliminado correctamente.');
+        
+        // Redirigir a la página anterior (historial o dashboard)
+        $referer = $request->headers->get('referer');
+        if ($referer) {
+            return $this->redirect($referer);
+        }
+        
+        return $this->redirectToRoute('app_examen_historial');
+    }
 }
 

@@ -230,6 +230,7 @@
         {% if examenesRealizados|length > 0 %}
             <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Historial de Exámenes Semanales</h3>
             <div class="card">
+                <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
                 <table class="table">
                     <thead>
                         <tr>
@@ -262,117 +263,182 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-secondary btn-sm">Ver Detalle</a>
-                                    <a href="{{ path('app_examen_semanal_alumno_ranking', {'id': examen.examenSemanal.id}) }}" class="btn btn-primary btn-sm">Ver Ranking</a>
-                                    {% if examen.realizadoEnPDF and examen.examenSemanal.estaDisponible() %}
-                                        <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examen.examenSemanal.id}) }}" class="btn btn-warning btn-sm">Editar PDF</a>
-                                    {% endif %}
+                                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                                        <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-secondary btn-sm">Ver Detalle</a>
+                                        <a href="{{ path('app_examen_semanal_alumno_ranking', {'id': examen.examenSemanal.id}) }}" class="btn btn-primary btn-sm">Ver Ranking</a>
+                                        {% if examen.realizadoEnPDF and examen.examenSemanal.estaDisponible() %}
+                                            <a href="{{ path('app_examen_semanal_alumno_introducir_pdf', {'id': examen.examenSemanal.id}) }}" class="btn btn-warning btn-sm">Editar PDF</a>
+                                        {% endif %}
+                                    </div>
                                 </td>
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+                </div>
             </div>
         {% endif %}
     </div>
 </div>
 
-<style>
-/* Estilos responsivos para móviles */
-@media (max-width: 768px) {
-    .card {
-        margin: 0.5rem !important;
-    }
-    
-    .card-header h1 {
-        font-size: 1.3rem !important;
-    }
-    
-    .card-body {
-        padding: 1rem !important;
-    }
-    
-    h2 {
-        font-size: 1.3rem !important;
-    }
-    
-    /* Grid de exámenes - una columna en móvil */
-    .card-body > div[style*="display: grid"] {
-        grid-template-columns: 1fr !important;
-        gap: 1rem !important;
-        margin-bottom: 1.5rem !important;
-    }
-    
-    /* Cards de exámenes */
-    .card[style*="border-left: 6px"] {
-        margin: 0 !important;
-    }
-    
-    .card[style*="border-left: 6px"] .card-body {
-        padding: 1rem !important;
-    }
-    
-    /* Botones de acción */
-    .card-body .btn {
-        width: 100% !important;
-        padding: 0.75rem 1rem !important;
-        font-size: 0.95rem !important;
-        min-height: 48px !important;
-        margin: 0.25rem 0 !important;
-    }
-    
-    /* Tabla de historial */
-    .table {
-        font-size: 0.85rem !important;
-    }
-    
-    .table th,
-    .table td {
-        padding: 0.5rem !important;
-    }
-    
-    /* Ocultar columnas menos importantes en móvil */
-    .table th:nth-child(6),
-    .table td:nth-child(6),
-    .table th:nth-child(7),
-    .table td:nth-child(7) {
-        display: none !important;
-    }
-    
-    .table .btn {
-        padding: 0.4rem 0.6rem !important;
-        font-size: 0.8rem !important;
-        min-height: 36px !important;
-        margin: 0.25rem 0 !important;
-    }
-}
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        /* Estilos responsivos para móviles */
+        @media (max-width: 768px) {
+            .card {
+                margin: 0.5rem !important;
+            }
+            
+            .card-header h1 {
+                font-size: 1.3rem !important;
+            }
+            
+            .card-body {
+                padding: 1rem !important;
+            }
+            
+            h2 {
+                font-size: 1.3rem !important;
+            }
+            
+            h3 {
+                font-size: 1.1rem !important;
+            }
+            
+            /* Grid de exámenes - una columna en móvil */
+            div[style*="display: grid"][style*="grid-template-columns: repeat"] {
+                grid-template-columns: 1fr !important;
+                gap: 1rem !important;
+                margin-bottom: 1.5rem !important;
+            }
+            
+            /* Cards de exámenes */
+            .card[style*="border-left: 6px"] {
+                margin: 0 !important;
+            }
+            
+            .card[style*="border-left: 6px"] .card-body {
+                padding: 1rem !important;
+            }
+            
+            /* Botones de acción en cards */
+            .card[style*="border-left: 6px"] .btn {
+                width: 100% !important;
+                padding: 0.75rem 1rem !important;
+                font-size: 0.95rem !important;
+                min-height: 48px !important;
+                margin: 0.25rem 0 !important;
+                touch-action: manipulation !important;
+            }
+            
+            /* Tabla de historial - contenedor responsive */
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                width: 100%;
+            }
+            
+            .card > .table {
+                width: 100%;
+                margin-bottom: 0;
+            }
+            
+            /* Tabla de historial */
+            .table {
+                font-size: 0.85rem !important;
+                min-width: 600px;
+            }
+            
+            .table th,
+            .table td {
+                padding: 0.6rem 0.5rem !important;
+                white-space: nowrap;
+            }
+            
+            /* Ocultar columnas menos importantes en móvil */
+            .table th:nth-child(5),
+            .table td:nth-child(5),
+            .table th:nth-child(6),
+            .table td:nth-child(6) {
+                display: none !important;
+            }
+            
+            /* Botones en tabla */
+            .table .btn-sm {
+                padding: 0.5rem 0.75rem !important;
+                font-size: 0.85rem !important;
+                min-height: 44px !important;
+                white-space: nowrap;
+                touch-action: manipulation !important;
+            }
+            
+            /* Contenedor de botones en tabla */
+            .table td > div[style*="display: flex"] {
+                gap: 0.4rem !important;
+                flex-wrap: wrap !important;
+            }
+        }
 
-@media (max-width: 480px) {
-    .card-header h1 {
-        font-size: 1.2rem !important;
-    }
-    
-    h2 {
-        font-size: 1.2rem !important;
-    }
-    
-    h3[style*="margin-top: 0"] {
-        font-size: 1rem !important;
-    }
-    
-    .table {
-        font-size: 0.8rem !important;
-    }
-    
-    .table th,
-    .table td {
-        padding: 0.4rem !important;
-    }
-    
-    .table th:nth-child(5),
-    .table td:nth-child(5) {
-        display: none !important;
-    }
-}
-</style>
+        @media (max-width: 480px) {
+            .card-header h1 {
+                font-size: 1.2rem !important;
+            }
+            
+            h2 {
+                font-size: 1.2rem !important;
+            }
+            
+            h3 {
+                font-size: 1rem !important;
+            }
+            
+            h3[style*="margin-top: 0"] {
+                font-size: 0.95rem !important;
+            }
+            
+            /* Tabla más compacta en móviles muy pequeños */
+            .table {
+                font-size: 0.75rem !important;
+                min-width: 500px;
+            }
+            
+            .table th,
+            .table td {
+                padding: 0.5rem 0.4rem !important;
+            }
+            
+            /* Ocultar más columnas en pantallas muy pequeñas */
+            .table th:nth-child(4),
+            .table td:nth-child(4),
+            .table th:nth-child(5),
+            .table td:nth-child(5),
+            .table th:nth-child(6),
+            .table td:nth-child(6),
+            .table th:nth-child(7),
+            .table td:nth-child(7) {
+                display: none !important;
+            }
+            
+            /* Botones más pequeños pero táctiles */
+            .table .btn-sm {
+                padding: 0.4rem 0.6rem !important;
+                font-size: 0.8rem !important;
+                min-height: 44px !important;
+                min-width: 44px !important;
+            }
+            
+            /* Badges más pequeños */
+            .badge {
+                font-size: 0.7rem !important;
+                padding: 0.25rem 0.5rem !important;
+            }
+            
+            /* Título de la columna de acciones más corto */
+            .table th:last-child {
+                min-width: 120px;
+            }
+        }
+    </style>
+{% endblock %}
 {% endblock %}

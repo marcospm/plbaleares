@@ -283,6 +283,31 @@
             .table td:nth-child(5) {
                 display: none !important;
             }
+            
+            /* Botones de acción más grandes en móvil */
+            .btn-sm {
+                min-height: 44px !important;
+                padding: 0.5rem 0.75rem !important;
+                font-size: 0.9rem !important;
+                touch-action: manipulation !important;
+            }
+            
+            /* Asegurar que los botones en las celdas de acciones se vean bien */
+            td > div[style*="display: flex"] {
+                gap: 0.5rem !important;
+                flex-wrap: wrap !important;
+            }
+            
+            /* Botones de formulario inline */
+            form[style*="display: inline"] {
+                display: inline-flex !important;
+            }
+            
+            /* Botones de eliminar */
+            .btn-danger.btn-sm {
+                min-width: 44px !important;
+                padding: 0.5rem !important;
+            }
         }
     </style>
 {% endblock %}
@@ -1409,7 +1434,15 @@
                                     <td style="color: var(--color-danger);"><strong>{{ examen.errores }}</strong></td>
                                     <td style="color: #999;"><strong>{{ examen.enBlanco }}</strong></td>
                                     <td>
-                                        <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
+                                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                            <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
+                                            {% if examen.usuario == app.user %}
+                                                <form method="post" action="{{ path('app_examen_delete', {'id': examen.id}) }}" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este examen? Esta acción no se puede deshacer.');" style="display: inline;">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('delete_examen_' ~ examen.id) }}">
+                                                    <button type="submit" class="btn btn-danger btn-sm" title="Eliminar examen">🗑️</button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
                                     </td>
                                 </tr>
                             {% endfor %}
