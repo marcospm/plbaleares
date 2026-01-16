@@ -424,6 +424,12 @@ class ExamenController extends AbstractController
                 $session->set('examen_pregunta_actual', 0);
                 $session->set('examen_preguntas_bloqueadas', []); // Preguntas bloqueadas en modo estudio
 
+                // Guardar automáticamente en borrador al iniciar el examen
+                // Permite múltiples borradores - no se eliminan los anteriores
+                $user = $this->getUser();
+                $examenSemanalId = $config['examen_semanal_id'] ?? null;
+                $this->guardarBorrador($session, $user, null, $examenSemanalId);
+
                 return $this->redirectToRoute('app_examen_pregunta', ['numero' => 1]);
             }
         }

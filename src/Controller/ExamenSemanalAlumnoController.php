@@ -389,6 +389,22 @@ class ExamenSemanalAlumnoController extends AbstractController
         $session->set('examen_config', $config);
         $session->set('examen_pregunta_actual', 0);
 
+        // Guardar automáticamente en borrador al iniciar el examen semanal
+        // Permite múltiples borradores - no se eliminan los anteriores
+        $borrador = new ExamenBorrador();
+        $borrador->setUsuario($alumno);
+        $borrador->setTipoExamen('semanal');
+        $borrador->setExamenSemanal($examenSemanal);
+        $borrador->setConfig($config);
+        $borrador->setPreguntasIds($preguntasIds);
+        $borrador->setRespuestas([]);
+        $borrador->setPreguntaActual(0);
+        $borrador->setTiempoRestante(null);
+        $borrador->setFechaActualizacion(new \DateTime());
+        
+        $this->entityManager->persist($borrador);
+        $this->entityManager->flush();
+
         return $this->redirectToRoute('app_examen_pregunta', ['numero' => 1]);
     }
 
