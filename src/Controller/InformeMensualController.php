@@ -7,6 +7,8 @@ use App\Repository\UserRepository;
 use App\Repository\ExamenRepository;
 use App\Repository\ExamenSemanalRepository;
 use App\Repository\TareaAsignadaRepository;
+use App\Repository\PreguntaRepository;
+use App\Repository\PreguntaMunicipalRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -24,7 +26,9 @@ class InformeMensualController extends AbstractController
         private UserRepository $userRepository,
         private ExamenRepository $examenRepository,
         private ExamenSemanalRepository $examenSemanalRepository,
-        private TareaAsignadaRepository $tareaAsignadaRepository
+        private TareaAsignadaRepository $tareaAsignadaRepository,
+        private PreguntaRepository $preguntaRepository,
+        private PreguntaMunicipalRepository $preguntaMunicipalRepository
     ) {
     }
 
@@ -217,6 +221,9 @@ class InformeMensualController extends AbstractController
             return !$tarea->isCompletada();
         });
 
+        // Calcular los 3 temas con más fallos
+        $temasConMasFallos = $this->calcularTemasConMasFallos($alumno);
+
         // Agrupar exámenes por tipo
         $examenesGenerales = array_filter($examenes, function($examen) {
             return $examen->getMunicipio() === null && $examen->getConvocatoria() === null && $examen->getExamenSemanal() === null;
@@ -260,6 +267,7 @@ class InformeMensualController extends AbstractController
             'tareas' => $tareas,
             'tareasCompletadas' => count($tareasCompletadas),
             'tareasPendientes' => count($tareasPendientes),
+            'temasConMasFallos' => $temasConMasFallos,
         ]);
 
         // Configurar DomPDF
@@ -287,5 +295,136 @@ class InformeMensualController extends AbstractController
                 'Content-Disposition' => 'inline; filename="' . $nombreArchivo . '"',
             ]
         );
+    }
+
+    /**
+     * Calcula los 3 temas con más fallos del alumno basándose en todos sus exámenes
+     * @return array Array con los 3 temas, cada uno con 'tema', 'nombre', 'fallos'
+     */
+    private function calcularTemasConMasFallos(User $alumno): array
+    {
+        // Obtener todos los exámenes del alumno (no solo del mes)
+        $todosExamenes = $this->examenRepository->createQueryBuilder('e')
+            ->where('e.usuario = :usuario')
+            ->setParameter('usuario', $alumno)
+            ->getQuery()
+            ->getResult();
+
+        // Contador de fallos por tema
+        $fallosPorTema = [];
+        
+        // Agrupar preguntas por tipo (municipal vs general) para optimizar consultas
+        $preguntasIdsGenerales = [];
+        $preguntasIdsMunicipales = [];
+        $mapaRespuestas = []; // preguntaId => [examen, respuestas, esMunicipal]
+
+        // Primera pasada: agrupar IDs de preguntas
+        foreach ($todosExamenes as $examen) {
+            $preguntasIds = $examen->getPreguntasIds() ?? [];
+            $respuestas = $examen->getRespuestas() ?? [];
+            $municipio = $examen->getMunicipio();
+            $esMunicipal = $municipio !== null;
+
+            if (empty($preguntasIds)) {
+                continue;
+            }
+
+            foreach ($preguntasIds as $preguntaId) {
+                $mapaRespuestas[$preguntaId] = [
+                    'examen' => $examen,
+                    'respuestas' => $respuestas,
+                    'esMunicipal' => $esMunicipal,
+                ];
+
+                if ($esMunicipal) {
+                    if (!in_array($preguntaId, $preguntasIdsMunicipales)) {
+                        $preguntasIdsMunicipales[] = $preguntaId;
+                    }
+                } else {
+                    if (!in_array($preguntaId, $preguntasIdsGenerales)) {
+                        $preguntasIdsGenerales[] = $preguntaId;
+                    }
+                }
+            }
+        }
+
+        // Obtener todas las preguntas generales de una vez
+        $preguntasGeneralesMap = [];
+        if (!empty($preguntasIdsGenerales)) {
+            $preguntasGenerales = $this->preguntaRepository->findByIds($preguntasIdsGenerales);
+            foreach ($preguntasGenerales as $pregunta) {
+                $preguntasGeneralesMap[$pregunta->getId()] = $pregunta;
+            }
+        }
+
+        // Obtener todas las preguntas municipales de una vez
+        $preguntasMunicipalesMap = [];
+        if (!empty($preguntasIdsMunicipales)) {
+            $preguntasMunicipales = $this->preguntaMunicipalRepository->findByIds($preguntasIdsMunicipales);
+            foreach ($preguntasMunicipales as $pregunta) {
+                $preguntasMunicipalesMap[$pregunta->getId()] = $pregunta;
+            }
+        }
+
+        // Procesar cada pregunta y contar fallos
+        foreach ($mapaRespuestas as $preguntaId => $datos) {
+            $respuestas = $datos['respuestas'];
+            $esMunicipal = $datos['esMunicipal'];
+
+            // Obtener la pregunta del mapa correspondiente
+            if ($esMunicipal) {
+                $pregunta = $preguntasMunicipalesMap[$preguntaId] ?? null;
+            } else {
+                $pregunta = $preguntasGeneralesMap[$preguntaId] ?? null;
+            }
+
+            if (!$pregunta) {
+                continue;
+            }
+
+            // Obtener el tema
+            if ($esMunicipal) {
+                $tema = $pregunta->getTemaMunicipal();
+                $temaId = $tema ? $tema->getId() : null;
+                $temaNombre = $tema ? $tema->getNombre() : 'Sin tema';
+            } else {
+                $tema = $pregunta->getTema();
+                $temaId = $tema ? $tema->getId() : null;
+                $temaNombre = $tema ? $tema->getNombre() : 'Sin tema';
+            }
+
+            if (!$temaId) {
+                continue;
+            }
+
+            // Verificar si la respuesta es incorrecta
+            $respuestaAlumno = $respuestas[$preguntaId] ?? null;
+            
+            // Solo contar como fallo si hay respuesta y es incorrecta (no contar en blanco)
+            if ($respuestaAlumno !== null && $respuestaAlumno !== '') {
+                $respuestaCorrecta = $pregunta->getRespuestaCorrecta();
+                if (strtoupper(trim($respuestaAlumno)) !== strtoupper(trim($respuestaCorrecta ?? ''))) {
+                    // Es un error, contar el fallo para este tema
+                    // Usar clave única para temas generales vs municipales
+                    $claveTema = ($esMunicipal ? 'm_' : 'g_') . $temaId;
+                    
+                    if (!isset($fallosPorTema[$claveTema])) {
+                        $fallosPorTema[$claveTema] = [
+                            'tema' => $tema,
+                            'nombre' => $temaNombre,
+                            'fallos' => 0,
+                        ];
+                    }
+                    $fallosPorTema[$claveTema]['fallos']++;
+                }
+            }
+        }
+
+        // Ordenar por número de fallos (descendente) y tomar los 3 primeros
+        usort($fallosPorTema, function($a, $b) {
+            return $b['fallos'] <=> $a['fallos'];
+        });
+
+        return array_slice($fallosPorTema, 0, 3);
     }
 }
