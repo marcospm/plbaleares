@@ -1140,7 +1140,19 @@ class ExamenController extends AbstractController
     public function historial(Request $request, TemaRepository $temaRepository, TemaMunicipalRepository $temaMunicipalRepository): Response
     {
         $user = $this->getUser();
-        $todosExamenes = $this->examenRepository->findBy(['usuario' => $user], ['fecha' => 'DESC']);
+        // Cargar exámenes con eager loading de examenSemanal para evitar N+1 queries
+        $todosExamenes = $this->examenRepository->createQueryBuilder('e')
+            ->leftJoin('e.examenSemanal', 'es')
+            ->addSelect('es')
+            ->leftJoin('es.municipio', 'esm')
+            ->addSelect('esm')
+            ->leftJoin('es.convocatoria', 'esc')
+            ->addSelect('esc')
+            ->where('e.usuario = :usuario')
+            ->setParameter('usuario', $user)
+            ->orderBy('e.fecha', 'DESC')
+            ->getQuery()
+            ->getResult();
 
         // Separar exámenes: temario general (sin convocatoria) y por convocatoria
         $examenesTemarioGeneral = [];
