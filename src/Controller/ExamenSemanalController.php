@@ -1115,8 +1115,14 @@ class ExamenSemanalController extends AbstractController
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        // Generar nombre del archivo
-        $nombreArchivo = 'examen_' . preg_replace('/[^a-z0-9]+/', '_', strtolower($examenSemanal->getNombre())) . '.pdf';
+        // Generar nombre del archivo incluyendo la dificultad
+        $dificultadNombre = match($examenSemanal->getDificultad()) {
+            'facil' => 'facil',
+            'moderada' => 'moderada',
+            'dificil' => 'dificil',
+            default => 'sin_dificultad',
+        };
+        $nombreArchivo = 'examen_' . preg_replace('/[^a-z0-9]+/', '_', strtolower($examenSemanal->getNombre())) . '_' . $dificultadNombre . '.pdf';
 
         // Devolver el PDF
         return new Response(
@@ -1159,8 +1165,14 @@ class ExamenSemanalController extends AbstractController
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        // Generar nombre del archivo
-        $nombreArchivo = 'respuestas_' . preg_replace('/[^a-z0-9]+/', '_', strtolower($examenSemanal->getNombre())) . '.pdf';
+        // Generar nombre del archivo incluyendo la dificultad
+        $dificultadNombre = match($examenSemanal->getDificultad()) {
+            'facil' => 'facil',
+            'moderada' => 'moderada',
+            'dificil' => 'dificil',
+            default => 'sin_dificultad',
+        };
+        $nombreArchivo = 'respuestas_' . preg_replace('/[^a-z0-9]+/', '_', strtolower($examenSemanal->getNombre())) . '_' . $dificultadNombre . '.pdf';
 
         // Devolver el PDF
         return new Response(
