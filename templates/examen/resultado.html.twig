@@ -70,27 +70,6 @@
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                         <div style="flex: 1;">
                             <h4 style="margin: 0;">Pregunta {{ loop.index }}</h4>
-                            {# Información discreta del tema y ley #}
-                            <div style="margin-top: 0.25rem; font-size: 0.75rem; color: #666;">
-                                {% if esMunicipal %}
-                                    {% if item.pregunta.temaMunicipal %}
-                                        <span style="background-color: #f0f0f0; padding: 0.15rem 0.4rem; border-radius: 3px; margin-right: 0.5rem;">
-                                            📚 Tema: {{ item.pregunta.temaMunicipal.nombre }}
-                                        </span>
-                                    {% endif %}
-                                {% else %}
-                                    {% if item.pregunta.tema %}
-                                        <span style="background-color: #f0f0f0; padding: 0.15rem 0.4rem; border-radius: 3px; margin-right: 0.5rem;">
-                                            📚 Tema: {{ item.pregunta.tema.nombre }}
-                                        </span>
-                                    {% endif %}
-                                    {% if item.pregunta.ley %}
-                                        <span style="background-color: #f0f0f0; padding: 0.15rem 0.4rem; border-radius: 3px;">
-                                            ⚖️ Ley: {{ item.pregunta.ley.nombre }}
-                                        </span>
-                                    {% endif %}
-                                {% endif %}
-                            </div>
                         </div>
                         {% if item.esCorrecta is null %}
                             <span class="badge" style="background-color: #999; color: white;">○ Sin responder</span>
@@ -100,6 +79,44 @@
                             <span class="badge badge-dificil">✗ Incorrecta</span>
                         {% endif %}
                     </div>
+
+                    {# Información Legal: Tema, Ley y Artículo en sección amarilla - Organizado verticalmente #}
+                    {% if not esMunicipal %}
+                        {% set esTema17 = (item.pregunta.tema and ('Tema 17' in item.pregunta.tema.nombre or 'accidente de tráfico' in item.pregunta.tema.nombre|lower)) or (item.pregunta.ley and item.pregunta.ley.nombre == 'Accidentes de Tráfico') %}
+                        {% if item.pregunta.ley or (item.pregunta.articulo and not esTema17 and item.pregunta.articulo.numero != 0) or item.pregunta.tema %}
+                            <div class="form-group mb-3">
+                                <div style="padding: 0.75rem 1rem; background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%); border-left: 4px solid #ffc107; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 0.75rem;">
+                                    <div style="color: #856404; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid rgba(133, 100, 4, 0.2); padding-bottom: 0.5rem; margin-bottom: 0.25rem;">
+                                        📋 Información de la pregunta
+                                    </div>
+                                    {% if item.pregunta.tema %}
+                                        <div style="color: #856404; font-size: 0.9rem; font-weight: 500;">🏷️ <strong>{{ item.pregunta.tema.nombre }}</strong></div>
+                                    {% endif %}
+                                    {% if item.pregunta.ley %}
+                                        <div style="color: #856404; font-size: 0.9rem; font-weight: 600;">📜 {{ item.pregunta.ley.nombre }}</div>
+                                    {% endif %}
+                                    {% if item.pregunta.articulo and not esTema17 and item.pregunta.articulo.numero != 0 %}
+                                        <div style="color: #856404; font-size: 0.9rem; font-weight: 600;">
+                                            📄 Art. {{ item.pregunta.articulo.getNumeroCompleto() }}
+                                            {% if item.pregunta.articulo.nombre %}
+                                                - {{ item.pregunta.articulo.nombre }}
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% elseif item.pregunta.temaMunicipal %}
+                        {# Para municipales, mostrar solo el tema en una sección similar #}
+                        <div class="form-group mb-3">
+                            <div style="padding: 0.75rem 1rem; background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%); border-left: 4px solid #ffc107; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 0.75rem;">
+                                <div style="color: #856404; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid rgba(133, 100, 4, 0.2); padding-bottom: 0.5rem; margin-bottom: 0.25rem;">
+                                    📋 Información de la pregunta
+                                </div>
+                                <span style="color: #856404; font-size: 0.9rem; font-weight: 500;">🏷️ <strong>{{ item.pregunta.temaMunicipal.nombre }}</strong></span>
+                            </div>
+                        </div>
+                    {% endif %}
 
                     <p><strong>{{ item.pregunta.texto }}</strong></p>
 

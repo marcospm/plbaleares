@@ -236,6 +236,7 @@
                         <tr>
                             <th>Examen</th>
                             <th>Fecha</th>
+                            <th>Dificultad</th>
                             <th>Nota</th>
                             <th>Aciertos</th>
                             <th>Errores</th>
@@ -249,6 +250,9 @@
                             <tr>
                                 <td><strong>{{ examen.examenSemanal.nombre }}</strong></td>
                                 <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>
+                                <td>
+                                    <span class="badge badge-{{ examen.examenSemanal.dificultad }}">{{ examen.examenSemanal.getDificultadLabel() }}</span>
+                                </td>
                                 <td>
                                     <strong style="font-size: 1.2rem; color: {% if examen.nota >= 10 %}var(--color-success){% else %}var(--color-danger){% endif %};">{{ examen.nota|number_format(2, ',', '.') }}</strong>
                                 </td>
