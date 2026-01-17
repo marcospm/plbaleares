@@ -126,30 +126,43 @@
             </div>
         {% endif %}
 
-        {# Tema y Ley #}
-        <div class="form-group mb-4">
-            <div style="padding: 0.75rem 1rem; background: linear-gradient(135deg, #e3f2fd 0%, #f5f5f5 100%); border-left: 4px solid var(--color-primary); border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-                    {% if pregunta.ley is defined and pregunta.ley %}
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="font-size: 1.1rem;">📜</span>
-                            <strong style="color: var(--color-primary); font-size: 1rem; font-weight: 600;">{{ pregunta.ley.nombre }}</strong>
+        {# Información Legal: Tema, Ley y Artículo en sección amarilla - Organizado verticalmente #}
+        {% if not esMunicipal is defined or not esMunicipal %}
+            {% set esTema17 = (pregunta.tema is defined and pregunta.tema and ('Tema 17' in pregunta.tema.nombre or 'accidente de tráfico' in pregunta.tema.nombre|lower)) or (pregunta.ley is defined and pregunta.ley and pregunta.ley.nombre == 'Accidentes de Tráfico') %}
+            {% if pregunta.ley is defined and pregunta.ley or (pregunta.articulo is defined and pregunta.articulo and not esTema17) or (pregunta.tema is defined and pregunta.tema) %}
+                <div class="form-group mb-3" id="informacion-pregunta">
+                    <div style="padding: 0.75rem 1rem; background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%); border-left: 4px solid #ffc107; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 0.75rem;">
+                        <div style="color: #856404; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid rgba(133, 100, 4, 0.2); padding-bottom: 0.5rem; margin-bottom: 0.25rem;">
+                            📋 Información de la pregunta
                         </div>
                         {% if pregunta.tema is defined and pregunta.tema %}
-                            <span style="color: #999; font-size: 0.85rem;">•</span>
-                            <span style="color: #666; font-size: 0.9rem; font-weight: 500; background: rgba(255,255,255,0.7); padding: 0.25rem 0.5rem; border-radius: 4px;">{{ pregunta.tema.nombre }}</span>
+                            <div style="color: #856404; font-size: 0.9rem; font-weight: 500;">🏷️ <strong>{{ pregunta.tema.nombre }}</strong></div>
                         {% endif %}
-                    {% elseif pregunta.temaMunicipal is defined and pregunta.temaMunicipal %}
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="font-size: 1.1rem;">🏛️</span>
-                            <strong style="color: var(--color-primary); font-size: 1rem; font-weight: 600;">{{ pregunta.municipio.nombre }}</strong>
-                        </div>
-                        <span style="color: #999; font-size: 0.85rem;">•</span>
-                        <span style="color: #666; font-size: 0.9rem; font-weight: 500; background: rgba(255,255,255,0.7); padding: 0.25rem 0.5rem; border-radius: 4px;">{{ pregunta.temaMunicipal.nombre }}</span>
-                    {% endif %}
+                        {% if pregunta.ley is defined and pregunta.ley %}
+                            <div style="color: #856404; font-size: 0.9rem; font-weight: 600;">📜 {{ pregunta.ley.nombre }}</div>
+                        {% endif %}
+                        {% if pregunta.articulo is defined and pregunta.articulo and not esTema17 and pregunta.articulo.numero != 0 %}
+                            <div style="color: #856404; font-size: 0.9rem; font-weight: 600;">
+                                📄 Art. {{ pregunta.articulo.getNumeroCompleto() }}
+                                {% if pregunta.articulo.nombre %}
+                                    - {{ pregunta.articulo.nombre }}
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        {% elseif pregunta.temaMunicipal is defined and pregunta.temaMunicipal %}
+            {# Para municipales, mostrar solo el tema en una sección similar #}
+            <div class="form-group mb-3" id="informacion-pregunta">
+                <div style="padding: 0.75rem 1rem; background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%); border-left: 4px solid #ffc107; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div style="color: #856404; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid rgba(133, 100, 4, 0.2); padding-bottom: 0.5rem; margin-bottom: 0.25rem;">
+                        📋 Información de la pregunta
+                    </div>
+                    <span style="color: #856404; font-size: 0.9rem; font-weight: 500;">🏷️ <strong>{{ pregunta.temaMunicipal.nombre }}</strong></span>
                 </div>
             </div>
-        </div>
+        {% endif %}
 
         {# Pregunta #}
         <div class="form-group mb-4" id="pregunta-texto">
@@ -1808,5 +1821,18 @@
         </style>
     </div>
 </div>
+
+<script>
+    // Scroll automático a la sección de información de la pregunta al cargar
+    document.addEventListener('DOMContentLoaded', function() {
+        const informacionPregunta = document.getElementById('informacion-pregunta');
+        if (informacionPregunta) {
+            informacionPregunta.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // También hacer focus para mejor accesibilidad
+            informacionPregunta.setAttribute('tabindex', '-1');
+            informacionPregunta.focus();
+        }
+    });
+</script>
 {% endblock %}
 
