@@ -55,6 +55,13 @@ class JuegoController extends AbstractController
         return $this->render('juego/completa_texto_legal.html.twig');
     }
 
+    #[Route('/juegos/articulo-correcto', name: 'app_juego_articulo_correcto')]
+    #[IsGranted('ROLE_USER')]
+    public function articuloCorrecto(): Response
+    {
+        return $this->render('juego/articulo_correcto.html.twig');
+    }
+
     #[Route('/api/juegos/guardar-partida', name: 'app_juego_api_guardar_partida', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
     public function guardarPartidaApi(Request $request): JsonResponse
@@ -68,6 +75,7 @@ class JuegoController extends AbstractController
             'adivina_nombre_articulo',
             'completa_fecha_ley',
             'completa_texto_legal',
+            'articulo_correcto',
         ];
 
         if (!$tipoJuego || !in_array($tipoJuego, $tiposValidos)) {
@@ -313,6 +321,107 @@ class JuegoController extends AbstractController
                     'nombre' => $articulo->getLey()->getNombre(),
                 ],
             ];
+        }
+
+        return new JsonResponse($resultado);
+    }
+
+    #[Route('/api/juegos/articulos-correcto-lote', name: 'app_juego_api_articulos_correcto_lote')]
+    public function getArticulosCorrectoLote(ArticuloRepository $articuloRepository): JsonResponse
+    {
+        // Obtener artículos para el juego (excluye Tema 17 y numero 0)
+        $articulos = $articuloRepository->findAleatoriosConTextoLegalParaJuego(20);
+        
+        if (empty($articulos)) {
+            return new JsonResponse(['error' => 'No hay artículos con texto legal disponibles'], 404);
+        }
+
+        // Obtener más artículos para generar versiones incorrectas
+        $articulosParaIncorrectas = $articuloRepository->findAleatoriosConTextoLegalParaJuego(100);
+        
+        $resultado = [];
+        foreach ($articulos as $articulo) {
+            $textoCorrecto = $articulo->getTextoLegal();
+            
+            if (empty($textoCorrecto) || trim($textoCorrecto) === '') {
+                continue; // Saltar artículos sin texto legal válido
+            }
+
+            // Generar 2 versiones incorrectas usando textos de otros artículos
+            $versionesIncorrectas = [];
+            $articulosUsados = [$articulo->getId()]; // Evitar usar el mismo artículo
+            
+            // Primero intentar usar otros artículos del lote principal
+            foreach ($articulos as $otroDelLote) {
+                if (count($versionesIncorrectas) >= 2) {
+                    break;
+                }
+                
+                if ($otroDelLote->getId() !== $articulo->getId() && 
+                    !in_array($otroDelLote->getId(), $articulosUsados)) {
+                    $textoIncorrecto = $otroDelLote->getTextoLegal();
+                    if (!empty($textoIncorrecto) && trim($textoIncorrecto) !== '') {
+                        $versionesIncorrectas[] = $textoIncorrecto;
+                        $articulosUsados[] = $otroDelLote->getId();
+                    }
+                }
+            }
+
+            // Si aún no hay suficientes, usar artículos adicionales
+            if (count($versionesIncorrectas) < 2) {
+                foreach ($articulosParaIncorrectas as $articuloAdicional) {
+                    if (count($versionesIncorrectas) >= 2) {
+                        break;
+                    }
+                    
+                    if ($articuloAdicional->getId() !== $articulo->getId() &&
+                        !in_array($articuloAdicional->getId(), $articulosUsados)) {
+                        $textoIncorrecto = $articuloAdicional->getTextoLegal();
+                        if (!empty($textoIncorrecto) && trim($textoIncorrecto) !== '') {
+                            $versionesIncorrectas[] = $textoIncorrecto;
+                            $articulosUsados[] = $articuloAdicional->getId();
+                        }
+                    }
+                }
+            }
+
+            // Validar que tenemos 2 versiones incorrectas
+            if (count($versionesIncorrectas) < 2) {
+                continue; // Saltar este artículo si no se pueden generar versiones incorrectas
+            }
+
+            // Crear array con 3 versiones: correcta + 2 incorrectas
+            $versiones = [$textoCorrecto, $versionesIncorrectas[0], $versionesIncorrectas[1]];
+            
+            // Mezclar aleatoriamente
+            $indiceCorrectoOriginal = 0; // Guardar índice antes de mezclar
+            shuffle($versiones);
+            
+            // Buscar el índice correcto después de mezclar
+            $indiceCorrecto = array_search($textoCorrecto, $versiones);
+            
+            // Validar que se encontró el índice correcto
+            if ($indiceCorrecto === false) {
+                continue; // Saltar este artículo si hay problema con la mezcla
+            }
+            
+            $resultado[] = [
+                'id' => $articulo->getId(),
+                'numero' => $articulo->getNumero(),
+                'sufijo' => $articulo->getSufijo(),
+                'numeroCompleto' => $articulo->getNumeroCompleto(),
+                'nombre' => $articulo->getNombre(),
+                'ley' => [
+                    'id' => $articulo->getLey()->getId(),
+                    'nombre' => $articulo->getLey()->getNombre(),
+                ],
+                'versiones' => $versiones,
+                'indiceCorrecto' => $indiceCorrecto,
+            ];
+        }
+
+        if (empty($resultado)) {
+            return new JsonResponse(['error' => 'No se pudieron generar artículos con versiones válidas'], 404);
         }
 
         return new JsonResponse($resultado);

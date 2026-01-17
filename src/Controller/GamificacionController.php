@@ -42,6 +42,7 @@ class GamificacionController extends AbstractController
             'adivina_nombre_articulo' => '¿Cómo se Llama el Artículo?',
             'completa_fecha_ley' => '¿Cuándo se Publicó la Ley?',
             'completa_texto_legal' => 'Completa el Artículo',
+            'articulo_correcto' => 'El artículo correcto',
         ];
 
         return $this->render('gamificacion/historial.html.twig', [
@@ -106,6 +107,7 @@ class GamificacionController extends AbstractController
             'adivina_nombre_articulo' => '¿Cómo se Llama el Artículo?',
             'completa_fecha_ley' => '¿Cuándo se Publicó la Ley?',
             'completa_texto_legal' => 'Completa el Artículo',
+            'articulo_correcto' => 'El artículo correcto',
         ];
 
         // Obtener tipo de juego seleccionado

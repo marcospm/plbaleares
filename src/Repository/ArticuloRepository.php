@@ -481,5 +481,95 @@ class ArticuloRepository extends ServiceEntityRepository
 
         return $resultado;
     }
+
+    /**
+     * Obtiene artículos activos aleatorios con textoLegal para el juego "El artículo correcto"
+     * Distribuye artículos de diferentes leyes de forma equilibrada
+     * Excluye ley "Accidentes de Tráfico" y artículos con numero == 0
+     * @return Articulo[]
+     */
+    public function findAleatoriosConTextoLegalParaJuego(int $limit = 20): array
+    {
+        // Obtener todos los artículos activos con textoLegal y ley cargada
+        // Excluir ley "Accidentes de Tráfico"
+        $subquery = $this->getEntityManager()->createQueryBuilder()
+            ->select('l2.id')
+            ->from('App\Entity\Ley', 'l2')
+            ->where('l2.nombre = :nombreLeyExcluida')
+            ->setMaxResults(1);
+
+        $articulos = $this->createQueryBuilder('a')
+            ->innerJoin('a.ley', 'l')
+            ->addSelect('l')
+            ->where('a.activo = :activo')
+            ->andWhere('l.activo = :activo')
+            ->andWhere('l.id != (' . $subquery->getDQL() . ')')
+            ->andWhere('a.numero != :numeroExcluido')
+            ->andWhere('a.textoLegal IS NOT NULL')
+            ->andWhere('a.textoLegal != :vacio')
+            ->setParameter('activo', true)
+            ->setParameter('nombreLeyExcluida', 'Accidentes de Tráfico')
+            ->setParameter('numeroExcluido', 0)
+            ->setParameter('vacio', '')
+            ->getQuery()
+            ->getResult();
+
+        if (empty($articulos)) {
+            return [];
+        }
+
+        // Agrupar artículos por ley
+        $articulosPorLey = [];
+        foreach ($articulos as $articulo) {
+            $leyId = $articulo->getLey()->getId();
+            if (!isset($articulosPorLey[$leyId])) {
+                $articulosPorLey[$leyId] = [];
+            }
+            $articulosPorLey[$leyId][] = $articulo;
+        }
+
+        // Mezclar los artículos dentro de cada ley
+        foreach ($articulosPorLey as $leyId => $articulosLey) {
+            shuffle($articulosPorLey[$leyId]);
+        }
+
+        // Distribuir artículos de forma round-robin entre las leyes
+        $resultado = [];
+        $indicesPorLey = array_fill_keys(array_keys($articulosPorLey), 0);
+        $leyesIds = array_keys($articulosPorLey);
+        shuffle($leyesIds); // Mezclar el orden de las leyes también
+
+        $totalLeyes = count($leyesIds);
+        if ($totalLeyes === 0) {
+            return [];
+        }
+
+        // Seleccionar artículos alternando entre leyes
+        while (count($resultado) < $limit) {
+            $algunoAgregado = false;
+            foreach ($leyesIds as $leyId) {
+                if (count($resultado) >= $limit) {
+                    break;
+                }
+                
+                if (isset($indicesPorLey[$leyId]) && 
+                    $indicesPorLey[$leyId] < count($articulosPorLey[$leyId])) {
+                    $resultado[] = $articulosPorLey[$leyId][$indicesPorLey[$leyId]];
+                    $indicesPorLey[$leyId]++;
+                    $algunoAgregado = true;
+                }
+            }
+            
+            // Si no se agregó ninguno, significa que ya no hay más artículos disponibles
+            if (!$algunoAgregado) {
+                break;
+            }
+        }
+
+        // Mezclar el resultado final para mayor aleatoriedad
+        shuffle($resultado);
+
+        return $resultado;
+    }
 }
 

@@ -1,0 +1,359 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}El artículo correcto - Gamificación - BISPOL{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .juego-container {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #feedback {
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .btn {
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .opcion-texto-legal {
+            background: #ffffff;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .opcion-texto-legal:hover {
+            border-color: var(--color-primary);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .opcion-texto-legal.seleccionada {
+            border-color: var(--color-primary);
+            background: #e3f2fd;
+            box-shadow: 0 4px 12px rgba(0, 113, 181, 0.2);
+        }
+
+        .opcion-texto-legal.correcta {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        .opcion-texto-legal.incorrecta {
+            border-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .opcion-texto-legal.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .opcion-radio {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #999;
+            border-radius: 50%;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .opcion-texto-legal.seleccionada .opcion-radio {
+            border-color: var(--color-primary);
+            background: var(--color-primary);
+        }
+
+        .opcion-texto-legal.seleccionada .opcion-radio::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .texto-legal-container {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--color-primary);
+            line-height: 1.8;
+            font-size: 1.05rem;
+            color: #333;
+        }
+
+        .contador-progreso {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div style="max-width: 1000px; margin: 2rem auto; padding: 0 1rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">El artículo correcto</h1>
+        <p style="color: #666;">Selecciona cuál de las 3 versiones del texto legal corresponde al artículo mostrado.</p>
+    </div>
+
+    <div id="juego-container" class="juego-container">
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-body" style="padding: 2rem;">
+                <div id="contador-progreso" class="contador-progreso" style="display: none;">
+                    Artículo <span id="numero-actual">1</span> de <span id="total-articulos">20</span>
+                </div>
+
+                <div id="info-articulo" style="margin-bottom: 2rem;">
+                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <h3 style="margin: 0 0 0.5rem 0; color: var(--color-primary);">Ley:</h3>
+                        <p id="ley-nombre" style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #333;"></p>
+                    </div>
+                    <div style="background: #e3f2fd; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <h3 style="margin: 0 0 0.5rem 0; color: var(--color-primary);">Artículo:</h3>
+                        <p id="articulo-numero" style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #333;"></p>
+                        <p id="articulo-nombre" style="margin: 0.5rem 0 0 0; font-size: 1rem; color: #666;"></p>
+                    </div>
+                </div>
+
+                <div id="opciones-versiones" style="margin-bottom: 1.5rem;"></div>
+
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                    <button id="btn-verificar" class="btn btn-primary" style="flex: 1; padding: 0.75rem; display: none;">Verificar</button>
+                    <button id="btn-siguiente" class="btn btn-secondary" style="flex: 1; padding: 0.75rem; display: none;">Siguiente</button>
+                </div>
+
+                <div id="feedback" style="display: none; padding: 1rem; border-radius: 8px; margin-top: 1rem;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let articulos = [];
+    let indiceActual = 0;
+    let articuloActual = null;
+    let versionSeleccionada = null;
+
+    function cargarArticulos() {
+        fetch('{{ path('app_juego_api_articulos_correcto_lote') }}')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error HTTP: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                if (!data || data.length === 0) {
+                    alert('No hay artículos disponibles');
+                    return;
+                }
+                
+                articulos = data;
+                indiceActual = 0;
+                document.getElementById('total-articulos').textContent = articulos.length;
+                mostrarSiguienteArticulo();
+            })
+            .catch(error => {
+                console.error('Error al cargar artículos:', error);
+                alert('Error al cargar los artículos. Por favor, recarga la página e intenta de nuevo.');
+            });
+    }
+
+    function mostrarSiguienteArticulo() {
+        if (indiceActual >= articulos.length) {
+            // Se completaron los 20 artículos
+            finalizarJuego();
+            return;
+        }
+        
+        articuloActual = articulos[indiceActual];
+        versionSeleccionada = null;
+        
+        // Actualizar contador
+        document.getElementById('numero-actual').textContent = indiceActual + 1;
+        document.getElementById('contador-progreso').style.display = 'block';
+        
+        // Mostrar información del artículo
+        document.getElementById('ley-nombre').textContent = articuloActual.ley.nombre;
+        document.getElementById('articulo-numero').textContent = 'Artículo ' + articuloActual.numeroCompleto;
+        document.getElementById('articulo-nombre').textContent = articuloActual.nombre || '';
+        
+        // Mostrar opciones de versiones
+        mostrarOpciones();
+        
+        // Resetear botones y feedback
+        document.getElementById('btn-verificar').style.display = 'none';
+        document.getElementById('btn-siguiente').style.display = 'none';
+        document.getElementById('feedback').style.display = 'none';
+    }
+
+    function mostrarOpciones() {
+        const opcionesContainer = document.getElementById('opciones-versiones');
+        opcionesContainer.innerHTML = '';
+        
+        articuloActual.versiones.forEach((version, index) => {
+            const opcionDiv = document.createElement('div');
+            opcionDiv.className = 'opcion-texto-legal';
+            opcionDiv.dataset.index = index;
+            
+            opcionDiv.innerHTML = `
+                <div class="opcion-radio"></div>
+                <div class="texto-legal-container">${version}</div>
+            `;
+            
+            opcionDiv.addEventListener('click', function() {
+                if (!this.classList.contains('disabled')) {
+                    // Deseleccionar otras opciones
+                    document.querySelectorAll('.opcion-texto-legal').forEach(op => {
+                        op.classList.remove('seleccionada');
+                    });
+                    
+                    // Seleccionar esta opción
+                    this.classList.add('seleccionada');
+                    versionSeleccionada = index;
+                    
+                    // Mostrar botón verificar
+                    document.getElementById('btn-verificar').style.display = 'block';
+                }
+            });
+            
+            opcionesContainer.appendChild(opcionDiv);
+        });
+    }
+
+    function verificarRespuesta() {
+        if (versionSeleccionada === null) {
+            return;
+        }
+        
+        // Guardar partida cuando se verifica una respuesta
+        guardarPartida();
+        
+        const esCorrecta = versionSeleccionada === articuloActual.indiceCorrecto;
+        const opciones = document.querySelectorAll('.opcion-texto-legal');
+        
+        // Deshabilitar todas las opciones
+        opciones.forEach(op => {
+            op.classList.add('disabled');
+        });
+        
+        // Marcar opción correcta en verde
+        opciones[articuloActual.indiceCorrecto].classList.add('correcta');
+        
+        // Si la respuesta es incorrecta, marcar la seleccionada en rojo
+        if (!esCorrecta) {
+            opciones[versionSeleccionada].classList.add('incorrecta');
+        }
+        
+        // Mostrar feedback
+        const feedbackDiv = document.getElementById('feedback');
+        feedbackDiv.style.display = 'block';
+        
+        if (esCorrecta) {
+            feedbackDiv.style.background = '#d4edda';
+            feedbackDiv.style.border = '1px solid #28a745';
+            feedbackDiv.style.color = '#155724';
+            feedbackDiv.innerHTML = '<strong>✅ ¡Correcto!</strong> Has seleccionado la versión correcta del artículo.';
+        } else {
+            feedbackDiv.style.background = '#f8d7da';
+            feedbackDiv.style.border = '1px solid #dc3545';
+            feedbackDiv.style.color = '#721c24';
+            feedbackDiv.innerHTML = '<strong>❌ Incorrecto.</strong> No has seleccionado la versión correcta del artículo.';
+        }
+        
+        // Mostrar botón siguiente
+        document.getElementById('btn-siguiente').style.display = 'block';
+        document.getElementById('btn-verificar').style.display = 'none';
+    }
+
+    function siguienteArticulo() {
+        indiceActual++;
+        mostrarSiguienteArticulo();
+    }
+
+    function finalizarJuego() {
+        // Mostrar mensaje de finalización
+        const juegoContainer = document.getElementById('juego-container');
+        juegoContainer.innerHTML = `
+            <div class="card" style="text-align: center; padding: 3rem;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">¡Has completado los 20 artículos!</h2>
+                <p style="color: #666; margin-bottom: 2rem; font-size: 1.1rem;">Bien hecho. Has practicado la identificación de textos legales correctos.</p>
+                <button onclick="location.reload()" class="btn btn-primary" style="padding: 0.75rem 2rem; font-size: 1.1rem;">Jugar otra vez</button>
+            </div>
+        `;
+    }
+
+    function guardarPartida() {
+        fetch('{{ path('app_juego_api_guardar_partida') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                tipoJuego: 'articulo_correcto'
+            })
+        })
+        .catch(error => {
+            console.error('Error al guardar partida:', error);
+        });
+    }
+
+    // Event listeners
+    document.getElementById('btn-verificar').addEventListener('click', verificarRespuesta);
+    document.getElementById('btn-siguiente').addEventListener('click', siguienteArticulo);
+
+    // Cargar artículos al iniciar
+    cargarArticulos();
+</script>
+{% endblock %}
