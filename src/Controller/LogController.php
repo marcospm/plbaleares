@@ -25,6 +25,7 @@ class LogController extends AbstractController
         $logDir = $this->kernel->getLogDir();
         $logFile = $logDir . '/' . $environment . '.log';
         
+        // Por defecto mostrar todos los niveles, incluyendo ERROR y superiores
         $level = $request->query->get('level', 'all');
         $channel = $request->query->get('channel', 'all');
         $limit = (int) $request->query->get('limit', 100);

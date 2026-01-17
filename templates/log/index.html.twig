@@ -45,15 +45,15 @@
                     <div class="col-md-2">
                         <label for="level" class="form-label">Nivel</label>
                         <select name="level" id="level" class="form-select">
-                            <option value="all" {% if level == 'all' %}selected{% endif %}>Todos</option>
-                            <option value="debug" {% if level == 'debug' %}selected{% endif %}>Debug</option>
-                            <option value="info" {% if level == 'info' %}selected{% endif %}>Info</option>
-                            <option value="notice" {% if level == 'notice' %}selected{% endif %}>Notice</option>
-                            <option value="warning" {% if level == 'warning' %}selected{% endif %}>Warning</option>
-                            <option value="error" {% if level == 'error' %}selected{% endif %}>Error</option>
+                            <option value="all" {% if level == 'all' or level is empty %}selected{% endif %}>Todos (incl. ERROR)</option>
+                            <option value="error" {% if level == 'error' %}selected{% endif %}>Solo Error</option>
                             <option value="critical" {% if level == 'critical' %}selected{% endif %}>Critical</option>
                             <option value="alert" {% if level == 'alert' %}selected{% endif %}>Alert</option>
                             <option value="emergency" {% if level == 'emergency' %}selected{% endif %}>Emergency</option>
+                            <option value="warning" {% if level == 'warning' %}selected{% endif %}>Warning</option>
+                            <option value="notice" {% if level == 'notice' %}selected{% endif %}>Notice</option>
+                            <option value="info" {% if level == 'info' %}selected{% endif %}>Info</option>
+                            <option value="debug" {% if level == 'debug' %}selected{% endif %}>Debug</option>
                         </select>
                     </div>
                     <div class="col-md-2">

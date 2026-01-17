@@ -45,11 +45,13 @@ when@prod:
                 level: debug
                 formatter: monolog.formatter.json
             # Handler adicional para escribir logs a archivo (para el panel de admin)
+            # Este handler guarda TODOS los niveles (DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL, ALERT, EMERGENCY)
             file:
                 type: stream
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
                 level: debug
                 channels: ["!event", "!doctrine"]
+                formatter: monolog.formatter.line
             console:
                 type: console
                 process_psr_3_messages: false
