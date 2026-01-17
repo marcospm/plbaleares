@@ -170,8 +170,36 @@
             </div>
         </div>
 
+        {# Filtros de preguntas #}
+        <div id="filtros-preguntas" style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+            <div style="font-size: 0.85rem; color: #666; font-weight: 500; margin-bottom: 0.75rem;">🔍 Filtrar preguntas:</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-size: 0.9rem; color: #333;">
+                    <input type="checkbox" id="filtro-correctas" class="filtro-pregunta" data-tipo="correcta" checked style="width: 18px; height: 18px; cursor: pointer;">
+                    <span style="display: flex; align-items: center; gap: 0.25rem;">
+                        <span style="display: inline-block; width: 16px; height: 16px; background: #28a745; border-radius: 3px; border: 1px solid #28a745;"></span>
+                        <span>Correctas</span>
+                    </span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-size: 0.9rem; color: #333;">
+                    <input type="checkbox" id="filtro-incorrectas" class="filtro-pregunta" data-tipo="incorrecta" checked style="width: 18px; height: 18px; cursor: pointer;">
+                    <span style="display: flex; align-items: center; gap: 0.25rem;">
+                        <span style="display: inline-block; width: 16px; height: 16px; background: #dc3545; border-radius: 3px; border: 1px solid #dc3545;"></span>
+                        <span>Incorrectas</span>
+                    </span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-size: 0.9rem; color: #333;">
+                    <input type="checkbox" id="filtro-en-blanco" class="filtro-pregunta" data-tipo="en-blanco" checked style="width: 18px; height: 18px; cursor: pointer;">
+                    <span style="display: flex; align-items: center; gap: 0.25rem;">
+                        <span style="display: inline-block; width: 16px; height: 16px; background: #e0e0e0; border-radius: 3px; border: 1px solid #999;"></span>
+                        <span>En blanco</span>
+                    </span>
+                </label>
+            </div>
+        </div>
+
         {% for item in preguntas %}
-            <div id="pregunta-{{ loop.index }}" class="card mb-3" style="{% if item.esCorrecta is null %}border-left: 4px solid #999;{% elseif item.esCorrecta %}border-left: 4px solid var(--color-success);{% else %}border-left: 4px solid var(--color-danger);{% endif %}">
+            <div id="pregunta-{{ loop.index }}" class="card mb-3 pregunta-item {% if item.esCorrecta is null %}pregunta-en-blanco{% elseif item.esCorrecta %}pregunta-correcta{% else %}pregunta-incorrecta{% endif %}" style="{% if item.esCorrecta is null %}border-left: 4px solid #999;{% elseif item.esCorrecta %}border-left: 4px solid var(--color-success);{% else %}border-left: 4px solid var(--color-danger);{% endif %}">
                 <div class="card-body">
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                         <div style="flex: 1;">
@@ -354,7 +382,85 @@
     </div>
 </div>
 
+<style>
+    /* Estilos para filtros de preguntas */
+    .filtro-pregunta {
+        accent-color: var(--color-primary, #0071b5);
+    }
+    
+    #filtros-preguntas label {
+        transition: opacity 0.2s;
+    }
+    
+    #filtros-preguntas label:hover {
+        opacity: 0.8;
+    }
+    
+    /* Responsive para móviles - filtros */
+    @media (max-width: 768px) {
+        /* Contenedor de filtros */
+        #filtros-preguntas {
+            padding: 0.75rem !important;
+        }
+        
+        /* Labels de filtros más grandes para móviles */
+        #filtros-preguntas label {
+            min-height: 44px !important; /* Tamaño táctil recomendado */
+            padding: 0.25rem 0 !important;
+            font-size: 0.9rem !important;
+        }
+        
+        /* Checkboxes más grandes en móviles */
+        .filtro-pregunta {
+            width: 20px !important;
+            height: 20px !important;
+            min-width: 20px !important;
+            min-height: 20px !important;
+        }
+        
+        /* Espaciado entre filtros en móviles */
+        #filtros-preguntas > div {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.75rem !important;
+        }
+    }
+</style>
+
 <script>
+    // Filtrado de preguntas según checkboxes
+    document.addEventListener('DOMContentLoaded', function() {
+        const filtros = document.querySelectorAll('.filtro-pregunta');
+        const preguntas = document.querySelectorAll('.pregunta-item');
+        
+        function aplicarFiltros() {
+            const filtroCorrectas = document.getElementById('filtro-correctas').checked;
+            const filtroIncorrectas = document.getElementById('filtro-incorrectas').checked;
+            const filtroEnBlanco = document.getElementById('filtro-en-blanco').checked;
+            
+            preguntas.forEach(pregunta => {
+                const esCorrecta = pregunta.classList.contains('pregunta-correcta');
+                const esIncorrecta = pregunta.classList.contains('pregunta-incorrecta');
+                const esEnBlanco = pregunta.classList.contains('pregunta-en-blanco');
+                
+                let mostrar = false;
+                if (esCorrecta && filtroCorrectas) mostrar = true;
+                if (esIncorrecta && filtroIncorrectas) mostrar = true;
+                if (esEnBlanco && filtroEnBlanco) mostrar = true;
+                
+                if (mostrar) {
+                    pregunta.style.display = '';
+                } else {
+                    pregunta.style.display = 'none';
+                }
+            });
+        }
+        
+        filtros.forEach(filtro => {
+            filtro.addEventListener('change', aplicarFiltros);
+        });
+    });
+
     // Scroll suave al hacer clic en los números de preguntas
     document.addEventListener('DOMContentLoaded', function() {
         const preguntaLinks = document.querySelectorAll('.pregunta-link-detalle');
