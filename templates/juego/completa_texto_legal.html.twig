@@ -76,7 +76,16 @@
             border: 2px dashed #ffc107;
             display: inline-block;
             margin: 0.1rem;
-            min-width: 100px;
+            min-width: 60px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        
+        .palabra-oculta strong {
+            color: #856404;
+            display: inline-block;
+            min-width: 30px;
         }
     </style>
 {% endblock %}
@@ -172,33 +181,86 @@
     }
 
     /**
-     * Reemplaza palabras en el HTML manteniendo la estructura
-     * Solo reemplaza la primera ocurrencia de cada palabra para que coincida con los campos de entrada
+     * Encuentra las posiciones de todas las palabras en el HTML y las reemplaza en orden de aparición
+     * Marca cada palabra con un número (1, 2, 3...) según su orden de aparición en el texto
      */
     function ocultarPalabrasEnHTML(html, palabrasAOcultar) {
-        let htmlResultado = html;
+        // Crear un contenedor temporal para parsear el HTML
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        const textoCompleto = temp.textContent || temp.innerText || '';
         
-        // Ordenar palabras por longitud (más largas primero) para evitar reemplazos parciales
-        palabrasAOcultar.sort((a, b) => b.length - a.length);
+        // Encontrar todas las ocurrencias de cada palabra única en orden de aparición
+        const ocurrencias = [];
+        const palabrasYaEncontradas = new Set();
         
-        palabrasAOcultar.forEach((palabra, index) => {
-            // Crear regex que busca la palabra como palabra completa (respetando mayúsculas/minúsculas)
-            // Usar replace con función para reemplazar solo la primera ocurrencia
-            const regex = new RegExp(`\\b${palabra.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-            const reemplazo = `<span class="palabra-oculta" data-palabra-index="${index}" data-palabra-original="${palabra.replace(/"/g, '&quot;')}">___</span>`;
+        // Primero, encontrar todas las ocurrencias de todas las palabras en el texto
+        palabrasAOcultar.forEach((palabra) => {
+            const palabraKey = palabra.toLowerCase();
+            // Solo procesar cada palabra única una vez
+            if (palabrasYaEncontradas.has(palabraKey)) {
+                return;
+            }
+            palabrasYaEncontradas.add(palabraKey);
             
-            // Reemplazar solo la primera ocurrencia
+            const regex = new RegExp(`\\b${palabra.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+            let match;
+            
+            // Buscar todas las ocurrencias de esta palabra en el texto
+            while ((match = regex.exec(textoCompleto)) !== null) {
+                ocurrencias.push({
+                    palabra: palabra,
+                    posicion: match.index,
+                    match: match[0],
+                    palabraKey: palabraKey
+                });
+            }
+        });
+        
+        // Ordenar ocurrencias por posición en el texto (orden de aparición)
+        ocurrencias.sort((a, b) => a.posicion - b.posicion);
+        
+        // Tomar solo la primera ocurrencia de cada palabra única en orden de aparición
+        const palabrasProcesadasEnOrden = new Set();
+        const ocurrenciasUnicasEnOrden = [];
+        ocurrencias.forEach(ocurrencia => {
+            if (!palabrasProcesadasEnOrden.has(ocurrencia.palabraKey)) {
+                palabrasProcesadasEnOrden.add(ocurrencia.palabraKey);
+                ocurrenciasUnicasEnOrden.push(ocurrencia);
+            }
+        });
+        
+        // Ahora reemplazar en el HTML en orden de aparición, marcando con números
+        let htmlResultado = html;
+        const palabrasOrdenadas = [];
+        
+        // Reemplazar palabra por palabra en el orden de aparición
+        ocurrenciasUnicasEnOrden.forEach((ocurrencia, index) => {
+            const numero = index + 1;
+            const palabra = ocurrencia.palabra;
+            
+            // Escapar la palabra para usar en regex
+            const palabraEscapada = palabra.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`\\b${palabraEscapada}\\b`, 'gi');
+            
+            const reemplazo = `<span class="palabra-oculta" data-palabra-index="${index}" data-palabra-original="${palabra.replace(/"/g, '&quot;')}" data-palabra-numero="${numero}"><strong>${numero}</strong></span>`;
+            
+            // Reemplazar solo la primera ocurrencia de esta palabra en el HTML
             let primeraOcurrencia = true;
             htmlResultado = htmlResultado.replace(regex, (match) => {
                 if (primeraOcurrencia) {
                     primeraOcurrencia = false;
+                    palabrasOrdenadas.push(palabra);
                     return reemplazo;
                 }
                 return match; // Mantener las demás ocurrencias sin cambiar
             });
         });
         
-        return htmlResultado;
+        return {
+            html: htmlResultado,
+            palabrasOrdenadas: palabrasOrdenadas
+        };
     }
 
     let articulos = [];
@@ -293,46 +355,49 @@
             palabrasDisponibles.splice(indiceAleatorio, 1); // Eliminar el índice seleccionado
         }
         
-        palabrasOcultas = indicesSeleccionados.map(i => palabras[i]);
+        // Extraer las palabras seleccionadas
+        const palabrasSeleccionadas = indicesSeleccionados.map(i => palabras[i]);
+        
+        // Ocultar palabras en el HTML - esto retorna el HTML y las palabras ordenadas por aparición
+        const resultadoOcultacion = ocultarPalabrasEnHTML(textoLegalHTML, palabrasSeleccionadas);
+        document.getElementById('texto-legal').innerHTML = resultadoOcultacion.html;
+        
+        // Las palabras originales deben estar en el orden de aparición en el texto
+        palabrasOcultas = resultadoOcultacion.palabrasOrdenadas;
         palabrasOriginales = [...palabrasOcultas];
         
-        // Ocultar palabras en el HTML
-        const htmlConOcultas = ocultarPalabrasEnHTML(textoLegalHTML, palabrasOcultas);
-        document.getElementById('texto-legal').innerHTML = htmlConOcultas;
-        
-        // Verificar que el número de palabras ocultas en el HTML coincida con el número de palabras seleccionadas
+        // Verificar que el número de palabras ocultas en el HTML coincida
         const palabrasOcultasEnHTML = document.querySelectorAll('.palabra-oculta');
-        if (palabrasOcultasEnHTML.length !== palabrasOcultas.length) {
-            console.warn(`Advertencia: Se esperaban ${palabrasOcultas.length} palabras ocultas pero se encontraron ${palabrasOcultasEnHTML.length}. Ajustando...`);
-            // Si hay más palabras ocultas en el HTML que las seleccionadas, ajustar el array
-            // Esto puede pasar si una palabra aparece múltiples veces y se reemplazó más de una vez
-            palabrasOcultas.length = palabrasOcultasEnHTML.length;
-            palabrasOriginales.length = palabrasOcultasEnHTML.length;
-            // Actualizar las palabras originales basándose en los data attributes
-            palabrasOcultasEnHTML.forEach((span, index) => {
-                const palabraOriginal = span.getAttribute('data-palabra-original');
-                if (palabraOriginal && index < palabrasOcultas.length) {
-                    palabrasOcultas[index] = palabraOriginal;
-                    palabrasOriginales[index] = palabraOriginal;
-                }
-            });
+        if (palabrasOcultasEnHTML.length !== palabrasOriginales.length) {
+            console.warn(`Advertencia: Se esperaban ${palabrasOriginales.length} palabras ocultas pero se encontraron ${palabrasOcultasEnHTML.length}. Ajustando...`);
+            // Ajustar basándose en el orden de aparición en el HTML
+            const palabrasDesdeHTML = Array.from(palabrasOcultasEnHTML).map(span => {
+                return span.getAttribute('data-palabra-original');
+            }).filter(p => p !== null);
+            
+            palabrasOcultas = palabrasDesdeHTML;
+            palabrasOriginales = [...palabrasOcultas];
         }
         
         // Crear campos de entrada para cada palabra oculta
         const camposContainer = document.getElementById('campos-palabras');
         camposContainer.innerHTML = '';
         
+        // Crear campos en el mismo orden que aparecen las palabras en el texto
+        // Las palabras ya están ordenadas por aparición en el texto
         palabrasOcultas.forEach((palabra, index) => {
+            const numero = index + 1;
             const campoDiv = document.createElement('div');
             campoDiv.className = 'campo-palabra';
             campoDiv.innerHTML = `
                 <label style="display: block; margin-bottom: 0.25rem; font-weight: 600; color: #333;">
-                    Palabra ${index + 1}:
+                    Palabra ${numero} <span style="color: #666; font-size: 0.9rem;">(aparece marcada con ${numero} en el texto):</span>
                 </label>
                 <input type="text" 
                        class="form-control campo-palabra-input" 
                        data-palabra-index="${index}"
-                       placeholder="Escribe la palabra..."
+                       data-palabra-numero="${numero}"
+                       placeholder="Escribe la palabra ${numero}..."
                        style="font-size: 1rem; padding: 0.75rem;">
             `;
             camposContainer.appendChild(campoDiv);
@@ -362,23 +427,32 @@
         const campos = document.querySelectorAll('.campo-palabra-input');
         const respuestas = [];
         
-        // Obtener todas las respuestas del usuario
-        campos.forEach((campo, index) => {
-            respuestas[index] = campo.value.trim();
+        // Obtener todas las respuestas del usuario ordenadas por el número de la palabra
+        const respuestasOrdenadas = [];
+        campos.forEach((campo) => {
+            const palabraIndex = parseInt(campo.getAttribute('data-palabra-index')) || 0;
+            const palabraNumero = parseInt(campo.getAttribute('data-palabra-numero')) || (palabraIndex + 1);
+            respuestasOrdenadas[palabraIndex] = {
+                respuesta: campo.value.trim(),
+                numero: palabraNumero
+            };
         });
         
         // Guardar partida cuando se responde (solo si hay al menos una respuesta)
-        if (respuestas.some(r => r.trim() !== '')) {
+        if (respuestasOrdenadas.some(r => r && r.respuesta.trim() !== '')) {
             guardarPartida('completa_texto_legal');
         }
         
         // Contar respuestas correctas e incorrectas
+        // Asegurarse de que comparamos en el mismo orden que aparecen en el texto
         let correctas = 0;
         let incorrectas = 0;
         const resultados = [];
         
         palabrasOriginales.forEach((palabraOriginal, index) => {
-            const respuestaUsuario = respuestas[index] || '';
+            const respuestaData = respuestasOrdenadas[index];
+            const respuestaUsuario = respuestaData ? respuestaData.respuesta : '';
+            const numeroPalabra = respuestaData ? respuestaData.numero : (index + 1);
             const esCorrecta = compararTextoFlexible(respuestaUsuario, palabraOriginal);
             
             if (esCorrecta) {
@@ -390,7 +464,8 @@
             resultados.push({
                 palabraOriginal: palabraOriginal,
                 respuestaUsuario: respuestaUsuario,
-                esCorrecta: esCorrecta
+                esCorrecta: esCorrecta,
+                numero: numeroPalabra
             });
         });
         
@@ -409,13 +484,14 @@
         
         feedbackHTML += '<strong>Respuestas:</strong><br><br>';
         resultados.forEach((resultado, index) => {
+            const numero = resultado.numero || (index + 1);
             if (resultado.esCorrecta) {
                 feedbackHTML += `<div style="padding: 0.5rem; margin-bottom: 0.5rem; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px;">`;
-                feedbackHTML += `<strong>Palabra ${index + 1}:</strong> <span style="color: #155724; font-weight: 600;">${resultado.palabraOriginal}</span> ✅`;
+                feedbackHTML += `<strong>Palabra ${numero}:</strong> <span style="color: #155724; font-weight: 600;">${resultado.palabraOriginal}</span> ✅`;
                 feedbackHTML += `</div>`;
             } else {
                 feedbackHTML += `<div style="padding: 0.5rem; margin-bottom: 0.5rem; background: #f8d7da; border-left: 4px solid #dc3545; border-radius: 4px;">`;
-                feedbackHTML += `<strong>Palabra ${index + 1}:</strong> `;
+                feedbackHTML += `<strong>Palabra ${numero}:</strong> `;
                 feedbackHTML += `<span style="color: #721c24; text-decoration: line-through;">${resultado.respuestaUsuario || '(vacío)'}</span> → `;
                 feedbackHTML += `<span style="color: #155724; font-weight: 600;">${resultado.palabraOriginal}</span> ❌`;
                 feedbackHTML += `</div>`;
@@ -441,18 +517,23 @@
             resultadosMap[index] = resultado;
         });
         
-        // Reemplazar cada span
-        todasLasPalabrasOcultas.forEach((span) => {
+        // Reemplazar cada span en el orden correcto
+        // Las palabras ocultas están en el mismo orden que palabrasOriginales
+        todasLasPalabrasOcultas.forEach((span, indexEnHTML) => {
             const palabraIndexStr = span.getAttribute('data-palabra-index');
-            const palabraIndex = palabraIndexStr !== null ? parseInt(palabraIndexStr) : -1;
+            const palabraIndex = palabraIndexStr !== null ? parseInt(palabraIndexStr) : indexEnHTML;
+            const palabraNumero = parseInt(span.getAttribute('data-palabra-numero')) || (palabraIndex + 1);
             const palabraOriginal = span.getAttribute('data-palabra-original') || '___';
             
-            // Buscar el resultado correspondiente
+            // Buscar el resultado correspondiente por índice (que coincide con el orden de aparición)
             let resultado = null;
             if (palabraIndex >= 0 && palabraIndex < resultados.length) {
                 resultado = resultados[palabraIndex];
+            } else if (indexEnHTML >= 0 && indexEnHTML < resultados.length) {
+                // Si el índice del atributo no es válido, usar el índice en el HTML
+                resultado = resultados[indexEnHTML];
             } else {
-                // Si no hay índice válido, intentar buscar por la palabra original
+                // Último recurso: buscar por la palabra original
                 resultado = resultados.find(r => normalizarTexto(r.palabraOriginal) === normalizarTexto(palabraOriginal));
             }
             
