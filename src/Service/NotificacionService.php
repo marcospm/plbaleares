@@ -513,5 +513,37 @@ class NotificacionService
         $this->entityManager->persist($notificacion);
         $this->entityManager->flush();
     }
+
+    /**
+     * Crea notificaciones generales para todos los alumnos activos
+     * Solo puede ser llamado por un administrador
+     */
+    public function crearNotificacionGeneral(string $titulo, string $mensaje, User $admin): void
+    {
+        // Obtener todos los alumnos activos (usuarios que no son profesores ni admins)
+        $alumnos = $this->userRepository->createQueryBuilder('u')
+            ->where('u.activo = :activo')
+            ->andWhere('u.roles NOT LIKE :roleProfesor')
+            ->andWhere('u.roles NOT LIKE :roleAdmin')
+            ->setParameter('activo', true)
+            ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+            ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
+            ->getQuery()
+            ->getResult();
+
+        foreach ($alumnos as $alumno) {
+            $notificacion = new Notificacion();
+            $notificacion->setTipo(Notificacion::TIPO_GENERAL);
+            $notificacion->setTitulo($titulo);
+            $notificacion->setMensaje($mensaje);
+            // No establecer profesor: estas notificaciones son generales para alumnos
+            $notificacion->setProfesor(null);
+            $notificacion->setAlumno($alumno);
+            
+            $this->entityManager->persist($notificacion);
+        }
+        
+        $this->entityManager->flush();
+    }
 }
 

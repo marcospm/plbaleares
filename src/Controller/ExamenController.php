@@ -687,6 +687,9 @@ class ExamenController extends AbstractController
                     $textoLegal = $pregunta->getArticulo()->getTextoLegal();
                 }
                 
+                // Obtener la respuesta actual del alumno
+                $respuestaActual = $respuestas[$pregunta->getId()] ?? null;
+                
                 // Calcular si la respuesta es correcta
                 $respuestaCorrectaStr = strtoupper(trim($respuestaCorrecta ?? ''));
                 $respuestaAlumnoStr = strtoupper(trim($respuestaActual ?? ''));

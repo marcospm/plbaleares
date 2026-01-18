@@ -365,6 +365,8 @@ class NotificacionController extends AbstractController
                     \App\Entity\Notificacion::TIPO_TAREA_ELIMINADA,
                     \App\Entity\Notificacion::TIPO_EXAMEN_SEMANAL,
                     \App\Entity\Notificacion::TIPO_RESPUESTA_ARTICULO,
+                    \App\Entity\Notificacion::TIPO_RESPUESTA_PREGUNTA,
+                    \App\Entity\Notificacion::TIPO_GENERAL,
                 ]);
             
             $result = $qb->getQuery()->execute();

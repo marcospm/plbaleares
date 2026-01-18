@@ -84,6 +84,7 @@ class NotificacionRepository extends ServiceEntityRepository
                 Notificacion::TIPO_EXAMEN_SEMANAL,
                 Notificacion::TIPO_RESPUESTA_ARTICULO,
                 Notificacion::TIPO_RESPUESTA_PREGUNTA,
+                Notificacion::TIPO_GENERAL,
             ])
             ->orderBy('n.fechaCreacion', 'DESC')
             ->getQuery()
@@ -113,6 +114,7 @@ class NotificacionRepository extends ServiceEntityRepository
                 Notificacion::TIPO_EXAMEN_SEMANAL,
                 Notificacion::TIPO_RESPUESTA_ARTICULO,
                 Notificacion::TIPO_RESPUESTA_PREGUNTA,
+                Notificacion::TIPO_GENERAL,
             ])
             ->getQuery()
             ->getSingleScalarResult();
@@ -140,6 +142,7 @@ class NotificacionRepository extends ServiceEntityRepository
                 Notificacion::TIPO_EXAMEN_SEMANAL,
                 Notificacion::TIPO_RESPUESTA_ARTICULO,
                 Notificacion::TIPO_RESPUESTA_PREGUNTA,
+                Notificacion::TIPO_GENERAL,
             ])
             ->orderBy('n.fechaCreacion', 'DESC')
             ->getQuery()

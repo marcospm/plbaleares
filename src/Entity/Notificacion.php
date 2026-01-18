@@ -26,6 +26,7 @@ class Notificacion
     public const TIPO_RESPUESTA_ARTICULO = 'respuesta_articulo';
     public const TIPO_ERROR_PREGUNTA = 'error_pregunta';
     public const TIPO_RESPUESTA_PREGUNTA = 'respuesta_pregunta';
+    public const TIPO_GENERAL = 'general';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]

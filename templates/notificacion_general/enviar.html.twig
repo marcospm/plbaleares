@@ -1,0 +1,80 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Enviar Notificación General{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1>📢 Enviar Notificación General</h1>
+            <p class="text-muted">Esta notificación será enviada a todos los alumnos activos del sistema.</p>
+            
+            {% for message in app.flashes('success') %}
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+            
+            {% for message in app.flashes('error') %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+            
+            <div class="card mt-4">
+                <div class="card-body">
+                    <form method="post" action="{{ path('app_notificacion_general_enviar') }}">
+                        <div class="mb-3">
+                            <label for="titulo" class="form-label">
+                                <strong>Título <span class="text-danger">*</span></strong>
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="titulo" 
+                                name="titulo" 
+                                value="{{ titulo|default('') }}" 
+                                required 
+                                maxlength="255"
+                                placeholder="Ej: Mantenimiento programado"
+                            >
+                            <small class="form-text text-muted">Máximo 255 caracteres</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="mensaje" class="form-label">
+                                <strong>Mensaje <span class="text-danger">*</span></strong>
+                            </label>
+                            <textarea 
+                                class="form-control" 
+                                id="mensaje" 
+                                name="mensaje" 
+                                rows="8" 
+                                required
+                                placeholder="Escribe aquí el mensaje que recibirán todos los alumnos..."
+                            >{{ mensaje|default('') }}</textarea>
+                            <small class="form-text text-muted">Este mensaje será visible para todos los alumnos activos</small>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <strong>ℹ️ Información:</strong> Esta notificación se enviará a todos los alumnos activos del sistema. 
+                            Los alumnos la verán en su panel de notificaciones.
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{{ path('app_dashboard') }}" class="btn btn-secondary">
+                                ← Volver al Dashboard
+                            </a>
+                            <button type="submit" class="btn btn-primary" onclick="return confirm('¿Estás seguro de que deseas enviar esta notificación a todos los alumnos?');">
+                                📤 Enviar Notificación
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

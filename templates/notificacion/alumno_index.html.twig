@@ -33,10 +33,12 @@
                                     (notificacion.tipo == 'tarea_eliminada' ? '🗑️' :
                                     (notificacion.tipo == 'examen_semanal' ? '📋' : 
                                     (notificacion.tipo == 'respuesta_articulo' ? '💬' : 
-                                    (notificacion.tipo == 'respuesta_pregunta' ? '💬' : '📋')))))))) %}
-                    {% set color = 'planificacion' in notificacion.tipo ? '#2196F3' : 
+                                    (notificacion.tipo == 'respuesta_pregunta' ? '💬' : 
+                                    (notificacion.tipo == 'general' ? '📢' : '📋'))))))))) %}
+                    {% set color = notificacion.tipo == 'general' ? '#FF5722' :
+                                    ('planificacion' in notificacion.tipo ? '#2196F3' : 
                                     (notificacion.tipo == 'examen_semanal' ? '#9C27B0' : 
-                                    (notificacion.tipo == 'respuesta_articulo' or notificacion.tipo == 'respuesta_pregunta' ? '#9C27B0' : '#4CAF50')) %}
+                                    (notificacion.tipo == 'respuesta_articulo' or notificacion.tipo == 'respuesta_pregunta' ? '#9C27B0' : '#4CAF50'))) %}
                     
                     <div style="padding: 1rem; border: 1px solid #ddd; border-left: 4px solid {{ color }}; border-radius: 4px; background-color: {% if notificacion.leida %}#f8f9fa{% else %}#fff{% endif %};">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">

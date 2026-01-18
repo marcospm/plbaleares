@@ -446,6 +446,9 @@
                                     } else if (notif.tipo === 'examen_semanal') {
                                         icono = '📋';
                                         color = '#9C27B0';
+                                    } else if (notif.tipo === 'general') {
+                                        icono = '📢';
+                                        color = '#FF5722';
                                     } else {
                                         icono = '📋';
                                         color = '#4CAF50';
@@ -669,6 +672,7 @@
                                                 </a>
                                                 <ul class="submenu">
                                                     <li><a href="{{ path('app_contacto_mensajes') }}" class="dropdown-item">Mensajes de Contacto</a></li>
+                                                    <li><a href="{{ path('app_notificacion_general_enviar') }}" class="dropdown-item">Enviar Notificación General</a></li>
                                                 </ul>
                                             </li>
                                             <li><hr class="dropdown-divider"></li>
