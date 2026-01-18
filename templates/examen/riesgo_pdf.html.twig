@@ -1,0 +1,285 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Exámenes de Riesgo{% endblock %}
+
+{% block body %}
+<style>
+    .riesgo-pdf-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: none;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+        color: #856404;
+        padding: 1.5rem;
+        border: none;
+    }
+    
+    .card-header h1 {
+        margin: 0;
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+    
+    .card-body {
+        padding: 2rem;
+    }
+    
+    .form-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border-left: 4px solid #007bff;
+    }
+    
+    .form-section h3 {
+        color: #007bff;
+        font-size: 1.3rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.75rem;
+        display: block;
+        font-size: 1rem;
+    }
+    
+    .form-select {
+        border: 2px solid #dee2e6;
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background-color: #fff;
+        width: 100%;
+    }
+    
+    .form-select:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        outline: none;
+    }
+    
+    .form-check {
+        padding: 0.75rem 1rem;
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 6px;
+        margin-bottom: 0.75rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .form-check:hover {
+        background: #f8f9fa;
+        border-color: #007bff;
+    }
+    
+    .form-check-input {
+        width: 20px;
+        height: 20px;
+        margin-top: 0.25rem;
+        cursor: pointer;
+        accent-color: #007bff;
+    }
+    
+    .form-check-label {
+        margin-left: 0.75rem;
+        cursor: pointer;
+        font-size: 1rem;
+        color: #333;
+    }
+    
+    .btn {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+        font-weight: 500;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+    }
+    
+    .btn-success {
+        background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background: linear-gradient(135deg, #1e7e34 0%, #155724 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+    }
+    
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+    }
+    
+    .divider {
+        margin: 2.5rem 0;
+        border: none;
+        border-top: 2px solid #dee2e6;
+        position: relative;
+    }
+    
+    .divider::before {
+        content: "━━━━━━━━━━";
+        position: absolute;
+        left: 50%;
+        top: -10px;
+        transform: translateX(-50%);
+        background: white;
+        padding: 0 1rem;
+        color: #dee2e6;
+        font-size: 0.8rem;
+    }
+    
+    .info-text {
+        color: #6c757d;
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+    
+    @media (max-width: 768px) {
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .form-section {
+            padding: 1rem;
+        }
+        
+        .card-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .form-section h3 {
+            font-size: 1.1rem;
+        }
+        
+        .btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+    }
+</style>
+
+<div class="riesgo-pdf-container">
+    <div class="card">
+        <div class="card-header">
+            <h1>⚠️ Exámenes de Riesgo</h1>
+        </div>
+        <div class="card-body">
+            <p class="info-text">
+                Genera PDFs con todas las preguntas que has marcado como "riesgo" durante tus exámenes. 
+                Puedes filtrar por tipo de pregunta (acertadas, no acertadas o todas) y generar tanto 
+                el examen sin respuestas como la plantilla con las soluciones.
+            </p>
+            
+            <div class="form-section">
+                <h3>📄 Generar PDF de Preguntas de Riesgo</h3>
+                <p class="info-text">Selecciona las opciones para generar el PDF con tus preguntas de riesgo:</p>
+                
+                <form method="get" action="{{ path('app_examen_riesgo_pdf_generar') }}" id="formPdfPreguntas" target="_blank">
+                    <div class="form-group">
+                        <label for="tipoFiltro" class="form-label">Tipo de Preguntas</label>
+                        <select name="filtro" id="tipoFiltro" class="form-select">
+                            <option value="todas">Todas las preguntas</option>
+                            <option value="acertadas">Solo preguntas acertadas</option>
+                            <option value="no_acertadas">Solo preguntas no acertadas</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Tipo de Examen</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="municipal" id="tipoGeneral" value="false" checked>
+                            <label class="form-check-label" for="tipoGeneral">
+                                📚 General ({{ preguntasRiesgoGenerales }} preguntas)
+                            </label>
+                        </div>
+                        {% if preguntasRiesgoMunicipales > 0 %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="municipal" id="tipoMunicipal" value="true">
+                            <label class="form-check-label" for="tipoMunicipal">
+                                🏛️ Municipal ({{ preguntasRiesgoMunicipales }} preguntas)
+                            </label>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex gap-2 mt-4" style="flex-wrap: wrap;">
+                        <button type="submit" class="btn btn-primary">📄 Generar PDF de Preguntas</button>
+                        <button type="button" id="btnGenerarRespuestas" class="btn btn-success">✅ Generar PDF de Respuestas</button>
+                        <a href="{{ path('app_examen_iniciar') }}" class="btn btn-secondary">↩️ Volver</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnGenerarRespuestas = document.getElementById('btnGenerarRespuestas');
+    const formPdfPreguntas = document.getElementById('formPdfPreguntas');
+    
+    if (btnGenerarRespuestas && formPdfPreguntas) {
+        btnGenerarRespuestas.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Obtener los valores del formulario
+            const formData = new FormData(formPdfPreguntas);
+            const filtro = formData.get('filtro') || 'todas';
+            const municipal = formData.get('municipal') || 'false';
+            
+            // Construir la URL de respuestas
+            const urlBase = '{{ path('app_examen_riesgo_pdf_respuestas') }}';
+            const url = urlBase + '?filtro=' + encodeURIComponent(filtro) + '&municipal=' + encodeURIComponent(municipal);
+            
+            // Abrir en nueva pestaña
+            window.open(url, '_blank');
+        });
+    }
+});
+</script>
+{% endblock %}

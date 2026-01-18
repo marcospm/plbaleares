@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Plantilla de Respuestas - Preguntas de Riesgo</title>
+    <style>
+        body {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            font-size: 18pt;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #28a745;
+            padding-bottom: 5px;
+        }
+        .pregunta {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+            border: 1px solid #28a745;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f0f9f4;
+        }
+        .pregunta-numero {
+            font-weight: bold;
+            font-size: 12pt;
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+        .pregunta-texto {
+            font-size: 11pt;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: white;
+            border-left: 4px solid #28a745;
+            border-radius: 3px;
+        }
+        .opciones {
+            margin-left: 15px;
+        }
+        .opcion {
+            margin-bottom: 8px;
+            padding: 5px;
+            background-color: white;
+            border-radius: 3px;
+        }
+        .opcion-correcta {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            font-weight: bold;
+        }
+        .opcion-label {
+            font-weight: bold;
+            color: #0071B5;
+        }
+        .respuesta-correcta {
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #28a745;
+            color: white;
+            border-radius: 3px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .tema-info {
+            font-size: 9pt;
+            color: #666;
+            margin-top: 10px;
+            font-style: italic;
+        }
+        .header-info {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #e8f4f8;
+            border-radius: 5px;
+            font-size: 10pt;
+        }
+        @page {
+            margin: 2cm;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-info">
+        <strong>Plantilla de Respuestas - Preguntas de Riesgo</strong><br>
+        Usuario: {{ usuario.nombreDisplay }}<br>
+        Filtro: {{ tipoFiltro == 'acertadas' ? 'Solo preguntas acertadas' : (tipoFiltro == 'no_acertadas' ? 'Solo preguntas no acertadas' : 'Todas las preguntas') }}<br>
+        Tipo: {{ esMunicipal ? 'Municipal' : 'General' }}<br>
+        Total de preguntas: {{ preguntas|length }}<br>
+        Fecha: {{ "now"|date('d/m/Y H:i') }}
+    </div>
+
+    <h1>Plantilla de Respuestas</h1>
+
+    {% for pregunta in preguntas %}
+        {% set respuestaCorrecta = pregunta.respuestaCorrecta ? (pregunta.respuestaCorrecta|trim|upper) : '' %}
+        <div class="pregunta">
+            <div class="pregunta-numero">Pregunta {{ loop.index }}</div>
+            <div class="pregunta-texto">{{ pregunta.texto|nl2br|raw }}</div>
+            <div class="opciones">
+                <div class="opcion {% if respuestaCorrecta == 'A' %}opcion-correcta{% endif %}">
+                    <span class="opcion-label">A)</span> {{ pregunta.opcionA|nl2br|raw }}
+                </div>
+                <div class="opcion {% if respuestaCorrecta == 'B' %}opcion-correcta{% endif %}">
+                    <span class="opcion-label">B)</span> {{ pregunta.opcionB|nl2br|raw }}
+                </div>
+                <div class="opcion {% if respuestaCorrecta == 'C' %}opcion-correcta{% endif %}">
+                    <span class="opcion-label">C)</span> {{ pregunta.opcionC|nl2br|raw }}
+                </div>
+                <div class="opcion {% if respuestaCorrecta == 'D' %}opcion-correcta{% endif %}">
+                    <span class="opcion-label">D)</span> {{ pregunta.opcionD|nl2br|raw }}
+                </div>
+            </div>
+            <div class="respuesta-correcta">
+                Respuesta Correcta: {{ respuestaCorrecta ?: 'No definida' }}
+            </div>
+            <div class="tema-info">
+                {% if esMunicipal %}
+                    Tema: {{ pregunta.temaMunicipal.nombre }}
+                {% else %}
+                    Tema: {{ pregunta.tema.nombre }}
+                {% endif %}
+                | Dificultad: {{ pregunta.dificultad|capitalize }}
+            </div>
+        </div>
+    {% endfor %}
+</body>
+</html>

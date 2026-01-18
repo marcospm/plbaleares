@@ -15,6 +15,7 @@ use App\Repository\MunicipioRepository;
 use App\Repository\UserRepository;
 use App\Repository\ConvocatoriaRepository;
 use App\Repository\ConfiguracionExamenRepository;
+use App\Repository\PreguntaRiesgoRepository;
 use App\Entity\ExamenBorrador;
 use App\Service\NotificacionService;
 use App\Service\ConfiguracionExamenService;
@@ -44,7 +45,8 @@ class ExamenController extends AbstractController
         private ConfiguracionExamenService $configuracionExamenService,
         private EntityManagerInterface $entityManager,
         private NotificacionService $notificacionService,
-        private PreguntaRiesgoService $preguntaRiesgoService
+        private PreguntaRiesgoService $preguntaRiesgoService,
+        private PreguntaRiesgoRepository $preguntaRiesgoRepository
     ) {
     }
 
@@ -2809,6 +2811,208 @@ class ExamenController extends AbstractController
         }
         
         return $this->redirectToRoute('app_examen_historial');
+    }
+
+    /**
+     * Muestra formulario para generar PDF de preguntas de riesgo
+     */
+    #[Route('/riesgo/pdf', name: 'app_examen_riesgo_pdf', methods: ['GET'])]
+    public function riesgoPDF(): Response
+    {
+        $user = $this->getUser();
+        
+        // Obtener preguntas de riesgo del usuario (generales y municipales)
+        $preguntasRiesgoGenerales = $this->preguntaRiesgoService->obtenerPreguntasMarcadasComoRiesgo($user, false);
+        $preguntasRiesgoMunicipales = $this->preguntaRiesgoService->obtenerPreguntasMarcadasComoRiesgo($user, true);
+        
+        return $this->render('examen/riesgo_pdf.html.twig', [
+            'preguntasRiesgoGenerales' => count($preguntasRiesgoGenerales),
+            'preguntasRiesgoMunicipales' => count($preguntasRiesgoMunicipales),
+        ]);
+    }
+
+    /**
+     * Genera PDF de preguntas de riesgo
+     */
+    #[Route('/riesgo/pdf/generar', name: 'app_examen_riesgo_pdf_generar', methods: ['GET'])]
+    public function generarPDFRiesgo(Request $request): Response
+    {
+        $user = $this->getUser();
+        $tipoFiltro = $request->query->get('filtro', 'todas'); // 'acertadas', 'no_acertadas', 'todas'
+        $esMunicipal = $request->query->getBoolean('municipal', false);
+        
+        // Obtener preguntas de riesgo del usuario
+        $preguntasRiesgoIds = $this->preguntaRiesgoService->obtenerPreguntasMarcadasComoRiesgo($user, $esMunicipal);
+        
+        if (empty($preguntasRiesgoIds)) {
+            $this->addFlash('error', 'No tienes preguntas marcadas como riesgo.');
+            return $this->redirectToRoute('app_examen_riesgo_pdf');
+        }
+        
+        // Obtener las preguntas completas
+        if ($esMunicipal) {
+            $preguntas = $this->preguntaMunicipalRepository->findByIds($preguntasRiesgoIds);
+        } else {
+            $preguntas = $this->preguntaRepository->findByIds($preguntasRiesgoIds);
+        }
+        
+        // Filtrar según tipo de filtro (acertadas/no acertadas)
+        if ($tipoFiltro !== 'todas') {
+            $qb = $this->preguntaRiesgoRepository->createQueryBuilder('pr')
+                ->where('pr.usuario = :usuario')
+                ->setParameter('usuario', $user);
+            
+            if ($esMunicipal) {
+                $qb->andWhere('pr.preguntaMunicipal IN (:preguntasIds)')
+                   ->andWhere('pr.pregunta IS NULL')
+                   ->setParameter('preguntasIds', $preguntasRiesgoIds);
+            } else {
+                $qb->andWhere('pr.pregunta IN (:preguntasIds)')
+                   ->andWhere('pr.preguntaMunicipal IS NULL')
+                   ->setParameter('preguntasIds', $preguntasRiesgoIds);
+            }
+            
+            $acertada = $tipoFiltro === 'acertadas';
+            $qb->andWhere('pr.acertada = :acertada')
+               ->setParameter('acertada', $acertada);
+            
+            $preguntasRiesgo = $qb->getQuery()->getResult();
+            
+            $preguntasFiltradas = [];
+            foreach ($preguntasRiesgo as $pr) {
+                $pregunta = $esMunicipal ? $pr->getPreguntaMunicipal() : $pr->getPregunta();
+                if ($pregunta) {
+                    $preguntasFiltradas[] = $pregunta->getId();
+                }
+            }
+            
+            if (empty($preguntasFiltradas)) {
+                $this->addFlash('error', 'No hay preguntas que coincidan con el filtro seleccionado.');
+                return $this->redirectToRoute('app_examen_riesgo_pdf');
+            }
+            
+            $preguntas = $esMunicipal 
+                ? $this->preguntaMunicipalRepository->findByIds($preguntasFiltradas)
+                : $this->preguntaRepository->findByIds($preguntasFiltradas);
+        }
+        
+        // Generar HTML con las preguntas
+        $html = $this->renderView('examen/pdf_riesgo_preguntas.html.twig', [
+            'preguntas' => $preguntas,
+            'esMunicipal' => $esMunicipal,
+            'tipoFiltro' => $tipoFiltro,
+            'usuario' => $user,
+        ]);
+        
+        // Generar PDF usando dompdf
+        $options = new \Dompdf\Options();
+        $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('defaultFont', 'DejaVu Sans');
+        
+        $dompdf = new \Dompdf\Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+        
+        $filename = 'preguntas-riesgo-' . ($tipoFiltro === 'acertadas' ? 'acertadas' : ($tipoFiltro === 'no_acertadas' ? 'no-acertadas' : 'todas')) . '-' . date('Y-m-d') . '.pdf';
+        
+        return new Response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
+    }
+
+    /**
+     * Genera PDF de plantilla de respuestas para preguntas de riesgo
+     */
+    #[Route('/riesgo/pdf/respuestas', name: 'app_examen_riesgo_pdf_respuestas', methods: ['GET'])]
+    public function generarPDFRespuestasRiesgo(Request $request): Response
+    {
+        $user = $this->getUser();
+        $tipoFiltro = $request->query->get('filtro', 'todas'); // 'acertadas', 'no_acertadas', 'todas'
+        $esMunicipal = $request->query->getBoolean('municipal', false);
+        
+        // Obtener preguntas de riesgo del usuario
+        $preguntasRiesgoIds = $this->preguntaRiesgoService->obtenerPreguntasMarcadasComoRiesgo($user, $esMunicipal);
+        
+        if (empty($preguntasRiesgoIds)) {
+            $this->addFlash('error', 'No tienes preguntas marcadas como riesgo.');
+            return $this->redirectToRoute('app_examen_riesgo_pdf');
+        }
+        
+        // Obtener las preguntas completas
+        if ($esMunicipal) {
+            $preguntas = $this->preguntaMunicipalRepository->findByIds($preguntasRiesgoIds);
+        } else {
+            $preguntas = $this->preguntaRepository->findByIds($preguntasRiesgoIds);
+        }
+        
+        // Filtrar según tipo de filtro (acertadas/no acertadas)
+        if ($tipoFiltro !== 'todas') {
+            $qb = $this->preguntaRiesgoRepository->createQueryBuilder('pr')
+                ->where('pr.usuario = :usuario')
+                ->setParameter('usuario', $user);
+            
+            if ($esMunicipal) {
+                $qb->andWhere('pr.preguntaMunicipal IN (:preguntasIds)')
+                   ->andWhere('pr.pregunta IS NULL')
+                   ->setParameter('preguntasIds', $preguntasRiesgoIds);
+            } else {
+                $qb->andWhere('pr.pregunta IN (:preguntasIds)')
+                   ->andWhere('pr.preguntaMunicipal IS NULL')
+                   ->setParameter('preguntasIds', $preguntasRiesgoIds);
+            }
+            
+            $acertada = $tipoFiltro === 'acertadas';
+            $qb->andWhere('pr.acertada = :acertada')
+               ->setParameter('acertada', $acertada);
+            
+            $preguntasRiesgo = $qb->getQuery()->getResult();
+            
+            $preguntasFiltradas = [];
+            foreach ($preguntasRiesgo as $pr) {
+                $pregunta = $esMunicipal ? $pr->getPreguntaMunicipal() : $pr->getPregunta();
+                if ($pregunta) {
+                    $preguntasFiltradas[] = $pregunta->getId();
+                }
+            }
+            
+            if (empty($preguntasFiltradas)) {
+                $this->addFlash('error', 'No hay preguntas que coincidan con el filtro seleccionado.');
+                return $this->redirectToRoute('app_examen_riesgo_pdf');
+            }
+            
+            $preguntas = $esMunicipal 
+                ? $this->preguntaMunicipalRepository->findByIds($preguntasFiltradas)
+                : $this->preguntaRepository->findByIds($preguntasFiltradas);
+        }
+        
+        // Generar HTML con las respuestas
+        $html = $this->renderView('examen/pdf_riesgo_respuestas.html.twig', [
+            'preguntas' => $preguntas,
+            'esMunicipal' => $esMunicipal,
+            'tipoFiltro' => $tipoFiltro,
+            'usuario' => $user,
+        ]);
+        
+        // Generar PDF usando dompdf
+        $options = new \Dompdf\Options();
+        $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('defaultFont', 'DejaVu Sans');
+        
+        $dompdf = new \Dompdf\Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+        
+        $filename = 'respuestas-riesgo-' . ($tipoFiltro === 'acertadas' ? 'acertadas' : ($tipoFiltro === 'no_acertadas' ? 'no-acertadas' : 'todas')) . '-' . date('Y-m-d') . '.pdf';
+        
+        return new Response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
     }
 }
 
