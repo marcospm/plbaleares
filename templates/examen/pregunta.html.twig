@@ -6,7 +6,7 @@
 <div class="card">
     <div class="card-header">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-            <h2 style="margin: 0;">Pregunta {{ numero }} de {{ total }}</h2>
+            <h2 style="margin: 0; color: white;">Pregunta {{ numero }} de {{ total }}</h2>
             <div id="examen-timer-container" style="display: flex; align-items: center; gap: 0.75rem;">
                 <div id="examen-timer" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; font-weight: bold; font-size: 1.1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
                     <span style="font-size: 1.3rem;">⏱️</span>
@@ -106,7 +106,7 @@
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <span style="font-size: 1.2rem;">🏛️</span>
                     <strong style="color: #1565C0;">Tipo de Examen:</strong> 
-                    <span class="badge" style="background-color: #2196F3; padding: 0.5rem 1rem; font-size: 0.95rem; font-weight: bold;">EXAMEN MUNICIPAL</span>
+                    <span class="badge" style="background-color: #2196F3; color: white; padding: 0.5rem 1rem; font-size: 0.95rem; font-weight: bold;">EXAMEN MUNICIPAL</span>
                 </div>
             </div>
         {% else %}
@@ -115,7 +115,7 @@
                     <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                         <span style="font-size: 1rem;">📚</span>
                         <strong style="color: #2E7D32; font-size: 0.9rem;">Tipo de Examen:</strong> 
-                        <span class="badge" style="background-color: #4CAF50; padding: 0.25rem 0.75rem; font-size: 0.85rem; font-weight: bold;">TEMARIO GENERAL</span>
+                        <span class="badge" style="background-color: #4CAF50; color: white; padding: 0.25rem 0.75rem; font-size: 0.85rem; font-weight: bold;">TEMARIO GENERAL</span>
                     </div>
                     {% if porcentajesPorTema|length > 0 %}
                         <button type="button" class="btn btn-sm btn-info" id="btnVerPorcentajes" style="font-size: 0.85rem; padding: 0.4rem 1rem;" onclick="event.stopPropagation(); return false;">
@@ -413,13 +413,13 @@
             <div class="d-flex gap-2 align-items-center mb-3">
                 <button type="button" class="btn btn-info position-relative btn-sm" id="btnVerMensajes" data-pregunta-id="{{ pregunta.id }}">
                     <span>💬 Ver Mensajes</span>
-                    <span class="badge bg-danger position-absolute top-0 start-100 translate-middle" id="contadorMensajes" style="display: none; font-size: 0.65rem; padding: 0.2rem 0.4rem;">0</span>
+                    <span class="badge bg-danger position-absolute top-0 start-100 translate-middle" id="contadorMensajes" style="display: none; font-size: 0.65rem; padding: 0.2rem 0.4rem; color: white;">0</span>
                 </button>
             </div>
             
             <div class="card" style="border-left: 4px solid #FF9800; max-width: 500px;">
                 <div class="card-header" style="background-color: #fff3cd; padding: 0.75rem;">
-                    <h5 style="margin: 0; color:rgb(246, 246, 246); font-size: 0.9rem;">⚠️ Reportar Error en esta Pregunta</h5>
+                    <h5 style="margin: 0; color: #856404; font-size: 0.9rem;">⚠️ Reportar Error en esta Pregunta</h5>
                 </div>
                 <div class="card-body" style="padding: 1rem;">
                     <form method="post" id="formReportePregunta" data-pregunta-id="{{ pregunta.id }}">

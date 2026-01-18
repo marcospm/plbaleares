@@ -87,6 +87,17 @@
             display: inline-block;
             min-width: 30px;
         }
+
+        .contador-progreso {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
     </style>
 {% endblock %}
 
@@ -100,6 +111,10 @@
     <div id="juego-container" class="juego-container">
         <div class="card" style="margin-bottom: 1.5rem;">
             <div class="card-body" style="padding: 2rem;">
+                <div id="contador-progreso" class="contador-progreso" style="display: none;">
+                    Artículo <span id="numero-actual">1</span> de <span id="total-articulos">20</span>
+                </div>
+
                 <div id="info-articulo" style="margin-bottom: 2rem;">
                     <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
                         <h3 style="margin: 0 0 0.5rem 0; color: var(--color-primary);">Ley:</h3>
@@ -290,6 +305,7 @@
                 
                 articulos = data;
                 indiceActual = 0;
+                document.getElementById('total-articulos').textContent = articulos.length;
                 mostrarSiguienteArticulo();
             })
             .catch(error => {
@@ -310,6 +326,12 @@
         }
         
         articuloActual = articulos[indiceActual];
+        
+        // Actualizar contador (usar módulo para cuando vuelve al inicio)
+        const numeroMostrar = (indiceActual % articulos.length) + 1;
+        document.getElementById('numero-actual').textContent = numeroMostrar;
+        document.getElementById('contador-progreso').style.display = 'block';
+        
         indiceActual++;
         
         // Mostrar la ley
