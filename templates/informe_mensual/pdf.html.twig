@@ -11,87 +11,101 @@
         }
         
         body {
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
             font-size: 9pt;
-            color: #333;
-            line-height: 1.3;
+            color: #2c3e50;
+            line-height: 1.4;
+            background: #f8f9fa;
         }
         
         .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             text-align: center;
-            margin-bottom: 12px;
-            padding-bottom: 10px;
-            border-bottom: 3px solid #667eea;
+            padding: 20px;
+            margin: -1cm -1cm 15px -1cm;
+            border-radius: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
         .header h1 {
-            font-size: 18pt;
-            color: #667eea;
-            margin-bottom: 4px;
-            font-weight: bold;
+            font-size: 20pt;
+            margin-bottom: 6px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
         }
         
         .header .subtitle {
-            font-size: 12pt;
-            color: #666;
-            font-weight: 600;
+            font-size: 13pt;
+            font-weight: 500;
+            opacity: 0.95;
+            margin-bottom: 4px;
         }
         
         .header .period {
             font-size: 10pt;
-            color: #999;
-            margin-top: 3px;
+            opacity: 0.85;
+            margin-top: 4px;
         }
         
         .info-box {
-            background: #f5f7fa;
-            border: 1px solid #dee2e6;
+            background: linear-gradient(135deg, #e8f4f8 0%, #f0f8ff 100%);
+            border: 1px solid #b8daff;
             border-left: 4px solid #667eea;
-            border-radius: 4px;
-            padding: 8px;
-            margin-bottom: 12px;
-            font-size: 8pt;
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 18px;
+            font-size: 8.5pt;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-bottom: 12px;
+            gap: 10px;
+            margin-bottom: 15px;
         }
         
         .stat-card {
             background: white;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px;
             text-align: center;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
         .stat-card.primary {
             border-color: #667eea;
-            background: #f8f9ff;
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
         }
         
         .stat-card.success {
             border-color: #28a745;
-            background: #f0fff4;
+            background: linear-gradient(135deg, #f0fff4 0%, #e8f8f0 100%);
         }
         
         .stat-card.warning {
             border-color: #ffc107;
-            background: #fffef0;
+            background: linear-gradient(135deg, #fffef0 0%, #fff9e6 100%);
         }
         
         .stat-card.danger {
             border-color: #dc3545;
-            background: #fff5f5;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffeef0 100%);
+        }
+        
+        .stat-card.info {
+            border-color: #17a2b8;
+            background: linear-gradient(135deg, #e8f7fa 0%, #f0fcfd 100%);
         }
         
         .stat-value {
-            font-size: 20pt;
-            font-weight: bold;
-            margin-bottom: 3px;
+            font-size: 22pt;
+            font-weight: 700;
+            margin-bottom: 4px;
+            line-height: 1;
         }
         
         .stat-card.primary .stat-value {
@@ -110,59 +124,89 @@
             color: #dc3545;
         }
         
+        .stat-card.info .stat-value {
+            color: #17a2b8;
+        }
+        
         .stat-label {
-            font-size: 8pt;
-            color: #666;
+            font-size: 8.5pt;
+            color: #495057;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
         
         .stat-sub {
-            font-size: 7pt;
-            color: #999;
-            margin-top: 3px;
+            font-size: 7.5pt;
+            color: #6c757d;
+            margin-top: 4px;
+            font-weight: 500;
         }
         
         .section {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             page-break-inside: avoid;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
         }
         
         .section h2 {
             color: #667eea;
-            font-size: 12pt;
-            margin-bottom: 8px;
-            border-bottom: 2px solid #667eea;
+            font-size: 13pt;
+            margin-bottom: 12px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 6px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .section h2::before {
+            content: '▸';
+            font-size: 14pt;
+        }
+        
+        .section h3 {
+            color: #495057;
+            font-size: 10.5pt;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
             padding-bottom: 4px;
-            font-weight: bold;
+            font-weight: 600;
         }
         
         .compact-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 10px;
+            gap: 12px;
+            margin-bottom: 12px;
         }
         
         .compact-box {
             background: #f8f9fa;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            padding: 10px;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
         
         .compact-box h3 {
-            font-size: 9pt;
+            font-size: 10pt;
             color: #667eea;
-            margin-bottom: 6px;
-            border-bottom: 1px solid #e0e0e0;
-            padding-bottom: 3px;
+            margin-bottom: 8px;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 4px;
+            font-weight: 600;
         }
         
         .compact-item {
             display: flex;
             justify-content: space-between;
-            padding: 4px 0;
-            font-size: 8pt;
+            padding: 5px 0;
+            font-size: 8.5pt;
             border-bottom: 1px solid #f0f0f0;
         }
         
@@ -171,124 +215,205 @@
         }
         
         .compact-label {
-            color: #666;
+            color: #6c757d;
+            font-weight: 500;
         }
         
         .compact-value {
-            font-weight: bold;
-            color: #333;
+            font-weight: 700;
+            color: #2c3e50;
         }
         
         .progress-bar-container {
-            background: #f0f0f0;
-            border-radius: 4px;
-            height: 18px;
-            margin: 6px 0;
+            background: #e9ecef;
+            border-radius: 6px;
+            height: 20px;
+            margin: 8px 0;
             overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
         }
         
         .progress-bar {
             height: 100%;
-            background: #667eea;
-            border-radius: 4px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-weight: bold;
-            font-size: 7pt;
+            font-weight: 700;
+            font-size: 7.5pt;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
         
         .progress-bar.excellent {
-            background: #28a745;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
         }
         
         .progress-bar.good {
-            background: #17a2b8;
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
         }
         
         .progress-bar.regular {
-            background: #ffc107;
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
         }
         
         .progress-bar.poor {
-            background: #dc3545;
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
         }
         
         .examen-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 10px;
-            font-size: 8pt;
+            font-size: 8.5pt;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         
         .examen-table thead th {
-            background: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 6px 5px;
+            padding: 8px 6px;
             text-align: left;
-            font-weight: bold;
-            border: 1px solid #5568d3;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 8pt;
+            letter-spacing: 0.5px;
         }
         
         .examen-table tbody td {
-            border: 1px solid #dee2e6;
-            padding: 5px;
+            border: 1px solid #e9ecef;
+            padding: 7px 6px;
+            background: white;
         }
         
         .examen-table tbody tr:nth-child(even) {
             background: #f8f9fa;
         }
         
+        .examen-table tbody tr:hover {
+            background: #e9ecef;
+        }
+        
         .nota-excelente {
             color: #28a745;
-            font-weight: bold;
+            font-weight: 700;
         }
         
         .nota-buena {
             color: #17a2b8;
-            font-weight: bold;
+            font-weight: 700;
         }
         
         .nota-regular {
-            color: #ffc107;
-            font-weight: bold;
+            color: #ff9800;
+            font-weight: 700;
         }
         
         .nota-baja {
             color: #dc3545;
-            font-weight: bold;
+            font-weight: 700;
         }
         
         .summary-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 10px;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         
         .summary-table td {
-            padding: 6px;
-            border: 1px solid #e0e0e0;
-            font-size: 8pt;
+            padding: 8px 10px;
+            border: 1px solid #e9ecef;
+            font-size: 8.5pt;
+            background: white;
         }
         
         .summary-table td:first-child {
             background: #f8f9fa;
             font-weight: 600;
-            width: 50%;
+            width: 60%;
+            color: #495057;
+        }
+        
+        .summary-table tr:nth-child(even) td:first-child {
+            background: #e9ecef;
+        }
+        
+        .difficulty-section {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .difficulty-section h3 {
+            color: #667eea;
+            font-size: 11pt;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+            font-weight: 700;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 7.5pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .badge-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .badge-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .badge-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .badge-info {
+            background: #17a2b8;
+            color: white;
         }
         
         .footer {
-            margin-top: 20px;
-            padding-top: 8px;
-            border-top: 1px solid #dee2e6;
+            margin-top: 30px;
+            padding-top: 12px;
+            border-top: 2px solid #e9ecef;
             text-align: center;
-            font-size: 7pt;
-            color: #666;
+            font-size: 7.5pt;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .highlight-box {
+            background: linear-gradient(135deg, #fff9e6 0%, #fffef0 100%);
+            border-left: 4px solid #ffc107;
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 15px;
+            font-size: 8.5pt;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
         @page {
             margin: 1cm;
+            background: #f8f9fa;
         }
     </style>
 </head>
@@ -300,7 +425,7 @@
     </div>
     
     <div class="info-box">
-        <strong>Periodo:</strong> {{ primerDiaMes|date('d/m/Y') }} - {{ ultimoDiaMes|date('d/m/Y') }}
+        <strong>Período:</strong> {{ primerDiaMes|date('d/m/Y') }} - {{ ultimoDiaMes|date('d/m/Y') }}
         {% set hoy = 'now'|date('Y-m-d') %}
         {% set ultimoDiaStr = ultimoDiaMes|date('Y-m-d') %}
         {% if hoy < ultimoDiaStr %}
@@ -308,86 +433,267 @@
         {% endif %}
     </div>
     
-    {# Estadísticas principales #}
-    <div class="section">
-        <h2>Estadisticas Principales</h2>
-        <div class="stats-grid">
-            <div class="stat-card primary">
-                <div class="stat-value">{{ totalExamenes }}</div>
-                <div class="stat-label">Examenes</div>
-                {% if totalExamenes > 0 %}
-                    <div class="stat-sub">Media: {{ notaMedia|number_format(2, ',', '.') }}</div>
-                {% endif %}
-            </div>
-            <div class="stat-card success">
-                <div class="stat-value">{{ totalAciertos }}</div>
-                <div class="stat-label">Aciertos</div>
-                {% set totalRespuestas = totalAciertos + totalErrores + totalEnBlanco %}
-                {% if totalRespuestas > 0 %}
-                    {% set porcentajeAciertos = (totalAciertos / totalRespuestas * 100)|round(1) %}
-                    <div class="stat-sub">{{ porcentajeAciertos }}%</div>
-                {% endif %}
-            </div>
-            <div class="stat-card warning">
-                <div class="stat-value">{{ totalErrores }}</div>
-                <div class="stat-label">Errores</div>
-                {% set totalRespuestas = totalAciertos + totalErrores + totalEnBlanco %}
-                {% if totalRespuestas > 0 %}
-                    {% set porcentajeErrores = (totalErrores / totalRespuestas * 100)|round(1) %}
-                    <div class="stat-sub">{{ porcentajeErrores }}%</div>
-                {% endif %}
-            </div>
-            <div class="stat-card primary">
-                <div class="stat-value">{{ notaMedia|number_format(2, ',', '.') }}</div>
-                <div class="stat-label">Nota Media</div>
-            </div>
-            <div class="stat-card success">
-                <div class="stat-value">{{ mejorNota|number_format(2, ',', '.') }}</div>
-                <div class="stat-label">Mejor Nota</div>
-            </div>
-            <div class="stat-card danger">
-                <div class="stat-value">{{ peorNota|number_format(2, ',', '.') }}</div>
-                <div class="stat-label">Peor Nota</div>
-            </div>
-        </div>
-    </div>
-    
-    {# Análisis y resumen combinados #}
+    {# Resumen Ejecutivo - Estadísticas Generales #}
     {% if totalExamenes > 0 %}
         <div class="section">
-            <h2>Analisis de Rendimiento</h2>
+            <h2>Resumen del mes</h2>
+            <div class="stats-grid">
+                <div class="stat-card primary">
+                    <div class="stat-value">{{ totalExamenes }}</div>
+                    <div class="stat-label">Total Exámenes</div>
+                    <div class="stat-sub">Media: {{ notaMedia|number_format(2, ',', '.') }}</div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-value">{{ mejorNota|number_format(2, ',', '.') }}</div>
+                    <div class="stat-label">Mejor Nota</div>
+                </div>
+                <div class="stat-card danger">
+                    <div class="stat-value">{{ peorNota|number_format(2, ',', '.') }}</div>
+                    <div class="stat-label">Peor Nota</div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-value">{{ totalAciertos }}</div>
+                    <div class="stat-label">Aciertos</div>
+                    {% set totalRespuestas = totalAciertos + totalErrores + totalEnBlanco %}
+                    {% if totalRespuestas > 0 %}
+                        {% set porcentajeAciertos = (totalAciertos / totalRespuestas * 100)|round(1) %}
+                        <div class="stat-sub">{{ porcentajeAciertos }}%</div>
+                    {% endif %}
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-value">{{ totalErrores }}</div>
+                    <div class="stat-label">Errores</div>
+                    {% set totalRespuestas = totalAciertos + totalErrores + totalEnBlanco %}
+                    {% if totalRespuestas > 0 %}
+                        {% set porcentajeErrores = (totalErrores / totalRespuestas * 100)|round(1) %}
+                        <div class="stat-sub">{{ porcentajeErrores }}%</div>
+                    {% endif %}
+                </div>
+                <div class="stat-card info">
+                    <div class="stat-value">{{ totalEnBlanco }}</div>
+                    <div class="stat-label">En Blanco</div>
+                    {% set totalRespuestas = totalAciertos + totalErrores + totalEnBlanco %}
+                    {% if totalRespuestas > 0 %}
+                        {% set porcentajeBlanco = (totalEnBlanco / totalRespuestas * 100)|round(1) %}
+                        <div class="stat-sub">{{ porcentajeBlanco }}%</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    
+    {# Estadísticas por Dificultad #}
+    {% if estadisticasPorDificultad is defined and (estadisticasPorDificultad.facil.total > 0 or estadisticasPorDificultad.moderada.total > 0 or estadisticasPorDificultad.dificil.total > 0) %}
+        <div class="section">
+            <h2>Rendimiento por Nivel de Dificultad</h2>
+            
+            {% for dificultad, stats in estadisticasPorDificultad %}
+                {% if stats.total > 0 %}
+                    {% set nombreDificultad = dificultad == 'facil' ? 'Fácil' : (dificultad == 'moderada' ? 'Moderada' : 'Difícil') %}
+                    {% set badgeClass = dificultad == 'facil' ? 'badge-success' : (dificultad == 'moderada' ? 'badge-warning' : 'badge-danger') %}
+                    
+                    <div class="difficulty-section">
+                        <h3>
+                            <span class="{{ badgeClass }}">{{ nombreDificultad }}</span>
+                            <span style="margin-left: 10px; font-size: 9pt; color: #6c757d; font-weight: 400;">{{ stats.total }} exámenes</span>
+                        </h3>
+                        <div class="stats-grid">
+                            <div class="stat-card primary">
+                                <div class="stat-value">{{ stats.notaMedia|number_format(2, ',', '.') }}</div>
+                                <div class="stat-label">Nota Media</div>
+                            </div>
+                            {% set totalRespuestas = stats.totalAciertos + stats.totalErrores + stats.totalEnBlanco %}
+                            {% if totalRespuestas > 0 %}
+                                {% set porcentajeAciertos = (stats.totalAciertos / totalRespuestas * 100)|round(1) %}
+                                {% set porcentajeErrores = (stats.totalErrores / totalRespuestas * 100)|round(1) %}
+                                <div class="stat-card success">
+                                    <div class="stat-value">{{ stats.totalAciertos }}</div>
+                                    <div class="stat-label">Aciertos</div>
+                                    <div class="stat-sub">{{ porcentajeAciertos }}%</div>
+                                </div>
+                                <div class="stat-card warning">
+                                    <div class="stat-value">{{ stats.totalErrores }}</div>
+                                    <div class="stat-label">Errores</div>
+                                    <div class="stat-sub">{{ porcentajeErrores }}%</div>
+                                </div>
+                            {% else %}
+                                <div class="stat-card success">
+                                    <div class="stat-value">0</div>
+                                    <div class="stat-label">Aciertos</div>
+                                </div>
+                                <div class="stat-card warning">
+                                    <div class="stat-value">0</div>
+                                    <div class="stat-label">Errores</div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    {# Porcentajes de acierto por tema (preguntas de riesgo) - ANTES del análisis general #}
+    {% if porcentajesPorTema is defined and porcentajesPorTema|length > 0 %}
+        <div class="section">
+            <h2>Porcentaje de Acierto por Tema (Preguntas de Riesgo)</h2>
+            <div class="highlight-box">
+                Estos porcentajes reflejan tu rendimiento en las preguntas que has marcado como "riesgo" en cada tema.
+            </div>
+            <div class="compact-box">
+                <h3>Temario General</h3>
+                <table class="examen-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 55%;">Tema</th>
+                            <th style="width: 25%; text-align: center;">% Acierto</th>
+                            <th style="width: 20%; text-align: center;">Nivel</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in porcentajesPorTema %}
+                            {% set porcentaje = item.porcentaje %}
+                            {% set clasePorcentaje = '' %}
+                            {% if porcentaje >= 70 %}
+                                {% set clasePorcentaje = 'nota-excelente' %}
+                                {% set nivel = 'Alto' %}
+                                {% set badgeNivel = 'badge-success' %}
+                            {% elseif porcentaje >= 50 %}
+                                {% set clasePorcentaje = 'nota-buena' %}
+                                {% set nivel = 'Medio' %}
+                                {% set badgeNivel = 'badge-info' %}
+                            {% elseif porcentaje >= 30 %}
+                                {% set clasePorcentaje = 'nota-regular' %}
+                                {% set nivel = 'Bajo' %}
+                                {% set badgeNivel = 'badge-warning' %}
+                            {% else %}
+                                {% set clasePorcentaje = 'nota-baja' %}
+                                {% set nivel = 'Muy Bajo' %}
+                                {% set badgeNivel = 'badge-danger' %}
+                            {% endif %}
+                            <tr>
+                                <td><strong>{{ item.nombre }}</strong></td>
+                                <td style="text-align: center; font-weight: 700; font-size: 9.5pt;" class="{{ clasePorcentaje }}">{{ porcentaje|number_format(1, ',', '.') }}%</td>
+                                <td style="text-align: center;"><span class="{{ badgeNivel }}">{{ nivel }}</span></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+    
+    {% if porcentajesPorTemaMunicipal is defined and porcentajesPorTemaMunicipal|length > 0 %}
+        <div class="section">
+            <h2>Porcentaje de Acierto por Tema Municipal (Preguntas de Riesgo)</h2>
+            <div class="highlight-box">
+                Estos porcentajes reflejan tu rendimiento en las preguntas que has marcado como "riesgo" en cada tema municipal.
+            </div>
+            <div class="compact-box">
+                <h3>Temario Municipal</h3>
+                <table class="examen-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 55%;">Tema Municipal</th>
+                            <th style="width: 25%; text-align: center;">% Acierto</th>
+                            <th style="width: 20%; text-align: center;">Nivel</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in porcentajesPorTemaMunicipal %}
+                            {% set porcentaje = item.porcentaje %}
+                            {% set clasePorcentaje = '' %}
+                            {% if porcentaje >= 70 %}
+                                {% set clasePorcentaje = 'nota-excelente' %}
+                                {% set nivel = 'Alto' %}
+                                {% set badgeNivel = 'badge-success' %}
+                            {% elseif porcentaje >= 50 %}
+                                {% set clasePorcentaje = 'nota-buena' %}
+                                {% set nivel = 'Medio' %}
+                                {% set badgeNivel = 'badge-info' %}
+                            {% elseif porcentaje >= 30 %}
+                                {% set clasePorcentaje = 'nota-regular' %}
+                                {% set nivel = 'Bajo' %}
+                                {% set badgeNivel = 'badge-warning' %}
+                            {% else %}
+                                {% set clasePorcentaje = 'nota-baja' %}
+                                {% set nivel = 'Muy Bajo' %}
+                                {% set badgeNivel = 'badge-danger' %}
+                            {% endif %}
+                            <tr>
+                                <td><strong>{{ item.nombre }}</strong></td>
+                                <td style="text-align: center; font-weight: 700; font-size: 9.5pt;" class="{{ clasePorcentaje }}">{{ porcentaje|number_format(1, ',', '.') }}%</td>
+                                <td style="text-align: center;"><span class="{{ badgeNivel }}">{{ nivel }}</span></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+    
+    {# Temas con más fallos #}
+    {% if temasConMasFallos|length > 0 %}
+        <div class="section">
+            <h2>Temas que Necesitan Atención</h2>
+            <div class="highlight-box">
+                Los 3 temas con mayor cantidad de fallos en todos los exámenes realizados este mes.
+            </div>
+            <table class="examen-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60%;">Tema</th>
+                        <th style="width: 40%; text-align: center;">Número de Fallos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in temasConMasFallos %}
+                        <tr>
+                            <td><strong>{{ item.nombre }}</strong></td>
+                            <td style="text-align: center; color: #dc3545; font-weight: 700; font-size: 11pt;">{{ item.fallos }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+    
+    {# Análisis de Rendimiento #}
+    {% if totalExamenes > 0 %}
+        <div class="section">
+            <h2>Análisis de Rendimiento</h2>
             <div class="compact-grid">
                 <div class="compact-box">
-                    <h3>Distribucion de Notas</h3>
+                    <h3>Distribución de Notas</h3>
                     {% set excelentes = examenes|filter(e => e.nota >= 14)|length %}
                     {% set buenas = examenes|filter(e => e.nota >= 10 and e.nota < 14)|length %}
                     {% set regulares = examenes|filter(e => e.nota >= 8 and e.nota < 10)|length %}
                     {% set bajas = examenes|filter(e => e.nota < 8)|length %}
                     
-                    <div style="margin-bottom: 8px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 8pt;">
-                            <span>Excelente (>=14.0)</span>
-                            <span style="font-weight: bold;">{{ excelentes }} ({{ (excelentes / totalExamenes * 100)|round(1) }}%)</span>
+                    <div style="margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 8.5pt;">
+                            <span>Excelente (≥14.0)</span>
+                            <span style="font-weight: 700;">{{ excelentes }} ({{ (excelentes / totalExamenes * 100)|round(1) }}%)</span>
                         </div>
                         <div class="progress-bar-container">
                             <div class="progress-bar excellent" style="width: {{ (excelentes / totalExamenes * 100)|round(1) }}%;"></div>
                         </div>
                     </div>
                     
-                    <div style="margin-bottom: 8px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 8pt;">
+                    <div style="margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 8.5pt;">
                             <span>Buena (10.0-13.9)</span>
-                            <span style="font-weight: bold;">{{ buenas }} ({{ (buenas / totalExamenes * 100)|round(1) }}%)</span>
+                            <span style="font-weight: 700;">{{ buenas }} ({{ (buenas / totalExamenes * 100)|round(1) }}%)</span>
                         </div>
                         <div class="progress-bar-container">
                             <div class="progress-bar good" style="width: {{ (buenas / totalExamenes * 100)|round(1) }}%;"></div>
                         </div>
                     </div>
                     
-                    <div style="margin-bottom: 8px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 8pt;">
+                    <div style="margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 8.5pt;">
                             <span>Regular (8.0-9.9)</span>
-                            <span style="font-weight: bold;">{{ regulares }} ({{ (regulares / totalExamenes * 100)|round(1) }}%)</span>
+                            <span style="font-weight: 700;">{{ regulares }} ({{ (regulares / totalExamenes * 100)|round(1) }}%)</span>
                         </div>
                         <div class="progress-bar-container">
                             <div class="progress-bar regular" style="width: {{ (regulares / totalExamenes * 100)|round(1) }}%;"></div>
@@ -395,9 +701,9 @@
                     </div>
                     
                     <div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 8pt;">
-                            <span>Baja (&lt;8.0)</span>
-                            <span style="font-weight: bold;">{{ bajas }} ({{ (bajas / totalExamenes * 100)|round(1) }}%)</span>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 8.5pt;">
+                            <span>Baja (<8.0)</span>
+                            <span style="font-weight: 700;">{{ bajas }} ({{ (bajas / totalExamenes * 100)|round(1) }}%)</span>
                         </div>
                         <div class="progress-bar-container">
                             <div class="progress-bar poor" style="width: {{ (bajas / totalExamenes * 100)|round(1) }}%;"></div>
@@ -406,7 +712,7 @@
                 </div>
                 
                 <div class="compact-box">
-                    <h3>Rendimiento y Precision</h3>
+                    <h3>Rendimiento y Precisión</h3>
                     <div class="compact-item">
                         <span class="compact-label">Nota Media</span>
                         <span class="compact-value">{{ notaMedia|number_format(2, ',', '.') }}</span>
@@ -426,11 +732,11 @@
                         {% set porcentajeBlanco = (totalEnBlanco / totalRespuestas * 100)|round(1) %}
                         <div class="compact-item">
                             <span class="compact-label">% Aciertos</span>
-                            <span class="compact-value">{{ porcentajeAciertos }}%</span>
+                            <span class="compact-value nota-excelente">{{ porcentajeAciertos }}%</span>
                         </div>
                         <div class="compact-item">
                             <span class="compact-label">% Errores</span>
-                            <span class="compact-value">{{ porcentajeErrores }}%</span>
+                            <span class="compact-value nota-regular">{{ porcentajeErrores }}%</span>
                         </div>
                         <div class="compact-item">
                             <span class="compact-label">% En blanco</span>
@@ -440,59 +746,31 @@
                 </div>
             </div>
             
-            <table class="summary-table">
+            <table class="summary-table" style="margin-top: 12px;">
                 <tr>
-                    <td>Examenes Semanales</td>
-                    <td>{{ examenesSemanales|length }}</td>
+                    <td>Exámenes Semanales</td>
+                    <td><strong>{{ examenesSemanales|length }}</strong></td>
                 </tr>
                 <tr>
-                    <td>Examenes Generales</td>
-                    <td>{{ examenesGenerales|length }}</td>
+                    <td>Exámenes Generales</td>
+                    <td><strong>{{ examenesGenerales|length }}</strong></td>
                 </tr>
                 <tr>
-                    <td>Examenes Municipales</td>
-                    <td>{{ examenesMunicipales|length }}</td>
+                    <td>Exámenes Municipales</td>
+                    <td><strong>{{ examenesMunicipales|length }}</strong></td>
                 </tr>
                 <tr>
-                    <td>Examenes Convocatoria</td>
-                    <td>{{ examenesConvocatoria|length }}</td>
+                    <td>Exámenes Convocatoria</td>
+                    <td><strong>{{ examenesConvocatoria|length }}</strong></td>
                 </tr>
             </table>
-        </div>
-    {% endif %}
-    
-    {# Temas con más fallos #}
-    {% if temasConMasFallos|length > 0 %}
-        <div class="section">
-            <h2>Temas que Necesitan Atención</h2>
-            <div class="compact-box">
-                <p style="font-size: 8pt; color: #666; margin-bottom: 10px;">
-                    A continuación se muestran los 3 temas con mayor cantidad de fallos en todos los exámenes realizados:
-                </p>
-                <table class="examen-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 60%;">Tema</th>
-                            <th style="width: 40%; text-align: center;">Número de Fallos</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in temasConMasFallos %}
-                            <tr>
-                                <td><strong>{{ item.nombre }}</strong></td>
-                                <td style="text-align: center; color: #dc3545; font-weight: bold; font-size: 10pt;">{{ item.fallos }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
         </div>
     {% endif %}
     
     {# Exámenes semanales - solo si hay pocos, sino resumen #}
     {% if examenesSemanales|length > 0 %}
         <div class="section">
-            <h2>Examenes Semanales ({{ examenesSemanales|length }})</h2>
+            <h2>Exámenes Semanales ({{ examenesSemanales|length }})</h2>
             {% if examenesSemanales|length <= 10 %}
                 <table class="examen-table">
                     <thead>
@@ -526,7 +804,7 @@
                                         Examen Semanal
                                     {% endif %}
                                 </td>
-                                <td class="{{ claseNota }}">{{ nota }}</td>
+                                <td class="{{ claseNota }}"><strong>{{ nota }}</strong></td>
                                 <td>{{ examen.aciertos }}</td>
                                 <td>{{ examen.errores }}</td>
                             </tr>
@@ -534,33 +812,33 @@
                     </tbody>
                 </table>
             {% else %}
-                <div class="compact-box">
-                    <p style="font-size: 8pt; color: #666;">Se realizaron {{ examenesSemanales|length }} exámenes semanales. Ver detalles en el sistema.</p>
+                <div class="highlight-box">
+                    Se realizaron <strong>{{ examenesSemanales|length }}</strong> exámenes semanales este mes. Para ver el detalle completo, consulta el sistema.
                 </div>
             {% endif %}
         </div>
     {% endif %}
     
-    {# Tareas - resumen compacto #}
+    {# Tareas #}
     {% if tareas|length > 0 %}
         <div class="section">
             <h2>Tareas del Mes</h2>
             <table class="summary-table">
                 <tr>
                     <td>Total Tareas</td>
-                    <td>{{ tareas|length }}</td>
+                    <td><strong>{{ tareas|length }}</strong></td>
                 </tr>
                 <tr>
                     <td>Completadas</td>
-                    <td style="color: #28a745; font-weight: bold;">{{ tareasCompletadas }}</td>
+                    <td style="color: #28a745; font-weight: 700;">{{ tareasCompletadas }}</td>
                 </tr>
                 <tr>
                     <td>Pendientes</td>
-                    <td style="color: #ffc107; font-weight: bold;">{{ tareasPendientes }}</td>
+                    <td style="color: #ffc107; font-weight: 700;">{{ tareasPendientes }}</td>
                 </tr>
                 <tr>
                     <td>% Completadas</td>
-                    <td style="font-weight: bold;">{{ (tareasCompletadas / tareas|length * 100)|round(1) }}%</td>
+                    <td style="font-weight: 700;">{{ (tareasCompletadas / tareas|length * 100)|round(1) }}%</td>
                 </tr>
             </table>
         </div>
@@ -569,8 +847,9 @@
     {# Mensaje si no hay actividad #}
     {% if totalExamenes == 0 and tareas|length == 0 %}
         <div class="section">
-            <div style="text-align: center; color: #999; font-style: italic; padding: 15px; background: #f8f9fa; border-radius: 4px;">
-                No se registró actividad durante este mes.
+            <div style="text-align: center; color: #6c757d; font-style: italic; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 2px dashed #dee2e6;">
+                <p style="font-size: 10pt; margin-bottom: 8px;">No se registró actividad durante este mes.</p>
+                <p style="font-size: 8pt;">Comienza a realizar exámenes y tareas para ver tus estadísticas aquí.</p>
             </div>
         </div>
     {% endif %}

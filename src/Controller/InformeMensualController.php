@@ -9,6 +9,9 @@ use App\Repository\ExamenSemanalRepository;
 use App\Repository\TareaAsignadaRepository;
 use App\Repository\PreguntaRepository;
 use App\Repository\PreguntaMunicipalRepository;
+use App\Repository\TemaRepository;
+use App\Repository\TemaMunicipalRepository;
+use App\Service\PreguntaRiesgoService;
 use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -28,7 +31,10 @@ class InformeMensualController extends AbstractController
         private ExamenSemanalRepository $examenSemanalRepository,
         private TareaAsignadaRepository $tareaAsignadaRepository,
         private PreguntaRepository $preguntaRepository,
-        private PreguntaMunicipalRepository $preguntaMunicipalRepository
+        private PreguntaMunicipalRepository $preguntaMunicipalRepository,
+        private TemaRepository $temaRepository,
+        private TemaMunicipalRepository $temaMunicipalRepository,
+        private PreguntaRiesgoService $preguntaRiesgoService
     ) {
     }
 
@@ -224,6 +230,61 @@ class InformeMensualController extends AbstractController
         // Calcular los 3 temas con más fallos
         $temasConMasFallos = $this->calcularTemasConMasFallos($alumno);
 
+        // Calcular estadísticas por dificultad
+        $estadisticasPorDificultad = $this->calcularEstadisticasPorDificultad($examenes);
+
+        // Calcular porcentajes de acierto por tema usando preguntas de riesgo
+        $porcentajesPorTemaRaw = $this->preguntaRiesgoService->calcularPorcentajesPorTema($alumno);
+        $porcentajesPorTemaMunicipalRaw = $this->preguntaRiesgoService->calcularPorcentajesPorTemaMunicipal($alumno);
+        
+        // Obtener temas para mapear IDs a nombres
+        $temaIds = array_keys($porcentajesPorTemaRaw);
+        $temasMap = [];
+        if (!empty($temaIds)) {
+            $temas = $this->temaRepository->findBy(['id' => $temaIds]);
+            foreach ($temas as $tema) {
+                $temasMap[$tema->getId()] = $tema;
+            }
+        }
+        
+        $porcentajesPorTema = [];
+        foreach ($porcentajesPorTemaRaw as $temaId => $porcentaje) {
+            if (isset($temasMap[$temaId])) {
+                $tema = $temasMap[$temaId];
+                $porcentajesPorTema[] = [
+                    'tema' => $tema,
+                    'nombre' => $tema->getNombre(),
+                    'porcentaje' => $porcentaje,
+                ];
+            }
+        }
+        // Ordenar por porcentaje (ascendente - menores primero para ver qué necesita más atención)
+        usort($porcentajesPorTema, fn($a, $b) => $a['porcentaje'] <=> $b['porcentaje']);
+        
+        // Obtener temas municipales para mapear IDs a nombres
+        $temaMunicipalIds = array_keys($porcentajesPorTemaMunicipalRaw);
+        $temasMunicipalesMap = [];
+        if (!empty($temaMunicipalIds)) {
+            $temasMunicipales = $this->temaMunicipalRepository->findBy(['id' => $temaMunicipalIds]);
+            foreach ($temasMunicipales as $temaMunicipal) {
+                $temasMunicipalesMap[$temaMunicipal->getId()] = $temaMunicipal;
+            }
+        }
+        
+        $porcentajesPorTemaMunicipal = [];
+        foreach ($porcentajesPorTemaMunicipalRaw as $temaMunicipalId => $porcentaje) {
+            if (isset($temasMunicipalesMap[$temaMunicipalId])) {
+                $temaMunicipal = $temasMunicipalesMap[$temaMunicipalId];
+                $porcentajesPorTemaMunicipal[] = [
+                    'tema' => $temaMunicipal,
+                    'nombre' => $temaMunicipal->getNombre(),
+                    'porcentaje' => $porcentaje,
+                ];
+            }
+        }
+        // Ordenar por porcentaje (ascendente - menores primero)
+        usort($porcentajesPorTemaMunicipal, fn($a, $b) => $a['porcentaje'] <=> $b['porcentaje']);
+
         // Agrupar exámenes por tipo
         $examenesGenerales = array_filter($examenes, function($examen) {
             return $examen->getMunicipio() === null && $examen->getConvocatoria() === null && $examen->getExamenSemanal() === null;
@@ -268,6 +329,9 @@ class InformeMensualController extends AbstractController
             'tareasCompletadas' => count($tareasCompletadas),
             'tareasPendientes' => count($tareasPendientes),
             'temasConMasFallos' => $temasConMasFallos,
+            'estadisticasPorDificultad' => $estadisticasPorDificultad,
+            'porcentajesPorTema' => $porcentajesPorTema,
+            'porcentajesPorTemaMunicipal' => $porcentajesPorTemaMunicipal,
         ]);
 
         // Configurar DomPDF
@@ -426,5 +490,46 @@ class InformeMensualController extends AbstractController
         });
 
         return array_slice($fallosPorTema, 0, 3);
+    }
+
+    /**
+     * Calcula estadísticas de exámenes por nivel de dificultad
+     * @param array $examenes Array de exámenes
+     * @return array Array con estadísticas por dificultad ['facil' => [...], 'moderada' => [...], 'dificil' => [...]]
+     */
+    private function calcularEstadisticasPorDificultad(array $examenes): array
+    {
+        $estadisticas = [
+            'facil' => ['total' => 0, 'notaMedia' => 0, 'totalAciertos' => 0, 'totalErrores' => 0, 'totalEnBlanco' => 0],
+            'moderada' => ['total' => 0, 'notaMedia' => 0, 'totalAciertos' => 0, 'totalErrores' => 0, 'totalEnBlanco' => 0],
+            'dificil' => ['total' => 0, 'notaMedia' => 0, 'totalAciertos' => 0, 'totalErrores' => 0, 'totalEnBlanco' => 0],
+        ];
+
+        foreach ($examenes as $examen) {
+            $dificultad = strtolower($examen->getDificultad() ?? '');
+            
+            if (!isset($estadisticas[$dificultad])) {
+                continue;
+            }
+
+            $estadisticas[$dificultad]['total']++;
+            $estadisticas[$dificultad]['totalAciertos'] += $examen->getAciertos();
+            $estadisticas[$dificultad]['totalErrores'] += $examen->getErrores();
+            $estadisticas[$dificultad]['totalEnBlanco'] += $examen->getEnBlanco();
+        }
+
+        // Calcular nota media por dificultad usando el mismo método que rankings
+        foreach (['facil', 'moderada', 'dificil'] as $dificultad) {
+            $examenesDificultad = array_filter($examenes, function($examen) use ($dificultad) {
+                return strtolower($examen->getDificultad() ?? '') === $dificultad;
+            });
+            
+            if (!empty($examenesDificultad)) {
+                $notaMedia = $this->examenRepository->calcularNotaMediaDesdeExamenes(array_values($examenesDificultad)) ?? 0;
+                $estadisticas[$dificultad]['notaMedia'] = round($notaMedia, 2);
+            }
+        }
+
+        return $estadisticas;
     }
 }
