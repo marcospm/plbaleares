@@ -18,6 +18,7 @@ use App\Repository\ConfiguracionExamenRepository;
 use App\Entity\ExamenBorrador;
 use App\Service\NotificacionService;
 use App\Service\ConfiguracionExamenService;
+use App\Service\PreguntaRiesgoService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -42,7 +43,8 @@ class ExamenController extends AbstractController
         private ConfiguracionExamenRepository $configuracionExamenRepository,
         private ConfiguracionExamenService $configuracionExamenService,
         private EntityManagerInterface $entityManager,
-        private NotificacionService $notificacionService
+        private NotificacionService $notificacionService,
+        private PreguntaRiesgoService $preguntaRiesgoService
     ) {
     }
 
@@ -55,6 +57,7 @@ class ExamenController extends AbstractController
         $session->remove('examen_config');
         $session->remove('examen_pregunta_actual');
         $session->remove('examen_preguntas_bloqueadas');
+        $session->remove('examen_preguntas_riesgo');
 
         $municipioId = $request->query->getInt('municipio');
         $convocatoriaId = $request->query->getInt('convocatoria');
@@ -423,6 +426,7 @@ class ExamenController extends AbstractController
                 $session->set('examen_config', $config);
                 $session->set('examen_pregunta_actual', 0);
                 $session->set('examen_preguntas_bloqueadas', []); // Preguntas bloqueadas en modo estudio
+                $session->set('examen_preguntas_riesgo', []); // Preguntas marcadas como riesgo
 
                 // Guardar automáticamente en borrador al iniciar el examen
                 // Permite múltiples borradores - no se eliminan los anteriores
@@ -566,6 +570,7 @@ class ExamenController extends AbstractController
         $respuestas = $session->get('examen_respuestas', []);
         $config = $session->get('examen_config', []);
         $preguntaActual = $session->get('examen_pregunta_actual', 0);
+        $preguntasRiesgo = $session->get('examen_preguntas_riesgo', []);
 
         if (empty($preguntasIds)) {
             $this->addFlash('error', 'No hay un examen activo. Por favor, inicia un nuevo examen.');
@@ -635,9 +640,49 @@ class ExamenController extends AbstractController
                 }
             }
 
+            // Manejar checkbox "Me la juego"
+            $esRiesgo = $request->request->getBoolean('me_la_juego', false);
+            $preguntaId = (int) $pregunta->getId();
+            
+            // Asegurar que $preguntasRiesgo sea un array y normalizar los IDs a enteros
+            if (!is_array($preguntasRiesgo)) {
+                $preguntasRiesgo = [];
+            }
+            $preguntasRiesgo = array_map('intval', $preguntasRiesgo);
+            
+            if ($esRiesgo) {
+                // Marcar como riesgo
+                if (!in_array($preguntaId, $preguntasRiesgo, true)) {
+                    $preguntasRiesgo[] = $preguntaId;
+                }
+            } else {
+                // Desmarcar
+                $preguntasRiesgo = array_values(array_filter($preguntasRiesgo, function($id) use ($preguntaId) {
+                    return (int) $id !== $preguntaId;
+                }));
+            }
+            // Guardar en sesión asegurando que los IDs sean enteros
+            $preguntasRiesgo = array_map('intval', $preguntasRiesgo);
+            $session->set('examen_preguntas_riesgo', array_values(array_unique($preguntasRiesgo)));
+            
             // Determinar siguiente acción
             $accion = $request->request->get('accion');
             $numeroDestino = $request->request->getInt('numero_destino');
+            
+            // Si es una petición AJAX solo para actualizar el checkbox (sin respuesta ni acción), devolver JSON
+            // Verificar tanto isXmlHttpRequest() como el header X-Requested-With manualmente
+            $isAjax = $request->isXmlHttpRequest() || 
+                     $request->headers->get('X-Requested-With') === 'XMLHttpRequest' ||
+                     str_contains($request->headers->get('Accept', ''), 'application/json');
+            
+            // Si es AJAX y solo se está actualizando el checkbox (sin respuesta y sin acción específica)
+            if ($isAjax && empty($respuesta) && empty($accion) && $numeroDestino <= 0) {
+                return $this->json([
+                    'success' => true,
+                    'esRiesgo' => $esRiesgo,
+                    'preguntaId' => $preguntaId,
+                ]);
+            }
             
             // Si la acción es anular respuesta (solo para peticiones no AJAX, mantener compatibilidad)
             if ($accion === 'anular_respuesta' && !$request->isXmlHttpRequest()) {
@@ -759,6 +804,11 @@ class ExamenController extends AbstractController
         $esUltima = ($indice === count($preguntasIds) - 1);
         $esPrimera = ($indice === 0);
         
+        // Verificar si la pregunta actual está marcada como riesgo en la sesión del examen actual
+        // NOTA: No precargamos las preguntas marcadas previamente desde la BD porque
+        // cada examen debe decidirse independientemente si una pregunta es de riesgo
+        $preguntaMarcadaComoRiesgo = in_array($pregunta->getId(), $preguntasRiesgo);
+        
         // Obtener respuesta correcta y retroalimentación para modo estudio
         // Mostrar solo cuando está en modo estudio y la pregunta está bloqueada (después de responder)
         $respuestaCorrecta = null;
@@ -766,6 +816,33 @@ class ExamenController extends AbstractController
         if ($modoEstudio && $preguntaBloqueada) {
             $respuestaCorrecta = $pregunta->getRespuestaCorrecta();
             $retroalimentacion = $pregunta->getRetroalimentacion();
+        }
+        
+        // Calcular porcentajes de acierto por tema para preguntas de riesgo
+        // SOLO para el tema de la pregunta actual (no para todos los temas del examen)
+        $porcentajesRiesgoPorTema = [];
+        if (!$esMunicipal) {
+            // Obtener solo el tema de la pregunta actual
+            $temaActual = $pregunta->getTema();
+            if ($temaActual) {
+                $temaIdActual = $temaActual->getId();
+                $porcentajesTemp = $this->preguntaRiesgoService->calcularPorcentajesPorTema($user, [$temaIdActual]);
+                // Solo incluir si hay datos para este tema
+                if (isset($porcentajesTemp[$temaIdActual])) {
+                    $porcentajesRiesgoPorTema[$temaIdActual] = $porcentajesTemp[$temaIdActual];
+                }
+            }
+        } else {
+            // Para municipales, obtener solo el tema municipal de la pregunta actual
+            $temaMunicipalActual = $pregunta->getTemaMunicipal();
+            if ($temaMunicipalActual) {
+                $temaMunicipalIdActual = $temaMunicipalActual->getId();
+                $porcentajesTemp = $this->preguntaRiesgoService->calcularPorcentajesPorTemaMunicipal($user, [$temaMunicipalIdActual]);
+                // Solo incluir si hay datos para este tema
+                if (isset($porcentajesTemp[$temaMunicipalIdActual])) {
+                    $porcentajesRiesgoPorTema[$temaMunicipalIdActual] = $porcentajesTemp[$temaMunicipalIdActual];
+                }
+            }
         }
 
         // Calcular porcentajes por tema
@@ -861,6 +938,8 @@ class ExamenController extends AbstractController
             'temas' => $esMunicipal ? [] : $this->temaRepository->findBy(['id' => $config['temas'] ?? []]),
             'esMunicipal' => $esMunicipal,
             'porcentajesPorTema' => $porcentajesPorTema,
+            'porcentajesRiesgoPorTema' => $porcentajesRiesgoPorTema,
+            'preguntaMarcadaComoRiesgo' => $preguntaMarcadaComoRiesgo,
             'estadoPreguntas' => $estadoPreguntas,
             'config' => $config,
             'modoEstudio' => $modoEstudio,
@@ -876,6 +955,11 @@ class ExamenController extends AbstractController
         $preguntasIds = $session->get('examen_preguntas', []);
         $respuestas = $session->get('examen_respuestas', []);
         $config = $session->get('examen_config', []);
+        $preguntasRiesgo = $session->get('examen_preguntas_riesgo', []);
+        
+        // Debug: verificar qué se está leyendo de la sesión
+        // error_log('DEBUG pregunta_riesgo - Preguntas en riesgo: ' . json_encode($preguntasRiesgo));
+        // error_log('DEBUG pregunta_riesgo - Total preguntas: ' . count($preguntasRiesgo));
 
         if (empty($preguntasIds)) {
             $this->addFlash('error', 'No hay un examen para corregir.');
@@ -1067,6 +1151,64 @@ class ExamenController extends AbstractController
 
         $this->entityManager->persist($examen);
         $this->entityManager->flush();
+
+        // Persistir preguntas de riesgo en batch
+        // IMPORTANTE: Guardamos TODAS las preguntas marcadas como riesgo, incluso si NO tienen respuesta
+        // porque pueden estar en blanco pero igual están marcadas como "me la juego"
+        
+        // Asegurar que $preguntasRiesgo sea un array válido
+        if (!is_array($preguntasRiesgo)) {
+            $preguntasRiesgo = [];
+        }
+        
+        // Normalizar IDs a enteros y eliminar duplicados
+        $preguntasRiesgo = array_values(array_unique(array_map('intval', $preguntasRiesgo)));
+        
+        if (!empty($preguntasRiesgo)) {
+            $preguntasRiesgoData = [];
+            foreach ($preguntasRiesgo as $preguntaId) {
+                // Asegurar que el ID sea un entero
+                $preguntaId = (int) $preguntaId;
+                
+                // Obtener si la pregunta fue acertada
+                $respuestaAlumno = $respuestas[$preguntaId] ?? null;
+                $esCorrecta = false;
+                
+                // Solo marcar como acertada si hay respuesta
+                // Si está en blanco, $esCorrecta queda como false, pero IGUAL se guarda
+                if ($respuestaAlumno !== null && $respuestaAlumno !== '') {
+                    // Buscar la pregunta para obtener la respuesta correcta
+                    if ($esMunicipal) {
+                        $preguntaTemp = $this->preguntaMunicipalRepository->find($preguntaId);
+                    } else {
+                        $preguntaTemp = $this->preguntaRepository->find($preguntaId);
+                    }
+                    
+                    if ($preguntaTemp) {
+                        $respuestaCorrecta = strtoupper(trim($preguntaTemp->getRespuestaCorrecta() ?? ''));
+                        $respuestaAlumnoStr = strtoupper(trim($respuestaAlumno));
+                        $esCorrecta = ($respuestaCorrecta === $respuestaAlumnoStr);
+                    }
+                }
+                // IMPORTANTE: Incluso si no hay respuesta (está en blanco), se guarda con acertada=false
+                
+                // Agregar al array de datos - SIEMPRE se agrega, tenga o no respuesta
+                $preguntasRiesgoData[$preguntaId] = [
+                    'acertada' => $esCorrecta,
+                ];
+            }
+            
+            // Verificar que hay datos antes de persistir
+            if (!empty($preguntasRiesgoData)) {
+                try {
+                    $this->preguntaRiesgoService->persistirPreguntasRiesgo($this->getUser(), $preguntasRiesgoData, $esMunicipal);
+                } catch (\Exception $e) {
+                    // Log error pero no fallar la operación principal
+                    error_log('Error al persistir preguntas de riesgo: ' . $e->getMessage());
+                    error_log('Stack trace: ' . $e->getTraceAsString());
+                }
+            }
+        }
 
         // Eliminar borrador si existe
         $user = $this->getUser();

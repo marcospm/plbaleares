@@ -149,6 +149,72 @@
                                 {% endif %}
                             </div>
                         {% endif %}
+                        
+                        {# Checkbox "Me la juego" #}
+                        <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(133, 100, 4, 0.2);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #856404; font-size: 0.95rem; font-weight: 500;">
+                                    <input 
+                                        type="checkbox" 
+                                        id="me_la_juego"
+                                        {% if preguntaMarcadaComoRiesgo is defined and preguntaMarcadaComoRiesgo %}checked{% endif %}
+                                        style="width: 18px; height: 18px; cursor: pointer; accent-color: #ffc107;"
+                                        onchange="actualizarCheckboxRiesgo(this);"
+                                    >
+                                    <span>🎲 Me la juego</span>
+                                </label>
+                                <span style="color: #856404; font-size: 0.75rem; opacity: 0.8; font-style: italic;">Se guarda para ver tu porcentaje de acierto</span>
+                            </div>
+                        </div>
+                        
+                        {# Porcentajes de acierto por tema para preguntas de riesgo - SOLO del tema actual #}
+                        {% if porcentajesRiesgoPorTema is defined and porcentajesRiesgoPorTema|length > 0 %}
+                            {% if not esMunicipal %}
+                                {# Para temas generales, mostrar solo el porcentaje del tema de la pregunta actual #}
+                                {% if pregunta.tema %}
+                                    {% set temaIdActual = pregunta.tema.id %}
+                                    {% if porcentajesRiesgoPorTema[temaIdActual] is defined %}
+                                        {% set porcentaje = porcentajesRiesgoPorTema[temaIdActual] %}
+                                        <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(133, 100, 4, 0.2);">
+                                            <div style="color: #856404; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">
+                                                📊 % Acierto (Preguntas de Riesgo)
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+                                                <span style="color: #856404;">{{ pregunta.tema.nombre }}:</span>
+                                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                    <span style="font-weight: 600; color: {% if porcentaje >= 70 %}#28a745{% elseif porcentaje >= 50 %}#ffc107{% else %}#dc3545{% endif %};">
+                                                        {{ porcentaje|number_format(1, ',', '.') }}%
+                                                    </span>
+                                                    <span style="color: #856404; font-size: 0.75rem; opacity: 0.8; font-style: italic;">(es tu porcentaje de acierto de este tema de las preguntas marcadas como riesgo)</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                            {% else %}
+                                {# Para municipales, mostrar porcentajes por tema municipal #}
+                                {% if pregunta.temaMunicipal %}
+                                    {% set temaMunicipalId = pregunta.temaMunicipal.id %}
+                                    {% if porcentajesRiesgoPorTema[temaMunicipalId] is defined %}
+                                        {% set porcentaje = porcentajesRiesgoPorTema[temaMunicipalId] %}
+                                        <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(133, 100, 4, 0.2);">
+                                            <div style="color: #856404; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">
+                                                📊 % Acierto (Preguntas de Riesgo)
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+                                                <span style="color: #856404;">{{ pregunta.temaMunicipal.nombre }}:</span>
+                                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                    <span style="font-weight: 600; color: {% if porcentaje >= 70 %}#28a745{% elseif porcentaje >= 50 %}#ffc107{% else %}#dc3545{% endif %};">
+                                                        {{ porcentaje|number_format(1, ',', '.') }}%
+                                                    </span>
+                                                    <span style="color: #856404; font-size: 0.75rem; opacity: 0.8; font-style: italic;">(es tu porcentaje de acierto de este tema de las preguntas marcadas como riesgo)</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
                     </div>
                 </div>
             {% endif %}
@@ -160,6 +226,44 @@
                         📋 Información de la pregunta
                     </div>
                     <span style="color: #856404; font-size: 0.9rem; font-weight: 500;">🏷️ <strong>{{ pregunta.temaMunicipal.nombre }}</strong></span>
+                    
+                    {# Checkbox "Me la juego" #}
+                    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(133, 100, 4, 0.2);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #856404; font-size: 0.95rem; font-weight: 500;">
+                                <input 
+                                    type="checkbox" 
+                                    id="me_la_juego_municipal"
+                                    {% if preguntaMarcadaComoRiesgo is defined and preguntaMarcadaComoRiesgo %}checked{% endif %}
+                                    style="width: 18px; height: 18px; cursor: pointer; accent-color: #ffc107;"
+                                    onchange="actualizarCheckboxRiesgo(this);"
+                                >
+                                <span>🎲 Me la juego</span>
+                            </label>
+                            <span style="color: #856404; font-size: 0.75rem; opacity: 0.8; font-style: italic;">Se guarda para ver tu porcentaje de acierto</span>
+                        </div>
+                    </div>
+                    
+                    {# Porcentajes de acierto por tema municipal para preguntas de riesgo - SOLO del tema actual #}
+                    {% if porcentajesRiesgoPorTema is defined and porcentajesRiesgoPorTema|length > 0 %}
+                        {% if pregunta.temaMunicipal %}
+                            {% set temaMunicipalId = pregunta.temaMunicipal.id %}
+                            {% if porcentajesRiesgoPorTema[temaMunicipalId] is defined %}
+                                {% set porcentaje = porcentajesRiesgoPorTema[temaMunicipalId] %}
+                                <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(133, 100, 4, 0.2);">
+                                    <div style="color: #856404; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">
+                                        📊 % Acierto (Preguntas de Riesgo)
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                                        <span style="color: #856404;">{{ pregunta.temaMunicipal.nombre }}:</span>
+                                        <span style="font-weight: 600; color: {% if porcentaje >= 70 %}#28a745{% elseif porcentaje >= 50 %}#ffc107{% else %}#dc3545{% endif %};">
+                                            {{ porcentaje|number_format(1, ',', '.') }}%
+                                        </span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    {% endif %}
                 </div>
             </div>
         {% endif %}
@@ -170,6 +274,8 @@
         </div>
 
         <form method="post" action="{{ path('app_examen_pregunta', {'numero': numero}) }}" id="formPregunta">
+            {# Input hidden para sincronizar el checkbox "Me la juego" que está fuera del formulario #}
+            <input type="hidden" name="me_la_juego" id="me_la_juego_hidden" value="{% if preguntaMarcadaComoRiesgo is defined and preguntaMarcadaComoRiesgo %}1{% else %}0{% endif %}">
             <div class="form-group">
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
                     {% set opciones = {'A': pregunta.opcionA, 'B': pregunta.opcionB, 'C': pregunta.opcionC, 'D': pregunta.opcionD} %}
@@ -694,6 +800,61 @@
 
         {# Script para modo estudio y temporizador #}
         <script>
+        // Función global para actualizar checkbox de riesgo usando AJAX
+        window.actualizarCheckboxRiesgo = function(checkbox) {
+            const form = document.getElementById('formPregunta');
+            const hidden = document.getElementById('me_la_juego_hidden');
+            
+            if (!form || !checkbox) {
+                return;
+            }
+            
+            // Actualizar el input hidden para sincronizar
+            if (hidden) {
+                hidden.value = checkbox.checked ? '1' : '0';
+            }
+            
+            // Crear FormData del formulario
+            const formData = new FormData(form);
+            
+            // Asegurar que me_la_juego esté en el FormData
+            formData.set('me_la_juego', checkbox.checked ? '1' : '0');
+            
+            // Enviar petición AJAX
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                // Verificar el Content-Type de la respuesta
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    // Si no es JSON, puede ser un error HTML
+                    return response.text().then(text => {
+                        throw new Error('El servidor devolvió HTML en lugar de JSON. Esto puede ser un error de CSRF o validación.');
+                    });
+                }
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Error en la respuesta del servidor: ' + response.status);
+            })
+            .then(data => {
+                if (data && data.success) {
+                    // Checkbox actualizado correctamente, no recargar la página
+                    console.log('Checkbox de riesgo actualizado:', data.esRiesgo);
+                }
+            })
+            .catch(error => {
+                console.error('Error al actualizar checkbox de riesgo:', error);
+                // Si hay error, revertir el estado del checkbox
+                checkbox.checked = !checkbox.checked;
+            });
+        };
+        
         // Función global para plegar/desplegar secciones
         function toggleCollapsible(contentId, arrowId) {
             const content = document.getElementById(contentId);
@@ -1509,11 +1670,24 @@
                 }
             }
             
+            // Sincronizar checkbox "Me la juego" con input hidden
+            function sincronizarCheckboxRiesgo() {
+                const checkbox = document.getElementById('me_la_juego') || document.getElementById('me_la_juego_municipal');
+                const hidden = document.getElementById('me_la_juego_hidden');
+                if (checkbox && hidden) {
+                    hidden.value = checkbox.checked ? '1' : '0';
+                }
+            }
+            
             // Inicializar cuando el DOM esté listo
             if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', inicializarTodo);
+                document.addEventListener('DOMContentLoaded', function() {
+                    inicializarTodo();
+                    sincronizarCheckboxRiesgo();
+                });
             } else {
                 inicializarTodo();
+                sincronizarCheckboxRiesgo();
             }
             
             // También inicializar en eventos de Turbo
