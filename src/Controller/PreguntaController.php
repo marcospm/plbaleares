@@ -8,8 +8,10 @@ use App\Repository\PreguntaRepository;
 use App\Repository\MensajePreguntaRepository;
 use App\Repository\TemaRepository;
 use App\Repository\LeyRepository;
+use App\Repository\ArticuloRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -216,7 +218,7 @@ class PreguntaController extends AbstractController
             $entityManager->flush();
 
             $this->addFlash('success', 'Pregunta actualizada correctamente.');
-            return $this->redirectToRoute('app_pregunta_index', $filtros, Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute('app_pregunta_show', ['id' => $pregunta->getId()], Response::HTTP_SEE_OTHER);
         }
 
         return $this->render('pregunta/edit.html.twig', [
@@ -296,6 +298,60 @@ class PreguntaController extends AbstractController
         }
 
         return $this->redirectToRoute('app_pregunta_index', $filtros, Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/api/leyes-por-tema/{temaId}', name: 'app_pregunta_api_leyes_por_tema', methods: ['GET'], requirements: ['temaId' => '\d+'])]
+    public function getLeyesPorTema(int $temaId, LeyRepository $leyRepository): JsonResponse
+    {
+        $tema = $leyRepository->getEntityManager()->getRepository(\App\Entity\Tema::class)->find($temaId);
+        
+        if (!$tema) {
+            return new JsonResponse([], Response::HTTP_NOT_FOUND);
+        }
+
+        // Obtener todas las leyes relacionadas con este tema
+        $leyes = $tema->getLeyes()->toArray();
+        
+        $leyesData = array_map(function($ley) {
+            return [
+                'id' => $ley->getId(),
+                'nombre' => $ley->getNombre(),
+            ];
+        }, $leyes);
+
+        return new JsonResponse($leyesData);
+    }
+
+    #[Route('/api/articulos-por-ley/{leyId}', name: 'app_pregunta_api_articulos_por_ley', methods: ['GET'], requirements: ['leyId' => '\d+'])]
+    public function getArticulosPorLey(int $leyId, ArticuloRepository $articuloRepository): JsonResponse
+    {
+        $ley = $articuloRepository->getEntityManager()->getRepository(\App\Entity\Ley::class)->find($leyId);
+        
+        if (!$ley) {
+            return new JsonResponse([], Response::HTTP_NOT_FOUND);
+        }
+
+        // Obtener todos los artículos de esta ley, ordenados por número
+        $articulos = $articuloRepository->findBy(
+            ['ley' => $ley],
+            ['numero' => 'ASC', 'sufijo' => 'ASC']
+        );
+        
+        $articulosData = array_map(function($articulo) {
+            $label = 'Art. ' . $articulo->getNumeroCompleto();
+            if ($articulo->getNombre()) {
+                $label .= ' - ' . $articulo->getNombre();
+            }
+            return [
+                'id' => $articulo->getId(),
+                'numero' => $articulo->getNumero(),
+                'numeroCompleto' => $articulo->getNumeroCompleto(),
+                'nombre' => $articulo->getNombre(),
+                'label' => $label,
+            ];
+        }, $articulos);
+
+        return new JsonResponse($articulosData);
     }
 }
 

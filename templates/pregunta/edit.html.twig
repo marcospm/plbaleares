@@ -56,6 +56,121 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const temaSelect = document.querySelector('select[name="pregunta[tema]"]');
+    const leySelect = document.querySelector('select[name="pregunta[ley]"]');
+    const articuloSelect = document.querySelector('select[name="pregunta[articulo]"]');
+    
+    // Función para cargar leyes por tema
+    function cargarLeyesPorTema(temaId, leyIdSeleccionada = null, articuloIdSeleccionado = null) {
+        if (!temaId || temaId === '') {
+            leySelect.innerHTML = '<option value="">Selecciona una ley</option>';
+            articuloSelect.innerHTML = '<option value="">Selecciona un artículo</option>';
+            leySelect.disabled = true;
+            articuloSelect.disabled = true;
+            return;
+        }
+        
+        fetch(`/pregunta/api/leyes-por-tema/${temaId}`)
+            .then(response => response.json())
+            .then(data => {
+                leySelect.innerHTML = '<option value="">Selecciona una ley</option>';
+                data.forEach(ley => {
+                    const option = document.createElement('option');
+                    option.value = ley.id;
+                    option.textContent = ley.nombre;
+                    if (leyIdSeleccionada && ley.id == leyIdSeleccionada) {
+                        option.selected = true;
+                    }
+                    leySelect.appendChild(option);
+                });
+                leySelect.disabled = false;
+                
+                // Si hay una ley seleccionada, cargar sus artículos
+                if (leyIdSeleccionada) {
+                    cargarArticulosPorLey(leyIdSeleccionada, articuloIdSeleccionado);
+                } else if (leySelect.value) {
+                    cargarArticulosPorLey(leySelect.value);
+                } else {
+                    articuloSelect.innerHTML = '<option value="">Selecciona un artículo</option>';
+                    articuloSelect.disabled = true;
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar leyes:', error);
+            });
+    }
+    
+    // Función para cargar artículos por ley
+    function cargarArticulosPorLey(leyId, articuloIdSeleccionado = null) {
+        if (!leyId || leyId === '') {
+            articuloSelect.innerHTML = '<option value="">Selecciona un artículo</option>';
+            articuloSelect.disabled = true;
+            return;
+        }
+        
+        fetch(`/pregunta/api/articulos-por-ley/${leyId}`)
+            .then(response => response.json())
+            .then(data => {
+                articuloSelect.innerHTML = '<option value="">Selecciona un artículo</option>';
+                data.forEach(articulo => {
+                    const option = document.createElement('option');
+                    option.value = articulo.id;
+                    option.textContent = articulo.label;
+                    if (articuloIdSeleccionado && articulo.id == articuloIdSeleccionado) {
+                        option.selected = true;
+                    }
+                    articuloSelect.appendChild(option);
+                });
+                articuloSelect.disabled = false;
+            })
+            .catch(error => {
+                console.error('Error al cargar artículos:', error);
+            });
+    }
+    
+    // Cargar valores iniciales desde la pregunta editada
+    const temaIdInicial = temaSelect ? temaSelect.value : null;
+    const leyIdInicial = leySelect ? leySelect.value : null;
+    const articuloIdInicial = articuloSelect ? articuloSelect.value : null;
+    
+    // Event listeners
+    if (temaSelect) {
+        temaSelect.addEventListener('change', function() {
+            cargarLeyesPorTema(this.value);
+        });
+        
+        // Cargar leyes si ya hay un tema seleccionado
+        if (temaIdInicial) {
+            cargarLeyesPorTema(temaIdInicial, leyIdInicial, articuloIdInicial);
+        } else {
+            // Si no hay tema, deshabilitar ley y artículo
+            if (leySelect) leySelect.disabled = true;
+            if (articuloSelect) articuloSelect.disabled = true;
+        }
+    }
+    
+    if (leySelect) {
+        leySelect.addEventListener('change', function() {
+            cargarArticulosPorLey(this.value);
+        });
+        
+        // Cargar artículos si ya hay una ley seleccionada
+        // Esperar un poco para que las leyes se hayan cargado primero
+        if (temaIdInicial && leyIdInicial) {
+            setTimeout(() => {
+                if (leySelect.value == leyIdInicial) {
+                    cargarArticulosPorLey(leyIdInicial, articuloIdInicial);
+                }
+            }, 500);
+        } else if (leyIdInicial && !leySelect.disabled) {
+            cargarArticulosPorLey(leyIdInicial, articuloIdInicial);
+        } else if (!leySelect.disabled && leySelect.value) {
+            cargarArticulosPorLey(leySelect.value);
+        } else {
+            if (articuloSelect) articuloSelect.disabled = true;
+        }
+    }
+    
     // Función para convertir markdown a HTML antes de cargar en el editor
     function convertMarkdownToHtml(text) {
         if (!text) return '';

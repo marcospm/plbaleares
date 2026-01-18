@@ -36,6 +36,101 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const temaSelect = document.querySelector('select[name="pregunta[tema]"]');
+    const leySelect = document.querySelector('select[name="pregunta[ley]"]');
+    const articuloSelect = document.querySelector('select[name="pregunta[articulo]"]');
+    
+    // Función para cargar leyes por tema
+    function cargarLeyesPorTema(temaId) {
+        if (!temaId || temaId === '') {
+            leySelect.innerHTML = '<option value="">Selecciona una ley</option>';
+            articuloSelect.innerHTML = '<option value="">Selecciona un artículo</option>';
+            leySelect.disabled = true;
+            articuloSelect.disabled = true;
+            return;
+        }
+        
+        fetch(`/pregunta/api/leyes-por-tema/${temaId}`)
+            .then(response => response.json())
+            .then(data => {
+                const leySeleccionada = leySelect.value;
+                leySelect.innerHTML = '<option value="">Selecciona una ley</option>';
+                data.forEach(ley => {
+                    const option = document.createElement('option');
+                    option.value = ley.id;
+                    option.textContent = ley.nombre;
+                    if (ley.id == leySeleccionada) {
+                        option.selected = true;
+                    }
+                    leySelect.appendChild(option);
+                });
+                leySelect.disabled = false;
+                
+                // Si hay una ley seleccionada, cargar sus artículos
+                if (leySeleccionada) {
+                    cargarArticulosPorLey(leySeleccionada);
+                } else {
+                    articuloSelect.innerHTML = '<option value="">Selecciona un artículo</option>';
+                    articuloSelect.disabled = true;
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar leyes:', error);
+            });
+    }
+    
+    // Función para cargar artículos por ley
+    function cargarArticulosPorLey(leyId) {
+        if (!leyId || leyId === '') {
+            articuloSelect.innerHTML = '<option value="">Selecciona un artículo</option>';
+            articuloSelect.disabled = true;
+            return;
+        }
+        
+        fetch(`/pregunta/api/articulos-por-ley/${leyId}`)
+            .then(response => response.json())
+            .then(data => {
+                const articuloSeleccionado = articuloSelect.value;
+                articuloSelect.innerHTML = '<option value="">Selecciona un artículo</option>';
+                data.forEach(articulo => {
+                    const option = document.createElement('option');
+                    option.value = articulo.id;
+                    option.textContent = articulo.label;
+                    if (articulo.id == articuloSeleccionado) {
+                        option.selected = true;
+                    }
+                    articuloSelect.appendChild(option);
+                });
+                articuloSelect.disabled = false;
+            })
+            .catch(error => {
+                console.error('Error al cargar artículos:', error);
+            });
+    }
+    
+    // Event listeners
+    if (temaSelect) {
+        temaSelect.addEventListener('change', function() {
+            cargarLeyesPorTema(this.value);
+        });
+        
+        // Cargar leyes si ya hay un tema seleccionado
+        if (temaSelect.value) {
+            cargarLeyesPorTema(temaSelect.value);
+        }
+    }
+    
+    if (leySelect) {
+        leySelect.addEventListener('change', function() {
+            cargarArticulosPorLey(this.value);
+        });
+        
+        // Cargar artículos si ya hay una ley seleccionada y no está deshabilitado
+        if (leySelect.value && !leySelect.disabled) {
+            cargarArticulosPorLey(leySelect.value);
+        }
+    }
+    
     // Inicializar editor para retroalimentación (CKEditor)
     const editorElement = document.querySelector('.tinymce-editor');
     if (editorElement && typeof ClassicEditor !== 'undefined') {

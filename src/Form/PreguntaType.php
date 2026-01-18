@@ -89,7 +89,11 @@ class PreguntaType extends AbstractType
             ->add('articulo', EntityType::class, [
                 'class' => Articulo::class,
                 'choice_label' => function(Articulo $articulo) {
-                    return 'Art. ' . $articulo->getNumero() . ' - ' . $articulo->getLey()->getNombre();
+                    $label = 'Art. ' . $articulo->getNumeroCompleto();
+                    if ($articulo->getNombre()) {
+                        $label .= ' - ' . $articulo->getNombre();
+                    }
+                    return $label;
                 },
                 'required' => true,
                 'label' => 'Artículo',
