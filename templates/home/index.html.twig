@@ -394,12 +394,12 @@
                 y herramientas de gamificación para optimizar tu aprendizaje.
             </p>
             {% if not app.user %}
-                <div class="hero-buttons">
-                    <a href="{{ path('app_register') }}" class="btn-hero-primary">
-                        Solicita una cuenta
-                    </a>
+                <div class="hero-buttons">                    
                     <a href="{{ path('app_login') }}" class="btn-hero-secondary">
                         Iniciar Sesión
+                    </a>
+                    <a href="{{ path('app_register') }}" class="btn-hero-primary">
+                        Solicita una cuenta
                     </a>
                 </div>
             {% endif %}
