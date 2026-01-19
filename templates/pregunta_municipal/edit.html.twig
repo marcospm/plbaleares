@@ -115,23 +115,86 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
     
-    // Manejo de municipio y tema
+    // Manejo de municipio y tema con AJAX
     const municipioSelect = document.getElementById('pregunta_municipal_municipio');
     const temaSelect = document.getElementById('pregunta_municipal_temaMunicipal');
     
     if (municipioSelect && temaSelect) {
         municipioSelect.addEventListener('change', function() {
             const municipioId = this.value;
-            // Recargar la página con el municipio seleccionado para actualizar los temas
+            const temaActualId = temaSelect.value; // Guardar el tema actualmente seleccionado
+            
+            // Limpiar el selector de temas
+            temaSelect.innerHTML = '';
+            temaSelect.disabled = true;
+            
             if (municipioId) {
-                const url = new URL(window.location.href);
-                url.searchParams.set('municipio', municipioId);
-                window.location.href = url.toString();
+                // Mostrar indicador de carga
+                const loadingOption = document.createElement('option');
+                loadingOption.textContent = 'Cargando temas...';
+                loadingOption.disabled = true;
+                loadingOption.selected = true;
+                temaSelect.appendChild(loadingOption);
+                
+                // Hacer petición AJAX para obtener los temas del municipio
+                const apiUrl = '{{ path("app_pregunta_municipal_api_temas", {"municipioId": 0}) }}'.replace('/0', '/' + municipioId);
+                fetch(apiUrl)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Error al cargar los temas');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Limpiar el selector
+                        temaSelect.innerHTML = '';
+                        
+                        // Agregar placeholder
+                        const placeholderOption = document.createElement('option');
+                        placeholderOption.value = '';
+                        placeholderOption.textContent = 'Selecciona un tema';
+                        placeholderOption.disabled = true;
+                        temaSelect.appendChild(placeholderOption);
+                        
+                        // Agregar los temas
+                        if (data.temas && data.temas.length > 0) {
+                            data.temas.forEach(tema => {
+                                const option = document.createElement('option');
+                                option.value = tema.id;
+                                option.textContent = tema.nombre;
+                                // Si el tema coincide con el que estaba seleccionado, mantenerlo seleccionado
+                                if (temaActualId && tema.id == temaActualId) {
+                                    option.selected = true;
+                                    placeholderOption.disabled = false;
+                                }
+                                temaSelect.appendChild(option);
+                            });
+                            temaSelect.disabled = false;
+                        } else {
+                            const noTemasOption = document.createElement('option');
+                            noTemasOption.textContent = 'No hay temas disponibles';
+                            noTemasOption.disabled = true;
+                            noTemasOption.selected = true;
+                            temaSelect.appendChild(noTemasOption);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        temaSelect.innerHTML = '';
+                        const errorOption = document.createElement('option');
+                        errorOption.textContent = 'Error al cargar los temas';
+                        errorOption.disabled = true;
+                        errorOption.selected = true;
+                        temaSelect.appendChild(errorOption);
+                    });
             } else {
-                // Si se deselecciona el municipio, limpiar el parámetro
-                const url = new URL(window.location.href);
-                url.searchParams.delete('municipio');
-                window.location.href = url.toString();
+                // Si no hay municipio seleccionado, mostrar mensaje
+                const placeholderOption = document.createElement('option');
+                placeholderOption.value = '';
+                placeholderOption.textContent = 'Primero selecciona un municipio';
+                placeholderOption.disabled = true;
+                placeholderOption.selected = true;
+                temaSelect.appendChild(placeholderOption);
             }
         });
     }

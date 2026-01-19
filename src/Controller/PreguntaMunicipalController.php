@@ -9,6 +9,7 @@ use App\Repository\MunicipioRepository;
 use App\Repository\TemaMunicipalRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -217,6 +218,27 @@ class PreguntaMunicipalController extends AbstractController
         }
 
         return $this->redirectToRoute('app_pregunta_municipal_index', $params, Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/api/temas-por-municipio/{municipioId}', name: 'app_pregunta_municipal_api_temas', methods: ['GET'], requirements: ['municipioId' => '\d+'])]
+    public function getTemasPorMunicipio(int $municipioId, MunicipioRepository $municipioRepository, TemaMunicipalRepository $temaMunicipalRepository): JsonResponse
+    {
+        $municipio = $municipioRepository->find($municipioId);
+        
+        if (!$municipio) {
+            return new JsonResponse(['error' => 'Municipio no encontrado'], 404);
+        }
+
+        $temas = $temaMunicipalRepository->findByMunicipio($municipio);
+        
+        $temasArray = array_map(function($tema) {
+            return [
+                'id' => $tema->getId(),
+                'nombre' => $tema->getNombre(),
+            ];
+        }, $temas);
+
+        return new JsonResponse(['temas' => $temasArray]);
     }
 }
 
