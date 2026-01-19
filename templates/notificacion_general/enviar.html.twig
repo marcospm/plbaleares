@@ -53,7 +53,6 @@
                                 id="mensaje" 
                                 name="mensaje" 
                                 rows="10" 
-                                required
                                 placeholder="Escribe aquí el mensaje que recibirán todos los alumnos..."
                             >{{ mensaje|default('')|raw }}</textarea>
                             <small class="form-text text-muted">Este mensaje será visible para todos los alumnos activos. Puedes usar formato enriquecido (negrita, cursiva, listas, etc.)</small>
@@ -113,10 +112,21 @@
             .then(editor => {
                 console.log('CKEditor inicializado correctamente para notificación general');
                 
+                // Remover el atributo required del textarea oculto para evitar errores de validación
+                editorElement.removeAttribute('required');
+                
                 // Asegurar que el contenido HTML se envíe en el formulario
                 const form = document.getElementById('notificacion-form');
                 if (form) {
                     form.addEventListener('submit', function(e) {
+                        // Validar que el editor tenga contenido
+                        const editorData = editor.getData().trim();
+                        if (!editorData) {
+                            e.preventDefault();
+                            alert('Por favor, escribe un mensaje antes de enviar la notificación.');
+                            return false;
+                        }
+                        
                         // Actualizar el textarea con el contenido HTML del editor antes de enviar
                         editor.updateSourceElement();
                     });
