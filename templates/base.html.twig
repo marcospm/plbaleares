@@ -519,29 +519,43 @@
                     fetch('{{ path('app_notificacion_alumno_contador') }}')
                         .then(response => {
                             if (!response.ok) {
-                                throw new Error(`HTTP error! status: ${response.status}`);
+                                // Si la respuesta no es OK, intentar leer como texto para ver qué es
+                                return response.text().then(text => {
+                                    throw new Error(`HTTP error! status: ${response.status}`);
+                                });
                             }
                             const contentType = response.headers.get('content-type');
                             if (!contentType || !contentType.includes('application/json')) {
-                                throw new Error('La respuesta no es JSON');
+                                // Si no es JSON, leer como texto para ver qué es
+                                return response.text().then(text => {
+                                    throw new Error('La respuesta no es JSON');
+                                });
                             }
                             return response.json();
                         })
                         .then(data => {
-                            const contador = document.getElementById('notificaciones-contador-alumno');
-                            if (contador) {
-                                if (data.contador > 0) {
-                                    contador.textContent = data.contador;
-                                    contador.style.display = 'inline-block';
-                                } else {
-                                    contador.style.display = 'none';
+                            // Verificar que data existe y tiene la estructura esperada
+                            if (data && typeof data === 'object' && 'contador' in data) {
+                                const contador = document.getElementById('notificaciones-contador-alumno');
+                                if (contador) {
+                                    if (data.contador > 0) {
+                                        contador.textContent = data.contador;
+                                        contador.style.display = 'inline-block';
+                                    } else {
+                                        contador.style.display = 'none';
+                                    }
                                 }
                             }
                         })
                         .catch(error => {
-                            // Solo mostrar error en consola si es un error real, no silenciarlo completamente
-                            // pero no mostrar errores de red o de autenticación como errores críticos
-                            if (error.message && !error.message.includes('HTTP error! status: 401') && !error.message.includes('HTTP error! status: 403')) {
+                            // Silenciar errores de red, autenticación o respuestas no JSON
+                            // Solo mostrar errores críticos en consola
+                            if (error.message && 
+                                !error.message.includes('HTTP error! status: 401') && 
+                                !error.message.includes('HTTP error! status: 403') &&
+                                !error.message.includes('La respuesta no es JSON') &&
+                                !error.message.includes('Failed to fetch') &&
+                                !error.message.includes('NetworkError')) {
                                 console.error('Error al cargar contador:', error);
                             }
                             // Ocultar el contador si hay error
