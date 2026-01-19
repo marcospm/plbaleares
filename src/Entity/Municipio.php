@@ -26,6 +26,8 @@ class Municipio
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $fechaCreacion = null;
 
+    #[ORM\Column(type: Types::INTEGER, nullable: true)]
+    private ?int $numeroPlazas = null;
 
     #[ORM\OneToMany(targetEntity: TemaMunicipal::class, mappedBy: 'municipio', cascade: ['persist', 'remove'])]
     private Collection $temasMunicipales;
@@ -77,6 +79,18 @@ class Municipio
     public function setFechaCreacion(\DateTimeInterface $fechaCreacion): static
     {
         $this->fechaCreacion = $fechaCreacion;
+
+        return $this;
+    }
+
+    public function getNumeroPlazas(): ?int
+    {
+        return $this->numeroPlazas;
+    }
+
+    public function setNumeroPlazas(?int $numeroPlazas): static
+    {
+        $this->numeroPlazas = $numeroPlazas;
 
         return $this;
     }

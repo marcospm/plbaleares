@@ -10,12 +10,13 @@
     <div class="card-body">
         {{ form_start(form) }}
             {{ form_row(form.nombre) }}
+            {{ form_row(form.numeroPlazas) }}
             
             <div class="d-flex gap-2 mt-4">
                 <button type="submit" class="btn btn-primary">Actualizar</button>
                 <a href="{{ path('app_municipio_index') }}" class="btn btn-secondary">Cancelar</a>
             </div>
-        {{ form_end(form) }}
+        {{ form_end(form, {'render_rest': false}) }}
     </div>
 </div>
 {% endblock %}
