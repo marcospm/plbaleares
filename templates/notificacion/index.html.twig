@@ -44,7 +44,7 @@
                                         <span class="badge" style="background-color: #dc3545; color: white; padding: 0.25rem 0.5rem; border-radius: 3px; font-size: 0.75rem;">Nueva</span>
                                     {% endif %}
                                 </div>
-                                <p style="margin: 0.5rem 0; color: #666;">{{ notificacion.mensaje }}</p>
+                                <div style="margin: 0.5rem 0; color: #666;">{{ notificacion.mensaje|raw }}</div>
                                 <small style="color: #999;">
                                     {{ notificacion.fechaCreacion|date('d/m/Y H:i') }}{% if notificacion.alumno %} - Alumno: {{ notificacion.alumno.nombreDisplay }}{% endif %}
                                 </small>

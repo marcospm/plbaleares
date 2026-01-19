@@ -49,6 +49,10 @@ class PreguntaMunicipal
     #[ORM\JoinColumn(nullable: false)]
     private ?Municipio $municipio = null;
 
+    #[ORM\ManyToOne(inversedBy: 'preguntas')]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?PlantillaMunicipal $plantilla = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -194,6 +198,18 @@ class PreguntaMunicipal
             'dificil' => 'Difícil',
             default => $this->dificultad ?? '',
         };
+    }
+
+    public function getPlantilla(): ?PlantillaMunicipal
+    {
+        return $this->plantilla;
+    }
+
+    public function setPlantilla(?PlantillaMunicipal $plantilla): static
+    {
+        $this->plantilla = $plantilla;
+
+        return $this;
     }
 }
 

@@ -521,10 +521,14 @@ class ExamenController extends AbstractController
         }
 
         // Obtener borradores del usuario (excluyendo exámenes semanales que tienen su propia lista)
+        // Cargar borradores excluyendo los de tipo "plantilla" (estos se muestran en su propia sección)
+        // y excluyendo exámenes semanales que tienen su propia lista
         $borradores = $this->examenBorradorRepository->createQueryBuilder('b')
             ->where('b.usuario = :usuario')
             ->andWhere('b.examenSemanal IS NULL')
+            ->andWhere('b.tipoExamen != :tipoPlantilla OR b.tipoExamen IS NULL')
             ->setParameter('usuario', $user)
+            ->setParameter('tipoPlantilla', 'plantilla')
             ->orderBy('b.fechaActualizacion', 'DESC')
             ->getQuery()
             ->getResult();
@@ -2686,6 +2690,10 @@ class ExamenController extends AbstractController
         
         if (!$borrador || $borrador->getUsuario() !== $user) {
             $this->addFlash('error', 'Borrador no encontrado.');
+            // Redirigir según el tipo de examen
+            if ($borrador && $borrador->getTipoExamen() === 'plantilla') {
+                return $this->redirectToRoute('app_examen_plantilla_iniciar');
+            }
             return $this->redirectToRoute('app_examen_iniciar');
         }
         
@@ -2761,13 +2769,24 @@ class ExamenController extends AbstractController
         
         if (!$borrador || $borrador->getUsuario() !== $user) {
             $this->addFlash('error', 'Borrador no encontrado.');
+            // Redirigir según el tipo de examen
+            if ($borrador && $borrador->getTipoExamen() === 'plantilla') {
+                return $this->redirectToRoute('app_examen_plantilla_iniciar');
+            }
             return $this->redirectToRoute('app_examen_iniciar');
         }
+        
+        // Guardar el tipo de examen antes de eliminar para redirigir correctamente
+        $tipoExamen = $borrador->getTipoExamen();
         
         // Verificar token CSRF
         $token = $request->request->get('_token');
         if (!$this->isCsrfTokenValid('delete_borrador_' . $id, $token)) {
             $this->addFlash('error', 'Token de seguridad inválido.');
+            // Redirigir según el tipo de examen
+            if ($tipoExamen === 'plantilla') {
+                return $this->redirectToRoute('app_examen_plantilla_iniciar');
+            }
             return $this->redirectToRoute('app_examen_iniciar');
         }
         
@@ -2775,6 +2794,11 @@ class ExamenController extends AbstractController
         $this->entityManager->flush();
         
         $this->addFlash('success', 'Borrador eliminado correctamente.');
+        
+        // Redirigir según el tipo de examen
+        if ($tipoExamen === 'plantilla') {
+            return $this->redirectToRoute('app_examen_plantilla_iniciar');
+        }
         return $this->redirectToRoute('app_examen_iniciar');
     }
 

@@ -17,6 +17,20 @@ class PreguntaRepository extends ServiceEntityRepository
     }
 
     /**
+     * Obtiene todas las preguntas activas de una plantilla de forma optimizada
+     */
+    public function findActivasByPlantilla($plantilla): array
+    {
+        return $this->createQueryBuilder('p')
+            ->where('p.plantilla = :plantilla')
+            ->andWhere('p.activo = :activo')
+            ->setParameter('plantilla', $plantilla)
+            ->setParameter('activo', true)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Obtiene una pregunta activa aleatoria con tema y ley cargados
      */
     public function findAleatoriaActiva(): ?Pregunta

@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Editar Plantilla{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Editar Plantilla{% if tipo == 'municipal' %} Municipal{% endif %}</h1>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <strong>Preguntas asociadas:</strong> {{ plantilla.numeroPreguntas }}
+        </div>
+        
+        {{ form_start(form) }}
+            {{ form_row(form.nombre) }}
+            {% if tipo == 'municipal' %}
+                {{ form_row(form.temaMunicipal) }}
+            {% else %}
+                {{ form_row(form.tema) }}
+            {% endif %}
+            {{ form_row(form.dificultad) }}
+            
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+                <a href="{{ path('app_plantilla_index', {'tipo': tipo}) }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

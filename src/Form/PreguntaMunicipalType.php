@@ -5,6 +5,7 @@ namespace App\Form;
 use App\Entity\PreguntaMunicipal;
 use App\Entity\TemaMunicipal;
 use App\Entity\Municipio;
+use App\Entity\PlantillaMunicipal;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -104,6 +105,35 @@ class PreguntaMunicipalType extends AbstractType
                     return $qb->orderBy('t.nombre', 'ASC');
                 },
                 'placeholder' => $municipio ? 'Selecciona un tema' : 'Primero selecciona un municipio',
+            ])
+            ->add('plantilla', EntityType::class, [
+                'class' => PlantillaMunicipal::class,
+                'choice_label' => function(PlantillaMunicipal $plantilla) {
+                    $nombre = $plantilla->getNombre();
+                    $numPreguntas = $plantilla->getNumeroPreguntas();
+                    return $nombre . ' (' . $numPreguntas . ' preguntas)';
+                },
+                'required' => true,
+                'label' => 'Plantilla',
+                'attr' => ['class' => 'form-control', 'id' => 'pregunta_municipal_plantilla'],
+                'placeholder' => 'Selecciona una plantilla',
+                'query_builder' => function ($er) use ($municipio) {
+                    $qb = $er->createQueryBuilder('p')
+                        ->innerJoin('p.temaMunicipal', 't')
+                        ->where('t.activo = :activo')
+                        ->setParameter('activo', true);
+                    if ($municipio) {
+                        $qb->andWhere('t.municipio = :municipio')
+                           ->setParameter('municipio', $municipio);
+                    } else {
+                        $qb->andWhere('1 = 0');
+                    }
+                    return $qb->orderBy('t.nombre', 'ASC')
+                              ->addOrderBy('p.nombre', 'ASC');
+                },
+                'group_by' => function($plantilla) {
+                    return $plantilla->getTemaMunicipal() ? $plantilla->getTemaMunicipal()->getNombre() : 'Sin tema';
+                }
             ])
         ;
     }

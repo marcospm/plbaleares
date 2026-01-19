@@ -37,6 +37,7 @@
             {{ form_row(form.texto) }}
             {{ form_row(form.dificultad) }}
             {{ form_row(form.tema) }}
+            {{ form_row(form.plantilla) }}
             {{ form_row(form.ley) }}
             {{ form_row(form.articulo) }}
             {{ form_row(form.opcionA) }}
@@ -57,6 +58,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const temaSelect = document.querySelector('select[name="pregunta[tema]"]');
+    const dificultadSelect = document.querySelector('select[name="pregunta[dificultad]"]');
+    const plantillaSelect = document.querySelector('select[name="pregunta[plantilla]"]');
     const leySelect = document.querySelector('select[name="pregunta[ley]"]');
     const articuloSelect = document.querySelector('select[name="pregunta[articulo]"]');
     
@@ -128,8 +131,49 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
     
+    // Función para cargar plantillas por tema y dificultad
+    function cargarPlantillasPorTemaYDificultad(temaId, dificultad, plantillaIdSeleccionada = null) {
+        if (!temaId || !dificultad) {
+            if (plantillaSelect) {
+                plantillaSelect.innerHTML = '<option value="">Selecciona una plantilla</option>';
+                plantillaSelect.disabled = true;
+            }
+            return;
+        }
+        
+        fetch(`/plantilla/api/por-tema-dificultad?tema=${temaId}&dificultad=${dificultad}`)
+            .then(response => response.json())
+            .then(data => {
+                if (plantillaSelect) {
+                    plantillaSelect.innerHTML = '<option value="">Selecciona una plantilla</option>';
+                    if (data.plantillas && data.plantillas.length > 0) {
+                        data.plantillas.forEach(plantilla => {
+                            const option = document.createElement('option');
+                            option.value = plantilla.id;
+                            const label = plantilla.numeroPreguntas !== undefined 
+                                ? `${plantilla.nombre} (${plantilla.numeroPreguntas} preguntas)`
+                                : plantilla.nombre;
+                            option.textContent = label;
+                            if (plantillaIdSeleccionada && plantilla.id == plantillaIdSeleccionada) {
+                                option.selected = true;
+                            }
+                            plantillaSelect.appendChild(option);
+                        });
+                        plantillaSelect.disabled = false;
+                    } else {
+                        plantillaSelect.disabled = true;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar plantillas:', error);
+            });
+    }
+    
     // Cargar valores iniciales desde la pregunta editada
     const temaIdInicial = temaSelect ? temaSelect.value : null;
+    const dificultadInicial = dificultadSelect ? dificultadSelect.value : null;
+    const plantillaIdInicial = plantillaSelect ? plantillaSelect.value : null;
     const leyIdInicial = leySelect ? leySelect.value : null;
     const articuloIdInicial = articuloSelect ? articuloSelect.value : null;
     
@@ -137,6 +181,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (temaSelect) {
         temaSelect.addEventListener('change', function() {
             cargarLeyesPorTema(this.value);
+            if (dificultadSelect && dificultadSelect.value) {
+                cargarPlantillasPorTemaYDificultad(this.value, dificultadSelect.value);
+            }
         });
         
         // Cargar leyes si ya hay un tema seleccionado
@@ -146,6 +193,19 @@ document.addEventListener('DOMContentLoaded', function() {
             // Si no hay tema, deshabilitar ley y artículo
             if (leySelect) leySelect.disabled = true;
             if (articuloSelect) articuloSelect.disabled = true;
+        }
+    }
+    
+    if (dificultadSelect) {
+        dificultadSelect.addEventListener('change', function() {
+            if (temaSelect && temaSelect.value) {
+                cargarPlantillasPorTemaYDificultad(temaSelect.value, this.value);
+            }
+        });
+        
+        // Cargar plantillas si ya hay tema y dificultad seleccionados
+        if (temaIdInicial && dificultadInicial) {
+            cargarPlantillasPorTemaYDificultad(temaIdInicial, dificultadInicial, plantillaIdInicial);
         }
     }
     

@@ -61,6 +61,10 @@ class Pregunta
     #[ORM\OneToMany(targetEntity: \App\Entity\MensajePregunta::class, mappedBy: 'pregunta', orphanRemoval: true)]
     private Collection $mensajes;
 
+    #[ORM\ManyToOne(inversedBy: 'preguntas')]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Plantilla $plantilla = null;
+
     public function __construct()
     {
         $this->mensajes = new ArrayCollection();
@@ -251,6 +255,18 @@ class Pregunta
                 $mensaje->setPregunta(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getPlantilla(): ?Plantilla
+    {
+        return $this->plantilla;
+    }
+
+    public function setPlantilla(?Plantilla $plantilla): static
+    {
+        $this->plantilla = $plantilla;
 
         return $this;
     }

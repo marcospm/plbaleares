@@ -35,9 +35,13 @@ class TemaMunicipal
     #[ORM\OneToMany(targetEntity: PreguntaMunicipal::class, mappedBy: 'temaMunicipal')]
     private Collection $preguntasMunicipales;
 
+    #[ORM\OneToMany(targetEntity: PlantillaMunicipal::class, mappedBy: 'temaMunicipal')]
+    private Collection $plantillas;
+
     public function __construct()
     {
         $this->preguntasMunicipales = new ArrayCollection();
+        $this->plantillas = new ArrayCollection();
         $this->fechaCreacion = new \DateTime();
     }
 
@@ -129,6 +133,35 @@ class TemaMunicipal
         if ($this->preguntasMunicipales->removeElement($preguntasMunicipale)) {
             if ($preguntasMunicipale->getTemaMunicipal() === $this) {
                 $preguntasMunicipale->setTemaMunicipal(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, PlantillaMunicipal>
+     */
+    public function getPlantillas(): Collection
+    {
+        return $this->plantillas;
+    }
+
+    public function addPlantilla(PlantillaMunicipal $plantilla): static
+    {
+        if (!$this->plantillas->contains($plantilla)) {
+            $this->plantillas->add($plantilla);
+            $plantilla->setTemaMunicipal($this);
+        }
+
+        return $this;
+    }
+
+    public function removePlantilla(PlantillaMunicipal $plantilla): static
+    {
+        if ($this->plantillas->removeElement($plantilla)) {
+            if ($plantilla->getTemaMunicipal() === $this) {
+                $plantilla->setTemaMunicipal(null);
             }
         }
 

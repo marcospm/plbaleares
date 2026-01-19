@@ -6,6 +6,7 @@ use App\Entity\Pregunta;
 use App\Entity\Tema;
 use App\Entity\Ley;
 use App\Entity\Articulo;
+use App\Entity\Plantilla;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -98,6 +99,26 @@ class PreguntaType extends AbstractType
                 'required' => true,
                 'label' => 'Artículo',
                 'attr' => ['class' => 'form-control']
+            ])
+            ->add('plantilla', EntityType::class, [
+                'class' => Plantilla::class,
+                'choice_label' => function(Plantilla $plantilla) {
+                    $nombre = $plantilla->getNombre();
+                    $numPreguntas = $plantilla->getNumeroPreguntas();
+                    return $nombre . ' (' . $numPreguntas . ' preguntas)';
+                },
+                'required' => true,
+                'label' => 'Plantilla',
+                'attr' => ['class' => 'form-control'],
+                'placeholder' => 'Selecciona una plantilla',
+                'query_builder' => function ($er) {
+                    return $er->createQueryBuilder('p')
+                        ->orderBy('p.tema', 'ASC')
+                        ->addOrderBy('p.nombre', 'ASC');
+                },
+                'group_by' => function($plantilla) {
+                    return $plantilla->getTema() ? $plantilla->getTema()->getNombre() : 'Sin tema';
+                }
             ])
         ;
     }

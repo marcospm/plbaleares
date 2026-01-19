@@ -16,8 +16,9 @@
         {{ form_start(form) }}
             {{ form_row(form.municipio) }}
             {{ form_row(form.temaMunicipal) }}
-            {{ form_row(form.texto) }}
             {{ form_row(form.dificultad) }}
+            {{ form_row(form.plantilla) }}
+            {{ form_row(form.texto) }}
             {{ form_row(form.opcionA) }}
             {{ form_row(form.opcionB) }}
             {{ form_row(form.opcionC) }}
@@ -68,9 +69,47 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
     
-    // Manejo de municipio y tema con AJAX
+    // Manejo de municipio, tema, dificultad y plantilla con AJAX
     const municipioSelect = document.getElementById('pregunta_municipal_municipio');
     const temaSelect = document.getElementById('pregunta_municipal_temaMunicipal');
+    const dificultadSelect = document.querySelector('select[name="pregunta_municipal[dificultad]"]');
+    const plantillaSelect = document.querySelector('select[name="pregunta_municipal[plantilla]"]');
+    
+    // Función para cargar plantillas municipales por tema y dificultad
+    function cargarPlantillasMunicipalesPorTemaYDificultad(temaMunicipalId, dificultad, municipioId) {
+        if (!temaMunicipalId || !dificultad || !municipioId) {
+            if (plantillaSelect) {
+                plantillaSelect.innerHTML = '<option value="">Selecciona una plantilla</option>';
+                plantillaSelect.disabled = true;
+            }
+            return;
+        }
+        
+        fetch(`/plantilla/api/por-tema-municipal-dificultad?tema_municipal=${temaMunicipalId}&dificultad=${dificultad}&municipio=${municipioId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (plantillaSelect) {
+                    plantillaSelect.innerHTML = '<option value="">Selecciona una plantilla</option>';
+                    if (data.plantillas && data.plantillas.length > 0) {
+                        data.plantillas.forEach(plantilla => {
+                            const option = document.createElement('option');
+                            option.value = plantilla.id;
+                            const label = plantilla.numeroPreguntas !== undefined 
+                                ? `${plantilla.nombre} (${plantilla.numeroPreguntas} preguntas)`
+                                : plantilla.nombre;
+                            option.textContent = label;
+                            plantillaSelect.appendChild(option);
+                        });
+                        plantillaSelect.disabled = false;
+                    } else {
+                        plantillaSelect.disabled = true;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar plantillas:', error);
+            });
+    }
     
     if (municipioSelect && temaSelect) {
         municipioSelect.addEventListener('change', function() {
@@ -145,6 +184,41 @@ document.addEventListener('DOMContentLoaded', function() {
                 temaSelect.appendChild(placeholderOption);
             }
         });
+    }
+    
+    // Manejo de cambio de tema municipal y dificultad para cargar plantillas
+    if (temaSelect && dificultadSelect && plantillaSelect) {
+        function actualizarPlantillas() {
+            const temaId = temaSelect.value;
+            const dificultad = dificultadSelect.value;
+            const municipioId = municipioSelect ? municipioSelect.value : null;
+            
+            if (temaId && dificultad && municipioId) {
+                cargarPlantillasMunicipalesPorTemaYDificultad(temaId, dificultad, municipioId);
+            } else {
+                if (plantillaSelect) {
+                    plantillaSelect.innerHTML = '<option value="">Selecciona una plantilla</option>';
+                    plantillaSelect.disabled = true;
+                }
+            }
+        }
+        
+        if (temaSelect) {
+            temaSelect.addEventListener('change', actualizarPlantillas);
+        }
+        
+        if (dificultadSelect) {
+            dificultadSelect.addEventListener('change', actualizarPlantillas);
+        }
+        
+        if (municipioSelect) {
+            municipioSelect.addEventListener('change', function() {
+                // También actualizar plantillas cuando cambia el municipio
+                if (temaSelect.value && dificultadSelect.value) {
+                    actualizarPlantillas();
+                }
+            });
+        }
     }
 });
 </script>

@@ -1,0 +1,753 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Exámenes por Plantillas{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+{% if borradores is defined and borradores|length > 0 %}
+<div class="card mb-4" style="border-left: 4px solid #667eea;">
+    <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <h2 style="margin: 0; color: white;">📝 Exámenes por Plantillas Guardados en Borrador</h2>
+    </div>
+    <div class="card-body">
+        <p class="text-muted mb-3">Tienes {{ borradores|length }} examen(es) guardado(s) que puedes continuar:</p>
+        <div class="list-group">
+            {% for borrador in borradores %}
+                <div class="list-group-item d-flex justify-content-between align-items-center" style="border-left: 3px solid #667eea; margin-bottom: 0.5rem; padding: 1rem;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <strong style="font-size: 1rem;">
+                                📋 Examen por Plantilla
+                                {% if borrador.config.tipo_examen is defined %}
+                                    {% if borrador.config.tipo_examen == 'general' %}
+                                        - General
+                                    {% elseif borrador.config.tipo_examen == 'municipal' %}
+                                        - Municipal
+                                        {% if borrador.config.municipio_id is defined and municipios[borrador.config.municipio_id] is defined %}
+                                            ({{ municipios[borrador.config.municipio_id].nombre }})
+                                        {% endif %}
+                                    {% elseif borrador.config.tipo_examen == 'convocatoria' %}
+                                        - Convocatoria
+                                        {% if borrador.config.convocatoria_id is defined and convocatorias[borrador.config.convocatoria_id] is defined %}
+                                            ({{ convocatorias[borrador.config.convocatoria_id].nombre }})
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                            </strong>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.5rem;">
+                            <small class="text-muted" style="display: inline-block;">
+                                <strong>Dificultad:</strong> {{ borrador.config.dificultad|capitalize }}
+                            </small>
+                            <small class="text-muted" style="display: inline-block;">
+                                <strong>Preguntas:</strong> {{ borrador.preguntasIds|length }}
+                            </small>
+                            <small class="text-muted" style="display: inline-block;">
+                                <strong>Respondidas:</strong> {{ borrador.respuestas|length }}
+                            </small>
+                            <small class="text-muted" style="display: inline-block;">
+                                <strong>Progreso:</strong> {{ borrador.preguntaActual }}/{{ borrador.preguntasIds|length }}
+                            </small>
+                            {% if borrador.tiempoRestante %}
+                                <small class="text-muted" style="display: inline-block;">
+                                    <strong>⏱️ Tiempo restante:</strong> {{ (borrador.tiempoRestante / 60)|round }} min
+                                </small>
+                            {% endif %}
+                        </div>
+                        <small class="text-muted" style="display: block; font-size: 0.85rem;">
+                            💾 Guardado: {{ borrador.fechaActualizacion|date('d/m/Y H:i') }}
+                        </small>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; margin-left: 1rem;">
+                        <a href="{{ path('app_examen_continuar', {'id': borrador.id}) }}" class="btn btn-warning btn-sm">
+                            ▶️ Continuar
+                        </a>
+                        <form method="post" action="{{ path('app_examen_borrador_eliminar', {'id': borrador.id}) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este borrador?');">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete_borrador_' ~ borrador.id) }}">
+                            <button type="submit" class="btn btn-danger btn-sm" title="Eliminar borrador">
+                                🗑️
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+    <div class="card">
+        <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <h1 style="margin: 0; color: white;">📋 Exámenes por Plantillas</h1>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-4">
+                Selecciona el tipo de examen y luego elige una plantilla. El examen se realizará con todas las preguntas de la plantilla seleccionada.
+            </p>
+
+            <form id="examen-plantilla-form" method="post" action="{{ path('app_examen_plantilla_crear') }}">
+                <div class="form-group mb-4">
+                    <label for="tipo_examen" class="form-label fw-bold">Tipo de Examen</label>
+                    <select class="form-select form-select-lg" id="tipo_examen" name="tipo_examen" required>
+                        <option value="">-- Selecciona un tipo --</option>
+                        <option value="general">📚 Temario General</option>
+                        {% if tieneMunicipiosActivos %}
+                            <option value="municipal">🏛️ Municipal</option>
+                        {% endif %}
+                        {% if tieneConvocatoriasActivas %}
+                            <option value="convocatoria">📋 Convocatoria</option>
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div id="municipio_group" class="form-group mb-4" style="display: none;">
+                    <label for="municipio_select" class="form-label fw-bold">Municipio</label>
+                    <select class="form-select form-select-lg" id="municipio_select" name="municipio_id">
+                        <option value="">-- Selecciona un municipio --</option>
+                    </select>
+                </div>
+
+                <div id="convocatoria_group" class="form-group mb-4" style="display: none;">
+                    <label for="convocatoria_select" class="form-label fw-bold">Convocatoria</label>
+                    <select class="form-select form-select-lg" id="convocatoria_select" name="convocatoria_id">
+                        <option value="">-- Selecciona una convocatoria --</option>
+                    </select>
+                </div>
+
+                <div id="tema_group" class="form-group mb-4" style="display: none;">
+                    <label for="tema_select" class="form-label fw-bold">Tema (opcional)</label>
+                    <select class="form-select form-select-lg" id="tema_select" name="tema_id">
+                        <option value="">-- Todos los temas --</option>
+                    </select>
+                </div>
+
+                <div id="tema_municipal_group" class="form-group mb-4" style="display: none;">
+                    <label for="tema_municipal_select" class="form-label fw-bold">Tema Municipal (opcional)</label>
+                    <select class="form-select form-select-lg" id="tema_municipal_select" name="tema_municipal_id">
+                        <option value="">-- Todos los temas --</option>
+                    </select>
+                </div>
+
+                <div id="plantillas_container" class="mb-4" style="display: none;">
+                    <label for="plantilla_select" class="form-label fw-bold">Selecciona una Plantilla</label>
+                    <select class="form-select form-select-lg" id="plantilla_select" name="plantilla_id" required>
+                        <option value="">-- Selecciona una plantilla --</option>
+                    </select>
+                    <small class="form-text text-muted mt-2">
+                        <span id="plantilla_info" style="display: none;"></span>
+                    </small>
+                    
+                    <!-- Lista visual alternativa (opcional) -->
+                    <div class="mt-3" id="plantillas_list_container" style="display: none;">
+                        <label class="form-label fw-bold">O selecciona de la lista:</label>
+                        <div id="plantillas_list" class="list-group">
+                            <!-- Las plantillas se cargarán aquí mediante AJAX -->
+                        </div>
+                    </div>
+                    
+                    <div id="plantillas_loading" class="text-center mt-3" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="hidden" id="plantilla_id_hidden" name="plantilla_id" value="">
+                <input type="hidden" id="es_municipal" name="es_municipal" value="false">
+
+                <div class="form-group mb-4">
+                    <label for="tiempo_limite" class="form-label fw-bold">Tiempo Límite (minutos)</label>
+                    <input type="number" class="form-control form-control-lg" id="tiempo_limite" name="tiempo_limite" value="60" min="1" required>
+                    <small class="form-text text-muted">Tiempo máximo para completar el examen en minutos.</small>
+                </div>
+
+                <div class="form-group mb-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="modo_estudio" name="modo_estudio" value="1">
+                        <label class="form-check-label" for="modo_estudio">
+                            <strong>Modo Estudio</strong>
+                        </label>
+                    </div>
+                    <small class="form-text text-muted">En modo estudio verás la respuesta correcta inmediatamente después de responder cada pregunta.</small>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" id="btn_iniciar" class="btn btn-primary btn-lg" disabled>
+                        🚀 Iniciar Examen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoExamenSelect = document.getElementById('tipo_examen');
+    const municipioGroup = document.getElementById('municipio_group');
+    const convocatoriaGroup = document.getElementById('convocatoria_group');
+    const temaGroup = document.getElementById('tema_group');
+    const temaMunicipalGroup = document.getElementById('tema_municipal_group');
+    const plantillasContainer = document.getElementById('plantillas_container');
+    const plantillaSelect = document.getElementById('plantilla_select');
+    const plantillaInfo = document.getElementById('plantilla_info');
+    const plantillasListContainer = document.getElementById('plantillas_list_container');
+    const plantillasList = document.getElementById('plantillas_list');
+    const plantillasLoading = document.getElementById('plantillas_loading');
+    const plantillaIdInput = document.getElementById('plantilla_id_hidden');
+    const esMunicipalInput = document.getElementById('es_municipal');
+    const btnIniciar = document.getElementById('btn_iniciar');
+    const municipioSelect = document.getElementById('municipio_select');
+    const convocatoriaSelect = document.getElementById('convocatoria_select');
+    const temaSelect = document.getElementById('tema_select');
+    const temaMunicipalSelect = document.getElementById('tema_municipal_select');
+
+    let tipoExamenActual = '';
+
+    tipoExamenSelect.addEventListener('change', function() {
+        const tipo = this.value;
+        tipoExamenActual = tipo;
+
+        // Ocultar todos los grupos
+        municipioGroup.style.display = 'none';
+        convocatoriaGroup.style.display = 'none';
+        temaGroup.style.display = 'none';
+        temaMunicipalGroup.style.display = 'none';
+        plantillasContainer.style.display = 'none';
+        if (plantillaSelect) {
+            plantillaSelect.innerHTML = '<option value="">-- Selecciona una plantilla --</option>';
+            plantillaSelect.value = '';
+            plantillaSelect.required = false;
+        }
+        if (plantillasList) {
+            plantillasList.innerHTML = '';
+        }
+        if (plantillaInfo) {
+            plantillaInfo.style.display = 'none';
+            plantillaInfo.textContent = '';
+        }
+        plantillaIdInput.value = '';
+        btnIniciar.disabled = true;
+        esMunicipalInput.value = 'false';
+
+        if (tipo === 'general') {
+            temaGroup.style.display = 'block';
+            cargarTemas();
+            cargarPlantillas();
+        } else if (tipo === 'municipal') {
+            municipioGroup.style.display = 'block';
+            temaMunicipalGroup.style.display = 'block';
+            esMunicipalInput.value = 'true';
+            cargarMunicipios();
+        } else if (tipo === 'convocatoria') {
+            convocatoriaGroup.style.display = 'block';
+            esMunicipalInput.value = 'true';
+            cargarConvocatorias();
+        }
+    });
+
+    municipioSelect.addEventListener('change', function() {
+        if (this.value) {
+            cargarTemasMunicipales(this.value);
+            cargarPlantillas();
+        } else {
+            temaMunicipalSelect.innerHTML = '<option value="">-- Todos los temas --</option>';
+            plantillasContainer.style.display = 'none';
+        }
+    });
+
+    convocatoriaSelect.addEventListener('change', function() {
+        if (this.value) {
+            cargarPlantillas();
+        } else {
+            plantillasContainer.style.display = 'none';
+        }
+    });
+
+    temaSelect.addEventListener('change', function() {
+        cargarPlantillas();
+    });
+
+    temaMunicipalSelect.addEventListener('change', function() {
+        cargarPlantillas();
+    });
+
+    // Event listener para el selector de plantilla
+    if (plantillaSelect) {
+        plantillaSelect.addEventListener('change', function() {
+            const plantillaId = this.value;
+            if (plantillaId) {
+                const selectedOption = this.options[this.selectedIndex];
+                if (selectedOption && selectedOption.dataset) {
+                    const plantilla = {
+                        id: plantillaId,
+                        nombre: selectedOption.textContent.split(' (')[0],
+                        numeroPreguntas: selectedOption.dataset.numeroPreguntas,
+                        dificultadLabel: selectedOption.dataset.dificultad,
+                        tema: selectedOption.dataset.tema,
+                        municipio: selectedOption.dataset.municipio
+                    };
+                    actualizarInfoPlantilla(plantilla);
+                    if (plantillaIdInput) {
+                        plantillaIdInput.value = plantillaId;
+                    }
+                    btnIniciar.disabled = false;
+                    
+                    // Actualizar la lista visual también
+                    if (plantillasList) {
+                        document.querySelectorAll('#plantillas_list .list-group-item').forEach(el => {
+                            el.classList.remove('active');
+                            if (el.dataset.plantillaId === plantillaId) {
+                                el.classList.add('active');
+                            }
+                        });
+                    }
+                }
+            } else {
+                if (plantillaInfo) {
+                    plantillaInfo.style.display = 'none';
+                    plantillaInfo.textContent = '';
+                }
+                if (plantillaIdInput) {
+                    plantillaIdInput.value = '';
+                }
+                btnIniciar.disabled = true;
+            }
+        });
+    }
+    
+    // Sincronizar el valor del selector con el input hidden antes de enviar el formulario
+    const form = document.getElementById('examen-plantilla-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (plantillaSelect && plantillaSelect.value) {
+                if (plantillaIdInput) {
+                    plantillaIdInput.value = plantillaSelect.value;
+                }
+            } else {
+                e.preventDefault();
+                alert('Debes seleccionar una plantilla para continuar.');
+                return false;
+            }
+        });
+    }
+
+    function actualizarInfoPlantilla(plantilla) {
+        if (plantillaInfo && plantilla) {
+            let info = `<strong>${plantilla.numeroPreguntas} preguntas</strong> - Dificultad: <strong>${plantilla.dificultadLabel}</strong>`;
+            if (plantilla.tema) {
+                info += ` - Tema: <strong>${plantilla.tema}</strong>`;
+            }
+            if (plantilla.municipio) {
+                info += ` - Municipio: <strong>${plantilla.municipio}</strong>`;
+            }
+            plantillaInfo.innerHTML = info;
+            plantillaInfo.style.display = 'block';
+        }
+    }
+
+    function cargarTemas() {
+        fetch('{{ path('app_examen_plantilla_api_temas') }}')
+            .then(response => response.json())
+            .then(data => {
+                temaSelect.innerHTML = '<option value="">-- Todos los temas --</option>';
+                if (data.temas) {
+                    data.temas.forEach(tema => {
+                        const option = document.createElement('option');
+                        option.value = tema.id;
+                        option.textContent = tema.nombre;
+                        temaSelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => console.error('Error al cargar temas:', error));
+    }
+
+    function cargarMunicipios() {
+        fetch('{{ path('app_examen_plantilla_api_municipios') }}')
+            .then(response => response.json())
+            .then(data => {
+                municipioSelect.innerHTML = '<option value="">-- Selecciona un municipio --</option>';
+                if (data.municipios) {
+                    data.municipios.forEach(municipio => {
+                        const option = document.createElement('option');
+                        option.value = municipio.id;
+                        option.textContent = municipio.nombre;
+                        municipioSelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => console.error('Error al cargar municipios:', error));
+    }
+
+    function cargarConvocatorias() {
+        fetch('{{ path('app_examen_plantilla_api_convocatorias') }}')
+            .then(response => response.json())
+            .then(data => {
+                convocatoriaSelect.innerHTML = '<option value="">-- Selecciona una convocatoria --</option>';
+                if (data.convocatorias) {
+                    data.convocatorias.forEach(convocatoria => {
+                        const option = document.createElement('option');
+                        option.value = convocatoria.id;
+                        option.textContent = convocatoria.nombre;
+                        convocatoriaSelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => console.error('Error al cargar convocatorias:', error));
+    }
+
+    function cargarTemasMunicipales(municipioId) {
+        fetch(`{{ path('app_pregunta_municipal_api_temas', {'municipioId': 0}) }}`.replace('0', municipioId))
+            .then(response => response.json())
+            .then(data => {
+                temaMunicipalSelect.innerHTML = '<option value="">-- Todos los temas --</option>';
+                if (data.temas) {
+                    data.temas.forEach(tema => {
+                        const option = document.createElement('option');
+                        option.value = tema.id;
+                        option.textContent = tema.nombre;
+                        temaMunicipalSelect.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => console.error('Error al cargar temas municipales:', error));
+    }
+
+    function cargarPlantillas() {
+        if (!tipoExamenActual) {
+            return;
+        }
+
+        let url = `{{ path('app_examen_plantilla_api_plantillas') }}?tipo=${tipoExamenActual}`;
+        
+        if (tipoExamenActual === 'general') {
+            const temaId = temaSelect.value;
+            if (temaId) {
+                url += `&tema=${temaId}`;
+            }
+        } else if (tipoExamenActual === 'municipal') {
+            const municipioId = municipioSelect.value;
+            const temaMunicipalId = temaMunicipalSelect.value;
+            if (municipioId) {
+                url += `&municipio=${municipioId}`;
+                if (temaMunicipalId) {
+                    url += `&tema_municipal=${temaMunicipalId}`;
+                }
+            } else {
+                plantillasContainer.style.display = 'none';
+                return;
+            }
+        } else if (tipoExamenActual === 'convocatoria') {
+            const convocatoriaId = convocatoriaSelect.value;
+            if (convocatoriaId) {
+                url += `&convocatoria=${convocatoriaId}`;
+            } else {
+                plantillasContainer.style.display = 'none';
+                return;
+            }
+        }
+
+        plantillasLoading.style.display = 'block';
+        if (plantillaSelect) {
+            plantillaSelect.innerHTML = '<option value="">Cargando plantillas...</option>';
+            plantillaSelect.disabled = true;
+        }
+        if (plantillasList) {
+            plantillasList.innerHTML = '';
+        }
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                plantillasLoading.style.display = 'none';
+                
+                if (data.plantillas && data.plantillas.length > 0) {
+                    // Llenar el selector dropdown
+                    if (plantillaSelect) {
+                        plantillaSelect.innerHTML = '<option value="">-- Selecciona una plantilla --</option>';
+                        data.plantillas.forEach(plantilla => {
+                            const option = document.createElement('option');
+                            option.value = plantilla.id;
+                            const label = `${plantilla.nombre} (${plantilla.numeroPreguntas} preguntas - ${plantilla.dificultadLabel})`;
+                            option.textContent = label;
+                            option.dataset.numeroPreguntas = plantilla.numeroPreguntas;
+                            option.dataset.dificultad = plantilla.dificultadLabel;
+                            option.dataset.tema = plantilla.tema || '';
+                            option.dataset.municipio = plantilla.municipio || '';
+                            plantillaSelect.appendChild(option);
+                        });
+                        plantillaSelect.disabled = false;
+                    }
+                    
+                    // Llenar la lista visual (opcional)
+                    if (plantillasList) {
+                        plantillasList.innerHTML = '';
+                        data.plantillas.forEach(plantilla => {
+                            const item = document.createElement('div');
+                            item.className = 'list-group-item list-group-item-action';
+                            item.style.cursor = 'pointer';
+                            item.innerHTML = `
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">${plantilla.nombre}</h5>
+                                    <span class="badge bg-primary">${plantilla.numeroPreguntas} preguntas</span>
+                                </div>
+                                <p class="mb-1">
+                                    <strong>Dificultad:</strong> ${plantilla.dificultadLabel} | 
+                                    <strong>Tema:</strong> ${plantilla.tema || ''}
+                                    ${plantilla.municipio ? ' | <strong>Municipio:</strong> ' + plantilla.municipio : ''}
+                                </p>
+                            `;
+                            item.dataset.plantillaId = plantilla.id;
+                            item.addEventListener('click', function() {
+                                document.querySelectorAll('#plantillas_list .list-group-item').forEach(el => {
+                                    el.classList.remove('active');
+                                });
+                                this.classList.add('active');
+                                if (plantillaSelect) {
+                                    plantillaSelect.value = plantilla.id;
+                                    actualizarInfoPlantilla(plantilla);
+                                }
+                                plantillaIdInput.value = plantilla.id;
+                                btnIniciar.disabled = false;
+                            });
+                            plantillasList.appendChild(item);
+                        });
+                    }
+                    
+                    if (plantillaSelect) {
+                        plantillaSelect.required = true;
+                    }
+                    plantillasContainer.style.display = 'block';
+                } else {
+                    if (plantillaSelect) {
+                        plantillaSelect.innerHTML = '<option value="">No hay plantillas disponibles</option>';
+                        plantillaSelect.disabled = true;
+                        plantillaSelect.required = false;
+                    }
+                    if (plantillasList) {
+                        const alert = document.createElement('div');
+                        alert.className = 'alert alert-warning';
+                        alert.textContent = 'No hay plantillas disponibles para la selección actual.';
+                        plantillasList.appendChild(alert);
+                    }
+                    plantillasContainer.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                plantillasLoading.style.display = 'none';
+                if (plantillaSelect) {
+                    plantillaSelect.innerHTML = '<option value="">Error al cargar plantillas</option>';
+                    plantillaSelect.disabled = true;
+                }
+                console.error('Error:', error);
+                alert('Error al cargar las plantillas.');
+            });
+    }
+});
+</script>
+
+<style>
+/* Estilos para todos los selectores */
+#tipo_examen,
+#municipio_select,
+#convocatoria_select,
+#tema_select,
+#tema_municipal_select,
+#plantilla_select {
+    min-height: 45px !important;
+    font-size: 1rem !important;
+    padding: 0.5rem 0.75rem !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 0.375rem !important;
+    width: 100% !important;
+    background-color: #fff !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.75rem center !important;
+    background-size: 16px 12px !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    line-height: 1.5 !important;
+}
+
+#tipo_examen:focus,
+#municipio_select:focus,
+#convocatoria_select:focus,
+#tema_select:focus,
+#tema_municipal_select:focus,
+#plantilla_select:focus {
+    border-color: #86b7fe !important;
+    outline: 0 !important;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+}
+
+.form-select option {
+    padding: 0.5rem;
+}
+
+/* Estilos para la lista de plantillas */
+#plantillas_list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+#plantillas_list .list-group-item {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    margin-bottom: 0.5rem;
+    padding: 1rem;
+    transition: all 0.2s ease;
+    background-color: #fff;
+}
+
+#plantillas_list .list-group-item:hover {
+    background-color: #f8f9fa;
+    border-color: #86b7fe;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#plantillas_list .list-group-item.active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
+}
+
+#plantillas_list .list-group-item.active h5 {
+    color: #fff;
+}
+
+#plantillas_list .list-group-item.active p {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+#plantillas_list .list-group-item h5 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #212529;
+}
+
+#plantillas_list .list-group-item p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+#plantillas_list .list-group-item .badge {
+    font-size: 0.85rem;
+    padding: 0.35em 0.65em;
+}
+
+#plantillas_list .list-group-item.active .badge {
+    background-color: rgba(255, 255, 255, 0.3) !important;
+    color: #fff !important;
+}
+
+/* Campos de tiempo límite y modo estudio */
+#tiempo_limite {
+    min-height: 45px;
+    font-size: 1rem;
+    padding: 0.5rem 0.75rem;
+}
+
+#modo_estudio {
+    width: 20px;
+    height: 20px;
+    margin-right: 0.5rem;
+}
+
+.form-check-label {
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+/* Botón de iniciar examen */
+#btn_iniciar {
+    min-height: 48px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+}
+
+#btn_iniciar:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Spinner de carga */
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Estilos responsivos para móviles */
+@media (max-width: 768px) {
+    #tipo_examen,
+    #municipio_select,
+    #convocatoria_select,
+    #tema_select,
+    #tema_municipal_select,
+    #plantilla_select,
+    #tiempo_limite {
+        min-height: 48px !important;
+        font-size: 16px !important; /* Previene zoom en iOS */
+    }
+    
+    #modo_estudio {
+        width: 22px !important;
+        height: 22px !important;
+    }
+    
+    #plantillas_list {
+        max-height: 400px;
+    }
+    
+    #plantillas_list .list-group-item {
+        padding: 0.75rem;
+    }
+    
+    #plantillas_list .list-group-item h5 {
+        font-size: 1rem;
+    }
+    
+    #plantillas_list .list-group-item p {
+        font-size: 0.85rem;
+    }
+    
+    #btn_iniciar {
+        width: 100%;
+        min-height: 48px;
+    }
+    
+    .card {
+        margin: 0.5rem;
+    }
+    
+    .card-header h1 {
+        font-size: 1.3rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+}
+
+/* Estilos específicos para iPhone */
+@media (max-width: 480px) {
+    .card-header h1 {
+        font-size: 1.2rem;
+    }
+    
+    #plantillas_list {
+        max-height: 300px;
+    }
+    
+    .form-label {
+        font-size: 0.95rem;
+    }
+}
+</style>
+{% endblock %}

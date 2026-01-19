@@ -3,6 +3,7 @@
 {% block title %}Enviar Notificación General{% endblock %}
 
 {% block body %}
+<script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -25,7 +26,7 @@
             
             <div class="card mt-4">
                 <div class="card-body">
-                    <form method="post" action="{{ path('app_notificacion_general_enviar') }}">
+                    <form method="post" action="{{ path('app_notificacion_general_enviar') }}" id="notificacion-form">
                         <div class="mb-3">
                             <label for="titulo" class="form-label">
                                 <strong>Título <span class="text-danger">*</span></strong>
@@ -48,14 +49,14 @@
                                 <strong>Mensaje <span class="text-danger">*</span></strong>
                             </label>
                             <textarea 
-                                class="form-control" 
+                                class="form-control tinymce-editor" 
                                 id="mensaje" 
                                 name="mensaje" 
-                                rows="8" 
+                                rows="10" 
                                 required
                                 placeholder="Escribe aquí el mensaje que recibirán todos los alumnos..."
-                            >{{ mensaje|default('') }}</textarea>
-                            <small class="form-text text-muted">Este mensaje será visible para todos los alumnos activos</small>
+                            >{{ mensaje|default('')|raw }}</textarea>
+                            <small class="form-text text-muted">Este mensaje será visible para todos los alumnos activos. Puedes usar formato enriquecido (negrita, cursiva, listas, etc.)</small>
                         </div>
                         
                         <div class="alert alert-info">
@@ -77,4 +78,53 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Inicializar editor para mensaje (CKEditor)
+    const editorElement = document.querySelector('.tinymce-editor');
+    if (editorElement && typeof ClassicEditor !== 'undefined') {
+        ClassicEditor
+            .create(editorElement, {
+                toolbar: {
+                    items: [
+                        'heading', '|',
+                        'bold', 'italic', 'underline', 'strikethrough', '|',
+                        'fontSize', 'fontColor', 'fontBackgroundColor', '|',
+                        'bulletedList', 'numberedList', '|',
+                        'alignment', '|',
+                        'link', 'blockQuote', 'insertTable', '|',
+                        'undo', 'redo'
+                    ],
+                    shouldNotGroupWhenFull: true
+                },
+                heading: {
+                    options: [
+                        { model: 'paragraph', title: 'Párrafo', class: 'ck-heading_paragraph' },
+                        { model: 'heading1', view: 'h1', title: 'Título 1', class: 'ck-heading_heading1' },
+                        { model: 'heading2', view: 'h2', title: 'Título 2', class: 'ck-heading_heading2' },
+                        { model: 'heading3', view: 'h3', title: 'Título 3', class: 'ck-heading_heading3' }
+                    ]
+                },
+                fontSize: {
+                    options: [9, 11, 13, 'default', 17, 19, 21]
+                },
+                language: 'es'
+            })
+            .then(editor => {
+                console.log('CKEditor inicializado correctamente para notificación general');
+                
+                // Asegurar que el contenido HTML se envíe en el formulario
+                const form = document.getElementById('notificacion-form');
+                if (form) {
+                    form.addEventListener('submit', function(e) {
+                        // Actualizar el textarea con el contenido HTML del editor antes de enviar
+                        editor.updateSourceElement();
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error al inicializar CKEditor:', error);
+            });
+    }
+</script>
 {% endblock %}

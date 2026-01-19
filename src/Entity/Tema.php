@@ -34,10 +34,14 @@ class Tema
     #[ORM\OneToMany(targetEntity: Pregunta::class, mappedBy: 'tema')]
     private Collection $preguntas;
 
+    #[ORM\OneToMany(targetEntity: Plantilla::class, mappedBy: 'tema')]
+    private Collection $plantillas;
+
     public function __construct()
     {
         $this->leyes = new ArrayCollection();
         $this->preguntas = new ArrayCollection();
+        $this->plantillas = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -143,6 +147,35 @@ class Tema
         if ($this->preguntas->removeElement($pregunta)) {
             if ($pregunta->getTema() === $this) {
                 $pregunta->setTema(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Plantilla>
+     */
+    public function getPlantillas(): Collection
+    {
+        return $this->plantillas;
+    }
+
+    public function addPlantilla(Plantilla $plantilla): static
+    {
+        if (!$this->plantillas->contains($plantilla)) {
+            $this->plantillas->add($plantilla);
+            $plantilla->setTema($this);
+        }
+
+        return $this;
+    }
+
+    public function removePlantilla(Plantilla $plantilla): static
+    {
+        if ($this->plantillas->removeElement($plantilla)) {
+            if ($plantilla->getTema() === $this) {
+                $plantilla->setTema(null);
             }
         }
 

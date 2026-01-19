@@ -1,0 +1,108 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Plantillas{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4" style="flex-wrap: wrap; gap: 1rem;">
+    <h1 style="flex: 1; min-width: 0;">Plantillas{% if tipo == 'municipal' %} Municipales{% endif %}</h1>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{{ path('app_plantilla_index', {'tipo': 'general'}) }}" class="btn btn-{{ tipo == 'general' ? 'primary' : 'secondary' }}">Generales</a>
+        <a href="{{ path('app_plantilla_index', {'tipo': 'municipal'}) }}" class="btn btn-{{ tipo == 'municipal' ? 'primary' : 'secondary' }}">Municipales</a>
+        <a href="{{ path('app_plantilla_new', {'tipo': tipo}) }}" class="btn btn-success">Nueva Plantilla</a>
+    </div>
+</div>
+
+<form method="get" action="{{ path('app_plantilla_index', {'tipo': tipo}) }}" style="margin-bottom: 2rem;">
+    <div class="card">
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Tema:</label>
+                    <select name="tema" class="form-control">
+                        <option value="">Todos los temas</option>
+                        {% for tema in temas %}
+                            <option value="{{ tema.id }}" {% if temaSeleccionado == tema.id %}selected{% endif %}>
+                                {{ tema.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Dificultad:</label>
+                    <select name="dificultad" class="form-control">
+                        <option value="">Todas</option>
+                        <option value="facil" {% if dificultadSeleccionada == 'facil' %}selected{% endif %}>Fácil</option>
+                        <option value="moderada" {% if dificultadSeleccionada == 'moderada' %}selected{% endif %}>Moderada</option>
+                        <option value="dificil" {% if dificultadSeleccionada == 'dificil' %}selected{% endif %}>Difícil</option>
+                    </select>
+                </div>
+                <div>
+                    <input type="hidden" name="tipo" value="{{ tipo }}">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ path('app_plantilla_index', {'tipo': tipo}) }}" class="btn btn-secondary">Limpiar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if plantillas|length > 0 %}
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Tema</th>
+                        <th>Dificultad</th>
+                        <th>Preguntas</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plantilla in plantillas %}
+                        <tr>
+                            <td><strong>{{ plantilla.nombre }}</strong></td>
+                            <td>
+                                {% if tipo == 'municipal' %}
+                                    {{ plantilla.temaMunicipal.nombre }}
+                                {% else %}
+                                    {{ plantilla.tema.nombre }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ plantilla.dificultad }}">
+                                    {{ plantilla.dificultadLabel }}
+                                </span>
+                            </td>
+                            <td>
+                                {% set numPreguntas = preguntasCounts[plantilla.id] ?? plantilla.numeroPreguntas %}
+                                <span class="badge badge-primary">{{ numPreguntas }}</span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <a href="{{ path('app_plantilla_edit', {'id': plantilla.id, 'tipo': tipo}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                    {% set numPreguntas = preguntasCounts[plantilla.id] ?? plantilla.numeroPreguntas %}
+                                    {% if numPreguntas == 0 %}
+                                        <form method="post" action="{{ path('app_plantilla_delete', {'id': plantilla.id, 'tipo': tipo}) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta plantilla?');">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ plantilla.id) }}">
+                                            <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <p>No hay plantillas registradas aún.</p>
+            <a href="{{ path('app_plantilla_new', {'tipo': tipo}) }}" class="btn btn-primary">Crear Primera Plantilla</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

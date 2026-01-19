@@ -19,6 +19,20 @@ class PreguntaMunicipalRepository extends ServiceEntityRepository
     }
 
     /**
+     * Obtiene todas las preguntas activas de una plantilla municipal de forma optimizada
+     */
+    public function findActivasByPlantilla($plantilla): array
+    {
+        return $this->createQueryBuilder('p')
+            ->where('p.plantilla = :plantilla')
+            ->andWhere('p.activo = :activo')
+            ->setParameter('plantilla', $plantilla)
+            ->setParameter('activo', true)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Obtiene preguntas activas de un municipio con una dificultad específica
      * @return PreguntaMunicipal[]
      */
