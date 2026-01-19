@@ -62,10 +62,13 @@ class MunicipioController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Debug: verificar el valor antes de guardar
+            $numeroPlazas = $municipio->getNumeroPlazas();
+            
             $entityManager->persist($municipio);
             $entityManager->flush();
 
-            $this->addFlash('success', 'Municipio creado correctamente.');
+            $this->addFlash('success', 'Municipio creado correctamente.' . ($numeroPlazas ? " Número de plazas: {$numeroPlazas}" : ''));
             return $this->redirectToRoute('app_municipio_index', [], Response::HTTP_SEE_OTHER);
         }
 
@@ -100,9 +103,12 @@ class MunicipioController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Debug: verificar el valor antes de guardar
+            $numeroPlazas = $municipio->getNumeroPlazas();
+            
             $entityManager->flush();
 
-            $this->addFlash('success', 'Municipio actualizado correctamente.');
+            $this->addFlash('success', 'Municipio actualizado correctamente.' . ($numeroPlazas ? " Número de plazas: {$numeroPlazas}" : ''));
             return $this->redirectToRoute('app_municipio_index', [], Response::HTTP_SEE_OTHER);
         }
 

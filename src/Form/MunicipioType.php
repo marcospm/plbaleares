@@ -27,7 +27,9 @@ class MunicipioType extends AbstractType
                     'placeholder' => 'Ej: 10 (opcional)',
                     'min' => 0
                 ],
-                'help' => 'Número de plazas disponibles para este municipio (opcional)'
+                'help' => 'Número de plazas disponibles para este municipio (opcional)',
+                'empty_data' => null,
+                'invalid_message' => 'Por favor, introduce un número válido.'
             ])
         ;
     }
