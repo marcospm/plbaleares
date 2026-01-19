@@ -143,7 +143,20 @@
                         {% for tema in form.temasMunicipales %}
                             <div class="form-check mb-2">
                                 {{ form_widget(tema, {'attr': {'class': 'form-check-input tema-municipal-checkbox'}}) }}
-                                {{ form_label(tema, null, {'label_attr': {'class': 'form-check-label'}}) }}
+                                <label for="{{ tema.vars.id }}" class="form-check-label">
+                                    {% set temaId = tema.vars.value %}
+                                    {% set temaMunicipal = null %}
+                                    {% for choice in form.temasMunicipales.vars.choices %}
+                                        {% if choice.value == temaId %}
+                                            {% set temaMunicipal = choice.data %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if temaMunicipal and temaMunicipal.municipio %}
+                                        <strong>{{ temaMunicipal.municipio.nombre }}</strong> - {{ temaMunicipal.nombre }}
+                                    {% else %}
+                                        {{ tema.vars.label }}
+                                    {% endif %}
+                                </label>
                             </div>
                         {% endfor %}
                     </div>
