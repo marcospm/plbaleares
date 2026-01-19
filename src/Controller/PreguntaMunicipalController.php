@@ -119,7 +119,10 @@ class PreguntaMunicipalController extends AbstractController
         $municipioId = $request->query->getInt('municipio');
         $municipio = $municipioId > 0 ? $municipioRepository->find($municipioId) : null;
         
-        $form = $this->createForm(PreguntaMunicipalType::class, $preguntaMunicipal, ['municipio' => $municipio]);
+        $form = $this->createForm(PreguntaMunicipalType::class, $preguntaMunicipal, [
+            'municipio' => $municipio,
+            'is_new' => true,
+        ]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {

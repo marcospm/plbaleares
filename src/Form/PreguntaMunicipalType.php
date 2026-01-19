@@ -17,6 +17,7 @@ class PreguntaMunicipalType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $municipio = $options['municipio'] ?? null;
+        $isNew = $options['is_new'] ?? false;
 
         $builder
             ->add('texto', TextareaType::class, [
@@ -79,7 +80,8 @@ class PreguntaMunicipalType extends AbstractType
                 'required' => true,
                 'label' => 'Municipio',
                 'attr' => ['class' => 'form-control', 'id' => 'pregunta_municipal_municipio'],
-                'data' => $municipio,
+                'data' => $isNew ? null : $municipio,
+                'placeholder' => 'Selecciona municipio',
             ])
             ->add('temaMunicipal', EntityType::class, [
                 'class' => TemaMunicipal::class,
@@ -111,6 +113,7 @@ class PreguntaMunicipalType extends AbstractType
         $resolver->setDefaults([
             'data_class' => PreguntaMunicipal::class,
             'municipio' => null,
+            'is_new' => false,
         ]);
     }
 }
