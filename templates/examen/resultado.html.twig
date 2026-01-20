@@ -62,10 +62,63 @@
             {% endif %}
         </div>
 
+        {# Guía de preguntas - Navegación rápida #}
+        <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 0.75rem; margin-bottom: 1.5rem; margin-top: 2rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.85rem; color: #666; font-weight: 500;">📋 Guía de preguntas:</span>
+                <span style="font-size: 0.75rem; color: #999;">(Haz clic en cualquier número para ir a esa pregunta)</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: flex-start;">
+                {% for item in preguntas %}
+                    <a href="#pregunta-{{ loop.index }}" 
+                       style="display: inline-flex; align-items: center; justify-content: center; 
+                              min-width: 32px; height: 32px; 
+                              border-radius: 4px; 
+                              text-decoration: none; 
+                              font-weight: 500; 
+                              font-size: 0.8rem;
+                              transition: all 0.2s;
+                              cursor: pointer;
+                              user-select: none;
+                              {% if item.esCorrecta is null %}
+                                  background: #999;
+                                  color: white;
+                                  border: 2px solid #999;
+                              {% elseif item.esCorrecta %}
+                                  background: #28a745;
+                                  color: white;
+                                  border: 2px solid #28a745;
+                              {% else %}
+                                  background: #dc3545;
+                                  color: white;
+                                  border: 2px solid #dc3545;
+                              {% endif %}"
+                       onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 2px 6px rgba(0,0,0,0.15)';"
+                       onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                        {{ loop.index }}
+                    </a>
+                {% endfor %}
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 0.5rem; font-size: 0.75rem; color: #666; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <span style="display: inline-block; width: 14px; height: 14px; background: #28a745; border-radius: 3px; border: 2px solid #28a745;"></span>
+                    <span>Correcta</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <span style="display: inline-block; width: 14px; height: 14px; background: #dc3545; border-radius: 3px; border: 2px solid #dc3545;"></span>
+                    <span>Incorrecta</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <span style="display: inline-block; width: 14px; height: 14px; background: #999; border-radius: 3px; border: 2px solid #999;"></span>
+                    <span>En blanco</span>
+                </div>
+            </div>
+        </div>
+
         <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Detalle de Preguntas</h3>
 
         {% for item in preguntas %}
-            <div class="card mb-3" style="{% if item.esCorrecta is null %}border-left: 4px solid #999;{% elseif item.esCorrecta %}border-left: 4px solid var(--color-success);{% else %}border-left: 4px solid var(--color-danger);{% endif %}">
+            <div id="pregunta-{{ loop.index }}" class="card mb-3" style="{% if item.esCorrecta is null %}border-left: 4px solid #999;{% elseif item.esCorrecta %}border-left: 4px solid var(--color-success);{% else %}border-left: 4px solid var(--color-danger);{% endif %} scroll-margin-top: 80px;">
                 <div class="card-body">
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                         <div style="flex: 1;">

@@ -1217,7 +1217,8 @@
             
             // Variables del temporizador
             let tiempoInicio = null;
-            let tiempoLimite = null; // En segundos
+            let tiempoLimite = null; // En segundos (tiempo restante o tiempo límite completo)
+            let tiempoLimiteOriginal = null; // Tiempo límite original del examen (en segundos) - usado para comparación con localStorage
             let tiempoPausado = 0; // Tiempo acumulado en pausa
             let tiempoUltimaPausa = null; // Timestamp de cuando se pausó
             let intervalo = null;
@@ -1228,29 +1229,53 @@
             const tiempoRestanteBorrador = {{ (config.tiempo_restante ?? null)|default('null') }};
             const tiempoLimiteMinutos = {{ (config.tiempo_limite ?? 60)|default(60) }};
             
+            // Generar un identificador único del examen basado en los IDs de las preguntas
+            // Esto permite que cada examen tenga su propio temporizador
+            const preguntasIds = {{ preguntasIds|json_encode|raw }};
+            // Crear una copia del array antes de ordenar para no mutar el original
+            const preguntasIdsOrdenadas = [...preguntasIds].sort((a, b) => a - b);
+            const examenId = preguntasIdsOrdenadas.join(',') + '_' + (tiempoLimiteMinutos || 60);
+            
+            console.log('Generando ID del examen:', {
+                preguntasIdsOriginales: preguntasIds,
+                preguntasIdsOrdenadas: preguntasIdsOrdenadas,
+                tiempoLimiteMinutos: tiempoLimiteMinutos,
+                examenId: examenId
+            });
+            
             // Validar que tiempoLimiteMinutos sea un número válido y positivo
             const tiempoLimiteMinutosValidado = (typeof tiempoLimiteMinutos === 'number' && tiempoLimiteMinutos > 0) 
                 ? tiempoLimiteMinutos 
                 : 60;
             
+            // Siempre establecer el tiempo límite original (en segundos) para comparación con localStorage
+            tiempoLimiteOriginal = tiempoLimiteMinutosValidado * 60;
+            
             if (tiempoRestanteBorrador !== null && tiempoRestanteBorrador > 0) {
-                // Si hay tiempo restante del borrador, usarlo
+                // Si hay tiempo restante del borrador, usarlo como tiempo límite efectivo
                 tiempoLimite = tiempoRestanteBorrador;
             } else {
                 // Si no, usar el tiempo límite configurado (convertir minutos a segundos)
-                tiempoLimite = tiempoLimiteMinutosValidado * 60;
+                tiempoLimite = tiempoLimiteOriginal;
             }
             
             // Validar que tiempoLimite sea un número válido y positivo
             if (!tiempoLimite || tiempoLimite <= 0 || !isFinite(tiempoLimite)) {
                 console.error('Error: tiempoLimite inválido:', tiempoLimite, 'tiempoLimiteMinutos:', tiempoLimiteMinutos);
                 tiempoLimite = 60 * 60; // Fallback a 60 minutos en segundos
+                tiempoLimiteOriginal = tiempoLimite;
             }
             
-            console.log('Temporizador inicializado:', {
+            // Validar que tiempoLimiteOriginal sea válido
+            if (!tiempoLimiteOriginal || tiempoLimiteOriginal <= 0 || !isFinite(tiempoLimiteOriginal)) {
+                tiempoLimiteOriginal = 60 * 60; // Fallback a 60 minutos en segundos
+            }
+            
+                console.log('Temporizador inicializado:', {
                 tiempoLimiteMinutos: tiempoLimiteMinutos,
                 tiempoLimiteMinutosValidado: tiempoLimiteMinutosValidado,
                 tiempoLimiteSegundos: tiempoLimite,
+                tiempoLimiteOriginalSegundos: tiempoLimiteOriginal,
                 tiempoRestanteBorrador: tiempoRestanteBorrador,
                 tiempoLimiteStorage: localStorage.getItem('examen_tiempo_limite'),
                 tiempoInicioStorage: localStorage.getItem('examen_tiempo_inicio')
@@ -1270,11 +1295,13 @@
             
             // Función para actualizar el temporizador
             function actualizarTemporizador() {
-                if (!tiempoInicio || !tiempoLimite || estaPausado) return;
+                // Usar tiempoLimiteOriginal para el cálculo, no tiempoLimite (que puede ser tiempo restante del borrador)
+                if (!tiempoInicio || !tiempoLimiteOriginal || estaPausado) return;
                 
                 const ahora = Date.now();
                 const tiempoTranscurrido = Math.floor((ahora - tiempoInicio - tiempoPausado) / 1000);
-                const tiempoRestante = Math.max(0, tiempoLimite - tiempoTranscurrido);
+                // Calcular tiempo restante usando el tiempo límite original
+                const tiempoRestante = Math.max(0, tiempoLimiteOriginal - tiempoTranscurrido);
                 
                 const timerDisplay = document.getElementById('timer-display');
                 if (timerDisplay) {
@@ -1374,57 +1401,114 @@
                 }
                 
                 // Obtener tiempo de inicio desde localStorage o crear uno nuevo
+                // Usar el identificador único del examen para las claves del localStorage
+                const examenIdStorage = localStorage.getItem('examen_id');
                 const tiempoInicioStorage = localStorage.getItem('examen_tiempo_inicio');
                 const tiempoLimiteStorage = localStorage.getItem('examen_tiempo_limite');
                 const tiempoPausadoStorage = localStorage.getItem('examen_tiempo_pausado_total');
                 const estaPausadoStorage = localStorage.getItem('examen_timer_pausado');
                 const ultimaPausaStorage = localStorage.getItem('examen_timer_ultima_pausa');
                 
-                // Verificar si el tiempo límite del localStorage coincide con el tiempo límite actual
-                // Si no coincide, significa que es un examen nuevo y debemos limpiar el localStorage
-                const tiempoLimiteStorageNum = tiempoLimiteStorage ? parseInt(tiempoLimiteStorage) : null;
-                const tiempoLimiteCoincide = tiempoLimiteStorageNum === tiempoLimite;
+                // Verificar si es el mismo examen (mismo ID) y si el tiempo límite coincide
+                // Si no coincide el ID del examen, es un examen nuevo y debemos reiniciar
+                const esMismoExamen = examenIdStorage !== null && examenIdStorage === examenId;
+                
+                // Verificar si el tiempo límite del localStorage coincide con el tiempo límite ORIGINAL
+                // IMPORTANTE: Usar tiempoLimiteOriginal para la comparación, no tiempoLimite (que puede ser el tiempo restante)
+                const tiempoLimiteStorageNum = tiempoLimiteStorage ? parseInt(tiempoLimiteStorage, 10) : null;
+                // Usar comparación estricta numérica para evitar problemas de tipos
+                const tiempoLimiteCoincide = tiempoLimiteStorageNum !== null && tiempoLimiteStorageNum === tiempoLimiteOriginal;
+                
+                // Verificar si el tiempo de inicio es reciente (menos de 24 horas)
+                let tiempoInicioEsReciente = false;
+                if (tiempoInicioStorage) {
+                    const tiempoInicioTemp = parseInt(tiempoInicioStorage, 10);
+                    const ahora = Date.now();
+                    const horasTranscurridas = (ahora - tiempoInicioTemp) / (1000 * 60 * 60);
+                    tiempoInicioEsReciente = horasTranscurridas < 24;
+                }
+                
+                console.log('Verificación de coincidencia de examen y tiempo límite:', {
+                    examenIdActual: examenId,
+                    examenIdStorage: examenIdStorage,
+                    esMismoExamen: esMismoExamen,
+                    tiempoLimiteStorage: tiempoLimiteStorage,
+                    tiempoLimiteStorageNum: tiempoLimiteStorageNum,
+                    tiempoLimiteOriginal: tiempoLimiteOriginal,
+                    tiempoLimiteCoincide: tiempoLimiteCoincide,
+                    tieneTiempoInicio: !!tiempoInicioStorage,
+                    tiempoInicioEsReciente: tiempoInicioEsReciente,
+                    comparacionExacta: examenIdStorage === examenId,
+                    tipoExamenIdActual: typeof examenId,
+                    tipoExamenIdStorage: typeof examenIdStorage
+                });
                 
                 // Verificar si hay un tiempo de inicio válido y si el tiempo transcurrido es razonable
                 let debeReiniciar = false;
-                if (tiempoInicioStorage && tiempoLimiteCoincide) {
+                // Solo verificar el tiempo transcurrido si es el mismo examen y el tiempo límite coincide
+                if (esMismoExamen && tiempoInicioStorage && tiempoLimiteCoincide && tiempoInicioEsReciente) {
                     // Calcular tiempo transcurrido para verificar si es válido
                     const tiempoInicioTemp = parseInt(tiempoInicioStorage);
                     const tiempoPausadoTemp = tiempoPausadoStorage ? parseInt(tiempoPausadoStorage) : 0;
                     const ahora = Date.now();
                     const tiempoTranscurridoTemp = Math.floor((ahora - tiempoInicioTemp - tiempoPausadoTemp) / 1000);
                     
-                    // Si el tiempo transcurrido es mayor que el tiempo límite, es un examen nuevo
+                    // Si el tiempo transcurrido es mayor que el tiempo límite ORIGINAL, es un examen nuevo
                     // También verificamos que el tiempo transcurrido no sea negativo (error de cálculo)
-                    if (tiempoTranscurridoTemp >= tiempoLimite || tiempoTranscurridoTemp < 0) {
+                    // IMPORTANTE: Usar tiempoLimiteOriginal, no tiempoLimite (que puede ser tiempo restante)
+                    if (tiempoTranscurridoTemp >= tiempoLimiteOriginal || tiempoTranscurridoTemp < 0) {
                         debeReiniciar = true;
                         console.log('Tiempo transcurrido inválido o agotado. Reiniciando examen:', {
                             tiempoTranscurrido: tiempoTranscurridoTemp,
-                            tiempoLimite: tiempoLimite
+                            tiempoLimiteOriginal: tiempoLimiteOriginal,
+                            tiempoLimiteEfectivo: tiempoLimite
                         });
                     }
                 }
                 
-                // Si no hay tiempo de inicio, el tiempo límite no coincide, o el tiempo transcurrido es inválido, iniciar nuevo examen
-                if (!tiempoInicioStorage || !tiempoLimiteCoincide || debeReiniciar) {
+                // Si no es el mismo examen, no hay tiempo de inicio, el tiempo límite no coincide, el tiempo de inicio no es reciente, o el tiempo transcurrido es inválido, iniciar nuevo examen
+                if (!esMismoExamen || !tiempoInicioStorage || !tiempoLimiteCoincide || !tiempoInicioEsReciente || debeReiniciar) {
+                    console.log('Condición de reinicio detectada:', {
+                        noEsMismoExamen: !esMismoExamen,
+                        noTiempoInicio: !tiempoInicioStorage,
+                        tiempoLimiteNoCoincide: !tiempoLimiteCoincide,
+                        tiempoInicioNoReciente: !tiempoInicioEsReciente,
+                        debeReiniciar: debeReiniciar
+                    });
+                    
                     // Nuevo examen o tiempo límite diferente: limpiar localStorage y establecer tiempo de inicio
+                    localStorage.removeItem('examen_id');
                     localStorage.removeItem('examen_tiempo_inicio');
                     localStorage.removeItem('examen_tiempo_limite');
                     localStorage.removeItem('examen_tiempo_pausado_total');
                     localStorage.removeItem('examen_timer_pausado');
                     localStorage.removeItem('examen_timer_ultima_pausa');
                     
-                    tiempoInicio = Date.now();
+                    // Si viene de un borrador con tiempo restante, ajustar tiempoInicio para reflejar el tiempo ya transcurrido
+                    if (tiempoRestanteBorrador !== null && tiempoRestanteBorrador > 0 && tiempoRestanteBorrador < tiempoLimiteOriginal) {
+                        // Calcular cuánto tiempo ha transcurrido
+                        const tiempoTranscurridoDesdeInicio = tiempoLimiteOriginal - tiempoRestanteBorrador;
+                        // Ajustar tiempoInicio para que el cálculo resulte en el tiempo restante correcto
+                        tiempoInicio = Date.now() - (tiempoTranscurridoDesdeInicio * 1000);
+                        console.log('Iniciando desde borrador. Tiempo transcurrido:', tiempoTranscurridoDesdeInicio, 'segundos. Tiempo restante:', tiempoRestanteBorrador, 'segundos');
+                    } else {
+                        // Nuevo examen sin borrador: empezar desde ahora
+                        tiempoInicio = Date.now();
+                        console.log('Iniciando nuevo examen sin borrador. Tiempo de inicio:', new Date(tiempoInicio).toISOString());
+                    }
+                    
                     tiempoPausado = 0;
                     estaPausado = false;
                     tiempoUltimaPausa = null;
                     
+                    // Guardar el identificador del examen y el tiempo límite ORIGINAL en localStorage para futuras comparaciones
+                    localStorage.setItem('examen_id', examenId);
                     localStorage.setItem('examen_tiempo_inicio', tiempoInicio.toString());
-                    localStorage.setItem('examen_tiempo_limite', tiempoLimite.toString());
+                    localStorage.setItem('examen_tiempo_limite', tiempoLimiteOriginal.toString());
                     localStorage.setItem('examen_tiempo_pausado_total', '0');
                     localStorage.setItem('examen_timer_pausado', 'false');
                     
-                    console.log('Nuevo examen iniciado. Tiempo límite:', tiempoLimite, 'segundos');
+                    console.log('Nuevo examen iniciado. ID:', examenId, 'Tiempo límite original:', tiempoLimiteOriginal, 'segundos. Tiempo restante inicial:', tiempoLimite, 'segundos');
                 } else {
                     // Continuar con el examen existente (desde borrador)
                     tiempoInicio = parseInt(tiempoInicioStorage);
@@ -1444,14 +1528,18 @@
                     }
                     const tiempoTranscurrido = Math.floor((ahora - tiempoInicio - tiempoPausadoActual) / 1000);
                     
+                    // Calcular tiempo restante usando el tiempo límite original
+                    const tiempoRestanteEfectivo = tiempoLimiteOriginal - tiempoTranscurrido;
+                    
                     console.log('Continuando examen existente:', {
                         tiempoInicio: tiempoInicio,
                         tiempoTranscurrido: tiempoTranscurrido,
-                        tiempoLimite: tiempoLimite,
-                        tiempoRestante: tiempoLimite - tiempoTranscurrido
+                        tiempoLimiteOriginal: tiempoLimiteOriginal,
+                        tiempoRestante: tiempoRestanteEfectivo
                     });
                     
-                    if (tiempoTranscurrido >= tiempoLimite) {
+                    // Verificar contra el tiempo límite original
+                    if (tiempoTranscurrido >= tiempoLimiteOriginal) {
                         console.warn('Tiempo agotado al continuar examen');
                         finalizarExamenPorTiempo();
                         return;
@@ -1494,6 +1582,7 @@
                     clearInterval(intervalo);
                     intervalo = null;
                 }
+                localStorage.removeItem('examen_id');
                 localStorage.removeItem('examen_tiempo_inicio');
                 localStorage.removeItem('examen_tiempo_limite');
                 localStorage.removeItem('examen_tiempo_pausado_total');

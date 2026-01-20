@@ -915,7 +915,10 @@ class ExamenController extends AbstractController
                 
                 if ($preguntaParaComparar) {
                     $respuestaAlumno = $respuestas[$preguntaId];
-                    $esCorrecta = ($respuestaAlumno === $preguntaParaComparar->getRespuestaCorrecta());
+                    // Normalizar respuestas para comparación consistente
+                    $respuestaCorrectaNormalizada = strtoupper(trim($preguntaParaComparar->getRespuestaCorrecta() ?? ''));
+                    $respuestaAlumnoNormalizada = strtoupper(trim($respuestaAlumno));
+                    $esCorrecta = ($respuestaCorrectaNormalizada === $respuestaAlumnoNormalizada);
                 }
             }
             
@@ -938,6 +941,7 @@ class ExamenController extends AbstractController
             'pregunta' => $pregunta,
             'numero' => $numero,
             'total' => count($preguntasIds),
+            'preguntasIds' => $preguntasIds,
             'respuestaActual' => $respuestaActual,
             'esUltima' => $esUltima,
             'esPrimera' => $esPrimera,
@@ -1009,8 +1013,9 @@ class ExamenController extends AbstractController
 
             $respuestaAlumno = $respuestas[$preguntaId] ?? null;
             
-            // Si la pregunta está en blanco (null o vacío), no cuenta ni suma ni resta
-            if ($respuestaAlumno === null || $respuestaAlumno === '') {
+            // Si la pregunta está en blanco (null, vacío o solo espacios), no cuenta ni suma ni resta
+            $respuestaAlumnoTrimmed = is_string($respuestaAlumno) ? trim($respuestaAlumno) : $respuestaAlumno;
+            if ($respuestaAlumno === null || $respuestaAlumno === '' || $respuestaAlumnoTrimmed === '') {
                 $enBlanco++;
                 $preguntas[] = [
                     'pregunta' => $pregunta,
@@ -1020,8 +1025,13 @@ class ExamenController extends AbstractController
                 continue;
             }
 
+            // Normalizar respuestas para comparación (mayúsculas y sin espacios)
+            // Esto asegura consistencia con el resto del código
+            $respuestaCorrectaNormalizada = strtoupper(trim($pregunta->getRespuestaCorrecta() ?? ''));
+            $respuestaAlumnoNormalizada = strtoupper(trim($respuestaAlumno));
+            
             // Solo evaluar si hay respuesta
-            $esCorrecta = ($respuestaAlumno === $pregunta->getRespuestaCorrecta());
+            $esCorrecta = ($respuestaCorrectaNormalizada === $respuestaAlumnoNormalizada);
 
             if ($esCorrecta) {
                 $aciertos++;
