@@ -334,12 +334,20 @@
         <div class="card" style="margin-bottom: 2rem; background-color: #f8f9fa;">
             <div class="card-body">
                 <form method="GET" action="{{ path('app_examen_profesor') }}" id="filtrosForm" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+                    {# Preservar solo parámetros de ranking al filtrar (no paginación) #}
+                    {% if tipoRanking %}
+                        <input type="hidden" name="tipo_ranking" value="{{ tipoRanking }}">
+                    {% endif %}
+                    {% if convocatoriaRankingSeleccionada %}
+                        <input type="hidden" name="convocatoria_ranking" value="{{ convocatoriaRankingSeleccionada }}">
+                    {% endif %}
+                    
                     <div>
                         <label for="grupo" class="form-label">Filtrar por Grupo:</label>
-                        <select name="grupo" id="grupo" class="form-control" onchange="document.getElementById('filtrosForm').submit();">
+                        <select name="grupo" id="grupo" class="form-control">
                             <option value="">Todos los grupos</option>
                             {% for grupo in grupos %}
-                                <option value="{{ grupo.id }}" {% if grupoSeleccionado and grupoSeleccionado == grupo.id %}selected{% endif %}>
+                                <option value="{{ grupo.id }}" {% if grupoSeleccionado == grupo.id %}selected{% endif %}>
                                     {{ grupo.nombre }} ({{ grupo.alumnos|length }} alumno{{ grupo.alumnos|length != 1 ? 's' : '' }})
                                 </option>
                             {% endfor %}
@@ -347,70 +355,44 @@
                     </div>
                     <div>
                         <label for="usuario" class="form-label">Filtrar por Alumno:</label>
-                        <select name="usuario" id="usuario" class="form-control" onchange="document.getElementById('filtrosForm').submit();">
+                        <select name="usuario" id="usuario" class="form-control">
                             <option value="">Todos los alumnos</option>
                             {% for usuario in usuarios %}
-                                <option value="{{ usuario.id }}" {% if usuarioSeleccionado and usuarioSeleccionado == usuario.id %}selected{% endif %}>
+                                <option value="{{ usuario.id }}" {% if usuarioSeleccionado == usuario.id %}selected{% endif %}>
                                     {{ usuario.nombreDisplay }}
                                 </option>
                             {% endfor %}
                         </select>
                     </div>
                     <div>
-                        <label for="dificultad" class="form-label">Filtrar por Dificultad:</label>
-                        <select name="dificultad" id="dificultad" class="form-control" autocomplete="off" data-dificultad-seleccionada="{{ dificultadSeleccionada ?? '' }}" onchange="document.getElementById('filtrosForm').submit();">
-                            <option value="" {% if dificultadSeleccionada is null or dificultadSeleccionada == '' %}selected="selected"{% endif %}>Todas las dificultades</option>
-                            <option value="facil" {% if dificultadSeleccionada == 'facil' %}selected="selected"{% endif %}>Fácil</option>
-                            <option value="moderada" {% if dificultadSeleccionada == 'moderada' %}selected="selected"{% endif %}>Moderada</option>
-                            <option value="dificil" {% if dificultadSeleccionada == 'dificil' %}selected="selected"{% endif %}>Difícil</option>
+                        <label for="dificultad" class="form-label">Filtrar por Dificultad:</label>                        
+                        <select name="dificultad" id="dificultad" class="form-control">
+                            {% if dificultadSeleccionada == 'facil' %}
+                                <option value="">Todas las dificultades</option>
+                                <option value="facil" selected>Fácil</option>
+                                <option value="moderada">Moderada</option>
+                                <option value="dificil">Difícil</option>
+                            {% elseif dificultadSeleccionada == 'moderada' %}
+                                <option value="">Todas las dificultades</option>
+                                <option value="facil">Fácil</option>
+                                <option value="moderada" selected>Moderada</option>
+                                <option value="dificil">Difícil</option>
+                            {% elseif dificultadSeleccionada == 'dificil' %}
+                                <option value="">Todas las dificultades</option>
+                                <option value="facil">Fácil</option>
+                                <option value="moderada">Moderada</option>
+                                <option value="dificil" selected>Difícil</option>
+                            {% else %}
+                                <option value="" selected>Todas las dificultades</option>
+                                <option value="facil">Fácil</option>
+                                <option value="moderada">Moderada</option>
+                                <option value="dificil">Difícil</option>
+                            {% endif %}
                         </select>
-                        <script>
-                        // Script inline para forzar el valor correcto inmediatamente
-                        (function() {
-                            function resetearSelectDificultad() {
-                                const urlParams = new URLSearchParams(window.location.search);
-                                const dificultadParam = urlParams.get('dificultad');
-                                const select = document.getElementById('dificultad');
-                                if (select) {
-                                    // Leer el valor correcto desde el atributo data
-                                    const dificultadCorrecta = select.getAttribute('data-dificultad-seleccionada') || '';
-                                    
-                                    if (!dificultadParam || dificultadParam === '') {
-                                        // Si no hay parámetro en la URL, usar el valor del atributo data (que viene del servidor)
-                                        if (!dificultadCorrecta || dificultadCorrecta === '') {
-                                            select.value = '';
-                                            select.selectedIndex = 0;
-                                        } else {
-                                            select.value = dificultadCorrecta;
-                                        }
-                                    } else {
-                                        // Si hay parámetro en la URL, validarlo
-                                        if (['facil', 'moderada', 'dificil'].includes(dificultadParam)) {
-                                            select.value = dificultadParam;
-                                        } else {
-                                            // Si el parámetro no es válido, forzar "Todas las dificultades"
-                                            select.value = '';
-                                            select.selectedIndex = 0;
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            // Ejecutar inmediatamente
-                            resetearSelectDificultad();
-                            
-                            // También ejecutar cuando se hace clic en enlaces de paginación
-                            document.addEventListener('click', function(e) {
-                                if (e.target.closest('.pagination') || e.target.closest('.page-link')) {
-                                    setTimeout(resetearSelectDificultad, 100);
-                                }
-                            });
-                        })();
-                        </script>
                     </div>
                     <div>
                         <label for="tema" class="form-label">Filtrar por Tema (Temario General):</label>
-                        <select name="tema" id="tema" class="form-control" onchange="document.getElementById('filtrosForm').submit();">
+                        <select name="tema" id="tema" class="form-control">
                             <option value="">Todos los temas</option>
                             {% for tema in temas %}
                                 <option value="{{ tema.id }}" {% if temaSeleccionado and temaSeleccionado.id == tema.id %}selected{% endif %}>
@@ -500,21 +482,34 @@
                         <div class="card-footer" style="background-color: #f8f9fa; border-top: 1px solid #dee2e6; padding: 1rem;">
                             <nav aria-label="Paginación de exámenes generales">
                                 <ul class="pagination justify-content-center mb-0" style="flex-wrap: wrap;">
-                                    {% set paramsBaseGeneral = {
-                                        'grupo': grupoSeleccionado ? grupoSeleccionado : '',
-                                        'usuario': usuarioSeleccionado ? usuarioSeleccionado : '',
-                                        'dificultad': dificultadSeleccionada ? dificultadSeleccionada : '',
-                                        'tema': temaSeleccionado ? temaSeleccionado.id : '',
-                                        'page_municipal': currentPageMunicipal > 1 ? currentPageMunicipal : ''
-                                    } %}
-                                    {% set paramsBaseGeneral = paramsBaseGeneral|filter(v => v != '' and v != 0) %}
+                                    {% set paramsBaseGeneral = {} %}
+                                    {% if grupoSeleccionado %}
+                                        {% set paramsBaseGeneral = paramsBaseGeneral|merge({'grupo': grupoSeleccionado}) %}
+                                    {% endif %}
+                                    {% if usuarioSeleccionado %}
+                                        {% set paramsBaseGeneral = paramsBaseGeneral|merge({'usuario': usuarioSeleccionado}) %}
+                                    {% endif %}
+                                    {% if dificultadSeleccionada %}
+                                        {% set paramsBaseGeneral = paramsBaseGeneral|merge({'dificultad': dificultadSeleccionada}) %}
+                                    {% endif %}
+                                    {% if temaSeleccionado %}
+                                        {% set paramsBaseGeneral = paramsBaseGeneral|merge({'tema': temaSeleccionado.id}) %}
+                                    {% endif %}
+                                    {% if currentPageMunicipal > 1 %}
+                                        {% set paramsBaseGeneral = paramsBaseGeneral|merge({'page_municipal': currentPageMunicipal}) %}
+                                    {% endif %}
+                                    {% if tipoRanking %}
+                                        {% set paramsBaseGeneral = paramsBaseGeneral|merge({'tipo_ranking': tipoRanking}) %}
+                                    {% endif %}
+                                    {% if convocatoriaRankingSeleccionada %}
+                                        {% set paramsBaseGeneral = paramsBaseGeneral|merge({'convocatoria_ranking': convocatoriaRankingSeleccionada}) %}
+                                    {% endif %}
                                     
                                     {# Botón Anterior #}
                                     <li class="page-item {% if currentPageGeneral == 1 %}disabled{% endif %}">
                                         {% if currentPageGeneral > 1 %}
                                             {% set pageAnteriorGeneral = currentPageGeneral - 1 %}
-                                            {% set paramsAnteriorGeneral = paramsBaseGeneral|merge({'page_general': pageAnteriorGeneral > 1 ? pageAnteriorGeneral : ''}) %}
-                                            {% set paramsAnteriorGeneral = paramsAnteriorGeneral|filter(v => v != '') %}
+                                            {% set paramsAnteriorGeneral = paramsBaseGeneral|merge({'page_general': pageAnteriorGeneral}) %}
                                             <a class="page-link" href="{{ path('app_examen_profesor', paramsAnteriorGeneral) }}">
                                         {% else %}
                                             <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
@@ -529,7 +524,7 @@
                                     
                                     {% if startPageGeneral > 1 %}
                                         <li class="page-item">
-                                            {% set paramsFirst = paramsBaseGeneral|filter(v => v != '') %}
+                                            {% set paramsFirst = paramsBaseGeneral %}
                                             <a class="page-link" href="{{ path('app_examen_profesor', paramsFirst) }}">1</a>
                                         </li>
                                         {% if startPageGeneral > 2 %}
@@ -542,10 +537,10 @@
                                     {% for p in startPageGeneral..endPageGeneral %}
                                         <li class="page-item {% if p == currentPageGeneral %}active{% endif %}">
                                             {% if p > 1 %}
-                                                {% set paramsPage = paramsBaseGeneral|merge({'page_general': p})|filter(v => v != '') %}
+                                                {% set paramsPage = paramsBaseGeneral|merge({'page_general': p}) %}
                                                 <a class="page-link" href="{{ path('app_examen_profesor', paramsPage) }}">{{ p }}</a>
                                             {% else %}
-                                                {% set paramsPage = paramsBaseGeneral|filter(v => v != '' and v != 'page_general') %}
+                                                {% set paramsPage = paramsBaseGeneral %}
                                                 <a class="page-link" href="{{ path('app_examen_profesor', paramsPage) }}">{{ p }}</a>
                                             {% endif %}
                                         </li>
@@ -558,7 +553,7 @@
                                             </li>
                                         {% endif %}
                                         <li class="page-item">
-                                            {% set paramsLast = paramsBaseGeneral|merge({'page_general': totalPagesGeneral})|filter(v => v != '') %}
+                                            {% set paramsLast = paramsBaseGeneral|merge({'page_general': totalPagesGeneral}) %}
                                             <a class="page-link" href="{{ path('app_examen_profesor', paramsLast) }}">{{ totalPagesGeneral }}</a>
                                         </li>
                                     {% endif %}
@@ -566,7 +561,7 @@
                                     {# Botón Siguiente #}
                                     <li class="page-item {% if currentPageGeneral == totalPagesGeneral %}disabled{% endif %}">
                                         {% if currentPageGeneral < totalPagesGeneral %}
-                                            {% set paramsNext = paramsBaseGeneral|merge({'page_general': currentPageGeneral + 1})|filter(v => v != '') %}
+                                            {% set paramsNext = paramsBaseGeneral|merge({'page_general': currentPageGeneral + 1}) %}
                                             <a class="page-link" href="{{ path('app_examen_profesor', paramsNext) }}">
                                         {% else %}
                                             <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
@@ -657,23 +652,34 @@
                         <div class="card-footer" style="background-color: #f8f9fa; border-top: 1px solid #dee2e6; padding: 1rem;">
                             <nav aria-label="Paginación de exámenes municipales">
                                 <ul class="pagination justify-content-center mb-0" style="flex-wrap: wrap;">
-                                    {% set paramsBaseMunicipal = {
-                                        'grupo': grupoSeleccionado ? grupoSeleccionado : '',
-                                        'usuario': usuarioSeleccionado ? usuarioSeleccionado : '',
-                                        'tema': temaSeleccionado ? temaSeleccionado.id : '',
-                                        'page_general': currentPageGeneral > 1 ? currentPageGeneral : ''
-                                    } %}
+                                    {% set paramsBaseMunicipal = {} %}
+                                    {% if grupoSeleccionado %}
+                                        {% set paramsBaseMunicipal = paramsBaseMunicipal|merge({'grupo': grupoSeleccionado}) %}
+                                    {% endif %}
+                                    {% if usuarioSeleccionado %}
+                                        {% set paramsBaseMunicipal = paramsBaseMunicipal|merge({'usuario': usuarioSeleccionado}) %}
+                                    {% endif %}
                                     {% if dificultadSeleccionada %}
                                         {% set paramsBaseMunicipal = paramsBaseMunicipal|merge({'dificultad': dificultadSeleccionada}) %}
                                     {% endif %}
-                                    {% set paramsBaseMunicipal = paramsBaseMunicipal|filter(v => v != '' and v != 0) %}
+                                    {% if temaSeleccionado %}
+                                        {% set paramsBaseMunicipal = paramsBaseMunicipal|merge({'tema': temaSeleccionado.id}) %}
+                                    {% endif %}
+                                    {% if currentPageGeneral > 1 %}
+                                        {% set paramsBaseMunicipal = paramsBaseMunicipal|merge({'page_general': currentPageGeneral}) %}
+                                    {% endif %}
+                                    {% if tipoRanking %}
+                                        {% set paramsBaseMunicipal = paramsBaseMunicipal|merge({'tipo_ranking': tipoRanking}) %}
+                                    {% endif %}
+                                    {% if convocatoriaRankingSeleccionada %}
+                                        {% set paramsBaseMunicipal = paramsBaseMunicipal|merge({'convocatoria_ranking': convocatoriaRankingSeleccionada}) %}
+                                    {% endif %}
                                     
                                     {# Botón Anterior #}
                                     <li class="page-item {% if currentPageMunicipal == 1 %}disabled{% endif %}">
                                         {% if currentPageMunicipal > 1 %}
                                             {% set pageAnteriorMunicipal = currentPageMunicipal - 1 %}
-                                            {% set paramsAnteriorMunicipal = paramsBaseMunicipal|merge({'page_municipal': pageAnteriorMunicipal > 1 ? pageAnteriorMunicipal : ''}) %}
-                                            {% set paramsAnteriorMunicipal = paramsAnteriorMunicipal|filter(v => v != '') %}
+                                            {% set paramsAnteriorMunicipal = paramsBaseMunicipal|merge({'page_municipal': pageAnteriorMunicipal}) %}
                                             <a class="page-link" href="{{ path('app_examen_profesor', paramsAnteriorMunicipal) }}">
                                         {% else %}
                                             <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
@@ -688,7 +694,7 @@
                                     
                                     {% if startPageMunicipal > 1 %}
                                         <li class="page-item">
-                                            {% set paramsFirst = paramsBaseMunicipal|filter(v => v != '') %}
+                                            {% set paramsFirst = paramsBaseMunicipal %}
                                             <a class="page-link" href="{{ path('app_examen_profesor', paramsFirst) }}">1</a>
                                         </li>
                                         {% if startPageMunicipal > 2 %}
@@ -701,10 +707,10 @@
                                     {% for p in startPageMunicipal..endPageMunicipal %}
                                         <li class="page-item {% if p == currentPageMunicipal %}active{% endif %}">
                                             {% if p > 1 %}
-                                                {% set paramsPage = paramsBaseMunicipal|merge({'page_municipal': p})|filter(v => v != '') %}
+                                                {% set paramsPage = paramsBaseMunicipal|merge({'page_municipal': p}) %}
                                                 <a class="page-link" href="{{ path('app_examen_profesor', paramsPage) }}">{{ p }}</a>
                                             {% else %}
-                                                {% set paramsPage = paramsBaseMunicipal|filter(v => v != '' and v != 'page_municipal') %}
+                                                {% set paramsPage = paramsBaseMunicipal %}
                                                 <a class="page-link" href="{{ path('app_examen_profesor', paramsPage) }}">{{ p }}</a>
                                             {% endif %}
                                         </li>
@@ -717,7 +723,7 @@
                                             </li>
                                         {% endif %}
                                         <li class="page-item">
-                                            {% set paramsLast = paramsBaseMunicipal|merge({'page_municipal': totalPagesMunicipal})|filter(v => v != '') %}
+                                            {% set paramsLast = paramsBaseMunicipal|merge({'page_municipal': totalPagesMunicipal}) %}
                                             <a class="page-link" href="{{ path('app_examen_profesor', paramsLast) }}">{{ totalPagesMunicipal }}</a>
                                         </li>
                                     {% endif %}
@@ -725,7 +731,7 @@
                                     {# Botón Siguiente #}
                                     <li class="page-item {% if currentPageMunicipal == totalPagesMunicipal %}disabled{% endif %}">
                                         {% if currentPageMunicipal < totalPagesMunicipal %}
-                                            {% set paramsNext = paramsBaseMunicipal|merge({'page_municipal': currentPageMunicipal + 1})|filter(v => v != '') %}
+                                            {% set paramsNext = paramsBaseMunicipal|merge({'page_municipal': currentPageMunicipal + 1}) %}
                                             <a class="page-link" href="{{ path('app_examen_profesor', paramsNext) }}">
                                         {% else %}
                                             <a class="page-link" href="#" tabindex="-1" aria-disabled="true">
@@ -873,63 +879,30 @@
 </div>
 
 <script>
-// Habilitar/deshabilitar selector de convocatoria según el tipo de ranking
-document.getElementById('tipo_ranking').addEventListener('change', function() {
+document.addEventListener('DOMContentLoaded', function() {
+    // Habilitar/deshabilitar selector de convocatoria según el tipo de ranking
+    const tipoRankingSelect = document.getElementById('tipo_ranking');
     const convocatoriaSelect = document.getElementById('convocatoria_ranking');
-    if (this.value === 'convocatoria') {
-        convocatoriaSelect.disabled = false;
-    } else {
-        convocatoriaSelect.disabled = true;
-        convocatoriaSelect.value = '';
+    
+    if (tipoRankingSelect && convocatoriaSelect) {
+        // Establecer estado inicial
+        if (tipoRankingSelect.value === 'convocatoria') {
+            convocatoriaSelect.disabled = false;
+        } else {
+            convocatoriaSelect.disabled = true;
+        }
+        
+        // Manejar cambios
+        tipoRankingSelect.addEventListener('change', function() {
+            if (this.value === 'convocatoria') {
+                convocatoriaSelect.disabled = false;
+            } else {
+                convocatoriaSelect.disabled = true;
+                convocatoriaSelect.value = '';
+            }
+        });
     }
 });
-
-// Asegurar que el select de dificultad muestre "Todas las dificultades" si no hay parámetro en la URL
-(function() {
-    function resetearDificultad() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const dificultadParam = urlParams.get('dificultad');
-        const dificultadSelect = document.getElementById('dificultad');
-        
-        if (dificultadSelect) {
-            if (!dificultadParam || dificultadParam === '') {
-                // Si no hay parámetro, forzar "Todas las dificultades"
-                dificultadSelect.value = '';
-                dificultadSelect.selectedIndex = 0;
-            } else {
-                // Si hay parámetro válido, establecer ese valor
-                if (['facil', 'moderada', 'dificil'].includes(dificultadParam)) {
-                    dificultadSelect.value = dificultadParam;
-                } else {
-                    // Si el parámetro no es válido, forzar "Todas las dificultades"
-                    dificultadSelect.value = '';
-                    dificultadSelect.selectedIndex = 0;
-                }
-            }
-        }
-    }
-    
-    // Ejecutar inmediatamente
-    resetearDificultad();
-    
-    // También ejecutar cuando se carga la página
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', resetearDificultad);
-    } else {
-        setTimeout(resetearDificultad, 0);
-    }
-    
-    // Ejecutar después de que Turbo cargue la página
-    document.addEventListener('turbo:load', resetearDificultad);
-    document.addEventListener('turbo:frame-load', resetearDificultad);
-    
-    // Ejecutar cuando se hace clic en enlaces de paginación
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.pagination') || e.target.closest('.page-link')) {
-            setTimeout(resetearDificultad, 200);
-        }
-    });
-})();
 </script>
 {% endblock %}
 

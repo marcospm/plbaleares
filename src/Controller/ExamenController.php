@@ -1756,29 +1756,57 @@ class ExamenController extends AbstractController
             }
         }
         
-        // Obtener parámetros del request
+        // Obtener parámetros del request - SOLO si existen en la URL
+        $usuarioId = null;
         $usuarioIdParam = $request->query->get('usuario');
-        $usuarioId = ($usuarioIdParam !== null && $usuarioIdParam !== '') ? (int)$usuarioIdParam : null;
+        if ($usuarioIdParam !== null && $usuarioIdParam !== '') {
+            $usuarioId = (int)$usuarioIdParam;
+            if ($usuarioId <= 0) {
+                $usuarioId = null;
+            }
+        }
         
-        $dificultad = $request->query->get('dificultad');
-        // Validar que la dificultad sea un valor válido, si no, establecer como null
-        if ($dificultad !== null && $dificultad !== '' && in_array($dificultad, ['facil', 'moderada', 'dificil'])) {
-            $dificultad = $dificultad;
-        } else {
+        // Obtener dificultad SOLO si existe en la URL y es válida
+        $dificultad = null;
+        $dificultadParam = $request->query->get('dificultad');
+        
+        // Solo procesar si el parámetro existe y no está vacío
+        if ($dificultadParam !== null && $dificultadParam !== '') {
+            $dificultadParam = trim((string)$dificultadParam);
+            // Solo aceptar valores exactos válidos
+            if ($dificultadParam === 'facil') {
+                $dificultad = 'facil';
+            } elseif ($dificultadParam === 'moderada') {
+                $dificultad = 'moderada';
+            } elseif ($dificultadParam === 'dificil') {
+                $dificultad = 'dificil';
+            }
+            // Si no es ninguno de los valores válidos, $dificultad permanece null
+        }
+        
+        // Asegurar explícitamente que $dificultad sea null si no hay parámetro válido
+        if ($dificultad !== 'facil' && $dificultad !== 'moderada' && $dificultad !== 'dificil') {
             $dificultad = null;
         }
         
-        $temaIdParam = $request->query->get('tema');
-        $temaId = ($temaIdParam !== null && $temaIdParam !== '') ? (int)$temaIdParam : null;
-        
         $tema = null;
-        if ($temaId !== null && $temaId > 0) {
-            $tema = $temaRepository->find($temaId);
+        $temaIdParam = $request->query->get('tema');
+        if ($temaIdParam !== null && $temaIdParam !== '') {
+            $temaId = (int)$temaIdParam;
+            if ($temaId > 0) {
+                $tema = $temaRepository->find($temaId);
+            }
         }
         
         // Obtener parámetro de grupo
+        $grupoId = null;
         $grupoIdParam = $request->query->get('grupo');
-        $grupoId = ($grupoIdParam !== null && $grupoIdParam !== '') ? (int)$grupoIdParam : null;
+        if ($grupoIdParam !== null && $grupoIdParam !== '') {
+            $grupoId = (int)$grupoIdParam;
+            if ($grupoId <= 0) {
+                $grupoId = null;
+            }
+        }
         
         $grupo = null;
         $alumnosGrupoIds = [];
@@ -1929,8 +1957,13 @@ class ExamenController extends AbstractController
         
         // Parámetros de paginación
         $itemsPerPage = 20; // Número de exámenes por página
-        $pageGeneral = max(1, $request->query->getInt('page_general', 1));
-        $pageMunicipal = max(1, $request->query->getInt('page_municipal', 1));
+        // Si hay filtros activos pero no hay parámetro de página explícito, resetear a página 1
+        // Esto evita problemas cuando se cambian filtros pero la URL todavía tiene parámetros de página antiguos
+        $pageGeneralParam = $request->query->get('page_general');
+        $pageGeneral = ($pageGeneralParam !== null && $pageGeneralParam !== '') ? max(1, (int)$pageGeneralParam) : 1;
+        
+        $pageMunicipalParam = $request->query->get('page_municipal');
+        $pageMunicipal = ($pageMunicipalParam !== null && $pageMunicipalParam !== '') ? max(1, (int)$pageMunicipalParam) : 1;
         
         // Calcular paginación para exámenes generales
         $totalItemsGeneral = count($examenesGeneral);
@@ -2063,14 +2096,14 @@ class ExamenController extends AbstractController
         }
         
         // Calcular ranking para cada dificultad
-        foreach ($dificultades as $dificultad) {
+        foreach ($dificultades as $dificultadRanking) {
             $rankingDificultad = [];
             
             if ($tipoRanking === 'convocatoria' && $convocatoriaRanking !== null) {
                 // Ranking por convocatoria y dificultad
                 $rankingCompleto = $this->examenRepository->getRankingPorConvocatoriaYDificultad(
                     $convocatoriaRanking,
-                    $dificultad,
+                    $dificultadRanking,
                     $cantidadExamenesRanking
                 );
                 
@@ -2126,7 +2159,7 @@ class ExamenController extends AbstractController
                         // Calcular nota media para esta dificultad
                         $notaMedia = $this->examenRepository->getNotaMediaUsuario(
                             $alumno,
-                            $dificultad,
+                            $dificultadRanking,
                             $cantidadExamenesRanking,
                             $tema
                         );
@@ -2138,7 +2171,7 @@ class ExamenController extends AbstractController
                                 ->andWhere('e.dificultad = :dificultad')
                                 ->andWhere('e.municipio IS NULL')
                                 ->setParameter('usuario', $alumno)
-                                ->setParameter('dificultad', $dificultad);
+                                ->setParameter('dificultad', $dificultadRanking);
                             
                             if ($tema !== null) {
                                 $qb->innerJoin('e.temas', 't')
@@ -2178,14 +2211,14 @@ class ExamenController extends AbstractController
                 } else {
                     // Admin sin filtros: usar el método completo que obtiene todos los alumnos
                     $rankingDificultad = $this->examenRepository->getRankingPorDificultad(
-                        $dificultad,
+                        $dificultadRanking,
                         $cantidadExamenesRanking,
                         $tema
                     );
                 }
             }
             
-            $rankings[$dificultad] = $rankingDificultad;
+            $rankings[$dificultadRanking] = $rankingDificultad;
         }
         
         return $this->render('examen/profesor.html.twig', [
@@ -2195,10 +2228,10 @@ class ExamenController extends AbstractController
             'temas' => $temas,
             'grupos' => $gruposDisponibles,
             'convocatorias' => $convocatoriasDisponibles,
-            'usuarioSeleccionado' => $usuarioId !== null && $usuarioId > 0 ? $usuarioId : null,
-            'dificultadSeleccionada' => $dificultad,
+            'usuarioSeleccionado' => $usuarioId,
+            'dificultadSeleccionada' => ($dificultad === 'facil' || $dificultad === 'moderada' || $dificultad === 'dificil') ? $dificultad : null,
             'temaSeleccionado' => $tema,
-            'grupoSeleccionado' => $grupoId !== null && $grupoId > 0 ? $grupoId : null,
+            'grupoSeleccionado' => $grupoId,
             'tipoRanking' => $tipoRanking,
             'convocatoriaRankingSeleccionada' => $convocatoriaRankingId !== null && $convocatoriaRankingId > 0 ? $convocatoriaRankingId : null,
             'rankings' => $rankings,
