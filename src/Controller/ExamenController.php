@@ -60,6 +60,7 @@ class ExamenController extends AbstractController
         $session->remove('examen_pregunta_actual');
         $session->remove('examen_preguntas_bloqueadas');
         $session->remove('examen_preguntas_riesgo');
+        $session->remove('examen_tiempo_inicio'); // Limpiar tiempo de inicio al iniciar nuevo examen
 
         $municipioId = $request->query->getInt('municipio');
         $convocatoriaId = $request->query->getInt('convocatoria');
@@ -429,6 +430,8 @@ class ExamenController extends AbstractController
                 $session->set('examen_pregunta_actual', 0);
                 $session->set('examen_preguntas_bloqueadas', []); // Preguntas bloqueadas en modo estudio
                 $session->set('examen_preguntas_riesgo', []); // Preguntas marcadas como riesgo
+                // Guardar tiempo de inicio del examen en la sesión para persistencia entre navegaciones
+                $session->set('examen_tiempo_inicio', time());
 
                 // Guardar automáticamente en borrador al iniciar el examen
                 // Permite múltiples borradores - no se eliminan los anteriores
@@ -936,6 +939,10 @@ class ExamenController extends AbstractController
             $config['tiempo_restante'] = $tiempoRestante;
             $session->remove('examen_tiempo_restante'); // Limpiar después de usarlo
         }
+        
+        // Obtener tiempo de inicio del examen desde la sesión (si existe)
+        // Si no existe, será null y el JavaScript lo manejará
+        $tiempoInicioSesion = $session->get('examen_tiempo_inicio');
 
         return $this->render('examen/pregunta.html.twig', [
             'pregunta' => $pregunta,
@@ -956,6 +963,7 @@ class ExamenController extends AbstractController
             'preguntaBloqueada' => $preguntaBloqueada,
             'respuestaCorrecta' => $respuestaCorrecta,
             'retroalimentacion' => $retroalimentacion,
+            'tiempoInicioSesion' => $tiempoInicioSesion,
         ]);
     }
 
@@ -1288,6 +1296,7 @@ class ExamenController extends AbstractController
         $session->remove('examen_respuestas');
         $session->remove('examen_config');
         $session->remove('examen_pregunta_actual');
+        $session->remove('examen_tiempo_inicio'); // Limpiar tiempo de inicio al finalizar
 
         return $this->render('examen/resultado.html.twig', [
             'examen' => $examen,

@@ -891,11 +891,10 @@ select[name="examen_iniciar[convocatoria]"]:focus {
     });
     
     // Limpiar temporizador al iniciar un nuevo examen
-    localStorage.removeItem('examen_tiempo_inicio');
-    localStorage.removeItem('examen_tiempo_limite');
-    localStorage.removeItem('examen_tiempo_pausado_total');
-    localStorage.removeItem('examen_timer_pausado');
-    localStorage.removeItem('examen_timer_ultima_pausa');
+    // IMPORTANTE: Solo limpiar si NO estamos en medio de un examen activo
+    // Verificar primero si hay un examen activo en la sesión antes de limpiar
+    // Esto evita que se limpie el localStorage cuando el usuario solo visita la página sin iniciar examen
+    // Nota: La limpieza real del temporizador se hace cuando se inicia un nuevo examen en el controlador
 })();
 </script>
 {% endblock %}

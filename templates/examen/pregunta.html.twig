@@ -1236,6 +1236,19 @@
             const preguntasIdsOrdenadas = [...preguntasIds].sort((a, b) => a - b);
             const examenId = preguntasIdsOrdenadas.join(',') + '_' + (tiempoLimiteMinutos || 60);
             
+            // Verificar inmediatamente qué hay en localStorage ANTES de inicializar
+            const examenIdAntes = localStorage.getItem('examen_id');
+            const tiempoInicioAntes = localStorage.getItem('examen_tiempo_inicio');
+            console.log('🔍 Estado ANTES de inicializar temporizador:', {
+                examenIdActual: examenId,
+                examenIdEnStorage: examenIdAntes,
+                tiempoInicioEnStorage: tiempoInicioAntes,
+                todasLasClaves: Object.keys(localStorage).filter(k => k.startsWith('examen_')),
+                preguntasIdsOriginales: preguntasIds,
+                preguntasIdsOrdenadas: preguntasIdsOrdenadas,
+                tiempoLimiteMinutos: tiempoLimiteMinutos
+            });
+            
             console.log('Generando ID del examen:', {
                 preguntasIdsOriginales: preguntasIds,
                 preguntasIdsOrdenadas: preguntasIdsOrdenadas,
@@ -1392,22 +1405,81 @@
                 actualizarTemporizador();
             }
             
+            // Variable para prevenir múltiples inicializaciones
+            let temporizadorInicializado = false;
+            
             // Inicializar temporizador
             function inicializarTemporizador() {
+                // Prevenir múltiples inicializaciones
+                if (temporizadorInicializado) {
+                    console.log('Temporizador ya inicializado, omitiendo...');
+                    return;
+                }
+                
                 // Limpiar intervalo anterior si existe
                 if (intervalo) {
                     clearInterval(intervalo);
                     intervalo = null;
                 }
                 
-                // Obtener tiempo de inicio desde localStorage o crear uno nuevo
+                // Obtener tiempo de inicio desde localStorage o desde la sesión del servidor
                 // Usar el identificador único del examen para las claves del localStorage
-                const examenIdStorage = localStorage.getItem('examen_id');
-                const tiempoInicioStorage = localStorage.getItem('examen_tiempo_inicio');
-                const tiempoLimiteStorage = localStorage.getItem('examen_tiempo_limite');
-                const tiempoPausadoStorage = localStorage.getItem('examen_tiempo_pausado_total');
-                const estaPausadoStorage = localStorage.getItem('examen_timer_pausado');
-                const ultimaPausaStorage = localStorage.getItem('examen_timer_ultima_pausa');
+                // Leer todos los valores de localStorage de una vez con manejo de errores
+                let examenIdStorage, tiempoInicioStorage, tiempoLimiteStorage, tiempoPausadoStorage, estaPausadoStorage, ultimaPausaStorage;
+                
+                // Obtener tiempo de inicio desde la sesión del servidor (más confiable que localStorage)
+                const tiempoInicioSesion = {{ (tiempoInicioSesion ?? null)|default('null') }};
+                
+                try {
+                    examenIdStorage = localStorage.getItem('examen_id');
+                    tiempoInicioStorage = localStorage.getItem('examen_tiempo_inicio');
+                    tiempoLimiteStorage = localStorage.getItem('examen_tiempo_limite');
+                    tiempoPausadoStorage = localStorage.getItem('examen_tiempo_pausado_total');
+                    estaPausadoStorage = localStorage.getItem('examen_timer_pausado');
+                    ultimaPausaStorage = localStorage.getItem('examen_timer_ultima_pausa');
+                    
+                    // PRIORIDAD: Si hay tiempo de inicio en la sesión del servidor, usarlo como fuente de verdad
+                    // Esto es más confiable que localStorage que puede limpiarse
+                    if (tiempoInicioSesion !== null) {
+                        const tiempoInicioSesionMs = tiempoInicioSesion * 1000;
+                        
+                        // Si no hay tiempo de inicio en localStorage o difiere significativamente, usar el de la sesión
+                        if (!tiempoInicioStorage || (tiempoInicioStorage && Math.abs(tiempoInicioSesionMs - parseInt(tiempoInicioStorage, 10)) > 5000)) {
+                            console.log('✅ Usando tiempo de inicio de la sesión del servidor (más confiable)');
+                            tiempoInicioStorage = tiempoInicioSesionMs.toString();
+                            // Guardar en localStorage para futuras referencias
+                            localStorage.setItem('examen_tiempo_inicio', tiempoInicioStorage);
+                            
+                            // También asegurar que el examenId y tiempo límite estén guardados
+                            if (!examenIdStorage || examenIdStorage !== examenId) {
+                                console.log('✅ Restaurando examenId desde configuración');
+                                localStorage.setItem('examen_id', examenId);
+                                localStorage.setItem('examen_tiempo_limite', tiempoLimiteOriginal.toString());
+                                examenIdStorage = examenId;
+                                tiempoLimiteStorage = tiempoLimiteOriginal.toString();
+                            }
+                        }
+                    }
+                    
+                    // Debug: mostrar todas las claves relacionadas con examen
+                    const todasLasClaves = Object.keys(localStorage).filter(k => k.startsWith('examen_'));
+                    console.log('📖 Leyendo de localStorage:', {
+                        examenIdStorage: examenIdStorage,
+                        tiempoInicioStorage: tiempoInicioStorage,
+                        tiempoInicioSesion: tiempoInicioSesion,
+                        tiempoLimiteStorage: tiempoLimiteStorage,
+                        todasLasClavesExamen: todasLasClaves,
+                        examenIdActual: examenId
+                    });
+                } catch (e) {
+                    console.error('❌ Error al leer localStorage:', e);
+                    examenIdStorage = null;
+                    tiempoInicioStorage = tiempoInicioSesion !== null ? (tiempoInicioSesion * 1000).toString() : null;
+                    tiempoLimiteStorage = null;
+                    tiempoPausadoStorage = null;
+                    estaPausadoStorage = null;
+                    ultimaPausaStorage = null;
+                }
                 
                 // Verificar si es el mismo examen (mismo ID) y si el tiempo límite coincide
                 // Si no coincide el ID del examen, es un examen nuevo y debemos reiniciar
@@ -1502,21 +1574,38 @@
                     tiempoUltimaPausa = null;
                     
                     // Guardar el identificador del examen y el tiempo límite ORIGINAL en localStorage para futuras comparaciones
-                    localStorage.setItem('examen_id', examenId);
-                    localStorage.setItem('examen_tiempo_inicio', tiempoInicio.toString());
-                    localStorage.setItem('examen_tiempo_limite', tiempoLimiteOriginal.toString());
-                    localStorage.setItem('examen_tiempo_pausado_total', '0');
-                    localStorage.setItem('examen_timer_pausado', 'false');
+                    // Guardar de forma síncrona y verificar inmediatamente
+                    try {
+                        localStorage.setItem('examen_id', examenId);
+                        localStorage.setItem('examen_tiempo_inicio', tiempoInicio.toString());
+                        localStorage.setItem('examen_tiempo_limite', tiempoLimiteOriginal.toString());
+                        localStorage.setItem('examen_tiempo_pausado_total', '0');
+                        localStorage.setItem('examen_timer_pausado', 'false');
+                        
+                        // Verificar que se guardó correctamente inmediatamente
+                        const verificarId = localStorage.getItem('examen_id');
+                        const verificarInicio = localStorage.getItem('examen_tiempo_inicio');
+                        const todasLasClaves = Object.keys(localStorage).filter(k => k.startsWith('examen_'));
+                        console.log('✅ Guardado en localStorage - Verificación inmediata:', {
+                            examenIdGuardado: verificarId,
+                            tiempoInicioGuardado: verificarInicio,
+                            coincide: verificarId === examenId,
+                            todasLasClaves: todasLasClaves
+                        });
+                    } catch (e) {
+                        console.error('❌ Error al guardar en localStorage:', e);
+                    }
                     
                     console.log('Nuevo examen iniciado. ID:', examenId, 'Tiempo límite original:', tiempoLimiteOriginal, 'segundos. Tiempo restante inicial:', tiempoLimite, 'segundos');
                 } else {
-                    // Continuar con el examen existente (desde borrador)
-                    tiempoInicio = parseInt(tiempoInicioStorage);
-                    tiempoPausado = tiempoPausadoStorage ? parseInt(tiempoPausadoStorage) : 0;
+                    // Continuar con el examen existente
+                    console.log('✅ Continuando con el examen existente - NO se reinicia el temporizador');
+                    tiempoInicio = parseInt(tiempoInicioStorage, 10);
+                    tiempoPausado = tiempoPausadoStorage ? parseInt(tiempoPausadoStorage, 10) : 0;
                     estaPausado = estaPausadoStorage === 'true';
                     
                     if (estaPausado && ultimaPausaStorage) {
-                        tiempoUltimaPausa = parseInt(ultimaPausaStorage);
+                        tiempoUltimaPausa = parseInt(ultimaPausaStorage, 10);
                     }
                     
                     // Verificar si el tiempo ha expirado
@@ -1545,6 +1634,9 @@
                         return;
                     }
                 }
+                
+                // Marcar como inicializado después de configurar todo
+                temporizadorInicializado = true;
                 
                 // Actualizar botón de pausa
                 const btnPausa = document.getElementById('timer-pause-btn');
@@ -1578,6 +1670,7 @@
             
             // Limpiar temporizador al finalizar examen
             function limpiarTemporizador() {
+                temporizadorInicializado = false;
                 if (intervalo) {
                     clearInterval(intervalo);
                     intervalo = null;
@@ -1591,9 +1684,21 @@
             }
             
             // Inicializar cuando el DOM esté listo
+            // Variable para prevenir múltiples inicializaciones de todo
+            let todoInicializado = false;
+            
             function inicializarTodo() {
-                // Inicializar temporizador
-                inicializarTemporizador();
+                // Prevenir múltiples inicializaciones completas
+                if (todoInicializado) {
+                    console.log('⚠️ inicializarTodo ya ejecutado, omitiendo...');
+                    return;
+                }
+                todoInicializado = true;
+                
+                // Inicializar temporizador solo una vez
+                if (!temporizadorInicializado) {
+                    inicializarTemporizador();
+                }
                 
                 // Botón de pausa/reanudar
                 const btnPausa = document.getElementById('timer-pause-btn');
@@ -1846,10 +1951,17 @@
                 sincronizarCheckboxRiesgo();
             }
             
-            // También inicializar en eventos de Turbo
-            document.addEventListener('turbo:load', inicializarTodo);
+            // También inicializar en eventos de Turbo, pero permitir reiniciar cuando Turbo navega
+            document.addEventListener('turbo:load', function() {
+                // Permitir reinicializar cuando Turbo navega a nueva página
+                todoInicializado = false;
+                temporizadorInicializado = false;
+                inicializarTodo();
+            });
             document.addEventListener('turbo:frame-load', function() {
                 if (document.getElementById('formPregunta')) {
+                    todoInicializado = false;
+                    temporizadorInicializado = false;
                     inicializarTodo();
                 }
             });
