@@ -3,6 +3,7 @@
 namespace App\Security;
 
 use App\Repository\UserRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,7 +27,8 @@ class AppCustomAuthenticator extends AbstractLoginFormAuthenticator
 
     public function __construct(
         private UrlGeneratorInterface $urlGenerator,
-        private UserRepository $userRepository
+        private UserRepository $userRepository,
+        private EntityManagerInterface $entityManager
     ) {
     }
 
@@ -54,6 +56,9 @@ class AppCustomAuthenticator extends AbstractLoginFormAuthenticator
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?RedirectResponse
     {
+        // La actualización del último login se maneja en LoginListener
+        // para evitar problemas de sincronización
+        
         // Limpiar cualquier targetPath guardado para asegurar redirección al dashboard
         $this->removeTargetPath($request->getSession(), $firewallName);
         

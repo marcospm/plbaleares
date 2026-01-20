@@ -76,6 +76,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $notas = null;
 
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTimeInterface $ultimoLogin = null;
+
     #[ORM\ManyToMany(targetEntity: Convocatoria::class, mappedBy: 'usuarios')]
     private Collection $convocatorias;
 
@@ -366,6 +369,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setNotas(?string $notas): static
     {
         $this->notas = $notas;
+
+        return $this;
+    }
+
+    public function getUltimoLogin(): ?\DateTimeInterface
+    {
+        return $this->ultimoLogin;
+    }
+
+    public function setUltimoLogin(?\DateTimeInterface $ultimoLogin): static
+    {
+        $this->ultimoLogin = $ultimoLogin;
 
         return $this;
     }

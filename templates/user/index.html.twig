@@ -260,6 +260,7 @@
                         <th>Nombre de Usuario</th>
                         <th>Roles</th>
                         <th>Estado</th>
+                        <th>Último Login</th>
                         {% if is_granted('ROLE_ADMIN') %}
                             <th>Alumnos Asignados</th>
                         {% endif %}
@@ -283,6 +284,15 @@
                                     <span class="badge badge-success" style="background-color: var(--color-success);">Activo</span>
                                 {% else %}
                                     <span class="badge badge-danger" style="background-color: var(--color-danger);">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.ultimoLogin %}
+                                    <span title="{{ user.ultimoLogin|date('d/m/Y H:i:s') }}">
+                                        {{ user.ultimoLogin|date('d/m/Y H:i') }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">Nunca</span>
                                 {% endif %}
                             </td>
                             {% if is_granted('ROLE_ADMIN') %}
@@ -348,6 +358,16 @@
                                 <span class="badge badge-success" style="background-color: var(--color-success);">Activo</span>
                             {% else %}
                                 <span class="badge badge-danger" style="background-color: var(--color-danger);">Inactivo</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="user-card-row">
+                        <div class="user-card-label">Último Login:</div>
+                        <div class="user-card-value">
+                            {% if user.ultimoLogin %}
+                                {{ user.ultimoLogin|date('d/m/Y H:i') }}
+                            {% else %}
+                                <span class="text-muted">Nunca</span>
                             {% endif %}
                         </div>
                     </div>
