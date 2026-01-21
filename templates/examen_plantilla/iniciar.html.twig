@@ -105,6 +105,9 @@
                     <select class="form-select form-select-lg" id="municipio_select" name="municipio_id">
                         <option value="">-- Selecciona un municipio --</option>
                     </select>
+                    <div id="aviso_sin_temas_municipio" class="alert alert-warning mt-3 mb-0" style="display: none; background-color: #fff3cd; border-color: #ffc107; color: #856404;">
+                        <strong>⚠️ Aviso:</strong> Para el municipio seleccionado no hay Temas disponibles todavía.
+                    </div>
                 </div>
 
                 <div id="convocatoria_group" class="form-group mb-4" style="display: none;">
@@ -112,6 +115,9 @@
                     <select class="form-select form-select-lg" id="convocatoria_select" name="convocatoria_id">
                         <option value="">-- Selecciona una convocatoria --</option>
                     </select>
+                    <div id="aviso_sin_temas_convocatoria" class="alert alert-warning mt-3 mb-0" style="display: none; background-color: #fff3cd; border-color: #ffc107; color: #856404;">
+                        <strong>⚠️ Aviso:</strong> Para la convocatoria seleccionada y sus municipios no hay Temas disponibles todavía.
+                    </div>
                 </div>
 
                 <div id="tema_group" class="form-group mb-4" style="display: none;">
@@ -246,20 +252,70 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Datos de temas disponibles desde el servidor
+    const temasPorMunicipio = {{ temasPorMunicipio|json_encode|raw }};
+    const temasPorConvocatoria = {{ temasPorConvocatoria|json_encode|raw }};
+    const municipios = {{ municipiosData|json_encode|raw }};
+    const convocatorias = {{ convocatoriasData|json_encode|raw }};
+
     municipioSelect.addEventListener('change', function() {
+        const avisoSinTemas = document.getElementById('aviso_sin_temas_municipio');
+        
         if (this.value) {
-            cargarTemasMunicipales(this.value);
-            cargarPlantillas();
+            const municipioId = this.value; // Mantener como string para consistencia
+            const municipioIdNum = parseInt(municipioId);
+            
+            // Verificar si el municipio tiene temas disponibles
+            // Usar tanto string como número como clave por si acaso
+            const tieneTemas = temasPorMunicipio[municipioId] !== false && temasPorMunicipio[municipioIdNum] !== false;
+            const explicitamenteSinTemas = temasPorMunicipio[municipioId] === false || temasPorMunicipio[municipioIdNum] === false;
+            
+            if (avisoSinTemas) {
+                if (explicitamenteSinTemas) {
+                    const municipioNombre = (municipios[municipioId] || municipios[municipioIdNum])?.nombre || 'seleccionado';
+                    avisoSinTemas.innerHTML = `<strong>⚠️ Aviso:</strong> Para el municipio <strong>${municipioNombre}</strong> no hay Temas disponibles todavía.`;
+                    avisoSinTemas.style.display = 'block';
+                    plantillasContainer.style.display = 'none';
+                    temaMunicipalGroup.style.display = 'none';
+                } else {
+                    avisoSinTemas.style.display = 'none';
+                    temaMunicipalGroup.style.display = 'block';
+                    cargarTemasMunicipales(municipioId);
+                    // cargarTemasMunicipales llamará a cargarPlantillas después de cargar los temas
+                }
+            }
         } else {
+            if (avisoSinTemas) {
+                avisoSinTemas.style.display = 'none';
+            }
             temaMunicipalSelect.innerHTML = '<option value="">-- Todos los temas --</option>';
+            temaMunicipalGroup.style.display = 'none';
             plantillasContainer.style.display = 'none';
         }
     });
 
     convocatoriaSelect.addEventListener('change', function() {
+        const avisoSinTemas = document.getElementById('aviso_sin_temas_convocatoria');
+        
         if (this.value) {
-            cargarPlantillas();
+            const convocatoriaId = parseInt(this.value);
+            const tieneTemas = temasPorConvocatoria[convocatoriaId] === true;
+            
+            if (avisoSinTemas) {
+                if (!tieneTemas) {
+                    const convocatoriaNombre = convocatorias[convocatoriaId]?.nombre || 'seleccionada';
+                    avisoSinTemas.innerHTML = `<strong>⚠️ Aviso:</strong> Para la convocatoria <strong>${convocatoriaNombre}</strong> y sus municipios no hay Temas disponibles todavía.`;
+                    avisoSinTemas.style.display = 'block';
+                    plantillasContainer.style.display = 'none';
+                } else {
+                    avisoSinTemas.style.display = 'none';
+                    cargarPlantillas();
+                }
+            }
         } else {
+            if (avisoSinTemas) {
+                avisoSinTemas.style.display = 'none';
+            }
             plantillasContainer.style.display = 'none';
         }
     });
@@ -398,20 +454,64 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function cargarTemasMunicipales(municipioId) {
-        fetch(`{{ path('app_pregunta_municipal_api_temas', {'municipioId': 0}) }}`.replace('0', municipioId))
-            .then(response => response.json())
+        const url = `{{ path('app_examen_plantilla_api_temas_municipales', {'municipioId': 0}) }}`.replace('0', municipioId);
+        
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                // Verificar que la respuesta es realmente JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('La respuesta no es JSON. Tipo: ' + contentType);
+                }
+                if (!response.ok) {
+                    throw new Error('Error HTTP: ' + response.status);
+                }
+                return response.json();
+            })
             .then(data => {
+                const avisoSinTemas = document.getElementById('aviso_sin_temas_municipio');
+                
                 temaMunicipalSelect.innerHTML = '<option value="">-- Todos los temas --</option>';
-                if (data.temas) {
+                if (data.temas && data.temas.length > 0) {
+                    // Hay temas disponibles
+                    if (avisoSinTemas) {
+                        avisoSinTemas.style.display = 'none';
+                    }
+                    
                     data.temas.forEach(tema => {
                         const option = document.createElement('option');
                         option.value = tema.id;
                         option.textContent = tema.nombre;
                         temaMunicipalSelect.appendChild(option);
                     });
+                    // Cargar plantillas después de cargar los temas
+                    cargarPlantillas();
+                } else {
+                    // No hay temas disponibles, mostrar aviso
+                    if (avisoSinTemas) {
+                        const municipioIdNum = parseInt(municipioId);
+                        const municipioNombre = (municipios[municipioIdNum] || municipios[municipioId])?.nombre || 'seleccionado';
+                        avisoSinTemas.innerHTML = `<strong>⚠️ Aviso:</strong> Para el municipio <strong>${municipioNombre}</strong> no hay Temas disponibles todavía.`;
+                        avisoSinTemas.style.display = 'block';
+                    }
+                    // Ocultar grupo de temas municipales y plantillas
+                    temaMunicipalGroup.style.display = 'none';
+                    plantillasContainer.style.display = 'none';
                 }
             })
-            .catch(error => console.error('Error al cargar temas municipales:', error));
+            .catch(error => {
+                console.error('Error al cargar temas municipales:', error);
+                console.error('URL intentada:', url);
+                // En caso de error, intentar cargar plantillas de todas formas
+                // para que al menos se puedan ver las plantillas aunque no haya filtro de temas
+                cargarPlantillas();
+            });
     }
 
     function cargarPlantillas() {

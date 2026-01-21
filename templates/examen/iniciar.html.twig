@@ -161,9 +161,25 @@
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="alert alert-warning mb-0">
-                        <strong>ℹ️ Información:</strong> Primero debes seleccionar un municipio arriba para ver los temas municipales disponibles.
-                    </div>
+                    {% if hayTemasDisponibles is defined and hayTemasDisponibles is same as(false) %}
+                        {% if municipioSeleccionado is defined and municipioSeleccionado is not null %}
+                            <div class="alert alert-warning mb-0" style="background-color: #fff3cd; border-color: #ffc107; color: #856404;">
+                                <strong>⚠️ Aviso:</strong> Para el municipio <strong>{{ municipioSeleccionado.nombre }}</strong> no hay Temas disponibles todavía.
+                            </div>
+                        {% elseif convocatoriaSeleccionada is defined and convocatoriaSeleccionada is not null %}
+                            <div class="alert alert-warning mb-0" style="background-color: #fff3cd; border-color: #ffc107; color: #856404;">
+                                <strong>⚠️ Aviso:</strong> Para la convocatoria <strong>{{ convocatoriaSeleccionada.nombre }}</strong> y sus municipios no hay Temas disponibles todavía.
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning mb-0">
+                                <strong>ℹ️ Información:</strong> Primero debes seleccionar un municipio arriba para ver los temas municipales disponibles.
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-warning mb-0">
+                            <strong>ℹ️ Información:</strong> Primero debes seleccionar un municipio arriba para ver los temas municipales disponibles.
+                        </div>
+                    {% endif %}
                 {% endif %}
                 <div class="form-errors" style="display: none;">
                     {{ form_errors(form.temasMunicipales) }}

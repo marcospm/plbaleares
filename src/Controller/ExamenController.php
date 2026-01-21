@@ -561,6 +561,42 @@ class ExamenController extends AbstractController
             }
         }
 
+        // Verificar si hay temas disponibles para el municipio o convocatoria seleccionado
+        $hayTemasDisponibles = null;
+        $municipioSeleccionado = null;
+        $convocatoriaSeleccionada = null;
+        
+        if ($municipioId > 0) {
+            $municipioSeleccionado = $this->municipioRepository->find($municipioId);
+            if ($municipioSeleccionado) {
+                $temasMunicipales = $this->temaMunicipalRepository->findBy([
+                    'municipio' => $municipioSeleccionado,
+                    'activo' => true
+                ]);
+                $hayTemasDisponibles = count($temasMunicipales) > 0;
+            }
+        } elseif ($convocatoriaId > 0) {
+            $convocatoriaSeleccionada = $this->convocatoriaRepository->find($convocatoriaId);
+            if ($convocatoriaSeleccionada) {
+                $municipiosConvocatoria = $convocatoriaSeleccionada->getMunicipios();
+                $municipiosIds = array_map(fn($m) => $m->getId(), $municipiosConvocatoria->toArray());
+                
+                if (!empty($municipiosIds)) {
+                    $temasMunicipales = $this->temaMunicipalRepository->createQueryBuilder('t')
+                        ->innerJoin('t.municipio', 'm')
+                        ->where('m.id IN (:municipiosIds)')
+                        ->andWhere('t.activo = :activo')
+                        ->setParameter('municipiosIds', $municipiosIds)
+                        ->setParameter('activo', true)
+                        ->getQuery()
+                        ->getResult();
+                    $hayTemasDisponibles = count($temasMunicipales) > 0;
+                } else {
+                    $hayTemasDisponibles = false;
+                }
+            }
+        }
+
         return $this->render('examen/iniciar.html.twig', [
             'form' => $form,
             'preguntasDisponibles' => $preguntasDisponibles,
@@ -568,6 +604,9 @@ class ExamenController extends AbstractController
             'borradores' => $borradores,
             'municipios' => $municipios,
             'convocatorias' => $convocatorias,
+            'hayTemasDisponibles' => $hayTemasDisponibles,
+            'municipioSeleccionado' => $municipioSeleccionado,
+            'convocatoriaSeleccionada' => $convocatoriaSeleccionada,
         ]);
     }
 

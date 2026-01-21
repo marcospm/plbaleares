@@ -84,12 +84,66 @@ class ExamenPlantillaController extends AbstractController
             }
         }
 
+        // Preparar información sobre temas disponibles por municipio/convocatoria
+        $temasPorMunicipio = [];
+        $temasPorConvocatoria = [];
+        $municipiosData = [];
+        $convocatoriasData = [];
+        
+        if ($user) {
+            // Verificar temas disponibles por municipio y preparar datos
+            // Obtener todos los municipios accesibles para verificar sus temas
+            $municipiosAccesibles = $user->getMunicipiosAccesibles();
+            foreach ($municipiosAccesibles as $municipio) {
+                $municipioId = $municipio->getId();
+                $temasMunicipales = $this->temaMunicipalRepository->findBy([
+                    'municipio' => $municipio,
+                    'activo' => true
+                ]);
+                // Usar string como clave para asegurar consistencia con JSON
+                $temasPorMunicipio[(string)$municipioId] = count($temasMunicipales) > 0;
+                $municipiosData[(string)$municipioId] = [
+                    'id' => $municipioId,
+                    'nombre' => $municipio->getNombre(),
+                ];
+            }
+            
+            // Verificar temas disponibles por convocatoria y preparar datos
+            foreach ($convocatorias as $convocatoriaId => $convocatoria) {
+                $municipiosConvocatoria = $convocatoria->getMunicipios();
+                $municipiosIds = array_map(fn($m) => $m->getId(), $municipiosConvocatoria->toArray());
+                
+                if (!empty($municipiosIds)) {
+                    $temasMunicipales = $this->temaMunicipalRepository->createQueryBuilder('t')
+                        ->innerJoin('t.municipio', 'm')
+                        ->where('m.id IN (:municipiosIds)')
+                        ->andWhere('t.activo = :activo')
+                        ->setParameter('municipiosIds', $municipiosIds)
+                        ->setParameter('activo', true)
+                        ->getQuery()
+                        ->getResult();
+                    $temasPorConvocatoria[$convocatoriaId] = count($temasMunicipales) > 0;
+                } else {
+                    $temasPorConvocatoria[$convocatoriaId] = false;
+                }
+                
+                $convocatoriasData[$convocatoriaId] = [
+                    'id' => $convocatoria->getId(),
+                    'nombre' => $convocatoria->getNombre(),
+                ];
+            }
+        }
+
         return $this->render('examen_plantilla/iniciar.html.twig', [
             'borradores' => $borradores,
             'municipios' => $municipios,
             'convocatorias' => $convocatorias,
             'tieneMunicipiosActivos' => $tieneMunicipiosActivos,
             'tieneConvocatoriasActivas' => $tieneConvocatoriasActivas,
+            'temasPorMunicipio' => $temasPorMunicipio,
+            'temasPorConvocatoria' => $temasPorConvocatoria,
+            'municipiosData' => $municipiosData,
+            'convocatoriasData' => $convocatoriasData,
         ]);
     }
 
@@ -511,5 +565,40 @@ class ExamenPlantillaController extends AbstractController
         }
 
         return new JsonResponse(['convocatorias' => $convocatorias]);
+    }
+
+    #[Route('/api/temas-por-municipio/{municipioId}', name: 'app_examen_plantilla_api_temas_municipales', methods: ['GET'])]
+    public function getTemasPorMunicipio(int $municipioId): JsonResponse
+    {
+        $user = $this->getUser();
+        
+        if (!$user) {
+            return new JsonResponse(['error' => 'No autorizado'], 401);
+        }
+
+        $municipio = $this->municipioRepository->find($municipioId);
+        
+        if (!$municipio) {
+            return new JsonResponse(['error' => 'Municipio no encontrado'], 404);
+        }
+
+        // Verificar que el usuario tenga acceso al municipio
+        if (!$user->tieneAccesoAMunicipio($municipio)) {
+            return new JsonResponse(['error' => 'No tienes acceso a este municipio'], 403);
+        }
+
+        $temas = $this->temaMunicipalRepository->findBy([
+            'municipio' => $municipio,
+            'activo' => true
+        ]);
+        
+        $temasArray = array_map(function($tema) {
+            return [
+                'id' => $tema->getId(),
+                'nombre' => $tema->getNombre(),
+            ];
+        }, $temas);
+
+        return new JsonResponse(['temas' => $temasArray]);
     }
 }
