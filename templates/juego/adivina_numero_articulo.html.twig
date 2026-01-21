@@ -59,6 +59,15 @@
             text-align: center;
             margin-bottom: 1.5rem;
         }
+
+        #btn-salir-juego {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        #btn-salir-juego:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
     </style>
 {% endblock %}
 
@@ -67,6 +76,9 @@
     <div style="text-align: center; margin-bottom: 2rem;">
         <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">¿Qué Número Tiene el Artículo?</h1>
         <p style="color: #666;">Lee la ley y el nombre del artículo. ¿Sabes cuál es su número?</p>
+        <button id="btn-salir-juego" class="btn btn-danger" style="margin-top: 1rem; min-width: 120px; padding: 0.5rem 1rem; font-size: 0.9rem;">
+            🚪 Salir del juego
+        </button>
     </div>
 
     <div id="juego-container" class="juego-container">
@@ -251,6 +263,22 @@
 
     // Cargar artículos al iniciar
     cargarArticulos();
+
+    // Botón de salir del juego
+    document.getElementById('btn-salir-juego').addEventListener('click', function() {
+        if (confirm('⚠️ ¿Estás seguro de que quieres salir del juego?\n\nEl progreso del juego NO se guarda y deberás empezar de nuevo.')) {
+            window.location.href = '{{ path('app_dashboard') }}';
+        }
+    });
 </script>
+
+<style>
+    /* Estilos responsivos para el botón de salir */
+    @media (max-width: 768px) {
+        #btn-salir-juego {
+            width: 100% !important;
+        }
+    }
+</style>
 {% endblock %}
 

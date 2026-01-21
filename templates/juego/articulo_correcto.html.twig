@@ -82,6 +82,15 @@
             opacity: 0.7;
         }
 
+        #btn-salir-juego {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        #btn-salir-juego:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
         .opcion-radio {
             position: absolute;
             top: 1rem;
@@ -131,6 +140,13 @@
             text-align: center;
             margin-bottom: 1.5rem;
         }
+
+        /* Estilos responsivos para el botón de salir */
+        @media (max-width: 768px) {
+            #btn-salir-juego {
+                width: 100% !important;
+            }
+        }
     </style>
 {% endblock %}
 
@@ -139,6 +155,9 @@
     <div style="text-align: center; margin-bottom: 2rem;">
         <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">El artículo correcto</h1>
         <p style="color: #666;">Selecciona cuál de las 3 versiones del texto legal corresponde al artículo mostrado.</p>
+        <button id="btn-salir-juego" class="btn btn-danger" style="margin-top: 1rem; min-width: 120px; padding: 0.5rem 1rem; font-size: 0.9rem;">
+            🚪 Salir del juego
+        </button>
     </div>
 
     <div id="juego-container" class="juego-container">
@@ -348,6 +367,13 @@
             console.error('Error al guardar partida:', error);
         });
     }
+
+    // Botón de salir del juego
+    document.getElementById('btn-salir-juego').addEventListener('click', function() {
+        if (confirm('⚠️ ¿Estás seguro de que quieres salir del juego?\n\nEl progreso del juego NO se guarda y deberás empezar de nuevo.')) {
+            window.location.href = '{{ path('app_dashboard') }}';
+        }
+    });
 
     // Event listeners
     document.getElementById('btn-verificar').addEventListener('click', verificarRespuesta);

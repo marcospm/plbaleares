@@ -71,6 +71,15 @@
             font-size: 1rem;
             padding: 0.75rem;
         }
+
+        #btn-salir-juego {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        #btn-salir-juego:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
     </style>
 {% endblock %}
 
@@ -78,6 +87,9 @@
 <div style="max-width: 800px; margin: 2rem auto; padding: 0 1rem;">
     <div style="text-align: center; margin-bottom: 2rem;">
         <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">¿Cuándo se Publicó la Ley?</h1>
+        <button id="btn-salir-juego" class="btn btn-danger" style="margin-top: 1rem; min-width: 120px; padding: 0.5rem 1rem; font-size: 0.9rem;">
+            🚪 Salir del juego
+        </button>
         <p style="color: #666;">Completa los campos vacíos de la ley. Formato: número/número, de día de mes</p>
     </div>
 
@@ -352,6 +364,33 @@
     document.addEventListener('turbo:load', function() {
         inicializarEventListeners();
     });
+
+    // Botón de salir del juego
+    function inicializarBotonSalir() {
+        const btnSalir = document.getElementById('btn-salir-juego');
+        if (btnSalir) {
+            btnSalir.addEventListener('click', function() {
+                if (confirm('⚠️ ¿Estás seguro de que quieres salir del juego?\n\nEl progreso del juego NO se guarda y deberás empezar de nuevo.')) {
+                    window.location.href = '{{ path('app_dashboard') }}';
+                }
+            });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', inicializarBotonSalir);
+    } else {
+        inicializarBotonSalir();
+    }
 </script>
+
+<style>
+    /* Estilos responsivos para el botón de salir */
+    @media (max-width: 768px) {
+        #btn-salir-juego {
+            width: 100% !important;
+        }
+    }
+</style>
 {% endblock %}
 

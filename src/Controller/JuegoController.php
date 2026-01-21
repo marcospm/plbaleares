@@ -332,69 +332,91 @@ class JuegoController extends AbstractController
         // Obtener artículos para el juego (excluye Tema 17 y numero 0)
         $articulos = $articuloRepository->findAleatoriosConTextoLegalParaJuego(20);
         
-        if (empty($articulos)) {
-            return new JsonResponse(['error' => 'No hay artículos con texto legal disponibles'], 404);
+        if (empty($articulos) || count($articulos) < 20) {
+            return new JsonResponse(['error' => 'No hay suficientes artículos con texto legal disponibles'], 404);
         }
 
-        // Obtener más artículos para generar versiones incorrectas
-        $articulosParaIncorrectas = $articuloRepository->findAleatoriosConTextoLegalParaJuego(100);
+        // Obtener IDs de los artículos del lote principal para excluirlos
+        $idsArticulosLote = array_map(fn($a) => $a->getId(), $articulos);
+        
+        // Obtener más artículos para generar versiones incorrectas (excluyendo los del lote)
+        // Obtener todos los artículos disponibles excepto los del lote
+        $qb = $articuloRepository->createQueryBuilder('a')
+            ->innerJoin('a.ley', 'l')
+            ->addSelect('l')
+            ->where('a.activo = :activo')
+            ->andWhere('l.activo = :activo')
+            ->andWhere('a.numero != :numeroExcluido')
+            ->andWhere('a.textoLegal IS NOT NULL')
+            ->andWhere('a.textoLegal != :vacio')
+            ->andWhere('a.id NOT IN (:idsLote)')
+            ->setParameter('activo', true)
+            ->setParameter('numeroExcluido', 0)
+            ->setParameter('vacio', '')
+            ->setParameter('idsLote', $idsArticulosLote);
+        
+        // Excluir ley "Accidentes de Tráfico"
+        $subquery = $articuloRepository->getEntityManager()->createQueryBuilder()
+            ->select('l2.id')
+            ->from('App\Entity\Ley', 'l2')
+            ->where('l2.nombre = :nombreLeyExcluida')
+            ->setMaxResults(1);
+        $qb->andWhere('l.id != (' . $subquery->getDQL() . ')')
+           ->setParameter('nombreLeyExcluida', 'Accidentes de Tráfico');
+        
+        $articulosParaIncorrectas = $qb->getQuery()->getResult();
+        
+        // Mezclar para aleatoriedad
+        shuffle($articulosParaIncorrectas);
         
         $resultado = [];
+        $textosUsadosEnJuego = []; // Rastrear todos los textos usados en el juego para evitar duplicados
+        
         foreach ($articulos as $articulo) {
-            $textoCorrecto = $articulo->getTextoLegal();
+            $textoCorrecto = trim($articulo->getTextoLegal());
             
-            if (empty($textoCorrecto) || trim($textoCorrecto) === '') {
+            if (empty($textoCorrecto)) {
                 continue; // Saltar artículos sin texto legal válido
             }
 
-            // Generar 2 versiones incorrectas usando textos de otros artículos
+            // Generar 2 versiones incorrectas usando textos de artículos FUERA del lote de 20
             $versionesIncorrectas = [];
             $articulosUsados = [$articulo->getId()]; // Evitar usar el mismo artículo
             
-            // Primero intentar usar otros artículos del lote principal
-            foreach ($articulos as $otroDelLote) {
+            foreach ($articulosParaIncorrectas as $articuloAdicional) {
                 if (count($versionesIncorrectas) >= 2) {
                     break;
                 }
                 
-                if ($otroDelLote->getId() !== $articulo->getId() && 
-                    !in_array($otroDelLote->getId(), $articulosUsados)) {
-                    $textoIncorrecto = $otroDelLote->getTextoLegal();
-                    if (!empty($textoIncorrecto) && trim($textoIncorrecto) !== '') {
-                        $versionesIncorrectas[] = $textoIncorrecto;
-                        $articulosUsados[] = $otroDelLote->getId();
-                    }
-                }
-            }
-
-            // Si aún no hay suficientes, usar artículos adicionales
-            if (count($versionesIncorrectas) < 2) {
-                foreach ($articulosParaIncorrectas as $articuloAdicional) {
-                    if (count($versionesIncorrectas) >= 2) {
-                        break;
-                    }
-                    
-                    if ($articuloAdicional->getId() !== $articulo->getId() &&
-                        !in_array($articuloAdicional->getId(), $articulosUsados)) {
-                        $textoIncorrecto = $articuloAdicional->getTextoLegal();
-                        if (!empty($textoIncorrecto) && trim($textoIncorrecto) !== '') {
-                            $versionesIncorrectas[] = $textoIncorrecto;
-                            $articulosUsados[] = $articuloAdicional->getId();
-                        }
-                    }
+                $textoIncorrecto = trim($articuloAdicional->getTextoLegal());
+                
+                // Verificar que el texto no esté vacío, no sea el mismo que el correcto,
+                // no esté ya usado en este juego, y no sea del artículo actual
+                if (!empty($textoIncorrecto) && 
+                    $textoIncorrecto !== $textoCorrecto &&
+                    !in_array($textoIncorrecto, $textosUsadosEnJuego) &&
+                    !in_array($articuloAdicional->getId(), $articulosUsados)) {
+                    $versionesIncorrectas[] = $textoIncorrecto;
+                    $articulosUsados[] = $articuloAdicional->getId();
+                    $textosUsadosEnJuego[] = $textoIncorrecto; // Marcar como usado
                 }
             }
 
             // Validar que tenemos 2 versiones incorrectas
             if (count($versionesIncorrectas) < 2) {
-                continue; // Saltar este artículo si no se pueden generar versiones incorrectas
+                // Si no se pueden generar, intentar recargar más artículos
+                // o simplemente continuar - en este caso, mejor reintentar con otro artículo
+                // Por ahora, saltamos este artículo y esperamos tener suficientes
+                continue;
             }
+
+            // Marcar el texto correcto como usado también para evitar que aparezca como incorrecta en otros
+            $textosUsadosEnJuego[] = $textoCorrecto;
 
             // Crear array con 3 versiones: correcta + 2 incorrectas
             $versiones = [$textoCorrecto, $versionesIncorrectas[0], $versionesIncorrectas[1]];
             
             // Mezclar aleatoriamente
-            $indiceCorrectoOriginal = 0; // Guardar índice antes de mezclar
             shuffle($versiones);
             
             // Buscar el índice correcto después de mezclar
@@ -418,6 +440,17 @@ class JuegoController extends AbstractController
                 'versiones' => $versiones,
                 'indiceCorrecto' => $indiceCorrecto,
             ];
+        }
+
+        // Si no tenemos exactamente 20 artículos, intentar recargar desde el principio
+        if (count($resultado) < 20) {
+            // Reintentar una vez más con un nuevo lote
+            return $this->getArticulosCorrectoLote($articuloRepository);
+        }
+
+        // Limitar a exactamente 20 artículos
+        if (count($resultado) > 20) {
+            $resultado = array_slice($resultado, 0, 20);
         }
 
         if (empty($resultado)) {
