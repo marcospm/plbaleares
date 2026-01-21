@@ -3,7 +3,9 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 
 class FaviconController extends AbstractController
@@ -15,7 +17,9 @@ class FaviconController extends AbstractController
         $faviconPath = $this->getParameter('kernel.project_dir') . '/public/images/favicon.png';
         
         if (file_exists($faviconPath)) {
-            return $this->file($faviconPath, null, Response::HEADER_DISPOSITION_INLINE);
+            $response = new BinaryFileResponse($faviconPath);
+            $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE);
+            return $response;
         }
         
         // Si no existe, devolver 204 No Content para evitar errores en logs
@@ -30,7 +34,9 @@ class FaviconController extends AbstractController
         $faviconPath = $this->getParameter('kernel.project_dir') . '/public/images/favicon.png';
         
         if (file_exists($faviconPath)) {
-            return $this->file($faviconPath, null, Response::HEADER_DISPOSITION_INLINE);
+            $response = new BinaryFileResponse($faviconPath);
+            $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE);
+            return $response;
         }
         
         // Si no existe, devolver 204 No Content para evitar errores en logs
@@ -44,7 +50,9 @@ class FaviconController extends AbstractController
         $robotsPath = $this->getParameter('kernel.project_dir') . '/public/robots.txt';
         
         if (file_exists($robotsPath)) {
-            return $this->file($robotsPath, null, Response::HEADER_DISPOSITION_INLINE);
+            $response = new BinaryFileResponse($robotsPath);
+            $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE);
+            return $response;
         }
         
         // Si no existe, devolver 204 No Content para evitar errores en logs
@@ -58,7 +66,9 @@ class FaviconController extends AbstractController
         $sitemapPath = $this->getParameter('kernel.project_dir') . '/public/sitemap.xml';
         
         if (file_exists($sitemapPath)) {
-            return $this->file($sitemapPath, null, Response::HEADER_DISPOSITION_INLINE);
+            $response = new BinaryFileResponse($sitemapPath);
+            $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE);
+            return $response;
         }
         
         // Si no existe, devolver 204 No Content para evitar errores en logs
@@ -72,10 +82,31 @@ class FaviconController extends AbstractController
         $faviconPath = $this->getParameter('kernel.project_dir') . '/public/images/favicon.png';
         
         if (file_exists($faviconPath)) {
-            return $this->file($faviconPath, null, Response::HEADER_DISPOSITION_INLINE);
+            $response = new BinaryFileResponse($faviconPath);
+            $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE);
+            return $response;
         }
         
         // Si no existe, devolver 204 No Content para evitar errores en logs
+        return new Response('', Response::HTTP_NO_CONTENT);
+    }
+
+    #[Route('/wp-config.php', name: 'app_wp_config', methods: ['GET'])]
+    #[Route('/wp-config-{suffix}', name: 'app_wp_config_variants', requirements: ['suffix' => '.+'], methods: ['GET'])]
+    #[Route('/wp-admin', name: 'app_wp_admin', methods: ['GET'])]
+    #[Route('/wp-admin/{path}', name: 'app_wp_admin_path', requirements: ['path' => '.+'], methods: ['GET'])]
+    #[Route('/wp-{path}', name: 'app_wp_common', requirements: ['path' => '.+'], methods: ['GET'])]
+    #[Route('/.well-known/security.txt', name: 'app_security_txt', methods: ['GET'])]
+    #[Route('/.git/config', name: 'app_git_config', methods: ['GET'])]
+    #[Route('/.env', name: 'app_env', methods: ['GET'])]
+    #[Route('/config.php', name: 'app_config_php', methods: ['GET'])]
+    #[Route('/phpinfo.php', name: 'app_phpinfo', methods: ['GET'])]
+    #[Route('/admin', name: 'app_admin_common', methods: ['GET'])]
+    #[Route('/administrator', name: 'app_administrator', methods: ['GET'])]
+    public function commonBotRequests(): Response
+    {
+        // Devolver 204 No Content para evitar errores en logs
+        // Estos son archivos que los bots/scanners buscan pero no existen en nuestra aplicación
         return new Response('', Response::HTTP_NO_CONTENT);
     }
 }
