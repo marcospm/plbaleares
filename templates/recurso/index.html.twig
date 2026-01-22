@@ -35,7 +35,6 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th style="width: 5%;">ID</th>
                             <th style="width: 25%;">Nombre</th>
                             <th style="width: 30%;">Descripción</th>
                             <th style="width: 10%;">PDF</th>
@@ -47,7 +46,6 @@
                     <tbody>
                         {% for tema in temas %}
                             <tr>
-                                <td><strong>{{ tema.id }}</strong></td>
                                 <td><strong>{{ tema.nombre }}</strong></td>
                                 <td>{{ tema.descripcion|default('Sin descripción')|slice(0, 80) }}{% if tema.descripcion|length > 80 %}...{% endif %}</td>
                                 <td>
