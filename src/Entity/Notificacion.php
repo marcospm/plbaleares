@@ -27,6 +27,8 @@ class Notificacion
     public const TIPO_ERROR_PREGUNTA = 'error_pregunta';
     public const TIPO_RESPUESTA_PREGUNTA = 'respuesta_pregunta';
     public const TIPO_GENERAL = 'general';
+    public const TIPO_REGISTRO_USUARIO = 'registro_usuario';
+    public const TIPO_MENSAJE_CONTACTO = 'mensaje_contacto';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]

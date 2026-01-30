@@ -5,6 +5,7 @@ namespace App\Service;
 use App\Entity\Articulo;
 use App\Entity\Examen;
 use App\Entity\ExamenSemanal;
+use App\Entity\MensajeContacto;
 use App\Entity\Notificacion;
 use App\Entity\PlanificacionPersonalizada;
 use App\Entity\PlanificacionSemanal;
@@ -539,6 +540,118 @@ class NotificacionService
             // No establecer profesor: estas notificaciones son generales para alumnos
             $notificacion->setProfesor(null);
             $notificacion->setAlumno($alumno);
+            
+            $this->entityManager->persist($notificacion);
+        }
+        
+        $this->entityManager->flush();
+    }
+
+    /**
+     * Crea notificaciones para todos los administradores cuando un nuevo usuario se registra
+     */
+    public function crearNotificacionRegistroUsuario(User $nuevoUsuario): void
+    {
+        // Obtener todos los administradores y profesores activos
+        $administradores = $this->userRepository->createQueryBuilder('u')
+            ->where('u.roles LIKE :roleProfesor OR u.roles LIKE :roleAdmin')
+            ->andWhere('u.activo = :activo')
+            ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+            ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
+            ->setParameter('activo', true)
+            ->getQuery()
+            ->getResult();
+
+        if (empty($administradores)) {
+            return; // No hay administradores para notificar
+        }
+
+        // Construir mensaje con información del usuario
+        $nombreDisplay = $nuevoUsuario->getNombreDisplay();
+        $email = $nuevoUsuario->getEmail() ?? 'No proporcionado';
+        $fechaRegistro = new \DateTime();
+        
+        $mensaje = sprintf(
+            '%s (%s) se ha registrado en la plataforma.',
+            $nuevoUsuario->getUsername(),
+            $email
+        );
+        
+        if ($nombreDisplay && $nombreDisplay !== $nuevoUsuario->getUsername()) {
+            $mensaje .= sprintf(' Nombre: %s.', $nombreDisplay);
+        }
+        
+        $mensaje .= sprintf(' Fecha de registro: %s.', $fechaRegistro->format('d/m/Y H:i'));
+
+        foreach ($administradores as $administrador) {
+            $notificacion = new Notificacion();
+            $notificacion->setTipo(Notificacion::TIPO_REGISTRO_USUARIO);
+            $notificacion->setTitulo('Nuevo Usuario Registrado');
+            $notificacion->setMensaje($mensaje);
+            $notificacion->setProfesor($administrador);
+            $notificacion->setAlumno($nuevoUsuario); // Para referencia del nuevo usuario
+            
+            $this->entityManager->persist($notificacion);
+        }
+        
+        $this->entityManager->flush();
+    }
+
+    /**
+     * Crea notificaciones para todos los administradores cuando se envía un mensaje de contacto
+     */
+    public function crearNotificacionMensajeContacto(MensajeContacto $mensaje): void
+    {
+        // Obtener todos los administradores y profesores activos
+        $administradores = $this->userRepository->createQueryBuilder('u')
+            ->where('u.roles LIKE :roleProfesor OR u.roles LIKE :roleAdmin')
+            ->andWhere('u.activo = :activo')
+            ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+            ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
+            ->setParameter('activo', true)
+            ->getQuery()
+            ->getResult();
+
+        if (empty($administradores)) {
+            return; // No hay administradores para notificar
+        }
+
+        // Construir mensaje con información del contacto
+        $nombre = $mensaje->getNombre();
+        $email = $mensaje->getEmail();
+        $asunto = $mensaje->getAsunto();
+        $mensajeTexto = $mensaje->getMensaje();
+        $fechaCreacion = $mensaje->getFechaCreacion();
+        
+        // Truncar el mensaje si es muy largo (200 caracteres)
+        $mensajeTruncado = mb_strlen($mensajeTexto) > 200 
+            ? mb_substr($mensajeTexto, 0, 200) . '...' 
+            : $mensajeTexto;
+        
+        $mensajeNotificacion = sprintf(
+            'Nuevo mensaje de contacto de %s (%s).',
+            $nombre,
+            $email
+        );
+        
+        if ($asunto) {
+            $mensajeNotificacion .= sprintf(' Asunto: %s.', $asunto);
+        }
+        
+        $mensajeNotificacion .= sprintf(' Mensaje: %s', $mensajeTruncado);
+        $mensajeNotificacion .= sprintf(' Fecha: %s.', $fechaCreacion->format('d/m/Y H:i'));
+
+        foreach ($administradores as $administrador) {
+            $notificacion = new Notificacion();
+            $notificacion->setTipo(Notificacion::TIPO_MENSAJE_CONTACTO);
+            $notificacion->setTitulo('Nuevo Mensaje de Contacto');
+            $notificacion->setMensaje($mensajeNotificacion);
+            $notificacion->setProfesor($administrador);
+            
+            // Si el mensaje tiene un usuario asociado, establecerlo como alumno para referencia
+            if ($mensaje->getUsuario()) {
+                $notificacion->setAlumno($mensaje->getUsuario());
+            }
             
             $this->entityManager->persist($notificacion);
         }

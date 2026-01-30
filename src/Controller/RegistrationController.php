@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Form\RegistrationFormType;
+use App\Service\NotificacionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,7 +18,8 @@ class RegistrationController extends AbstractController
     public function register(
         Request $request,
         UserPasswordHasherInterface $passwordHasher,
-        EntityManagerInterface $entityManager
+        EntityManagerInterface $entityManager,
+        NotificacionService $notificacionService
     ): Response {
         // Si el usuario ya está autenticado, redirigir al dashboard
         if ($this->getUser()) {
@@ -67,6 +69,9 @@ class RegistrationController extends AbstractController
 
             $entityManager->persist($user);
             $entityManager->flush();
+
+            // Notificar a todos los administradores sobre el nuevo registro
+            $notificacionService->crearNotificacionRegistroUsuario($user);
 
             $this->addFlash('success', 'Tu cuenta ha sido creada. Un administrador la activará pronto. Recibirás una notificación cuando puedas iniciar sesión.');
 
