@@ -36,7 +36,16 @@
                     <h4 style="color: var(--color-primary); margin-bottom: 1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">
                         🔐 Acceso y Roles
                     </h4>
-                    {{ form_row(form.plainPassword.first, {'label': 'Contraseña'}) }}
+                    <div class="form-group">
+                        <label for="password_first" class="form-label">Contraseña</label>
+                        <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                            {{ form_widget(form.plainPassword.first, {'attr': {'class': 'form-control', 'id': 'password_first'}}) }}
+                            <button type="button" id="generate-password-btn" class="btn btn-secondary" style="white-space: nowrap;" title="Generar contraseña aleatoria">
+                                🎲 Generar
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">La contraseña será visible para que puedas copiarla y dársela al alumno.</small>
+                    </div>
                     {{ form_row(form.plainPassword.second, {'label': 'Repetir Contraseña'}) }}
                     {{ form_row(form.roles) }}
                     <div class="alert alert-info" style="margin-top: 1rem;">
@@ -84,5 +93,58 @@
         {{ form_end(form) }}
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const generateBtn = document.getElementById('generate-password-btn');
+    // Buscar los campos de contraseña por ID o por nombre
+    let passwordFirst = document.getElementById('password_first');
+    let passwordSecond = document.getElementById('password_second');
+    
+    // Si no se encuentran por ID, buscar por nombre (Symfony puede generar IDs diferentes)
+    if (!passwordFirst) {
+        passwordFirst = document.querySelector('input[name*="[first]"]');
+    }
+    if (!passwordSecond) {
+        passwordSecond = document.querySelector('input[name*="[second]"]');
+    }
+    
+    if (generateBtn && passwordFirst && passwordSecond) {
+        generateBtn.addEventListener('click', function() {
+            // Generar contraseña aleatoria de 12 caracteres
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*';
+            let password = '';
+            for (let i = 0; i < 12; i++) {
+                password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            
+            // Establecer la contraseña en ambos campos
+            passwordFirst.value = password;
+            passwordSecond.value = password;
+            
+            // Mostrar mensaje de éxito
+            const formGroup = generateBtn.closest('.form-group');
+            if (formGroup) {
+                // Eliminar alertas anteriores si existen
+                const existingAlert = formGroup.querySelector('.alert-success');
+                if (existingAlert) {
+                    existingAlert.remove();
+                }
+                
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-dismissible fade show';
+                alert.style.marginTop = '0.5rem';
+                alert.innerHTML = '<strong>✓</strong> Contraseña generada. Recuerda copiarla para dársela al alumno.';
+                formGroup.appendChild(alert);
+                
+                // Eliminar el mensaje después de 5 segundos
+                setTimeout(() => {
+                    alert.remove();
+                }, 5000);
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
 

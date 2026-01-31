@@ -204,6 +204,19 @@ class UserController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Asegurar que el usuario tenga al menos ROLE_USER
+            // El formulario ya establece los roles, pero verificamos que tenga ROLE_USER
+            // Usamos ReflectionProperty para acceder a la propiedad privada roles
+            $reflection = new \ReflectionClass($user);
+            $rolesProperty = $reflection->getProperty('roles');
+            $rolesProperty->setAccessible(true);
+            $currentRoles = $rolesProperty->getValue($user);
+            
+            if (empty($currentRoles) || !in_array('ROLE_USER', $currentRoles)) {
+                $currentRoles[] = 'ROLE_USER';
+                $user->setRoles(array_unique($currentRoles));
+            }
+            
             $entityManager->flush();
 
             $this->addFlash('success', 'Usuario actualizado correctamente.');

@@ -9,6 +9,7 @@ use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
+use Symfony\Component\Form\Extension\Core\Type\TextType as FormTextType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -32,37 +33,45 @@ class UserType extends AbstractType
                 'attr' => ['class' => 'form-control', 'placeholder' => 'usuario123']
             ]);
 
-        // Solo agregar contraseña y roles si es un usuario nuevo
+        // Solo agregar contraseña si es un usuario nuevo
         if ($isNew) {
             $builder
                 ->add('plainPassword', RepeatedType::class, [
-                    'type' => PasswordType::class,
+                    'type' => FormTextType::class, // TextType para que sea visible
                     'first_options' => [
                         'label' => 'Contraseña',
-                        'attr' => ['class' => 'form-control']
+                        'attr' => ['class' => 'form-control', 'id' => 'password_first']
                     ],
                     'second_options' => [
                         'label' => 'Repetir Contraseña',
-                        'attr' => ['class' => 'form-control']
+                        'attr' => ['class' => 'form-control', 'id' => 'password_second']
                     ],
                     'invalid_message' => 'Las contraseñas no coinciden.',
                     'required' => true,
                     'mapped' => false,
-                ])
-                ->add('roles', ChoiceType::class, [
-                    'label' => 'Roles',
-                    'choices' => [
-                        'Usuario (Alumno)' => 'ROLE_USER',
-                        'Profesor' => 'ROLE_PROFESOR',
-                        'Administrador' => 'ROLE_ADMIN',
-                    ],
-                    'multiple' => true,
-                    'expanded' => false,
-                    'required' => true,
-                    'attr' => ['class' => 'form-control'],
-                    'data' => ['ROLE_USER'], // Valor por defecto
                 ]);
         }
+
+        // Agregar roles tanto en creación como en edición
+        $rolesOptions = [
+            'label' => 'Roles',
+            'choices' => [
+                'Usuario (Alumno)' => 'ROLE_USER',
+                'Profesor' => 'ROLE_PROFESOR',
+                'Administrador' => 'ROLE_ADMIN',
+            ],
+            'multiple' => true,
+            'expanded' => false,
+            'required' => true,
+            'attr' => ['class' => 'form-control'],
+        ];
+        
+        // Solo establecer valor por defecto en creación
+        if ($isNew) {
+            $rolesOptions['data'] = ['ROLE_USER'];
+        }
+        
+        $builder->add('roles', ChoiceType::class, $rolesOptions);
 
         $builder
             ->add('email', EmailType::class, [
