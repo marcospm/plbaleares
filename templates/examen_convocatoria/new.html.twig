@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nuevo Examen de Otra Convocatoria{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Nuevo Examen de Otra Convocatoria</h1>
+    </div>
+    <div class="card-body">
+        {{ form_start(form) }}
+            {{ form_row(form.nombre) }}
+            {{ form_row(form.descripcion) }}
+            {{ form_row(form.archivoPDF) }}
+            {{ form_row(form.archivoRespuestas) }}
+            
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Crear Examen</button>
+                <a href="{{ path('app_examen_convocatoria_index') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

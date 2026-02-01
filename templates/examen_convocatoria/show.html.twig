@@ -1,0 +1,52 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Ver Examen de Otra Convocatoria{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h1>{{ examenConvocatoria.nombre }}</h1>
+        <div class="d-flex gap-2">
+            <a href="{{ path('app_examen_convocatoria_edit', {'id': examenConvocatoria.id}) }}" class="btn btn-warning">Editar</a>
+            <a href="{{ path('app_examen_convocatoria_index') }}" class="btn btn-secondary">Volver</a>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if examenConvocatoria.descripcion %}
+            <div class="mb-3">
+                <strong>Descripción:</strong>
+                <p>{{ examenConvocatoria.descripcion|nl2br }}</p>
+            </div>
+        {% endif %}
+        
+        <div class="mb-3">
+            <strong>Fecha de Subida:</strong> {{ examenConvocatoria.fechaSubida|date('d/m/Y H:i') }}
+        </div>
+        
+        <div class="mb-3">
+            <strong>Archivo de Preguntas:</strong>
+            <br>
+            <a href="{{ examenConvocatoria.rutaArchivo }}" target="_blank" class="btn btn-primary mt-2" rel="noopener noreferrer">
+                Ver/Descargar PDF
+            </a>
+        </div>
+        
+        {% if examenConvocatoria.rutaArchivoRespuestas %}
+            <div class="mb-3">
+                <strong>Archivo de Respuestas:</strong>
+                <br>
+                <a href="{{ examenConvocatoria.rutaArchivoRespuestas }}" target="_blank" class="btn btn-success mt-2" rel="noopener noreferrer" download>
+                    Descargar Respuestas
+                </a>
+            </div>
+        {% endif %}
+        
+        <div class="mt-4">
+            <form method="post" action="{{ path('app_examen_convocatoria_delete', {'id': examenConvocatoria.id}) }}" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este examen?');">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ examenConvocatoria.id) }}">
+                <button type="submit" class="btn btn-danger">Eliminar Examen</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

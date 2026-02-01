@@ -328,6 +328,55 @@
                     </div>
                 </div>
 
+                {# Exámenes de Otras Convocatorias #}
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header" style="background-color: #673AB7; color: white;">
+                        <h2 style="margin: 0; color: white;">Exámenes de Otras Convocatorias</h2>
+                    </div>
+                    <div class="card-body">
+                        {% if examenesConvocatorias|length > 0 %}
+                            <p style="margin-bottom: 1rem; color: var(--color-text-light); font-size: 0.9rem;">
+                                Exámenes de otras convocatorias con sus preguntas y respuestas. Ordenados por fecha de publicación.
+                            </p>
+                            <div style="max-height: 400px; overflow-y: auto;">
+                                <div style="display: grid; gap: 1rem;">
+                                    {% for examen in examenesConvocatorias %}
+                                        <div style="padding: 1rem; border: 1px solid #673AB7; border-radius: 4px; background-color: #f3e5f5;">
+                                            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                                                <div style="flex: 1;">
+                                                    <h3 style="color: #673AB7; margin-bottom: 0.5rem; font-size: 1rem;">
+                                                        {{ examen.nombre }}
+                                                    </h3>
+                                                    {% if examen.descripcion %}
+                                                        <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.85rem;">
+                                                            {{ examen.descripcion|slice(0, 80) }}{% if examen.descripcion|length > 80 %}...{% endif %}
+                                                        </p>
+                                                    {% endif %}
+                                                    <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.8rem;">
+                                                        <strong>Publicado:</strong> {{ examen.fechaSubida|date('d/m/Y') }}
+                                                    </p>
+                                                </div>
+                                                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                                    <a href="{{ examen.rutaArchivo }}" target="_blank" class="btn btn-sm" style="background-color: #673AB7; color: white; border: none;" rel="noopener noreferrer">
+                                                        Ver PDF Preguntas
+                                                    </a>
+                                                    {% if examen.rutaArchivoRespuestas %}
+                                                        <a href="{{ examen.rutaArchivoRespuestas }}" target="_blank" class="btn btn-sm btn-success" rel="noopener noreferrer" download>
+                                                            Descargar Respuestas
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <p style="text-align: center; color: #666; margin: 1rem 0;">No hay exámenes de otras convocatorias disponibles.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
                 {# Recursos Específicos #}
                 <div class="card">
                     <div class="card-header" style="background-color: #FF9800; color: white;">

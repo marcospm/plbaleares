@@ -1,0 +1,127 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Exámenes de Otras Convocatorias{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        @media (max-width: 768px) {
+            /* Header responsive */
+            .card-header.d-flex {
+                flex-direction: column !important;
+                gap: 1rem;
+                align-items: stretch !important;
+            }
+            
+            .card-header h1 {
+                font-size: 1.5rem;
+                word-wrap: break-word;
+                text-align: center;
+            }
+            
+            .card-header .btn {
+                width: 100%;
+                min-height: 48px;
+                font-size: 16px;
+            }
+            
+            /* Tabla responsive */
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .table {
+                font-size: 0.85rem;
+                min-width: 500px;
+            }
+            
+            /* Botones en tablas */
+            .table .btn {
+                min-height: 40px;
+                font-size: 14px;
+                padding: 0.5rem 0.75rem;
+                white-space: nowrap;
+            }
+            
+            .table .d-flex.gap-2 {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .table .d-flex.gap-2 .btn,
+            .table .d-flex.gap-2 form {
+                width: 100%;
+            }
+            
+            .table .d-flex.gap-2 form button {
+                width: 100%;
+            }
+            
+            /* Alertas */
+            .alert {
+                padding: 1rem;
+                font-size: 0.95rem;
+            }
+            
+            .alert a {
+                display: block;
+                margin-top: 0.75rem;
+                min-height: 48px;
+                font-size: 16px;
+                text-align: center;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center" style="flex-wrap: wrap; gap: 1rem;">
+        <h1 style="flex: 1; min-width: 0; word-wrap: break-word;">Exámenes de Otras Convocatorias</h1>
+        <a href="{{ path('app_examen_convocatoria_new') }}" class="btn btn-primary" style="min-height: 48px; font-size: 16px; white-space: nowrap; align-self: flex-start;">Nuevo Examen</a>
+    </div>
+    <div class="card-body">
+        {% if examenes|length > 0 %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Nombre de la Convocatoria</th>
+                            <th>Fecha de Subida</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for examen in examenes %}
+                            <tr>
+                                <td>
+                                    <strong>{{ examen.nombre }}</strong>
+                                    {% if examen.descripcion %}
+                                        <br><small class="text-muted">{{ examen.descripcion|slice(0, 100) }}{% if examen.descripcion|length > 100 %}...{% endif %}</small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ examen.fechaSubida|date('d/m/Y H:i') }}</td>
+                                <td>
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ path('app_examen_convocatoria_show', {'id': examen.id}) }}" class="btn btn-sm btn-info">Ver</a>
+                                        <a href="{{ path('app_examen_convocatoria_edit', {'id': examen.id}) }}" class="btn btn-sm btn-warning">Editar</a>
+                                        <form method="post" action="{{ path('app_examen_convocatoria_delete', {'id': examen.id}) }}" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este examen?');" style="display: inline;">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ examen.id) }}">
+                                            <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                No hay exámenes de otras convocatorias disponibles. <a href="{{ path('app_examen_convocatoria_new') }}">Crear uno nuevo</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

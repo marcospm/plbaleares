@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Repository\RecursoRepository;
 use App\Repository\ExamenPDFRepository;
+use App\Repository\ExamenConvocatoriaRepository;
 use App\Repository\TemaRepository;
 use App\Repository\TemaMunicipalRepository;
 use App\Repository\MunicipioRepository;
@@ -18,7 +19,8 @@ class RecursoPublicoController extends AbstractController
 {
     #[Route('/', name: 'app_recurso_publico_index', methods: ['GET'])]
     public function index(
-        ExamenPDFRepository $examenPDFRepository, 
+        ExamenPDFRepository $examenPDFRepository,
+        ExamenConvocatoriaRepository $examenConvocatoriaRepository,
         TemaRepository $temaRepository,
         TemaMunicipalRepository $temaMunicipalRepository,
         MunicipioRepository $municipioRepository,
@@ -29,6 +31,12 @@ class RecursoPublicoController extends AbstractController
         
         // Obtener solo los 10 últimos exámenes PDF ordenados por fecha de subida descendente
         $examenes = $examenPDFRepository->findUltimos(10);
+        
+        // Obtener todos los exámenes de otras convocatorias ordenados por fecha de subida descendente
+        $examenesConvocatorias = $examenConvocatoriaRepository->createQueryBuilder('e')
+            ->orderBy('e.fechaSubida', 'DESC')
+            ->getQuery()
+            ->getResult();
         
         // Obtener recursos específicos asignados al usuario
         $recursosEspecificos = [];
@@ -88,6 +96,7 @@ class RecursoPublicoController extends AbstractController
         
         return $this->render('recurso/publico_index.html.twig', [
             'examenes' => $examenes,
+            'examenesConvocatorias' => $examenesConvocatorias,
             'recursosEspecificos' => $recursosEspecificos,
             'temas' => $temas,
             'temasPorMunicipio' => $temasPorMunicipio,
