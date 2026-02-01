@@ -69,12 +69,19 @@ class ExamenConvocatoriaController extends AbstractController
                 try {
                     $directorio = $this->kernel->getProjectDir() . '/public/examenes-convocatorias';
                     if (!is_dir($directorio)) {
-                        mkdir($directorio, 0755, true);
+                        if (!@mkdir($directorio, 0755, true) && !is_dir($directorio)) {
+                            throw new FileException('No se pudo crear el directorio. Verifique los permisos del sistema.');
+                        }
+                    }
+                    
+                    // Verificar que el directorio sea escribible
+                    if (!is_writable($directorio)) {
+                        throw new FileException('El directorio no tiene permisos de escritura. Contacte al administrador.');
                     }
                     
                     $archivoPDF->move($directorio, $newFilename);
                     $examenConvocatoria->setRutaArchivo('/examenes-convocatorias/' . $newFilename);
-                } catch (FileException $e) {
+                } catch (\Exception $e) {
                     $this->addFlash('error', 'Error al subir el archivo PDF: ' . $e->getMessage());
                     return $this->render('examen_convocatoria/new.html.twig', [
                         'examenConvocatoria' => $examenConvocatoria,
@@ -111,12 +118,19 @@ class ExamenConvocatoriaController extends AbstractController
                 try {
                     $directorio = $this->kernel->getProjectDir() . '/public/examenes-convocatorias';
                     if (!is_dir($directorio)) {
-                        mkdir($directorio, 0755, true);
+                        if (!@mkdir($directorio, 0755, true) && !is_dir($directorio)) {
+                            throw new FileException('No se pudo crear el directorio. Verifique los permisos del sistema.');
+                        }
+                    }
+                    
+                    // Verificar que el directorio sea escribible
+                    if (!is_writable($directorio)) {
+                        throw new FileException('El directorio no tiene permisos de escritura. Contacte al administrador.');
                     }
                     
                     $archivoRespuestas->move($directorio, $newFilename);
                     $examenConvocatoria->setRutaArchivoRespuestas('/examenes-convocatorias/' . $newFilename);
-                } catch (FileException $e) {
+                } catch (\Exception $e) {
                     $this->addFlash('error', 'Error al subir el archivo de respuestas: ' . $e->getMessage());
                     return $this->render('examen_convocatoria/new.html.twig', [
                         'examenConvocatoria' => $examenConvocatoria,
@@ -179,12 +193,19 @@ class ExamenConvocatoriaController extends AbstractController
                 try {
                     $directorio = $this->kernel->getProjectDir() . '/public/examenes-convocatorias';
                     if (!is_dir($directorio)) {
-                        mkdir($directorio, 0755, true);
+                        if (!@mkdir($directorio, 0755, true) && !is_dir($directorio)) {
+                            throw new FileException('No se pudo crear el directorio. Verifique los permisos del sistema.');
+                        }
+                    }
+                    
+                    // Verificar que el directorio sea escribible
+                    if (!is_writable($directorio)) {
+                        throw new FileException('El directorio no tiene permisos de escritura. Contacte al administrador.');
                     }
                     
                     $archivoPDF->move($directorio, $newFilename);
                     $examenConvocatoria->setRutaArchivo('/examenes-convocatorias/' . $newFilename);
-                } catch (FileException $e) {
+                } catch (\Exception $e) {
                     $this->addFlash('error', 'Error al subir el archivo PDF: ' . $e->getMessage());
                     return $this->render('examen_convocatoria/edit.html.twig', [
                         'examenConvocatoria' => $examenConvocatoria,
@@ -219,12 +240,19 @@ class ExamenConvocatoriaController extends AbstractController
                 try {
                     $directorio = $this->kernel->getProjectDir() . '/public/examenes-convocatorias';
                     if (!is_dir($directorio)) {
-                        mkdir($directorio, 0755, true);
+                        if (!@mkdir($directorio, 0755, true) && !is_dir($directorio)) {
+                            throw new FileException('No se pudo crear el directorio. Verifique los permisos del sistema.');
+                        }
+                    }
+                    
+                    // Verificar que el directorio sea escribible
+                    if (!is_writable($directorio)) {
+                        throw new FileException('El directorio no tiene permisos de escritura. Contacte al administrador.');
                     }
                     
                     $archivoRespuestas->move($directorio, $newFilename);
                     $examenConvocatoria->setRutaArchivoRespuestas('/examenes-convocatorias/' . $newFilename);
-                } catch (FileException $e) {
+                } catch (\Exception $e) {
                     $this->addFlash('error', 'Error al subir el archivo de respuestas: ' . $e->getMessage());
                     return $this->render('examen_convocatoria/edit.html.twig', [
                         'examenConvocatoria' => $examenConvocatoria,
