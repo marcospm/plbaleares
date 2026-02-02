@@ -21,11 +21,15 @@ class UserController extends AbstractController
     public function index(UserRepository $userRepository, Request $request): Response
     {
         $search = $request->query->get('search', '');
-        $activo = $request->query->get('activo', '');
+        $mostrarTodos = $request->query->getBoolean('mostrar_todos', false);
 
         // Parámetros de paginación
         $itemsPerPage = 20; // Número de usuarios por página
         $page = max(1, $request->query->getInt('page', 1));
+
+        // Si no se marca la casilla "mostrar todos", solo mostrar usuarios activos
+        // Si se marca, mostrar todos (activos e inactivos)
+        $activo = $mostrarTodos ? null : '1';
 
         // Obtener usuarios con paginación y filtros a nivel de base de datos
         $result = $userRepository->findPaginated($search, $activo, $page, $itemsPerPage);
@@ -39,7 +43,7 @@ class UserController extends AbstractController
         return $this->render('user/index.html.twig', [
             'users' => $users,
             'search' => $search,
-            'activoFiltro' => $activo,
+            'mostrarTodos' => $mostrarTodos,
             'page' => $page,
             'totalPages' => $totalPages,
             'totalItems' => $totalItems,

@@ -298,17 +298,17 @@ class ExamenSemanalAlumnoController extends AbstractController
             if (!$esMunicipal && !$esConvocatoria && $examenSemanal->getModoCreacion() !== 'preguntas_especificas') {
                 $temas = $examenSemanal->getTemas()->toArray();
                 if (!empty($temas)) {
-                    // Usar distribución por porcentajes para exámenes generales
-                    $preguntas = $this->distribuirPreguntasPorPorcentajes($preguntas, $temas, $numeroPreguntas);
+                    // Usar distribución por porcentajes para exámenes generales (determinística)
+                    $preguntas = $this->distribuirPreguntasPorPorcentajesDeterministico($preguntas, $temas, $numeroPreguntas, $examenSemanal->getId());
                 } else {
-                    // Si no hay temas, usar selección aleatoria sin repetir artículos
-                    shuffle($preguntas);
-                    $preguntas = $this->seleccionarPreguntasSinRepetirArticulos($preguntas, $numeroPreguntas);
+                    // Si no hay temas, usar selección determinística sin repetir artículos
+                    $preguntas = $this->mezclarDeterministico($preguntas, $examenSemanal->getId());
+                    $preguntas = $this->seleccionarPreguntasSinRepetirArticulosDeterministico($preguntas, $numeroPreguntas);
                 }
             } else {
-                // Para exámenes municipales, convocatorias o con preguntas específicas, usar selección aleatoria sin repetir artículos
-                shuffle($preguntas);
-                $preguntas = $this->seleccionarPreguntasSinRepetirArticulos($preguntas, $numeroPreguntas);
+                // Para exámenes municipales, convocatorias o con preguntas específicas, usar selección determinística sin repetir artículos
+                $preguntas = $this->mezclarDeterministico($preguntas, $examenSemanal->getId());
+                $preguntas = $this->seleccionarPreguntasSinRepetirArticulosDeterministico($preguntas, $numeroPreguntas);
             }
             
             // Si hay menos preguntas disponibles que el límite solicitado, informar al usuario
@@ -317,9 +317,9 @@ class ExamenSemanalAlumnoController extends AbstractController
             }
         } else {
             // Si no hay límite, aplicar solo la restricción de no repetir artículos
-            // pero usar todas las preguntas disponibles
-            shuffle($preguntas);
-            $preguntas = $this->seleccionarPreguntasSinRepetirArticulos($preguntas, count($preguntas));
+            // pero usar todas las preguntas disponibles (con orden determinístico)
+            $preguntas = $this->mezclarDeterministico($preguntas, $examenSemanal->getId());
+            $preguntas = $this->seleccionarPreguntasSinRepetirArticulosDeterministico($preguntas, count($preguntas));
         }
         
         // Verificar nuevamente que haya preguntas después de la selección
@@ -447,9 +447,35 @@ class ExamenSemanalAlumnoController extends AbstractController
     }
 
     /**
-     * Distribuir preguntas según porcentajes configurados por tema
+     * Mezcla un array de forma determinística usando el ID del examen semanal como semilla
      */
-    private function distribuirPreguntasPorPorcentajes(array $preguntas, array $temas, int $cantidadTotal): array
+    private function mezclarDeterministico(array $array, int $semilla): array
+    {
+        // Ordenar primero por ID para garantizar orden consistente antes de mezclar
+        usort($array, function($a, $b) {
+            return $a->getId() <=> $b->getId();
+        });
+        
+        // Usar el ID del examen semanal como semilla para mt_srand
+        mt_srand($semilla);
+        
+        // Algoritmo Fisher-Yates con generador determinístico
+        $n = count($array);
+        for ($i = $n - 1; $i > 0; $i--) {
+            $j = mt_rand(0, $i);
+            [$array[$i], $array[$j]] = [$array[$j], $array[$i]];
+        }
+        
+        // Restaurar semilla aleatoria
+        mt_srand();
+        
+        return $array;
+    }
+
+    /**
+     * Distribuir preguntas según porcentajes configurados por tema (versión determinística)
+     */
+    private function distribuirPreguntasPorPorcentajesDeterministico(array $preguntas, array $temas, int $cantidadTotal, int $semilla): array
     {
         // Obtener configuraciones de porcentajes
         $configuraciones = $this->configuracionExamenRepository->findByTemas($temas);
@@ -577,9 +603,9 @@ class ExamenSemanalAlumnoController extends AbstractController
                 continue;
             }
             
-            // Mezclar preguntas del tema
+            // Mezclar preguntas del tema de forma determinística
             $preguntasTema = $preguntasPorTema[$temaId];
-            shuffle($preguntasTema);
+            $preguntasTema = $this->mezclarDeterministico($preguntasTema, $semilla + $temaId);
             
             // Seleccionar preguntas sin repetir artículos
             $preguntasSeleccionadasTema = [];
@@ -622,7 +648,7 @@ class ExamenSemanalAlumnoController extends AbstractController
             $preguntasRestantes = array_filter($preguntas, function($p) use ($preguntasIdsUsadas) {
                 return !in_array($p->getId(), $preguntasIdsUsadas);
             });
-            shuffle($preguntasRestantes);
+            $preguntasRestantes = $this->mezclarDeterministico($preguntasRestantes, $semilla + 1000);
             
             $faltantes = $cantidadTotal - count($preguntasSeleccionadas);
             foreach ($preguntasRestantes as $pregunta) {
@@ -652,7 +678,7 @@ class ExamenSemanalAlumnoController extends AbstractController
             $preguntasRestantes = array_filter($preguntas, function($p) use ($preguntasIdsUsadas) {
                 return !in_array($p->getId(), $preguntasIdsUsadas);
             });
-            shuffle($preguntasRestantes);
+            $preguntasRestantes = $this->mezclarDeterministico($preguntasRestantes, $semilla + 1000);
             
             foreach ($preguntasRestantes as $pregunta) {
                 if (count($preguntasSeleccionadas) >= $cantidadTotal) {
@@ -672,21 +698,21 @@ class ExamenSemanalAlumnoController extends AbstractController
             $preguntasSeleccionadas = array_slice($preguntasSeleccionadas, 0, $cantidadTotal);
         }
         
-        // Mezclar todas las preguntas seleccionadas para que no estén agrupadas por tema
-        shuffle($preguntasSeleccionadas);
+        // Mezclar todas las preguntas seleccionadas para que no estén agrupadas por tema (determinístico)
+        $preguntasSeleccionadas = $this->mezclarDeterministico($preguntasSeleccionadas, $semilla + 2000);
         
         return $preguntasSeleccionadas;
     }
 
     /**
-     * Selecciona preguntas asegurándose de que no haya dos preguntas del mismo artículo
+     * Selecciona preguntas asegurándose de que no haya dos preguntas del mismo artículo (versión determinística)
      * Si no hay suficientes, permite repetir artículos pero con preguntas diferentes
      * 
-     * @param array $preguntas Array de preguntas disponibles
+     * @param array $preguntas Array de preguntas disponibles (ya mezcladas de forma determinística)
      * @param int $cantidad Cantidad de preguntas a seleccionar
      * @return array Array de preguntas seleccionadas
      */
-    private function seleccionarPreguntasSinRepetirArticulos(array $preguntas, int $cantidad): array
+    private function seleccionarPreguntasSinRepetirArticulosDeterministico(array $preguntas, int $cantidad): array
     {
         // FASE 1: Intentar seleccionar sin repetir artículos
         $preguntasSeleccionadas = [];
@@ -732,7 +758,7 @@ class ExamenSemanalAlumnoController extends AbstractController
             $preguntasRestantes = array_filter($preguntas, function($p) use ($preguntasIdsUsadas) {
                 return !in_array($p->getId(), $preguntasIdsUsadas);
             });
-            shuffle($preguntasRestantes);
+            $preguntasRestantes = $this->mezclarDeterministico($preguntasRestantes, $semilla + 1000);
             
             foreach ($preguntasRestantes as $pregunta) {
                 if (count($preguntasSeleccionadas) >= $cantidad) {
