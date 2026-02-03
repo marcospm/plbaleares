@@ -176,6 +176,8 @@ class ExamenIniciarType extends AbstractType
             ->add('numeroPreguntas', ChoiceType::class, [
                 'label' => 'Número de Preguntas',
                 'choices' => [
+                    '5' => 5,
+                    '10' => 10,
                     '20' => 20,
                     '30' => 30,
                     '40' => 40,
