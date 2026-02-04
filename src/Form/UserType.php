@@ -33,7 +33,7 @@ class UserType extends AbstractType
                 'attr' => ['class' => 'form-control', 'placeholder' => 'usuario123']
             ]);
 
-        // Solo agregar contraseña si es un usuario nuevo
+        // Agregar contraseña si es un usuario nuevo (requerida) o en edición (opcional)
         if ($isNew) {
             $builder
                 ->add('plainPassword', RepeatedType::class, [
@@ -48,6 +48,23 @@ class UserType extends AbstractType
                     ],
                     'invalid_message' => 'Las contraseñas no coinciden.',
                     'required' => true,
+                    'mapped' => false,
+                ]);
+        } else {
+            // En edición, la contraseña es opcional
+            $builder
+                ->add('plainPassword', RepeatedType::class, [
+                    'type' => PasswordType::class,
+                    'first_options' => [
+                        'label' => 'Nueva Contraseña',
+                        'attr' => ['class' => 'form-control', 'id' => 'password_first', 'placeholder' => 'Dejar vacío para no cambiar']
+                    ],
+                    'second_options' => [
+                        'label' => 'Repetir Nueva Contraseña',
+                        'attr' => ['class' => 'form-control', 'id' => 'password_second', 'placeholder' => 'Dejar vacío para no cambiar']
+                    ],
+                    'invalid_message' => 'Las contraseñas no coinciden.',
+                    'required' => false,
                     'mapped' => false,
                 ]);
         }

@@ -202,12 +202,21 @@ class UserController extends AbstractController
 
     #[Route('/{id}/edit', name: 'app_user_edit', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
     #[IsGranted('ROLE_ADMIN')]
-    public function edit(Request $request, User $user, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, User $user, EntityManagerInterface $entityManager, UserPasswordHasherInterface $passwordHasher): Response
     {
         $form = $this->createForm(UserType::class, $user);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Actualizar contraseña si se proporcionó una nueva
+            if ($form->get('plainPassword')->getData()) {
+                $hashedPassword = $passwordHasher->hashPassword(
+                    $user,
+                    $form->get('plainPassword')->getData()
+                );
+                $user->setPassword($hashedPassword);
+            }
+
             // Asegurar que el usuario tenga al menos ROLE_USER
             // El formulario ya establece los roles, pero verificamos que tenga ROLE_USER
             // Usamos ReflectionProperty para acceder a la propiedad privada roles
