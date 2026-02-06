@@ -20,6 +20,39 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     }
 
     /**
+     * Sobrescribe findOneBy para excluir usuarios eliminados por defecto
+     */
+    public function findOneBy(array $criteria, ?array $orderBy = null): ?User
+    {
+        $qb = $this->createQueryBuilder('u');
+        
+        foreach ($criteria as $field => $value) {
+            $qb->andWhere("u.{$field} = :{$field}")
+               ->setParameter($field, $value);
+        }
+        
+        // Excluir usuarios eliminados
+        $qb->andWhere('u.eliminado = :eliminado')
+           ->setParameter('eliminado', false);
+        
+        if ($orderBy) {
+            foreach ($orderBy as $field => $direction) {
+                $qb->addOrderBy("u.{$field}", $direction);
+            }
+        }
+        
+        return $qb->getQuery()->getOneOrNullResult();
+    }
+
+    /**
+     * Busca un usuario incluyendo los eliminados (para validaciones)
+     */
+    public function findOneByIncludingDeleted(array $criteria, ?array $orderBy = null): ?User
+    {
+        return parent::findOneBy($criteria, $orderBy);
+    }
+
+    /**
      * Used to upgrade (rehash) the user's password automatically over time.
      */
     public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
@@ -59,6 +92,10 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     public function findPaginated(?string $search = null, ?string $activo = null, int $page = 1, int $itemsPerPage = 20): array
     {
         $qb = $this->createQueryBuilder('u');
+        
+        // Siempre excluir usuarios eliminados
+        $qb->andWhere('u.eliminado = :eliminado')
+           ->setParameter('eliminado', false);
         
         // Filtro por búsqueda
         if (!empty($search)) {

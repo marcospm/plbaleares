@@ -31,9 +31,9 @@ class RegistrationController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Verificar si el nombre de usuario ya existe
+            // Verificar si el nombre de usuario ya existe (incluyendo eliminados)
             $existingUser = $entityManager->getRepository(User::class)
-                ->findOneBy(['username' => $user->getUsername()]);
+                ->findOneByIncludingDeleted(['username' => $user->getUsername()]);
 
             if ($existingUser) {
                 $this->addFlash('error', 'Este nombre de usuario ya está en uso. Por favor, elige otro.');
@@ -42,10 +42,10 @@ class RegistrationController extends AbstractController
                 ]);
             }
 
-            // Verificar si el email ya existe
+            // Verificar si el email ya existe (incluyendo eliminados)
             if ($user->getEmail()) {
                 $existingUserByEmail = $entityManager->getRepository(User::class)
-                    ->findOneBy(['email' => $user->getEmail()]);
+                    ->findOneByIncludingDeleted(['email' => $user->getEmail()]);
 
                 if ($existingUserByEmail) {
                     $this->addFlash('error', 'Este email ya está registrado. Por favor, usa otro email o inicia sesión.');

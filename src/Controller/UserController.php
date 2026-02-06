@@ -60,9 +60,9 @@ class UserController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Verificar si el nombre de usuario ya existe
+            // Verificar si el nombre de usuario ya existe (incluyendo eliminados)
             $existingUser = $entityManager->getRepository(User::class)
-                ->findOneBy(['username' => $user->getUsername()]);
+                ->findOneByIncludingDeleted(['username' => $user->getUsername()]);
 
             if ($existingUser) {
                 $this->addFlash('error', 'Este nombre de usuario ya está en uso. Por favor, elige otro.');
@@ -72,10 +72,10 @@ class UserController extends AbstractController
                 ]);
             }
 
-            // Verificar si el email ya existe (si se proporcionó)
+            // Verificar si el email ya existe (incluyendo eliminados)
             if ($user->getEmail()) {
                 $existingUserByEmail = $entityManager->getRepository(User::class)
-                    ->findOneBy(['email' => $user->getEmail()]);
+                    ->findOneByIncludingDeleted(['email' => $user->getEmail()]);
 
                 if ($existingUserByEmail) {
                     $this->addFlash('error', 'Este email ya está registrado. Por favor, usa otro email.');
@@ -102,8 +102,8 @@ class UserController extends AbstractController
                 $user->setRoles(array_unique($roles));
             }
 
-            // El usuario se crea inactivo por defecto
-            $user->setActivo(false);
+            // El usuario se crea activo por defecto
+            $user->setActivo(true);
 
             $entityManager->persist($user);
             $entityManager->flush();
@@ -145,12 +145,14 @@ class UserController extends AbstractController
         if ($request->isMethod('POST')) {
             $alumnosIds = $request->request->all('alumnos') ?? [];
             
-            // Obtener todos los alumnos activos
+            // Obtener todos los alumnos activos (excluyendo eliminados)
             $todosAlumnos = $userRepository->createQueryBuilder('u')
                 ->where('u.activo = :activo')
+                ->andWhere('u.eliminado = :eliminado')
                 ->andWhere('u.roles NOT LIKE :roleProfesor')
                 ->andWhere('u.roles NOT LIKE :roleAdmin')
                 ->setParameter('activo', true)
+                ->setParameter('eliminado', false)
                 ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
                 ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
                 ->getQuery()
@@ -173,12 +175,14 @@ class UserController extends AbstractController
             return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
         }
 
-        // Obtener todos los alumnos activos
+        // Obtener todos los alumnos activos (excluyendo eliminados)
         $alumnos = $userRepository->createQueryBuilder('u')
             ->where('u.activo = :activo')
+            ->andWhere('u.eliminado = :eliminado')
             ->andWhere('u.roles NOT LIKE :roleProfesor')
             ->andWhere('u.roles NOT LIKE :roleAdmin')
             ->setParameter('activo', true)
+            ->setParameter('eliminado', false)
             ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
             ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
             ->orderBy('u.username', 'ASC')
@@ -240,6 +244,27 @@ class UserController extends AbstractController
             'user' => $user,
             'form' => $form,
         ]);
+    }
+
+    #[Route('/{id}/eliminar', name: 'app_user_eliminar', methods: ['POST'], requirements: ['id' => '\d+'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function eliminar(User $user, EntityManagerInterface $entityManager, Request $request): Response
+    {
+        if ($this->isCsrfTokenValid('eliminar'.$user->getId(), $request->getPayload()->getString('_token'))) {
+            // Verificar que el usuario no esté eliminado ya
+            if ($user->isEliminado()) {
+                $this->addFlash('error', 'Este usuario ya ha sido eliminado.');
+                return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
+            }
+
+            // Realizar borrado lógico
+            $user->setEliminado(true);
+            $entityManager->flush();
+
+            $this->addFlash('success', "El usuario '{$user->getUsername()}' ha sido eliminado correctamente.");
+        }
+
+        return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
     }
 }
 

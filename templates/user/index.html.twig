@@ -319,6 +319,12 @@
                                             {% if user.isActivo %}Desactivar{% else %}Activar{% endif %}
                                         </button>
                                     </form>
+                                    {% if is_granted('ROLE_ADMIN') %}
+                                        <form method="post" action="{{ path('app_user_eliminar', {'id': user.id}) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer y el usuario no aparecerá en ningún lugar del sistema.');">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('eliminar' ~ user.id) }}">
+                                            <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                                        </form>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -400,6 +406,12 @@
                             {% if user.isActivo %}Desactivar{% else %}Activar{% endif %}
                         </button>
                     </form>
+                    {% if is_granted('ROLE_ADMIN') %}
+                        <form method="post" action="{{ path('app_user_eliminar', {'id': user.id}) }}" style="display: inline; width: 100%;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer y el usuario no aparecerá en ningún lugar del sistema.');">
+                            <input type="hidden" name="_token" value="{{ csrf_token('eliminar' ~ user.id) }}">
+                            <button type="submit" class="btn btn-sm btn-danger" style="width: 100%;">Eliminar</button>
+                        </form>
+                    {% endif %}
                 </div>
             </div>
         {% endfor %}

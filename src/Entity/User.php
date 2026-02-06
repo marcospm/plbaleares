@@ -40,6 +40,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $activo = false;
 
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $eliminado = false;
+
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $email = null;
 
@@ -204,6 +207,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setActivo(bool $activo): static
     {
         $this->activo = $activo;
+
+        return $this;
+    }
+
+    public function isEliminado(): bool
+    {
+        return $this->eliminado;
+    }
+
+    public function setEliminado(bool $eliminado): static
+    {
+        $this->eliminado = $eliminado;
 
         return $this;
     }

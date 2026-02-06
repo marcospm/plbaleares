@@ -73,9 +73,11 @@ class DashboardController extends AbstractController
             $qbAlumnos = $userRepository->createQueryBuilder('u')
                 ->select('COUNT(u.id)')
                 ->where('u.activo = :activo')
+                ->andWhere('u.eliminado = :eliminado')
                 ->andWhere('u.roles NOT LIKE :roleProfesor')
                 ->andWhere('u.roles NOT LIKE :roleAdmin')
                 ->setParameter('activo', true)
+                ->setParameter('eliminado', false)
                 ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
                 ->setParameter('roleAdmin', '%"ROLE_ADMIN"%');
             
@@ -209,9 +211,11 @@ class DashboardController extends AbstractController
                 ->select('u.id, u.username, COUNT(e.id) as totalExamenes, AVG(e.nota) as promedio')
                 ->join('e.usuario', 'u')
                 ->where('u.activo = :activo')
+                ->andWhere('u.eliminado = :eliminado')
                 ->andWhere('u.roles NOT LIKE :roleProfesor')
                 ->andWhere('u.roles NOT LIKE :roleAdmin')
                 ->setParameter('activo', true)
+                ->setParameter('eliminado', false)
                 ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
                 ->setParameter('roleAdmin', '%"ROLE_ADMIN"%');
             
@@ -235,9 +239,11 @@ class DashboardController extends AbstractController
                 // Si es admin, obtener todos los alumnos
                 $misAlumnos = $userRepository->createQueryBuilder('u')
                     ->where('u.activo = :activo')
+                    ->andWhere('u.eliminado = :eliminado')
                     ->andWhere('u.roles NOT LIKE :roleProfesor')
                     ->andWhere('u.roles NOT LIKE :roleAdmin')
                     ->setParameter('activo', true)
+                    ->setParameter('eliminado', false)
                     ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
                     ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
                     ->orderBy('u.username', 'ASC')

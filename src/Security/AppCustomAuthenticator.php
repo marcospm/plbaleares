@@ -38,10 +38,15 @@ class AppCustomAuthenticator extends AbstractLoginFormAuthenticator
 
         $request->getSession()->set(SecurityRequestAttributes::LAST_USERNAME, $username);
 
-        // Verificar si el usuario está activo
-        $user = $this->userRepository->findOneBy(['username' => $username]);
-        if ($user && !$user->isActivo()) {
-            throw new CustomUserMessageAuthenticationException('Tu cuenta aún no ha sido activada por un administrador. Por favor, espera a que se active tu cuenta.');
+        // Verificar si el usuario existe, está activo y no está eliminado
+        $user = $this->userRepository->findOneByIncludingDeleted(['username' => $username]);
+        if ($user) {
+            if ($user->isEliminado()) {
+                throw new CustomUserMessageAuthenticationException('Tu cuenta ha sido eliminada. Por favor, contacta con un administrador.');
+            }
+            if (!$user->isActivo()) {
+                throw new CustomUserMessageAuthenticationException('Tu cuenta aún no ha sido activada por un administrador. Por favor, espera a que se active tu cuenta.');
+            }
         }
 
         return new Passport(
