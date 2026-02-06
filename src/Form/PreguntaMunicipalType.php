@@ -63,6 +63,7 @@ class PreguntaMunicipalType extends AbstractType
                     'Fácil' => 'facil',
                     'Moderada' => 'moderada',
                     'Difícil' => 'dificil',
+                    'Indeterminado' => 'indeterminado',
                 ],
                 'required' => true,
                 'attr' => ['class' => 'form-control']

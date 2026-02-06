@@ -38,12 +38,14 @@ class PreguntaMunicipalRepository extends ServiceEntityRepository
      */
     public function findActivasByMunicipioYDificultad(Municipio $municipio, string $dificultad, ?array $temasMunicipalesIds = null): array
     {
+        // Incluir también preguntas con dificultad "indeterminado"
         $qb = $this->createQueryBuilder('p')
             ->andWhere('p.municipio = :municipio')
-            ->andWhere('p.dificultad = :dificultad')
+            ->andWhere('(p.dificultad = :dificultad OR p.dificultad = :indeterminado)')
             ->andWhere('p.activo = :activo')
             ->setParameter('municipio', $municipio)
             ->setParameter('dificultad', $dificultad)
+            ->setParameter('indeterminado', 'indeterminado')
             ->setParameter('activo', true);
 
         if ($temasMunicipalesIds && !empty($temasMunicipalesIds)) {
@@ -64,12 +66,14 @@ class PreguntaMunicipalRepository extends ServiceEntityRepository
             return [];
         }
 
+        // Incluir también preguntas con dificultad "indeterminado"
         return $this->createQueryBuilder('p')
             ->andWhere('p.temaMunicipal IN (:temas)')
-            ->andWhere('p.dificultad = :dificultad')
+            ->andWhere('(p.dificultad = :dificultad OR p.dificultad = :indeterminado)')
             ->andWhere('p.activo = :activo')
             ->setParameter('temas', $temasMunicipales)
             ->setParameter('dificultad', $dificultad)
+            ->setParameter('indeterminado', 'indeterminado')
             ->setParameter('activo', true)
             ->getQuery()
             ->getResult();

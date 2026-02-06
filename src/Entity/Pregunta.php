@@ -213,6 +213,7 @@ class Pregunta
             'facil' => 'Fácil',
             'moderada' => 'Moderada',
             'dificil' => 'Difícil',
+            'indeterminado' => 'Indeterminado',
             default => $this->dificultad ?? '',
         };
     }

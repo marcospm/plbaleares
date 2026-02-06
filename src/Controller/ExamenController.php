@@ -319,11 +319,13 @@ class ExamenController extends AbstractController
                     }
                     
                     // Obtener preguntas activas de los temas seleccionados con la dificultad
+                    // Incluir también preguntas con dificultad "indeterminado"
                     $preguntas = $this->preguntaRepository->createQueryBuilder('p')
-                        ->where('p.dificultad = :dificultad')
+                        ->where('(p.dificultad = :dificultad OR p.dificultad = :indeterminado)')
                         ->andWhere('p.tema IN (:temas)')
                         ->andWhere('p.activo = :activo')
                         ->setParameter('dificultad', $dificultad)
+                        ->setParameter('indeterminado', 'indeterminado')
                         ->setParameter('temas', $temasArray)
                         ->setParameter('activo', true)
                         ->getQuery()
@@ -479,11 +481,13 @@ class ExamenController extends AbstractController
                     // Cargar las entidades Tema desde los IDs
                     $temasEntidades = $this->temaRepository->findBy(['id' => $temaIds]);
                     if (!empty($temasEntidades)) {
+                        // Incluir también preguntas con dificultad "indeterminado"
                         $preguntas = $this->preguntaRepository->createQueryBuilder('p')
-                            ->where('p.dificultad = :dificultad')
+                            ->where('(p.dificultad = :dificultad OR p.dificultad = :indeterminado)')
                             ->andWhere('p.tema IN (:temas)')
                             ->andWhere('p.activo = :activo')
                             ->setParameter('dificultad', $dificultad)
+                            ->setParameter('indeterminado', 'indeterminado')
                             ->setParameter('temas', $temasEntidades)
                             ->setParameter('activo', true)
                             ->getQuery()
@@ -510,11 +514,13 @@ class ExamenController extends AbstractController
             
             // Solo calcular si realmente hay temas y dificultad seleccionados
             if (!empty($temasArray) && !empty($dificultad)) {
+                // Incluir también preguntas con dificultad "indeterminado"
                 $preguntas = $this->preguntaRepository->createQueryBuilder('p')
-                    ->where('p.dificultad = :dificultad')
+                    ->where('(p.dificultad = :dificultad OR p.dificultad = :indeterminado)')
                     ->andWhere('p.tema IN (:temas)')
                     ->andWhere('p.activo = :activo')
                     ->setParameter('dificultad', $dificultad)
+                    ->setParameter('indeterminado', 'indeterminado')
                     ->setParameter('temas', $temasArray)
                     ->setParameter('activo', true)
                     ->getQuery()

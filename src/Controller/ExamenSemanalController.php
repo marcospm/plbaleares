@@ -1678,11 +1678,13 @@ class ExamenSemanalController extends AbstractController
             // Obtener preguntas generales
             $temas = $examenSemanal->getTemas()->toArray();
             if (!empty($temas)) {
+                // Incluir también preguntas con dificultad "indeterminado"
                 $preguntas = $this->preguntaRepository->createQueryBuilder('p')
-                    ->where('p.dificultad = :dificultad')
+                    ->where('(p.dificultad = :dificultad OR p.dificultad = :indeterminado)')
                     ->andWhere('p.tema IN (:temas)')
                     ->andWhere('p.activo = :activo')
                     ->setParameter('dificultad', $examenSemanal->getDificultad())
+                    ->setParameter('indeterminado', 'indeterminado')
                     ->setParameter('temas', $temas)
                     ->setParameter('activo', true)
                     ->getQuery()

@@ -7,6 +7,7 @@ enum Dificultad: string
     case FACIL = 'facil';
     case MODERADA = 'moderada';
     case DIFICIL = 'dificil';
+    case INDETERMINADO = 'indeterminado';
 
     public function getLabel(): string
     {
@@ -14,6 +15,7 @@ enum Dificultad: string
             self::FACIL => 'Fácil',
             self::MODERADA => 'Moderada',
             self::DIFICIL => 'Difícil',
+            self::INDETERMINADO => 'Indeterminado',
         };
     }
 }
