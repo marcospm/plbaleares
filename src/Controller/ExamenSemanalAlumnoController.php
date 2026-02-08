@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Examen;
 use App\Entity\ExamenSemanal;
 use App\Entity\Pregunta;
+use App\Entity\User;
 use App\Repository\ExamenSemanalRepository;
 use App\Repository\ExamenRepository;
 use App\Repository\ExamenBorradorRepository;
@@ -392,6 +393,10 @@ class ExamenSemanalAlumnoController extends AbstractController
         // Guardar automáticamente en borrador al iniciar el examen semanal
         // Permite múltiples borradores - no se eliminan los anteriores
         $borrador = new ExamenBorrador();
+        // Asegurar que el alumno esté gestionado por el EntityManager
+        if (!$this->entityManager->contains($alumno)) {
+            $alumno = $this->entityManager->getReference(User::class, $alumno->getId());
+        }
         $borrador->setUsuario($alumno);
         $borrador->setTipoExamen('semanal');
         $borrador->setExamenSemanal($examenSemanal);

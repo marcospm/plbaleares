@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Plantilla;
 use App\Entity\PlantillaMunicipal;
+use App\Entity\User;
 use App\Repository\PlantillaRepository;
 use App\Repository\PlantillaMunicipalRepository;
 use App\Repository\PreguntaRepository;
@@ -499,6 +500,10 @@ class ExamenPlantillaController extends AbstractController
         
         // Siempre crear un nuevo borrador para permitir múltiples borradores
         $borrador = new ExamenBorrador();
+        // Asegurar que el usuario esté gestionado por el EntityManager
+        if (!$this->entityManager->contains($user)) {
+            $user = $this->entityManager->getReference(User::class, $user->getId());
+        }
         $borrador->setUsuario($user);
         $borrador->setTipoExamen('plantilla');
         

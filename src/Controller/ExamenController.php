@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Examen;
 use App\Entity\Pregunta;
+use App\Entity\User;
 use App\Form\ExamenIniciarType;
 use App\Repository\ExamenRepository;
 use App\Repository\ExamenBorradorRepository;
@@ -2741,6 +2742,10 @@ class ExamenController extends AbstractController
         
         // Siempre crear un nuevo borrador para permitir múltiples borradores
         $borrador = new ExamenBorrador();
+        // Asegurar que el usuario esté gestionado por el EntityManager
+        if (!$this->entityManager->contains($user)) {
+            $user = $this->entityManager->getReference(User::class, $user->getId());
+        }
         $borrador->setUsuario($user);
         
         // Si es examen semanal, buscar por examen semanal
