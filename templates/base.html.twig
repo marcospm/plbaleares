@@ -565,6 +565,29 @@
                             }
                         });
                     {% endif %}
+                    
+                    // Actualizar contador de mensajes del chat
+                    function updateChatCount() {
+                        fetch('{{ path('app_chat_api_contador') }}')
+                            .then(response => response.json())
+                            .then(data => {
+                                const badge = document.getElementById('chat-badge-nav');
+                                if (badge) {
+                                    if (data.contador > 0) {
+                                        badge.textContent = data.contador;
+                                        badge.style.display = 'inline-block';
+                                    } else {
+                                        badge.style.display = 'none';
+                                    }
+                                }
+                            })
+                            .catch(error => {
+                                // Silenciar errores
+                            });
+                    }
+                    
+                    updateChatCount();
+                    setInterval(updateChatCount, 15000); // Actualizar cada 15 segundos
                 });
             </script>
         {% endblock %}
@@ -722,6 +745,10 @@
                                 {% endif %}
                                 <a href="{{ path('app_perfil_index') }}" style="border: 1px solid rgba(255,255,255,0.5); padding: 0.4rem 0.8rem; border-radius: 4px; color: white; text-decoration: none; font-size: 0.85rem; background-color: rgba(255,255,255,0.1); transition: background-color 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.1)'" title="Editar mi perfil, email y contraseña">
                                     👤 Mi Perfil
+                                </a>
+                                <a href="{{ path('app_chat_index') }}" style="position: relative; border: 1px solid rgba(255,255,255,0.5); padding: 0.4rem 0.8rem; border-radius: 4px; color: white; text-decoration: none; font-size: 0.85rem; background-color: rgba(255,255,255,0.1); transition: background-color 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.1)'" title="Chat con otros usuarios">
+                                    💬 Chat
+                                    <span id="chat-badge-nav" style="background-color: #dc3545; color: white; border-radius: 50%; padding: 0.1rem 0.4rem; font-size: 0.7rem; min-width: 1.2rem; text-align: center; display: none; margin-left: 0.25rem;">0</span>
                                 </a>
                                 {% if is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN') %}
                                     <div class="nav-dropdown" style="position: relative;">
