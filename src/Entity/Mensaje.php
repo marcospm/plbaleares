@@ -29,6 +29,12 @@ class Mensaje
     #[ORM\Column(type: Types::TEXT)]
     private ?string $contenido = null;
 
+    /**
+     * Contenido desencriptado en memoria (no se persiste)
+     * Se establece automáticamente por MensajeEncriptacionSubscriber
+     */
+    private ?string $contenidoDesencriptado = null;
+
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $fechaEnvio = null;
 
@@ -75,12 +81,22 @@ class Mensaje
 
     public function getContenido(): ?string
     {
+        // Si tenemos el contenido desencriptado en memoria, devolverlo
+        // (establecido por MensajeEncriptacionSubscriber en postLoad)
+        if ($this->contenidoDesencriptado !== null) {
+            return $this->contenidoDesencriptado;
+        }
+
+        // Si no, devolver el contenido tal cual (será desencriptado por el subscriber)
         return $this->contenido;
     }
 
     public function setContenido(string $contenido): static
     {
-        $this->contenido = $contenido;
+        // Guardar el contenido sin encriptar en memoria
+        // Se encriptará automáticamente antes de persistir por MensajeEncriptacionSubscriber
+        $this->contenidoDesencriptado = $contenido;
+        $this->contenido = $contenido; // Temporal, se sobrescribirá al encriptar
 
         return $this;
     }
