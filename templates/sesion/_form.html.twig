@@ -33,20 +33,22 @@
             
             <div id="tema-municipal-group" style="display: none;">
                 <div class="form-group mb-3">
-                    {{ form_label(form.convocatoria) }}
-                    {{ form_widget(form.convocatoria, {'attr': {'class': 'form-control'}}) }}
-                    {{ form_errors(form.convocatoria) }}
+                    {{ form_label(form.convocatorias) }}
+                    {{ form_widget(form.convocatorias, {'attr': {'class': 'form-control', 'size': '5', 'multiple': 'multiple'}}) }}
+                    {{ form_errors(form.convocatorias) }}
+                    <small class="form-text text-muted">Puedes seleccionar múltiples convocatorias.</small>
                 </div>
                 <div class="form-group mb-3">
-                    {{ form_label(form.municipio) }}
-                    {{ form_widget(form.municipio, {'attr': {'class': 'form-control'}}) }}
-                    {{ form_errors(form.municipio) }}
+                    {{ form_label(form.municipios) }}
+                    {{ form_widget(form.municipios, {'attr': {'class': 'form-control', 'size': '5', 'multiple': 'multiple'}}) }}
+                    {{ form_errors(form.municipios) }}
+                    <small class="form-text text-muted">Puedes seleccionar múltiples municipios.</small>
                 </div>
                 <div class="form-group mb-3">
                     {{ form_label(form.temasMunicipales) }}
                     {{ form_widget(form.temasMunicipales, {'attr': {'class': 'form-control', 'size': '10', 'multiple': 'multiple'}}) }}
                     {{ form_errors(form.temasMunicipales) }}
-                    <small class="form-text text-muted">Primero selecciona una convocatoria, luego un municipio, y finalmente los temas municipales. Puedes seleccionar múltiples temas.</small>
+                    <small class="form-text text-muted">Primero selecciona convocatorias, luego municipios, y finalmente los temas municipales. Puedes seleccionar múltiples temas.</small>
                 </div>
             </div>
             
@@ -68,8 +70,8 @@
                                document.querySelector('select[name*="tipoTema"]');
         const temaGeneralGroup = document.getElementById('tema-general-group');
         const temaMunicipalGroup = document.getElementById('tema-municipal-group');
-        const convocatoriaSelect = document.querySelector('select[name*="convocatoria"]');
-        const municipioSelect = document.querySelector('select[name*="municipio"]');
+        const convocatoriasSelect = document.querySelector('select[name*="convocatorias"]');
+        const municipiosSelect = document.querySelector('select[name*="municipios"]');
         const temasMunicipalesSelect = document.querySelector('select[name*="temasMunicipales"]');
         const temasGeneralesSelect = document.querySelector('select[name*="temas"]:not([name*="Municipales"])');
         
@@ -93,13 +95,17 @@
                 temaGeneralGroup.style.display = 'block';
                 temaMunicipalGroup.style.display = 'none';
                 // Limpiar completamente selecciones de tema municipal
-                if (convocatoriaSelect) {
-                    convocatoriaSelect.value = '';
-                    convocatoriaSelect.dispatchEvent(new Event('change'));
+                if (convocatoriasSelect) {
+                    Array.from(convocatoriasSelect.selectedOptions || []).forEach(option => {
+                        option.selected = false;
+                    });
+                    convocatoriasSelect.dispatchEvent(new Event('change'));
                 }
-                if (municipioSelect) {
-                    municipioSelect.innerHTML = '<option value="">Selecciona un municipio</option>';
-                    municipioSelect.value = '';
+                if (municipiosSelect) {
+                    municipiosSelect.innerHTML = '';
+                    Array.from(municipiosSelect.selectedOptions || []).forEach(option => {
+                        option.selected = false;
+                    });
                 }
                 if (temasMunicipalesSelect) {
                     temasMunicipalesSelect.innerHTML = '';
@@ -125,8 +131,16 @@
                         option.selected = false;
                     });
                 }
-                if (convocatoriaSelect) convocatoriaSelect.value = '';
-                if (municipioSelect) municipioSelect.value = '';
+                if (convocatoriasSelect) {
+                    Array.from(convocatoriasSelect.selectedOptions || []).forEach(option => {
+                        option.selected = false;
+                    });
+                }
+                if (municipiosSelect) {
+                    Array.from(municipiosSelect.selectedOptions || []).forEach(option => {
+                        option.selected = false;
+                    });
+                }
                 if (temasMunicipalesSelect) {
                     Array.from(temasMunicipalesSelect.selectedOptions || []).forEach(option => {
                         option.selected = false;
@@ -135,54 +149,62 @@
             }
         }
         
-        // Cargar municipios cuando se selecciona una convocatoria (AJAX)
-        if (convocatoriaSelect) {
-            convocatoriaSelect.addEventListener('change', function() {
-                const convocatoriaId = this.value;
-                if (convocatoriaId) {
-                    // Limpiar municipio y temas municipales
-                    if (municipioSelect) {
-                        municipioSelect.innerHTML = '<option value="">Selecciona un municipio</option>';
-                        municipioSelect.value = '';
+        // Cargar municipios cuando se seleccionan convocatorias (AJAX)
+        if (convocatoriasSelect) {
+            convocatoriasSelect.addEventListener('change', function() {
+                const convocatoriasIds = Array.from(this.selectedOptions).map(opt => opt.value).filter(v => v);
+                if (convocatoriasIds.length > 0) {
+                    // Limpiar municipios y temas municipales
+                    if (municipiosSelect) {
+                        municipiosSelect.innerHTML = '';
+                        Array.from(municipiosSelect.selectedOptions || []).forEach(option => {
+                            option.selected = false;
+                        });
                     }
                     if (temasMunicipalesSelect) {
-                        temasMunicipalesSelect.innerHTML = '<option value="">Primero selecciona un municipio</option>';
+                        temasMunicipalesSelect.innerHTML = '';
                         Array.from(temasMunicipalesSelect.selectedOptions || []).forEach(option => {
                             option.selected = false;
                         });
                     }
                     
-                    // Cargar municipios vía AJAX
-                    fetch('{{ path('app_sesion_ajax_municipios', {'convocatoriaId': 0}) }}'.replace('0', convocatoriaId))
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.error) {
-                                console.error('Error:', data.error);
-                                return;
+                    // Cargar municipios de todas las convocatorias seleccionadas vía AJAX
+                    Promise.all(convocatoriasIds.map(id => 
+                        fetch('{{ path('app_sesion_ajax_municipios', {'convocatoriaId': 0}) }}'.replace('0', id))
+                            .then(response => response.json())
+                            .then(data => data.municipios || [])
+                    )).then(results => {
+                        // Combinar y deduplicar municipios
+                        const municipiosMap = new Map();
+                        results.flat().forEach(municipio => {
+                            if (!municipiosMap.has(municipio.id)) {
+                                municipiosMap.set(municipio.id, municipio);
                             }
-                            
-                            // Llenar el select de municipios
-                            if (municipioSelect && data.municipios) {
-                                municipioSelect.innerHTML = '<option value="">Selecciona un municipio</option>';
-                                data.municipios.forEach(municipio => {
-                                    const option = document.createElement('option');
-                                    option.value = municipio.id;
-                                    option.textContent = municipio.nombre;
-                                    municipioSelect.appendChild(option);
-                                });
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error al cargar municipios:', error);
                         });
+                        
+                        // Llenar el select de municipios
+                        if (municipiosSelect) {
+                            municipiosSelect.innerHTML = '';
+                            Array.from(municipiosMap.values()).forEach(municipio => {
+                                const option = document.createElement('option');
+                                option.value = municipio.id;
+                                option.textContent = municipio.nombre;
+                                municipiosSelect.appendChild(option);
+                            });
+                        }
+                    }).catch(error => {
+                        console.error('Error al cargar municipios:', error);
+                    });
                 } else {
-                    // Si se deselecciona la convocatoria, limpiar todo
-                    if (municipioSelect) {
-                        municipioSelect.innerHTML = '<option value="">Selecciona un municipio</option>';
-                        municipioSelect.value = '';
+                    // Si se deseleccionan todas las convocatorias, limpiar todo
+                    if (municipiosSelect) {
+                        municipiosSelect.innerHTML = '';
+                        Array.from(municipiosSelect.selectedOptions || []).forEach(option => {
+                            option.selected = false;
+                        });
                     }
                     if (temasMunicipalesSelect) {
-                        temasMunicipalesSelect.innerHTML = '<option value="">Primero selecciona un municipio</option>';
+                        temasMunicipalesSelect.innerHTML = '';
                         Array.from(temasMunicipalesSelect.selectedOptions || []).forEach(option => {
                             option.selected = false;
                         });
@@ -191,11 +213,11 @@
             });
         }
         
-        // Cargar temas municipales cuando se selecciona un municipio (AJAX)
-        if (municipioSelect) {
-            municipioSelect.addEventListener('change', function() {
-                const municipioId = this.value;
-                if (municipioId) {
+        // Cargar temas municipales cuando se seleccionan municipios (AJAX)
+        if (municipiosSelect) {
+            municipiosSelect.addEventListener('change', function() {
+                const municipiosIds = Array.from(this.selectedOptions).map(opt => opt.value).filter(v => v);
+                if (municipiosIds.length > 0) {
                     // Limpiar temas municipales seleccionados
                     if (temasMunicipalesSelect) {
                         Array.from(temasMunicipalesSelect.selectedOptions || []).forEach(option => {
@@ -203,8 +225,9 @@
                         });
                     }
                     
-                    // Cargar temas municipales vía AJAX
-                    fetch('{{ path('app_sesion_ajax_temas_municipales', {'municipioId': 0}) }}'.replace('0', municipioId))
+                    // Cargar temas municipales de todos los municipios seleccionados vía AJAX
+                    Promise.all(municipiosIds.map(id => 
+                        fetch('{{ path('app_sesion_ajax_temas_municipales', {'municipioId': 0}) }}'.replace('0', id))
                         .then(response => response.json())
                         .then(data => {
                             if (data.error) {
@@ -264,13 +287,19 @@
                     tipoTemaSelect.value = 'municipal';
                     updateFormVisibility();
                 }
-                // Si hay convocatoria y municipio, cargar los datos vía AJAX
-                {% if sesion.convocatoria %}
-                    if (convocatoriaSelect) {
-                        convocatoriaSelect.value = '{{ sesion.convocatoria.id }}';
+                // Si hay convocatorias y municipios, cargar los datos vía AJAX
+                {% if sesion.convocatorias|length > 0 %}
+                    if (convocatoriasSelect) {
+                        // Seleccionar múltiples convocatorias
+                        {% for convocatoria in sesion.convocatorias %}
+                            const optionConv{{ convocatoria.id }} = Array.from(convocatoriasSelect.options).find(opt => opt.value == '{{ convocatoria.id }}');
+                            if (optionConv{{ convocatoria.id }}) {
+                                optionConv{{ convocatoria.id }}.selected = true;
+                            }
+                        {% endfor %}
                         // Disparar evento para cargar municipios
                         setTimeout(function() {
-                            convocatoriaSelect.dispatchEvent(new Event('change'));
+                            convocatoriasSelect.dispatchEvent(new Event('change'));
                         }, 200);
                     }
                 {% endif %}
@@ -281,20 +310,26 @@
             const convocatoriaId = urlParams.get('convocatoria');
             const municipioId = urlParams.get('municipio');
             
-            if (convocatoriaId && convocatoriaSelect) {
-                convocatoriaSelect.value = convocatoriaId;
-                // Disparar evento para cargar municipios sin recargar página
-                setTimeout(function() {
-                    convocatoriaSelect.dispatchEvent(new Event('change'));
-                    
-                    // Esperar a que se carguen los municipios antes de seleccionar uno
-                    if (municipioId && municipioSelect) {
-                        setTimeout(function() {
-                            municipioSelect.value = municipioId;
-                            municipioSelect.dispatchEvent(new Event('change'));
-                        }, 500);
-                    }
-                }, 200);
+            if (convocatoriaId && convocatoriasSelect) {
+                const option = Array.from(convocatoriasSelect.options).find(opt => opt.value == convocatoriaId);
+                if (option) {
+                    option.selected = true;
+                    // Disparar evento para cargar municipios sin recargar página
+                    setTimeout(function() {
+                        convocatoriasSelect.dispatchEvent(new Event('change'));
+                        
+                        // Esperar a que se carguen los municipios antes de seleccionar uno
+                        if (municipioId && municipiosSelect) {
+                            setTimeout(function() {
+                                const optionMun = Array.from(municipiosSelect.options).find(opt => opt.value == municipioId);
+                                if (optionMun) {
+                                    optionMun.selected = true;
+                                    municipiosSelect.dispatchEvent(new Event('change'));
+                                }
+                            }, 500);
+                        }
+                    }, 200);
+                }
             }
         {% endif %}
         

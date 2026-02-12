@@ -155,80 +155,23 @@ final class SesionController extends AbstractController
         if ($convocatoriaId) {
             $convocatoria = $entityManager->getRepository(\App\Entity\Convocatoria::class)->find($convocatoriaId);
             if ($convocatoria) {
-                $sesion->setConvocatoria($convocatoria);
+                $sesion->addConvocatoria($convocatoria);
             }
         }
         
         if ($municipioId) {
             $municipio = $entityManager->getRepository(\App\Entity\Municipio::class)->find($municipioId);
             if ($municipio) {
-                $sesion->setMunicipio($municipio);
+                $sesion->addMunicipio($municipio);
             }
         }
         
         $form = $this->createForm(SesionType::class, $sesion, ['tipo' => 'municipal']);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted()) {
-            // Si el formulario no es válido, intentar corregir los temas municipales
-            if (!$form->isValid()) {
-                // Si hay errores en temasMunicipales, puede ser porque el municipio no estaba establecido
-                // cuando se validó. Intentar corregir esto.
-                $temasMunicipalesField = $form->get('temasMunicipales');
-                if ($temasMunicipalesField->getErrors()->count() > 0 && $sesion->getMunicipio()) {
-                    // Si hay municipio establecido, re-validar los temas municipales
-                    $temasMunicipales = $sesion->getTemasMunicipales();
-                    $temasValidos = [];
-                    foreach ($temasMunicipales as $temaMunicipal) {
-                        if ($temaMunicipal->getMunicipio() && 
-                            $temaMunicipal->getMunicipio()->getId() === $sesion->getMunicipio()->getId()) {
-                            $temasValidos[] = $temaMunicipal;
-                        }
-                    }
-                    // Limpiar y re-establecer solo los temas válidos
-                    $sesion->getTemasMunicipales()->clear();
-                    foreach ($temasValidos as $temaValido) {
-                        $sesion->addTemaMunicipal($temaValido);
-                    }
-                    // Re-crear el formulario con los datos corregidos
-                    $form = $this->createForm(SesionType::class, $sesion, ['tipo' => 'municipal']);
-                    $form->handleRequest($request);
-                }
-                
-                if (!$form->isValid()) {
-                    foreach ($form->getErrors(true) as $error) {
-                        $fieldName = $error->getOrigin() ? $error->getOrigin()->getName() : 'formulario';
-                        $this->addFlash('error', sprintf('Error en %s: %s', $fieldName, $error->getMessage()));
-                    }
-                }
-            }
-        }
-
         if ($form->isSubmitted() && $form->isValid()) {
             // Asegurar que solo hay temas municipales
             $sesion->getTemas()->clear();
-            
-            if ($sesion->getConvocatoria() === null) {
-                $this->addFlash('error', 'Debes seleccionar una convocatoria.');
-                return $this->render('sesion/new_municipal.html.twig', [
-                    'sesion' => $sesion,
-                    'form' => $form,
-                ]);
-            }
-            if ($sesion->getMunicipio() === null) {
-                $this->addFlash('error', 'Debes seleccionar un municipio.');
-                return $this->render('sesion/new_municipal.html.twig', [
-                    'sesion' => $sesion,
-                    'form' => $form,
-                ]);
-            }
-            if ($sesion->getTemasMunicipales()->count() === 0) {
-                $this->addFlash('error', 'Debes seleccionar al menos un tema municipal.');
-                return $this->render('sesion/new_municipal.html.twig', [
-                    'sesion' => $sesion,
-                    'form' => $form,
-                ]);
-            }
 
             $entityManager->persist($sesion);
             $entityManager->flush();
@@ -258,17 +201,17 @@ final class SesionController extends AbstractController
         $convocatoriaId = $request->query->getInt('convocatoria', 0);
         $municipioId = $request->query->getInt('municipio', 0);
         
-        if ($convocatoriaId && !$sesion->getConvocatoria()) {
+        if ($convocatoriaId) {
             $convocatoria = $entityManager->getRepository(\App\Entity\Convocatoria::class)->find($convocatoriaId);
-            if ($convocatoria) {
-                $sesion->setConvocatoria($convocatoria);
+            if ($convocatoria && !$sesion->getConvocatorias()->contains($convocatoria)) {
+                $sesion->addConvocatoria($convocatoria);
             }
         }
         
-        if ($municipioId && !$sesion->getMunicipio()) {
+        if ($municipioId) {
             $municipio = $entityManager->getRepository(\App\Entity\Municipio::class)->find($municipioId);
-            if ($municipio) {
-                $sesion->setMunicipio($municipio);
+            if ($municipio && !$sesion->getMunicipios()->contains($municipio)) {
+                $sesion->addMunicipio($municipio);
             }
         }
         
@@ -311,31 +254,6 @@ final class SesionController extends AbstractController
             } elseif ($tipo === 'municipal') {
                 // Asegurar que solo hay temas municipales
                 $sesion->getTemas()->clear();
-                
-                if ($sesion->getConvocatoria() === null) {
-                    $this->addFlash('error', 'Debes seleccionar una convocatoria.');
-                    return $this->render('sesion/edit.html.twig', [
-                        'sesion' => $sesion,
-                        'form' => $form,
-                        'tipo' => $tipo,
-                    ]);
-                }
-                if ($sesion->getMunicipio() === null) {
-                    $this->addFlash('error', 'Debes seleccionar un municipio.');
-                    return $this->render('sesion/edit.html.twig', [
-                        'sesion' => $sesion,
-                        'form' => $form,
-                        'tipo' => $tipo,
-                    ]);
-                }
-                if ($sesion->getTemasMunicipales()->count() === 0) {
-                    $this->addFlash('error', 'Debes seleccionar al menos un tema municipal.');
-                    return $this->render('sesion/edit.html.twig', [
-                        'sesion' => $sesion,
-                        'form' => $form,
-                        'tipo' => $tipo,
-                    ]);
-                }
             }
 
             $entityManager->flush();

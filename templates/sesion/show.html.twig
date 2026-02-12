@@ -95,16 +95,24 @@
                         {% endif %}
                     </td>
                 </tr>
-                {% if sesion.municipio %}
+                {% if sesion.municipios|length > 0 %}
                 <tr>
-                    <th>Municipio</th>
-                    <td>{{ sesion.municipio.nombre }}</td>
+                    <th>Municipios</th>
+                    <td>
+                        {% for municipio in sesion.municipios %}
+                            {{ municipio.nombre }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </td>
                 </tr>
                 {% endif %}
-                {% if sesion.convocatoria %}
+                {% if sesion.convocatorias|length > 0 %}
                 <tr>
-                    <th>Convocatoria</th>
-                    <td>{{ sesion.convocatoria.nombre }}</td>
+                    <th>Convocatorias</th>
+                    <td>
+                        {% for convocatoria in sesion.convocatorias %}
+                            {{ convocatoria.nombre }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </td>
                 </tr>
                 {% endif %}
                 <tr>

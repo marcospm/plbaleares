@@ -40,8 +40,8 @@ class SesionRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('s')
             ->leftJoin('s.temas', 't')
             ->leftJoin('s.temasMunicipales', 'tm')
-            ->leftJoin('s.municipio', 'm')
-            ->leftJoin('s.convocatoria', 'c')
+            ->leftJoin('s.municipios', 'm')
+            ->leftJoin('s.convocatorias', 'c')
             ->addSelect('t', 'tm', 'm', 'c');
         
         // Filtro por búsqueda
@@ -64,13 +64,13 @@ class SesionRepository extends ServiceEntityRepository
         
         // Filtro por municipio
         if ($municipioId !== null) {
-            $qb->andWhere('s.municipio = :municipioId')
+            $qb->andWhere('m.id = :municipioId')
                ->setParameter('municipioId', $municipioId);
         }
         
         // Filtro por convocatoria
         if ($convocatoriaId !== null) {
-            $qb->andWhere('s.convocatoria = :convocatoriaId')
+            $qb->andWhere('c.id = :convocatoriaId')
                ->setParameter('convocatoriaId', $convocatoriaId);
         }
         
@@ -125,8 +125,8 @@ class SesionRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('s')
             ->leftJoin('s.temas', 't')
             ->leftJoin('s.temasMunicipales', 'tm')
-            ->leftJoin('s.municipio', 'm')
-            ->leftJoin('s.convocatoria', 'c')
+            ->leftJoin('s.municipios', 'm')
+            ->leftJoin('s.convocatorias', 'c')
             ->leftJoin('s.creadoPor', 'u')
             ->addSelect('t', 'tm', 'm', 'c', 'u');
         
@@ -150,13 +150,13 @@ class SesionRepository extends ServiceEntityRepository
         
         // Filtro por municipio
         if ($municipioId !== null) {
-            $qb->andWhere('s.municipio = :municipioId')
+            $qb->andWhere('m.id = :municipioId')
                ->setParameter('municipioId', $municipioId);
         }
         
         // Filtro por convocatoria
         if ($convocatoriaId !== null) {
-            $qb->andWhere('s.convocatoria = :convocatoriaId')
+            $qb->andWhere('c.id = :convocatoriaId')
                ->setParameter('convocatoriaId', $convocatoriaId);
         }
         

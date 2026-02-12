@@ -30,13 +30,13 @@ class Sesion
     #[ORM\JoinTable(name: 'sesion_tema_municipal')]
     private Collection $temasMunicipales;
 
-    #[ORM\ManyToOne(targetEntity: Municipio::class)]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?Municipio $municipio = null;
+    #[ORM\ManyToMany(targetEntity: Municipio::class)]
+    #[ORM\JoinTable(name: 'sesion_municipio')]
+    private Collection $municipios;
 
-    #[ORM\ManyToOne(targetEntity: Convocatoria::class)]
-    #[ORM\JoinColumn(nullable: true)]
-    private ?Convocatoria $convocatoria = null;
+    #[ORM\ManyToMany(targetEntity: Convocatoria::class)]
+    #[ORM\JoinTable(name: 'sesion_convocatoria')]
+    private Collection $convocatorias;
 
     #[ORM\Column(type: Types::TEXT)]
     private ?string $enlaceVideo = null;
@@ -53,6 +53,8 @@ class Sesion
         $this->fechaCreacion = new \DateTime();
         $this->temas = new ArrayCollection();
         $this->temasMunicipales = new ArrayCollection();
+        $this->municipios = new ArrayCollection();
+        $this->convocatorias = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -132,27 +134,92 @@ class Sesion
         return $this;
     }
 
-    public function getMunicipio(): ?Municipio
+    /**
+     * @return Collection<int, Municipio>
+     */
+    public function getMunicipios(): Collection
     {
-        return $this->municipio;
+        return $this->municipios;
     }
 
-    public function setMunicipio(?Municipio $municipio): static
+    public function addMunicipio(Municipio $municipio): static
     {
-        $this->municipio = $municipio;
+        if (!$this->municipios->contains($municipio)) {
+            $this->municipios->add($municipio);
+        }
 
         return $this;
     }
 
-    public function getConvocatoria(): ?Convocatoria
+    public function removeMunicipio(Municipio $municipio): static
     {
-        return $this->convocatoria;
+        $this->municipios->removeElement($municipio);
+
+        return $this;
     }
 
+    /**
+     * @return Collection<int, Convocatoria>
+     */
+    public function getConvocatorias(): Collection
+    {
+        return $this->convocatorias;
+    }
+
+    public function addConvocatoria(Convocatoria $convocatoria): static
+    {
+        if (!$this->convocatorias->contains($convocatoria)) {
+            $this->convocatorias->add($convocatoria);
+        }
+
+        return $this;
+    }
+
+    public function removeConvocatoria(Convocatoria $convocatoria): static
+    {
+        $this->convocatorias->removeElement($convocatoria);
+
+        return $this;
+    }
+
+    /**
+     * Métodos de compatibilidad hacia atrás (deprecated)
+     * @deprecated Use getMunicipios() instead
+     */
+    public function getMunicipio(): ?Municipio
+    {
+        return $this->municipios->first() ?: null;
+    }
+
+    /**
+     * @deprecated Use addMunicipio() instead
+     */
+    public function setMunicipio(?Municipio $municipio): static
+    {
+        $this->municipios->clear();
+        if ($municipio) {
+            $this->municipios->add($municipio);
+        }
+        return $this;
+    }
+
+    /**
+     * @deprecated Use getConvocatorias() instead
+     */
+    public function getConvocatoria(): ?Convocatoria
+    {
+        return $this->convocatorias->first() ?: null;
+    }
+
+    /**
+     * @deprecated Use addConvocatoria() instead
+     */
     public function setConvocatoria(?Convocatoria $convocatoria): static
     {
-        $this->convocatoria = $convocatoria;
-
+        $this->convocatorias->clear();
+        if ($convocatoria) {
+            $this->convocatorias->add($convocatoria);
+        }
         return $this;
     }
 
