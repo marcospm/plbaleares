@@ -46,6 +46,19 @@ class SesionType extends AbstractType
             $this->addMunicipalFields($builder, $options);
         } else {
             // Si no hay tipo, mostrar todos los campos (para edición)
+            // Agregar campo tipoTema para permitir cambiar entre general y municipal
+            $builder->add('tipoTema', ChoiceType::class, [
+                'label' => 'Tipo de Tema',
+                'choices' => [
+                    'General' => 'general',
+                    'Municipal' => 'municipal',
+                ],
+                'required' => true,
+                'mapped' => false,
+                'attr' => ['class' => 'form-control', 'id' => 'tipo_tema'],
+                'help' => 'Selecciona si quieres usar temas generales o temas municipales.',
+            ]);
+            
             $this->addGeneralFields($builder, $options);
             $this->addMunicipalFields($builder, $options);
         }
@@ -67,12 +80,14 @@ class SesionType extends AbstractType
                 $sesion = $event->getData();
                 $form = $event->getForm();
 
-                if ($sesion && $sesion->getId()) {
+                if ($sesion && $sesion->getId() && $form->has('tipoTema')) {
                     // Si ya existe, establecer el tipo de tema según los datos
                     if ($sesion->getTemas()->count() > 0) {
                         // Es tema general
+                        $form->get('tipoTema')->setData('general');
                     } elseif ($sesion->getTemasMunicipales()->count() > 0) {
                         // Es tema municipal
+                        $form->get('tipoTema')->setData('municipal');
                     }
                 }
             });

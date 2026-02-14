@@ -236,12 +236,20 @@ final class SesionController extends AbstractController
         }
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Si estamos editando y hay campo tipoTema, usar ese valor
+            if ($tipo === null && $form->has('tipoTema')) {
+                $tipoSeleccionado = $form->get('tipoTema')->getData();
+                if ($tipoSeleccionado) {
+                    $tipo = $tipoSeleccionado;
+                }
+            }
+            
             // Validar según el tipo de sesión
             if ($tipo === 'general') {
                 // Asegurar que solo hay temas generales
                 $sesion->getTemasMunicipales()->clear();
-                $sesion->setMunicipio(null);
-                $sesion->setConvocatoria(null);
+                $sesion->getMunicipios()->clear();
+                $sesion->getConvocatorias()->clear();
                 
                 if ($sesion->getTemas()->count() === 0) {
                     $this->addFlash('error', 'Debes seleccionar al menos un tema general.');
