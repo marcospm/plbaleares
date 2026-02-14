@@ -76,7 +76,7 @@ applications:
       deploy: |
         set -e
 
-        # Cache Symfony
+        # Cache Symfony 
         php bin/console cache:clear --env=prod --no-warmup
         php bin/console cache:warmup --env=prod --no-optional-warmers
 
