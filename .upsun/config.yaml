@@ -76,16 +76,37 @@ applications:
       deploy: |
         set -e
 
-        # Limpiar completamente la caché de Symfony (incluyendo Twig)
+        # Limpiar completamente la caché de Symfony (forzar refresco de HTML)
+        echo "Limpiando caché de Symfony..."
         php bin/console cache:clear --env=prod --no-warmup
         
-        # Limpiar específicamente la caché de Twig
+        # Limpiar específicamente la caché de Twig (templates HTML)
+        echo "Limpiando caché de Twig..."
         rm -rf var/cache/prod/twig/*
+        rm -rf var/cache/prod/twig
         
-        # Calentar la caché
+        # Limpiar también la caché de anotaciones y otros
+        rm -rf var/cache/prod/annotations/*
+        rm -rf var/cache/prod/doctrine/*
+        rm -rf var/cache/prod/pools/*
+        
+        # Recrear directorio de caché de Twig
+        mkdir -p var/cache/prod/twig
+        
+        # Calentar la caché (esto regenerará todos los templates)
+        echo "Recalentando caché..."
         php bin/console cache:warmup --env=prod --no-optional-warmers
+        
+        # Limpiar opcache de PHP para forzar recarga de clases
+        if command -v php >/dev/null 2>&1; then
+            echo "Limpiando OPcache..."
+            php -r "if (function_exists('opcache_reset')) { opcache_reset(); }"
+        fi
 
         # Migraciones Doctrine
+        echo "Ejecutando migraciones..."
         php bin/console doctrine:migrations:migrate \
           --no-interaction \
           --allow-no-migration
+        
+        echo "Deploy completado - Caché refrescada"
