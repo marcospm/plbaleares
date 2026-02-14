@@ -215,15 +215,9 @@ final class SesionController extends AbstractController
             }
         }
         
-        // Determinar el tipo de sesión según los datos existentes
-        $tipo = null;
-        if ($sesion->getTemas()->count() > 0) {
-            $tipo = 'general';
-        } elseif ($sesion->getTemasMunicipales()->count() > 0) {
-            $tipo = 'municipal';
-        }
-        
-        $form = $this->createForm(SesionType::class, $sesion, ['tipo' => $tipo]);
+        // Al editar, siempre mostrar todos los campos (tipo = null)
+        // Esto permite editar todos los campos como cuando se crea una sesión
+        $form = $this->createForm(SesionType::class, $sesion, ['tipo' => null]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted()) {
@@ -236,11 +230,18 @@ final class SesionController extends AbstractController
         }
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Si estamos editando y hay campo tipoTema, usar ese valor
-            if ($tipo === null && $form->has('tipoTema')) {
-                $tipoSeleccionado = $form->get('tipoTema')->getData();
-                if ($tipoSeleccionado) {
-                    $tipo = $tipoSeleccionado;
+            // Obtener el tipo seleccionado del formulario
+            $tipo = null;
+            if ($form->has('tipoTema')) {
+                $tipo = $form->get('tipoTema')->getData();
+            }
+            
+            // Si no hay tipoTema en el formulario, determinar según los datos existentes
+            if (!$tipo) {
+                if ($sesion->getTemas()->count() > 0) {
+                    $tipo = 'general';
+                } elseif ($sesion->getTemasMunicipales()->count() > 0) {
+                    $tipo = 'municipal';
                 }
             }
             
@@ -256,7 +257,7 @@ final class SesionController extends AbstractController
                     return $this->render('sesion/edit.html.twig', [
                         'sesion' => $sesion,
                         'form' => $form,
-                        'tipo' => $tipo,
+                        'tipo' => null,
                     ]);
                 }
             } elseif ($tipo === 'municipal') {
@@ -273,7 +274,7 @@ final class SesionController extends AbstractController
         return $this->render('sesion/edit.html.twig', [
             'sesion' => $sesion,
             'form' => $form,
-            'tipo' => $tipo,
+            'tipo' => null, // Siempre null para mostrar todos los campos
         ]);
     }
 

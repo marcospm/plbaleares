@@ -46,6 +46,17 @@ class SesionType extends AbstractType
             $this->addMunicipalFields($builder, $options);
         } else {
             // Si no hay tipo, mostrar todos los campos (para edición)
+            // Determinar el valor por defecto según los datos existentes
+            $sesion = $options['data'] ?? null;
+            $tipoDefault = 'municipal'; // Por defecto municipal
+            if ($sesion && $sesion->getId()) {
+                if ($sesion->getTemas()->count() > 0) {
+                    $tipoDefault = 'general';
+                } elseif ($sesion->getTemasMunicipales()->count() > 0) {
+                    $tipoDefault = 'municipal';
+                }
+            }
+            
             // Agregar campo tipoTema para permitir cambiar entre general y municipal
             $builder->add('tipoTema', ChoiceType::class, [
                 'label' => 'Tipo de Tema',
@@ -55,6 +66,7 @@ class SesionType extends AbstractType
                 ],
                 'required' => true,
                 'mapped' => false,
+                'data' => $tipoDefault, // Establecer valor por defecto
                 'attr' => ['class' => 'form-control', 'id' => 'tipo_tema'],
                 'help' => 'Selecciona si quieres usar temas generales o temas municipales.',
             ]);
@@ -80,13 +92,21 @@ class SesionType extends AbstractType
                 $sesion = $event->getData();
                 $form = $event->getForm();
 
-                if ($sesion && $sesion->getId() && $form->has('tipoTema')) {
+                if ($sesion && $form->has('tipoTema')) {
                     // Si ya existe, establecer el tipo de tema según los datos
-                    if ($sesion->getTemas()->count() > 0) {
-                        // Es tema general
-                        $form->get('tipoTema')->setData('general');
-                    } elseif ($sesion->getTemasMunicipales()->count() > 0) {
-                        // Es tema municipal
+                    if ($sesion->getId()) {
+                        if ($sesion->getTemas()->count() > 0) {
+                            // Es tema general
+                            $form->get('tipoTema')->setData('general');
+                        } elseif ($sesion->getTemasMunicipales()->count() > 0) {
+                            // Es tema municipal
+                            $form->get('tipoTema')->setData('municipal');
+                        } else {
+                            // Si no hay temas, establecer un valor por defecto (municipal)
+                            $form->get('tipoTema')->setData('municipal');
+                        }
+                    } else {
+                        // Si es nueva sesión, establecer un valor por defecto
                         $form->get('tipoTema')->setData('municipal');
                     }
                 }
@@ -207,29 +227,18 @@ class SesionType extends AbstractType
                         ->where('m.activo = :activo')
                         ->setParameter('activo', true);
                     
-                    // Si hay convocatorias en la sesión, filtrar municipios de esas convocatorias
                     $sesion = $options['data'] ?? null;
-                    if ($sesion && $sesion->getConvocatorias()->count() > 0) {
-                        $municipiosIds = [];
-                        foreach ($sesion->getConvocatorias() as $convocatoria) {
-                            foreach ($convocatoria->getMunicipios() as $municipio) {
-                                $municipiosIds[] = $municipio->getId();
-                            }
-                        }
-                        $municipiosIds = array_unique($municipiosIds);
-                        if (!empty($municipiosIds)) {
-                            $qb->andWhere('m.id IN (:municipiosIds)')
-                               ->setParameter('municipiosIds', $municipiosIds);
-                        }
-                    }
+                    $municipiosSeleccionadosIds = [];
                     
-                    // Incluir municipios ya seleccionados para que pasen la validación
+                    // Incluir municipios ya seleccionados para que siempre estén disponibles
                     if ($sesion && $sesion->getMunicipios()->count() > 0) {
                         $municipiosSeleccionadosIds = $sesion->getMunicipios()->map(fn($m) => $m->getId())->toArray();
-                        if (!empty($municipiosSeleccionadosIds)) {
-                            $qb->orWhere('m.id IN (:municipiosSeleccionadosIds)')
-                               ->setParameter('municipiosSeleccionadosIds', $municipiosSeleccionadosIds);
-                        }
+                    }
+                    
+                    // Si hay municipios ya seleccionados, incluirlos siempre
+                    if (!empty($municipiosSeleccionadosIds)) {
+                        $qb->orWhere('m.id IN (:municipiosSeleccionadosIds)')
+                           ->setParameter('municipiosSeleccionadosIds', $municipiosSeleccionadosIds);
                     }
                     
                     return $qb->orderBy('m.nombre', 'ASC');
