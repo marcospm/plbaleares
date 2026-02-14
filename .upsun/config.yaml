@@ -76,8 +76,13 @@ applications:
       deploy: |
         set -e
 
-        # Cache Symfony
+        # Limpiar completamente la caché de Symfony (incluyendo Twig)
         php bin/console cache:clear --env=prod --no-warmup
+        
+        # Limpiar específicamente la caché de Twig
+        rm -rf var/cache/prod/twig/*
+        
+        # Calentar la caché
         php bin/console cache:warmup --env=prod --no-optional-warmers
 
         # Migraciones Doctrine
