@@ -6,6 +6,7 @@ namespace DoctrineMigrations;
 
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 
 /**
  * Auto-generated Migration: Please modify to your needs!
@@ -21,9 +22,12 @@ final class Version20251221141052 extends AbstractMigration
     {
         // this up() migration is auto-generated, please modify it to your needs
         // Usar comillas dobles para escapar 'user' que es palabra reservada en PostgreSQL
-        $platform = $this->connection->getDatabasePlatform()->getName();
+        $platform = $this->connection->getDatabasePlatform();
         
-        if ($platform === 'postgresql') {
+        // Detectar PostgreSQL usando instanceof (más confiable que comparar strings)
+        $isPostgreSQL = $platform instanceof PostgreSQLPlatform;
+        
+        if ($isPostgreSQL) {
             // PostgreSQL: usar comillas dobles y sintaxis de PostgreSQL
             $this->addSql('CREATE TABLE "user" (id SERIAL NOT NULL, username VARCHAR(180) NOT NULL, roles JSON NOT NULL, password VARCHAR(255) NOT NULL, PRIMARY KEY (id))');
             $this->addSql('CREATE UNIQUE INDEX UNIQ_IDENTIFIER_USERNAME ON "user" (username)');
@@ -41,13 +45,16 @@ final class Version20251221141052 extends AbstractMigration
     public function down(Schema $schema): void
     {
         // this down() migration is auto-generated, please modify it to your needs
-        $platform = $this->connection->getDatabasePlatform()->getName();
+        $platform = $this->connection->getDatabasePlatform();
         
-        if ($platform === 'postgresql') {
-            $this->addSql('DROP TABLE "user"');
+        // Detectar PostgreSQL usando instanceof (más confiable que comparar strings)
+        $isPostgreSQL = $platform instanceof PostgreSQLPlatform;
+        
+        if ($isPostgreSQL) {
+            $this->addSql('DROP TABLE IF EXISTS "user"');
         } else {
-            $this->addSql('DROP TABLE user');
+            $this->addSql('DROP TABLE IF EXISTS user');
         }
-        $this->addSql('DROP TABLE messenger_messages');
+        $this->addSql('DROP TABLE IF EXISTS messenger_messages');
     }
 }
