@@ -33,7 +33,7 @@
                 </div>
             </div>
             
-            <div id="tema-municipal-group" style="display: {% if sesion is defined and sesion.id and sesion.temasMunicipales|length > 0 %}block{% else %}none{% endif %};">
+            <div id="tema-municipal-group" style="display: {% if sesion is defined and sesion.id and (sesion.temasMunicipales|length > 0 or sesion.convocatorias|length > 0 or sesion.municipios|length > 0) %}block{% else %}none{% endif %};">
                 <div class="form-group mb-3">
                     {{ form_label(form.convocatorias) }}
                     {{ form_widget(form.convocatorias, {'attr': {'class': 'form-control', 'size': '5', 'multiple': 'multiple'}}) }}
@@ -288,7 +288,7 @@
                 if (!tipoTemaValue) {
                     {% if sesion.temas|length > 0 %}
                         tipoTemaValue = 'general';
-                    {% elseif sesion.temasMunicipales|length > 0 %}
+                    {% elseif sesion.temasMunicipales|length > 0 or sesion.convocatorias|length > 0 or sesion.municipios|length > 0 %}
                         tipoTemaValue = 'municipal';
                     {% endif %}
                 }
@@ -299,9 +299,10 @@
                     updateFormVisibility();
                     
                     // Si es municipal, cargar los datos de convocatorias y municipios
-                    {% if sesion.temasMunicipales|length > 0 %}
-                        {% if sesion.convocatorias|length > 0 %}
-                            if (convocatoriasSelect) {
+                    {% if sesion.temasMunicipales|length > 0 or sesion.convocatorias|length > 0 or sesion.municipios|length > 0 %}
+                        // Cargar convocatorias si existen
+                        if (convocatoriasSelect) {
+                            {% if sesion.convocatorias|length > 0 %}
                                 // Seleccionar múltiples convocatorias
                                 {% for convocatoria in sesion.convocatorias %}
                                     const optionConv{{ convocatoria.id }} = Array.from(convocatoriasSelect.options).find(opt => opt.value == '{{ convocatoria.id }}');
@@ -309,34 +310,35 @@
                                         optionConv{{ convocatoria.id }}.selected = true;
                                     }
                                 {% endfor %}
-                                // Disparar evento para cargar municipios
+                            {% endif %}
+                            
+                            // Disparar evento para cargar municipios (incluso si no hay convocatorias seleccionadas, para mostrar los municipios existentes)
+                            setTimeout(function() {
+                                if (convocatoriasSelect && convocatoriasSelect.selectedOptions.length > 0) {
+                                    convocatoriasSelect.dispatchEvent(new Event('change'));
+                                }
+                                
+                                // Después de cargar municipios, seleccionar los municipios de la sesión
                                 setTimeout(function() {
-                                    if (convocatoriasSelect) {
-                                        convocatoriasSelect.dispatchEvent(new Event('change'));
-                                        
-                                        // Después de cargar municipios, seleccionar los municipios de la sesión
-                                        setTimeout(function() {
-                                            if (municipiosSelect) {
-                                                {% if sesion.municipios|length > 0 %}
-                                                    {% for municipio in sesion.municipios %}
-                                                        const optionMun{{ municipio.id }} = Array.from(municipiosSelect.options).find(opt => opt.value == '{{ municipio.id }}');
-                                                        if (optionMun{{ municipio.id }}) {
-                                                            optionMun{{ municipio.id }}.selected = true;
-                                                        }
-                                                    {% endfor %}
-                                                    // Disparar evento para cargar temas municipales
-                                                    setTimeout(function() {
-                                                        if (municipiosSelect) {
-                                                            municipiosSelect.dispatchEvent(new Event('change'));
-                                                        }
-                                                    }, 300);
-                                                {% endif %}
-                                            }
-                                        }, 500);
+                                    if (municipiosSelect) {
+                                        {% if sesion.municipios|length > 0 %}
+                                            {% for municipio in sesion.municipios %}
+                                                const optionMun{{ municipio.id }} = Array.from(municipiosSelect.options).find(opt => opt.value == '{{ municipio.id }}');
+                                                if (optionMun{{ municipio.id }}) {
+                                                    optionMun{{ municipio.id }}.selected = true;
+                                                }
+                                            {% endfor %}
+                                            // Disparar evento para cargar temas municipales
+                                            setTimeout(function() {
+                                                if (municipiosSelect) {
+                                                    municipiosSelect.dispatchEvent(new Event('change'));
+                                                }
+                                            }, 300);
+                                        {% endif %}
                                     }
-                                }, 300);
-                            }
-                        {% endif %}
+                                }, 500);
+                            }, 300);
+                        }
                     {% endif %}
                 }
             {% else %}
