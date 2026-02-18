@@ -15,12 +15,14 @@
             {{ form_row(form.nombre) }}
             {{ form_row(form.descripcion) }}
             
+            {% if form.tipoTema is defined %}
             <div class="form-group mb-3">
                 {{ form_label(form.tipoTema) }}
                 {{ form_widget(form.tipoTema, {'attr': {'class': 'form-control', 'id': 'tipo_tema'}}) }}
                 {{ form_help(form.tipoTema) }}
                 {{ form_errors(form.tipoTema) }}
             </div>
+            {% endif %}
             
             <div id="tema-general-group" style="display: {% if sesion is defined and sesion.id and sesion.temas|length > 0 %}block{% else %}none{% endif %};">
                 <div class="form-group mb-3">
