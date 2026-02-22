@@ -43,20 +43,20 @@ when@prod:
         cache:
             pools:
                 # Migrar pools de aplicación a Redis en producción
-                # Durante el build, si REDIS_URL no está disponible, se usará default_redis_url como fallback
+                # REDIS_URL debe estar definida (en build hook o runtime)
+                # Durante el build, REDIS_URL se define en .upsun/config.yaml build hook
                 # En runtime, REDIS_URL se configurará automáticamente desde PLATFORM_RELATIONSHIPS
-                # default_redis_url se define en el build hook de .upsun/config.yaml
                 cache.partidas:
                     adapter: cache.adapter.redis
-                    provider: '%env(default:REDIS_URL:default_redis_url)%'
+                    provider: '%env(REDIS_URL)%'
                 cache.boe:
                     adapter: cache.adapter.redis
-                    provider: '%env(default:REDIS_URL:default_redis_url)%'
+                    provider: '%env(REDIS_URL)%'
                 cache.queries:
                     adapter: cache.adapter.redis
-                    provider: '%env(default:REDIS_URL:default_redis_url)%'
+                    provider: '%env(REDIS_URL)%'
                     default_lifetime: 3600
                 # Pool principal de Redis
                 cache.redis:
                     adapter: cache.adapter.redis
-                    provider: '%env(default:REDIS_URL:default_redis_url)%'
+                    provider: '%env(REDIS_URL)%'

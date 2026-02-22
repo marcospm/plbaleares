@@ -67,14 +67,15 @@ applications:
           public/recursos_especificos \
           public/videos
 
-        # Definir REDIS_URL y default_redis_url para el build
-        # Durante el build, REDIS_URL puede no estar disponible, así que usamos un valor por defecto
-        # default_redis_url se usa como fallback en la configuración de cache.yaml
+        # Definir REDIS_URL para el build (necesario para cache:clear en post-install-cmd)
+        # Durante el build, REDIS_URL puede no estar disponible desde PLATFORM_RELATIONSHIPS,
+        # así que usamos un valor por defecto que no se conectará realmente durante el build
+        # En runtime, REDIS_URL se configurará automáticamente desde PLATFORM_RELATIONSHIPS
         export REDIS_URL="${REDIS_URL:-redis://localhost:6379}"
-        export default_redis_url="redis://localhost:6379"
 
         # Ejecutar composer install (los scripts ahora pueden ejecutarse porque REDIS_URL está definida)
-        composer install \
+        # REDIS_URL se pasa explícitamente al proceso de composer para que esté disponible en los scripts
+        REDIS_URL="${REDIS_URL}" composer install \
           --no-dev \
           --prefer-dist \
           --no-progress \
