@@ -69,10 +69,10 @@ applications:
 
         # Definir REDIS_URL temporal para el build (necesario para cache:clear en post-install-cmd)
         # Durante el build, REDIS_URL puede no estar disponible desde PLATFORM_RELATIONSHIPS,
-        # así que usamos un valor por defecto que no se conectará realmente durante el build
+        # así que usamos un valor por defecto válido (aunque no se conectará realmente durante el build)
         # En runtime, REDIS_URL se configurará automáticamente desde PLATFORM_RELATIONSHIPS
-        # Si REDIS_URL no está disponible, se deja vacío y Symfony usará filesystem como fallback
-        export REDIS_URL="${REDIS_URL:-}"
+        # Usamos redis://localhost:6379 como fallback para evitar errores de tipo (null) en Symfony
+        export REDIS_URL="${REDIS_URL:-redis://localhost:6379}"
 
         # Ejecutar composer install (los scripts ahora pueden ejecutarse porque REDIS_URL está definida)
         composer install \

@@ -41,20 +41,19 @@ when@prod:
             pools:
                 # Migrar pools de aplicación a Redis en producción
                 # REDIS_URL se configura automáticamente desde PLATFORM_RELATIONSHIPS en public/index.php
-                # Durante el build, si REDIS_URL no está disponible, se usa string vacío como fallback
+                # Durante el build, REDIS_URL se define en .upsun/config.yaml build hook (redis://localhost:6379)
                 # En runtime, REDIS_URL se configurará automáticamente desde PLATFORM_RELATIONSHIPS
-                # NOTA: Si REDIS_URL está vacío, Symfony usará filesystem automáticamente como fallback
                 cache.partidas:
                     adapter: cache.adapter.redis
-                    provider: '%env(default::REDIS_URL)%'
+                    provider: '%env(REDIS_URL)%'
                 cache.boe:
                     adapter: cache.adapter.redis
-                    provider: '%env(default::REDIS_URL)%'
+                    provider: '%env(REDIS_URL)%'
                 cache.queries:
                     adapter: cache.adapter.redis
-                    provider: '%env(default::REDIS_URL)%'
+                    provider: '%env(REDIS_URL)%'
                     default_lifetime: 3600
                 # Pool principal de Redis
                 cache.redis:
                     adapter: cache.adapter.redis
-                    provider: '%env(default::REDIS_URL)%'
+                    provider: '%env(REDIS_URL)%'
