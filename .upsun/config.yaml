@@ -80,6 +80,9 @@ applications:
           --no-scripts \
           --optimize-autoloader
 
+        # Instalar assets de vendor (importmap) antes de compilar
+        php bin/console importmap:install --no-interaction --env=prod
+
         # Compilar assets (Asset Mapper)
         php bin/console asset-map:compile --env=prod
 
