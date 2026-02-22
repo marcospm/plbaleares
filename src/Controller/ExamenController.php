@@ -2042,26 +2042,30 @@ class ExamenController extends AbstractController
         }
         
         if ($examenesFromCache !== null) {
-            $examenesGeneral = $examenesFromCache['general'] ?? [];
-            $examenesMunicipal = $examenesFromCache['municipal'] ?? [];
+            $examenesGeneralRaw = $examenesFromCache['general'] ?? [];
+            $examenesMunicipalRaw = $examenesFromCache['municipal'] ?? [];
             
-            // Asegurar que las relaciones lazy estén cargadas después de recuperar del caché
-            // Refrescar las entidades para que Doctrine las reconozca como "managed"
-            foreach ($examenesGeneral as $examen) {
-                if ($examen instanceof Examen) {
-                    // Asegurar que el usuario esté cargado
-                    if (!$examen->getUsuario() || !$this->entityManager->contains($examen->getUsuario())) {
-                        // Si el usuario no está cargado o no está "managed", refrescarlo
-                        $this->entityManager->refresh($examen);
+            // Las entidades del caché no están "managed", así que necesitamos obtenerlas de nuevo desde la BD
+            // para asegurar que las relaciones lazy estén cargadas correctamente
+            // Usar find() para obtener las entidades "managed" con todas sus relaciones cargadas
+            $examenesGeneral = [];
+            foreach ($examenesGeneralRaw as $examen) {
+                if ($examen instanceof Examen && $examen->getId()) {
+                    // Obtener el examen desde la BD para que esté "managed" y tenga las relaciones cargadas
+                    $examenManaged = $this->examenRepository->find($examen->getId());
+                    if ($examenManaged) {
+                        $examenesGeneral[] = $examenManaged;
                     }
                 }
             }
-            foreach ($examenesMunicipal as $examen) {
-                if ($examen instanceof Examen) {
-                    // Asegurar que el usuario esté cargado
-                    if (!$examen->getUsuario() || !$this->entityManager->contains($examen->getUsuario())) {
-                        // Si el usuario no está cargado o no está "managed", refrescarlo
-                        $this->entityManager->refresh($examen);
+            
+            $examenesMunicipal = [];
+            foreach ($examenesMunicipalRaw as $examen) {
+                if ($examen instanceof Examen && $examen->getId()) {
+                    // Obtener el examen desde la BD para que esté "managed" y tenga las relaciones cargadas
+                    $examenManaged = $this->examenRepository->find($examen->getId());
+                    if ($examenManaged) {
+                        $examenesMunicipal[] = $examenManaged;
                     }
                 }
             }
