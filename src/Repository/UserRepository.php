@@ -27,20 +27,37 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     /**
      * Sobrescribe findOneBy para excluir usuarios eliminados por defecto
      * Con caché para mejorar rendimiento del login
+     * 
+     * NOTA: Para Symfony Security, siempre obtenemos desde BD para asegurar que la entidad esté "managed"
      */
     public function findOneBy(array $criteria, ?array $orderBy = null): ?User
     {
+        // Para login/autenticación, siempre obtener desde BD para evitar problemas con entidades no managed
+        // El caché se usa en otros contextos donde no es crítico
         // Si hay caché y solo buscamos por username, email o id, usar caché
         if ($this->cache && count($criteria) === 1) {
             $field = array_key_first($criteria);
             $value = $criteria[$field];
             
             if ($field === 'username') {
-                return $this->findByUsernameCached($value);
+                $user = $this->findByUsernameCached($value);
+                // Asegurar que está managed (importante para Symfony Security)
+                if ($user && !$this->getEntityManager()->contains($user)) {
+                    return $this->getEntityManager()->find(User::class, $user->getId());
+                }
+                return $user;
             } elseif ($field === 'email') {
-                return $this->findByEmailCached($value);
+                $user = $this->findByEmailCached($value);
+                if ($user && !$this->getEntityManager()->contains($user)) {
+                    return $this->getEntityManager()->find(User::class, $user->getId());
+                }
+                return $user;
             } elseif ($field === 'id') {
-                return $this->findByIdCached($value);
+                $user = $this->findByIdCached($value);
+                if ($user && !$this->getEntityManager()->contains($user)) {
+                    return $this->getEntityManager()->find(User::class, $user->getId());
+                }
+                return $user;
             }
         }
         
@@ -107,7 +124,34 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $item = $this->cache->getItem($cacheKey);
         
         if ($item->isHit()) {
-            return $item->get();
+            try {
+                $cachedUser = $item->get();
+                if ($cachedUser instanceof User) {
+                    // Verificar si la entidad está "managed" por el EntityManager
+                    // Si no está managed, refrescar desde la BD
+                    if (!$this->getEntityManager()->contains($cachedUser)) {
+                        // La entidad no está managed (puede pasar después de deserialización)
+                        // Refrescar desde la BD para asegurar que esté managed
+                        $userId = $cachedUser->getId();
+                        if ($userId) {
+                            $freshUser = $this->getEntityManager()->find(User::class, $userId);
+                            if ($freshUser) {
+                                // Actualizar caché con la entidad managed
+                                $item->set($freshUser);
+                                $item->expiresAfter(86400);
+                                $this->cache->save($item);
+                                return $freshUser;
+                            }
+                        }
+                    } else {
+                        // Ya está managed, devolver directamente
+                        return $cachedUser;
+                    }
+                }
+            } catch (\Exception $e) {
+                // Si hay error al deserializar, continuar y obtener desde BD
+                // Esto puede pasar si la estructura de la entidad cambió
+            }
         }
         
         // Obtener usuario de la base de datos
@@ -122,8 +166,8 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             $user = $qb->getQuery()->getOneOrNullResult();
         }
         
-        // Guardar en caché
-        if ($user) {
+        // Guardar en caché solo si la entidad está managed
+        if ($user && $this->getEntityManager()->contains($user)) {
             $item->set($user);
             $item->expiresAfter(86400); // 24 horas
             $this->cache->save($item);
@@ -152,7 +196,27 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $item = $this->cache->getItem($cacheKey);
         
         if ($item->isHit()) {
-            return $item->get();
+            try {
+                $cachedUser = $item->get();
+                if ($cachedUser instanceof User) {
+                    if (!$this->getEntityManager()->contains($cachedUser)) {
+                        $userId = $cachedUser->getId();
+                        if ($userId) {
+                            $freshUser = $this->getEntityManager()->find(User::class, $userId);
+                            if ($freshUser) {
+                                $item->set($freshUser);
+                                $item->expiresAfter(86400);
+                                $this->cache->save($item);
+                                return $freshUser;
+                            }
+                        }
+                    } else {
+                        return $cachedUser;
+                    }
+                }
+            } catch (\Exception $e) {
+                // Si hay error, continuar y obtener desde BD
+            }
         }
         
         // Obtener usuario de la base de datos
@@ -167,8 +231,8 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             $user = $qb->getQuery()->getOneOrNullResult();
         }
         
-        // Guardar en caché
-        if ($user) {
+        // Guardar en caché solo si la entidad está managed
+        if ($user && $this->getEntityManager()->contains($user)) {
             $item->set($user);
             $item->expiresAfter(86400); // 24 horas
             $this->cache->save($item);
@@ -193,7 +257,20 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $item = $this->cache->getItem($cacheKey);
         
         if ($item->isHit()) {
-            return $item->get();
+            $cachedUser = $item->get();
+            // Asegurar que la entidad esté "managed" por el EntityManager
+            if ($cachedUser && $this->getEntityManager()->contains($cachedUser)) {
+                return $cachedUser;
+            } elseif ($cachedUser) {
+                // Refrescar desde la BD
+                $freshUser = $this->getEntityManager()->find(User::class, $id);
+                if ($freshUser) {
+                    $item->set($freshUser);
+                    $item->expiresAfter(86400);
+                    $this->cache->save($item);
+                    return $freshUser;
+                }
+            }
         }
         
         // Obtener usuario de la base de datos
@@ -204,8 +281,8 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             ->setParameter('eliminado', false);
         $user = $qb->getQuery()->getOneOrNullResult();
         
-        // Guardar en caché
-        if ($user) {
+        // Guardar en caché solo si la entidad está managed
+        if ($user && $this->getEntityManager()->contains($user)) {
             $item->set($user);
             $item->expiresAfter(86400); // 24 horas
             $this->cache->save($item);
