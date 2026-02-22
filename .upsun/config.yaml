@@ -1,7 +1,6 @@
 services:
   redis:
     type: redis:7.0
-    disk: 256
 
 applications:
   app:
