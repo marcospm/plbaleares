@@ -9,6 +9,9 @@ applications:
 
     type: "php:8.4"
 
+    build:
+        flavor: none  # Desactivar build flavor automático para controlar composer install manualmente
+
     web:
       locations:
         "/":
@@ -70,12 +73,12 @@ applications:
         # Ejecutar composer install sin scripts (cache:clear requiere REDIS_URL que no está disponible durante el build)
         # Los scripts se ejecutarán en el deploy hook donde REDIS_URL está disponible desde PLATFORM_RELATIONSHIPS
         composer install \
-          --no-dev \
+          --no-interaction \
           --prefer-dist \
           --no-progress \
-          --no-interaction \
-          --optimize-autoloader \
-          --no-scripts
+          --no-dev \
+          --no-scripts \
+          --optimize-autoloader
 
         # Compilar assets (Asset Mapper)
         php bin/console asset-map:compile --env=prod
