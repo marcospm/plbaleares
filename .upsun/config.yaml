@@ -67,20 +67,15 @@ applications:
           public/recursos_especificos \
           public/videos
 
-        # Definir REDIS_URL temporal para el build (necesario para cache:clear en post-install-cmd)
-        # En runtime, REDIS_URL se configurará automáticamente desde PLATFORM_RELATIONSHIPS
-        # Este valor no se usará realmente durante el build, solo evita errores de configuración
-        if [ -z "$REDIS_URL" ]; then
-          export REDIS_URL="redis://localhost:6379"
-        fi
-
-        # Ejecutar composer install con REDIS_URL disponible para los scripts
-        REDIS_URL="${REDIS_URL}" composer install \
+        # Ejecutar composer install sin scripts (cache:clear requiere REDIS_URL que no está disponible durante el build)
+        # Los scripts se ejecutarán en el deploy hook donde REDIS_URL está disponible desde PLATFORM_RELATIONSHIPS
+        composer install \
           --no-dev \
           --prefer-dist \
           --no-progress \
           --no-interaction \
-          --optimize-autoloader
+          --optimize-autoloader \
+          --no-scripts
 
         # Compilar assets (Asset Mapper)
         php bin/console asset-map:compile --env=prod
@@ -88,7 +83,29 @@ applications:
       deploy: |
         set -e
 
-        # Cache Symfony 
+        # Configurar REDIS_URL desde PLATFORM_RELATIONSHIPS si está disponible
+        # En Upsun, las relaciones están disponibles en runtime (deploy hook)
+        if [ -n "$PLATFORM_RELATIONSHIPS" ]; then
+          REDIS_HOST=$(echo "$PLATFORM_RELATIONSHIPS" | base64 -d | jq -r '.redis[0].host // empty')
+          REDIS_PORT=$(echo "$PLATFORM_RELATIONSHIPS" | base64 -d | jq -r '.redis[0].port // empty')
+          REDIS_PASSWORD=$(echo "$PLATFORM_RELATIONSHIPS" | base64 -d | jq -r '.redis[0].password // empty')
+          
+          if [ -n "$REDIS_HOST" ] && [ -n "$REDIS_PORT" ]; then
+            if [ -n "$REDIS_PASSWORD" ]; then
+              export REDIS_URL="redis://:$(echo "$REDIS_PASSWORD" | sed 's/[\/&]/\\&/g')@$REDIS_HOST:$REDIS_PORT"
+            else
+              export REDIS_URL="redis://$REDIS_HOST:$REDIS_PORT"
+            fi
+          fi
+        fi
+
+        # Ejecutar scripts de composer que se saltaron durante el build
+        # (cache:clear, assets:install, importmap:install)
+        if [ -n "$REDIS_URL" ]; then
+          composer run-script post-install-cmd --no-interaction || true
+        fi
+
+        # Cache Symfony (asegurar que está limpio)
         php bin/console cache:clear --env=prod --no-warmup
         php bin/console cache:warmup --env=prod --no-optional-warmers
 
