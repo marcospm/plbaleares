@@ -42,10 +42,9 @@ when@prod:
   framework:
     cache:
       pools:
-        # Doctrine cache pools - usar Redis en producción para mejor rendimiento
+        # Doctrine cache pools - usar Redis en producción para mejor rendimiento (solo si REDIS_URL está disponible)
         # REDIS_URL se configura automáticamente desde PLATFORM_RELATIONSHIPS en public/index.php
-        # Durante el build, REDIS_URL se define en .upsun/config.yaml build hook (redis://localhost:6379)
-        # En runtime, REDIS_URL se configurará automáticamente desde PLATFORM_RELATIONSHIPS
+        # Si REDIS_URL no está disponible, se usará filesystem como fallback
         doctrine.result_cache_pool:
           adapter: cache.adapter.redis
           provider: '%env(REDIS_URL)%'

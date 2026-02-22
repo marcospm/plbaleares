@@ -1,0 +1,22 @@
+framework:
+    cache:
+        # Configuración de caché para producción
+        # Solo se aplica si REDIS_URL está disponible (configurado desde PLATFORM_RELATIONSHIPS en public/index.php)
+        # Si REDIS_URL no está disponible, se usará filesystem como fallback (config/packages/cache.yaml)
+        pools:
+            # Migrar pools de aplicación a Redis en producción (solo si REDIS_URL está disponible)
+            cache.partidas:
+                adapter: cache.adapter.redis
+                provider: '%env(REDIS_URL)%'
+            cache.boe:
+                adapter: cache.adapter.redis
+                provider: '%env(REDIS_URL)%'
+            cache.queries:
+                adapter: cache.adapter.redis
+                provider: '%env(REDIS_URL)%'
+                default_lifetime: 3600
+            # Pool principal de Redis
+            cache.redis:
+                adapter: cache.adapter.redis
+                provider: '%env(REDIS_URL)%'
+                default_lifetime: 3600

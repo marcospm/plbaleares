@@ -5,55 +5,20 @@ framework:
 
         # The "app" cache stores to the filesystem by default.
         # The data in this cache should persist between deploys.
-        # Other options include:
-
-        # Redis - configurado para usar Redis si está disponible, sino filesystem
-        #app: cache.adapter.redis
-        # En Upsun, REDIS_URL se proporciona automáticamente cuando defines redis en relationships
-        # En local, si no defines REDIS_URL, se usará redis://localhost por defecto (ver configuración condicional abajo)
-
-        # APCu (not recommended with heavy random-write workloads as memory fragmentation can cause perf issues)
-        #app: cache.adapter.apcu
+        # En producción, si REDIS_URL está disponible, se usará Redis (ver config/packages/prod/cache.yaml)
 
         # Namespaced pools use the above "app" backend by default
         pools:
-            # Pools de caché - en local usan filesystem, en producción usan Redis (ver configuración condicional)
+            # Pools de caché - por defecto usan filesystem (compatible con build y local)
+            # En producción, si REDIS_URL está disponible, se usarán Redis (ver config/packages/prod/cache.yaml)
             cache.partidas:
-                adapter: cache.adapter.filesystem  # Fallback para local
+                adapter: cache.adapter.filesystem
             cache.boe:
-                adapter: cache.adapter.filesystem  # Fallback para local
+                adapter: cache.adapter.filesystem
             cache.queries:
-                adapter: cache.adapter.filesystem  # Fallback para local
+                adapter: cache.adapter.filesystem
                 default_lifetime: 3600  # 1 hora para consultas comunes (leyes, temas, convocatorias)
-            # Pool de Redis - en local usa filesystem como fallback, en producción usa Redis
-            # En local (Windows), este pool usa filesystem para evitar errores si Redis no está instalado
-            # En producción, se reemplaza con Redis usando REDIS_URL (ver configuración condicional abajo)
+            # Pool principal de caché
             cache.redis:
-                adapter: cache.adapter.filesystem  # Fallback para local
+                adapter: cache.adapter.filesystem
                 default_lifetime: 3600
-
-# Configuración para producción: Migrar pools a Redis
-# REDIS_URL se configura automáticamente desde PLATFORM_RELATIONSHIPS en public/index.php
-# Durante el build, si REDIS_URL no está disponible, Symfony usará filesystem automáticamente como fallback
-when@prod:
-    framework:
-        cache:
-            pools:
-                # Migrar pools de aplicación a Redis en producción
-                # REDIS_URL se configura automáticamente desde PLATFORM_RELATIONSHIPS en public/index.php
-                # Durante el build, REDIS_URL se define en .upsun/config.yaml build hook (redis://localhost:6379)
-                # En runtime, REDIS_URL se configurará automáticamente desde PLATFORM_RELATIONSHIPS
-                cache.partidas:
-                    adapter: cache.adapter.redis
-                    provider: '%env(REDIS_URL)%'
-                cache.boe:
-                    adapter: cache.adapter.redis
-                    provider: '%env(REDIS_URL)%'
-                cache.queries:
-                    adapter: cache.adapter.redis
-                    provider: '%env(REDIS_URL)%'
-                    default_lifetime: 3600
-                # Pool principal de Redis
-                cache.redis:
-                    adapter: cache.adapter.redis
-                    provider: '%env(REDIS_URL)%'
