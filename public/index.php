@@ -26,20 +26,23 @@ if (getenv('PLATFORM_RELATIONSHIPS')) {
     $_ENV['DATABASE_URL'] = $dsn;
     $_SERVER['DATABASE_URL'] = $dsn;
     
-    // Configurar REDIS_URL desde PLATFORM_RELATIONSHIPS si está disponible (opcional, para Upsun)
+    // Configurar REDIS_URL desde PLATFORM_RELATIONSHIPS si Redis está disponible
+    // En Upsun, cuando defines Redis como servicio, las credenciales están en PLATFORM_RELATIONSHIPS
     // En otros entornos, REDIS_URL debe estar definida manualmente
     try {
         $redisCreds = $config->credentials('redis');
         if (!empty($redisCreds['host'])) {
-            $redisUrl = sprintf(
-                'redis://%s:%s',
-                $redisCreds['host'],
-                $redisCreds['port']
-            );
+            // Construir REDIS_URL según las credenciales
             if (!empty($redisCreds['password'])) {
                 $redisUrl = sprintf(
                     'redis://:%s@%s:%s',
                     rawurlencode($redisCreds['password']),
+                    $redisCreds['host'],
+                    $redisCreds['port']
+                );
+            } else {
+                $redisUrl = sprintf(
+                    'redis://%s:%s',
                     $redisCreds['host'],
                     $redisCreds['port']
                 );
@@ -50,7 +53,8 @@ if (getenv('PLATFORM_RELATIONSHIPS')) {
         }
     } catch (\Exception $e) {
         // Redis no está disponible en PLATFORM_RELATIONSHIPS
-        // Se espera que REDIS_URL esté definida manualmente en otros entornos
+        // En Upsun: asegúrate de que Redis esté configurado en .upsun/config.yaml
+        // En otros entornos: define REDIS_URL manualmente en las variables de entorno
     }
 }
 

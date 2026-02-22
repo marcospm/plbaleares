@@ -1,6 +1,7 @@
 services:
   redis:
-    type: redis:7
+    type: redis:7.0
+    disk: 256
 
 applications:
   app:
@@ -35,7 +36,7 @@ applications:
 
     relationships:
       database: "database:mysql"
-      redis: "redis:redis"  # Esto permite que public/index.php configure REDIS_URL automáticamente
+      redis: "redis:redis"
 
     mounts:
       "/var": "shared:files/var"
