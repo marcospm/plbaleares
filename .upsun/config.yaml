@@ -67,6 +67,10 @@ applications:
           public/recursos_especificos \
           public/videos
 
+        # Definir REDIS_URL temporal para el build (no se usará, pero evita errores)
+        # En runtime, REDIS_URL se configurará automáticamente desde PLATFORM_RELATIONSHIPS
+        export REDIS_URL="${REDIS_URL:-redis://localhost:6379}"
+
         composer install \
           --no-dev \
           --prefer-dist \

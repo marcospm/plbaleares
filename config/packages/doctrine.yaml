@@ -43,7 +43,7 @@ when@prod:
     cache:
       pools:
         # Doctrine cache pools - usar Redis en producción para mejor rendimiento
-        # En local, cache.redis usa filesystem como fallback (compatible sin Redis)
+        # REDIS_URL se define en el build hook de .upsun/config.yaml si no está disponible
         doctrine.result_cache_pool:
           adapter: cache.adapter.redis
           provider: '%env(REDIS_URL)%'
