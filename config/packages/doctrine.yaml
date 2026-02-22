@@ -44,11 +44,11 @@ when@prod:
       pools:
         # Doctrine cache pools - usar Redis en producción para mejor rendimiento
         # REDIS_URL se configura automáticamente desde PLATFORM_RELATIONSHIPS en public/index.php
-        # Durante el build, si REDIS_URL no está disponible, se usa redis://localhost:6379 como fallback
+        # Durante el build, si REDIS_URL no está disponible, se usa REDIS_DEFAULT_URL como fallback
         # En runtime, REDIS_URL se configurará automáticamente desde PLATFORM_RELATIONSHIPS
         doctrine.result_cache_pool:
           adapter: cache.adapter.redis
-          provider: '%env(default:REDIS_URL:redis://localhost:6379)%'
+          provider: '%env(default:REDIS_URL:REDIS_DEFAULT_URL)%'
         doctrine.system_cache_pool:
           adapter: cache.adapter.redis
-          provider: '%env(default:REDIS_URL:redis://localhost:6379)%'
+          provider: '%env(default:REDIS_URL:REDIS_DEFAULT_URL)%'
