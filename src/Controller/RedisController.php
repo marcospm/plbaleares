@@ -286,7 +286,22 @@ class RedisController extends AbstractController
             'cache.partidas' => 'Caché de Partidas',
             'cache.boe' => 'Caché de BOE',
             'cache.queries' => 'Caché de Consultas',
+            'cache.app' => 'Caché de Aplicación (App)',
         ];
+        
+        // También intentar listar todos los servicios que empiezan con "cache."
+        $allCacheServices = [];
+        try {
+            // Obtener todos los servicios del contenedor que empiezan con "cache."
+            $serviceIds = $this->container->getServiceIds();
+            foreach ($serviceIds as $serviceId) {
+                if (strpos($serviceId, 'cache.') === 0) {
+                    $allCacheServices[] = $serviceId;
+                }
+            }
+        } catch (\Exception $e) {
+            // No se pueden listar servicios
+        }
         
         foreach ($cachePools as $poolName => $poolLabel) {
             $poolStats = [
@@ -299,38 +314,48 @@ class RedisController extends AbstractController
             ];
             
             try {
-                if ($this->container->has($poolName)) {
-                    $pool = $this->container->get($poolName);
-                    $poolStats['available'] = true;
-                    $poolStats['adapter_class'] = get_class($pool);
-                    $poolStats['is_redis'] = $this->isPoolUsingRedis($pool);
-                    
-                    // Si es Redis, intentar obtener estadísticas
-                    if ($poolStats['is_redis']) {
-                        try {
-                            $redisClient = $this->getRedisClientFromPool($pool);
-                            if ($redisClient) {
-                                // Contar claves que empiezan con el prefijo del pool
-                                try {
-                                    $keys = $redisClient->keys('*');
-                                    $poolStats['keys_count'] = count($keys);
-                                } catch (\Exception $e) {
-                                    $poolStats['keys_count'] = 'N/A';
-                                    $poolStats['error'] = $e->getMessage();
-                                }
+                // Verificar si el servicio existe
+                $hasService = $this->container->has($poolName);
+                
+                if (!$hasService) {
+                    $poolStats['error'] = 'Pool no encontrado en el contenedor. Servicios disponibles que empiezan con "cache.": ' . implode(', ', array_slice($allCacheServices, 0, 10));
+                    $stats['cache_pools'][] = $poolStats;
+                    continue;
+                }
+                
+                $pool = $this->container->get($poolName);
+                $poolStats['available'] = true;
+                $poolStats['adapter_class'] = get_class($pool);
+                $poolStats['is_redis'] = $this->isPoolUsingRedis($pool);
+                
+                // Si es Redis, intentar obtener estadísticas
+                if ($poolStats['is_redis']) {
+                    try {
+                        $redisClient = $this->getRedisClientFromPool($pool);
+                        if ($redisClient) {
+                            // Contar claves que empiezan con el prefijo del pool
+                            try {
+                                $keys = $redisClient->keys('*');
+                                $poolStats['keys_count'] = count($keys);
+                            } catch (\Exception $e) {
+                                $poolStats['keys_count'] = 'N/A';
+                                $poolStats['error'] = $e->getMessage();
                             }
-                        } catch (\Exception $e) {
-                            $poolStats['error'] = $e->getMessage();
                         }
+                    } catch (\Exception $e) {
+                        $poolStats['error'] = $e->getMessage();
                     }
-                } else {
-                    $poolStats['error'] = 'Pool no encontrado en el contenedor';
                 }
             } catch (\Exception $e) {
-                $poolStats['error'] = $e->getMessage();
+                $poolStats['error'] = 'Error al obtener pool: ' . $e->getMessage() . ' (Tipo: ' . get_class($e) . ')';
             }
             
             $stats['cache_pools'][] = $poolStats;
+        }
+        
+        // Añadir información sobre servicios de caché encontrados
+        if (!empty($allCacheServices)) {
+            $stats['available_cache_services'] = $allCacheServices;
         }
         
         if ($this->isUsingRedis()) {

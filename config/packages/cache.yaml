@@ -13,12 +13,16 @@ framework:
             # En producción, si REDIS_URL está disponible, se usarán Redis (ver config/packages/prod/cache.yaml)
             cache.partidas:
                 adapter: cache.adapter.filesystem
+                public: true  # Hacer público para poder acceder desde el contenedor
             cache.boe:
                 adapter: cache.adapter.filesystem
+                public: true  # Hacer público para poder acceder desde el contenedor
             cache.queries:
                 adapter: cache.adapter.filesystem
                 default_lifetime: 3600  # 1 hora para consultas comunes (leyes, temas, convocatorias)
+                public: true  # Hacer público para poder acceder desde el contenedor
             # Pool principal de caché
             cache.redis:
                 adapter: cache.adapter.filesystem
                 default_lifetime: 3600
+                public: true  # Hacer público para poder acceder desde el contenedor
