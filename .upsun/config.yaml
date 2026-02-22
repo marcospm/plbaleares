@@ -1,3 +1,7 @@
+services:
+  redis:
+    type: redis:7
+
 applications:
   app:
     source:
@@ -31,8 +35,7 @@ applications:
 
     relationships:
       database: "database:mysql"
-      # Redis se configura mediante la variable de entorno REDIS_URL
-      # Define REDIS_URL en las variables de entorno de Upsun o añade Redis como servicio si lo prefieres
+      redis: "redis:redis"  # Esto permite que public/index.php configure REDIS_URL automáticamente
 
     mounts:
       "/var": "shared:files/var"
