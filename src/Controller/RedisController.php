@@ -342,15 +342,81 @@ class RedisController extends AbstractController
                 if ($poolStats['is_redis']) {
                     try {
                         $redisClient = $this->getRedisClientFromPool($pool);
+                        $poolStats['redis_client_obtained'] = $redisClient !== null;
+                        $poolStats['redis_client_class'] = $redisClient ? get_class($redisClient) : null;
+                        
                         if ($redisClient) {
-                            // Obtener todas las claves
+                            // Obtener todas las claves - Symfony Cache usa prefijos
                             try {
-                                $allKeys = $redisClient->keys('*');
-                                $poolStats['keys_count'] = count($allKeys);
+                                // Intentar obtener el prefijo del pool si es posible
+                                $prefix = null;
+                                try {
+                                    $reflection = new \ReflectionClass($pool);
+                                    if ($reflection->hasProperty('namespace')) {
+                                        $prop = $reflection->getProperty('namespace');
+                                        $prop->setAccessible(true);
+                                        $prefix = $prop->getValue($pool);
+                                    }
+                                } catch (\Exception $e) {
+                                    // Ignorar
+                                }
+                                
+                                // Buscar todas las claves (Symfony Cache puede usar prefijos)
+                                $allKeys = [];
+                                try {
+                                    // Intentar con diferentes patrones
+                                    $patterns = ['*', $prefix ? $prefix . '*' : null];
+                                    foreach ($patterns as $pattern) {
+                                        if ($pattern === null) continue;
+                                        try {
+                                            if (method_exists($redisClient, 'keys')) {
+                                                $keys = $redisClient->keys($pattern);
+                                            } elseif (method_exists($redisClient, 'executeCommand')) {
+                                                $keys = $redisClient->executeCommand(
+                                                    $redisClient->createCommand('KEYS', [$pattern])
+                                                );
+                                            } else {
+                                                $keys = [];
+                                            }
+                                            
+                                            if (is_array($keys)) {
+                                                $allKeys = array_merge($allKeys, $keys);
+                                            }
+                                        } catch (\Exception $e) {
+                                            // Continuar con el siguiente patrón
+                                        }
+                                    }
+                                    
+                                    // Eliminar duplicados
+                                    $allKeys = array_unique($allKeys);
+                                    $poolStats['keys_count'] = count($allKeys);
+                                    $poolStats['prefix_used'] = $prefix;
+                                    
+                                    // Si no hay claves, intentar sin prefijo o con dbSize
+                                    if (empty($allKeys)) {
+                                        try {
+                                            if (method_exists($redisClient, 'dbSize')) {
+                                                $dbSize = $redisClient->dbSize();
+                                                $poolStats['db_size'] = $dbSize;
+                                                if ($dbSize > 0) {
+                                                    // Si hay claves pero no las encontramos, puede ser un problema de prefijo
+                                                    $poolStats['keys_count'] = $dbSize;
+                                                    $poolStats['keys_note'] = 'Hay ' . $dbSize . ' claves en Redis, pero no se encontraron con el patrón usado. Puede ser un problema de prefijo.';
+                                                }
+                                            }
+                                        } catch (\Exception $e) {
+                                            // Ignorar
+                                        }
+                                    }
+                                } catch (\Exception $e) {
+                                    $poolStats['keys_count'] = 'N/A';
+                                    $poolStats['error'] = 'Error al obtener claves: ' . $e->getMessage();
+                                }
                                 
                                 // Obtener muestra de claves con información detallada
-                                $sampleKeys = array_slice($allKeys, 0, 50); // Primeras 50 claves
-                                $poolStats['sample_keys'] = [];
+                                if (!empty($allKeys)) {
+                                    $sampleKeys = array_slice($allKeys, 0, 50); // Primeras 50 claves
+                                    $poolStats['sample_keys'] = [];
                                 
                                 foreach ($sampleKeys as $key) {
                                     $keyInfo = [
@@ -445,6 +511,10 @@ class RedisController extends AbstractController
                                     }
                                     
                                     $poolStats['sample_keys'][] = $keyInfo;
+                                }
+                                } else {
+                                    $poolStats['sample_keys'] = [];
+                                    $poolStats['no_keys_message'] = 'No se encontraron claves en este pool. Puede que el caché aún no se haya utilizado o que las claves usen un prefijo diferente.';
                                 }
                                 
                                 // Estadísticas adicionales del pool
@@ -557,18 +627,72 @@ class RedisController extends AbstractController
         try {
             $reflection = new \ReflectionClass($pool);
             
+            // Método 1: Intentar getConnection() si existe
             if (method_exists($pool, 'getConnection')) {
-                return $pool->getConnection();
+                $client = $pool->getConnection();
+                if ($client && is_object($client)) {
+                    return $client;
+                }
             }
             
-            $properties = ['redis', 'client', 'connection'];
+            // Método 2: Buscar en propiedades comunes
+            $properties = ['redis', 'client', 'connection', 'connectionPool'];
             foreach ($properties as $prop) {
                 if ($reflection->hasProperty($prop)) {
                     $property = $reflection->getProperty($prop);
                     $property->setAccessible(true);
                     $client = $property->getValue($pool);
-                    if ($client && (is_object($client) && method_exists($client, 'info'))) {
-                        return $client;
+                    
+                    // Verificar si es un cliente Redis válido
+                    if ($client && is_object($client)) {
+                        // Para Predis, verificar si tiene métodos de Redis
+                        if (method_exists($client, 'keys') || method_exists($client, 'executeCommand')) {
+                            return $client;
+                        }
+                        // Si es un pool de conexiones, obtener una conexión
+                        if (method_exists($client, 'getConnection')) {
+                            $conn = $client->getConnection();
+                            if ($conn) {
+                                return $conn;
+                            }
+                        }
+                        // Verificar si tiene métodos de Redis directamente
+                        if (method_exists($client, 'info') || method_exists($client, 'dbSize')) {
+                            return $client;
+                        }
+                    }
+                }
+            }
+            
+            // Método 3: Para RedisAdapter de Symfony, buscar en propiedades anidadas
+            if (strpos(get_class($pool), 'RedisAdapter') !== false) {
+                // RedisAdapter puede tener el cliente en diferentes lugares
+                $nestedProperties = [
+                    ['redis', 'client'],
+                    ['redis', 'connection'],
+                    ['connection', 'client'],
+                ];
+                
+                foreach ($nestedProperties as $path) {
+                    try {
+                        $current = $pool;
+                        foreach ($path as $prop) {
+                            $ref = new \ReflectionClass($current);
+                            if ($ref->hasProperty($prop)) {
+                                $p = $ref->getProperty($prop);
+                                $p->setAccessible(true);
+                                $current = $p->getValue($current);
+                                if ($current && is_object($current)) {
+                                    if (method_exists($current, 'keys') || method_exists($current, 'executeCommand') || method_exists($current, 'dbSize')) {
+                                        return $current;
+                                    }
+                                }
+                            } else {
+                                break;
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        // Continuar con el siguiente path
                     }
                 }
             }

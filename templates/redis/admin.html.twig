@@ -118,6 +118,30 @@
                                         </div>
                                     {% endif %}
                                     
+                                    {% if pool.redis_client_obtained is defined %}
+                                        <div class="alert alert-info mb-3">
+                                            <strong>Debug:</strong> Cliente Redis obtenido: 
+                                            {% if pool.redis_client_obtained %}
+                                                <span class="badge bg-success">Sí</span> 
+                                                ({{ pool.redis_client_class|split('\\')|last }})
+                                            {% else %}
+                                                <span class="badge bg-danger">No</span>
+                                            {% endif %}
+                                            {% if pool.prefix_used is defined and pool.prefix_used %}
+                                                <br><small>Prefijo usado: <code>{{ pool.prefix_used }}</code></small>
+                                            {% endif %}
+                                            {% if pool.db_size is defined %}
+                                                <br><small>dbSize: {{ pool.db_size }} claves</small>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                    
+                                    {% if pool.no_keys_message is defined %}
+                                        <div class="alert alert-warning mb-3">
+                                            {{ pool.no_keys_message }}
+                                        </div>
+                                    {% endif %}
+                                    
                                     {% if pool.sample_keys is defined and pool.sample_keys|length > 0 %}
                                         <div class="mt-3">
                                             <h6>Claves Cacheadas (muestra de {{ pool.sample_keys|length }})</h6>
