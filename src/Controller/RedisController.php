@@ -11,14 +11,12 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
-use Psr\Container\ContainerInterface;
 
 class RedisController extends AbstractController
 {
     public function __construct(
         private CacheInterface $redisCache,
-        private CacheItemPoolInterface $redisPool,
-        private \Psr\Container\ContainerInterface $container
+        private CacheItemPoolInterface $redisPool
     ) {
     }
 
