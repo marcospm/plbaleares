@@ -67,17 +67,20 @@ applications:
           public/recursos_especificos \
           public/videos
 
-        # Definir REDIS_URL temporal para el build (no se usará, pero evita errores)
+        # Definir REDIS_URL temporal para el build (necesario para cache:clear en post-install-cmd)
         # En runtime, REDIS_URL se configurará automáticamente desde PLATFORM_RELATIONSHIPS
-        export REDIS_URL="${REDIS_URL:-redis://localhost:6379}"
+        # Este valor no se usará realmente durante el build, solo evita errores de configuración
+        if [ -z "$REDIS_URL" ]; then
+          export REDIS_URL="redis://localhost:6379"
+        fi
 
-        composer install \
+        # Ejecutar composer install con REDIS_URL disponible para los scripts
+        REDIS_URL="${REDIS_URL}" composer install \
           --no-dev \
           --prefer-dist \
           --no-progress \
           --no-interaction \
-          --optimize-autoloader \
-          --no-scripts
+          --optimize-autoloader
 
         # Compilar assets (Asset Mapper)
         php bin/console asset-map:compile --env=prod
