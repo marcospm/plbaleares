@@ -20,6 +20,7 @@ use App\Repository\ConfiguracionExamenRepository;
 use App\Service\NotificacionService;
 use App\Service\ConfiguracionExamenService;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -43,7 +44,8 @@ class ExamenSemanalAlumnoController extends AbstractController
         private ConfiguracionExamenRepository $configuracionExamenRepository,
         private ConfiguracionExamenService $configuracionExamenService,
         private EntityManagerInterface $entityManager,
-        private NotificacionService $notificacionService
+        private NotificacionService $notificacionService,
+        private ?CacheItemPoolInterface $cache = null
     ) {
     }
 
@@ -62,18 +64,51 @@ class ExamenSemanalAlumnoController extends AbstractController
         $gruposAlumno = $alumno->getGrupos();
         $gruposIds = array_map(fn($g) => $g->getId(), $gruposAlumno->toArray());
 
-        // Obtener todos los exámenes semanales activos que aún no han cerrado
-        // Filtrar: mostrar exámenes sin grupo (para todos) o exámenes del grupo del alumno
-        $qb = $this->examenSemanalRepository->createQueryBuilder('e')
-            ->where('e.activo = :activo')
-            ->andWhere('e.fechaCierre >= :ahora')
-            ->andWhere('(e.grupo IS NULL OR e.grupo IN (:gruposIds))')
-            ->setParameter('activo', true)
-            ->setParameter('ahora', $ahora)
-            ->setParameter('gruposIds', !empty($gruposIds) ? $gruposIds : [-1]) // Si no tiene grupos, usar ID inexistente
-            ->orderBy('e.fechaApertura', 'DESC');
+        // Obtener versión del caché de exámenes semanales
+        $version = 0;
+        if ($this->cache) {
+            $versionItem = $this->cache->getItem('examenes_semanales_version');
+            if ($versionItem->isHit()) {
+                $version = $versionItem->get();
+            }
+        }
+
+        // Generar clave de caché única para este alumno y sus grupos (incluyendo versión)
+        $gruposIdsSorted = $gruposIds;
+        sort($gruposIdsSorted);
+        $cacheKey = 'examenes_semanales_alumno_' . $alumno->getId() . '_grupos_' . md5(implode(',', $gruposIdsSorted)) . '_v' . $version;
         
-        $todosExamenes = $qb->getQuery()->getResult();
+        // Intentar obtener del caché
+        $todosExamenes = null;
+        if ($this->cache) {
+            $item = $this->cache->getItem($cacheKey);
+            if ($item->isHit()) {
+                $todosExamenes = $item->get();
+            }
+        }
+        
+        // Si no está en caché, obtener de la base de datos
+        if ($todosExamenes === null) {
+            // Obtener todos los exámenes semanales activos que aún no han cerrado
+            // Filtrar: mostrar exámenes sin grupo (para todos) o exámenes del grupo del alumno
+            $qb = $this->examenSemanalRepository->createQueryBuilder('e')
+                ->where('e.activo = :activo')
+                ->andWhere('e.fechaCierre >= :ahora')
+                ->andWhere('(e.grupo IS NULL OR e.grupo IN (:gruposIds))')
+                ->setParameter('activo', true)
+                ->setParameter('ahora', $ahora)
+                ->setParameter('gruposIds', !empty($gruposIds) ? $gruposIds : [-1]) // Si no tiene grupos, usar ID inexistente
+                ->orderBy('e.fechaApertura', 'DESC');
+            
+            $todosExamenes = $qb->getQuery()->getResult();
+            
+            // Guardar en caché (5 minutos)
+            if ($this->cache) {
+                $item->set($todosExamenes);
+                $item->expiresAfter(300); // 5 minutos
+                $this->cache->save($item);
+            }
+        }
 
         // Obtener exámenes semanales ya realizados por el alumno
         $examenesCompletados = $this->examenRepository->createQueryBuilder('e')

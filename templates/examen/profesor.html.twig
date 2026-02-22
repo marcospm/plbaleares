@@ -470,7 +470,13 @@
                                     <td style="color: var(--color-danger);"><strong>{{ examen.errores }}</strong></td>
                                     <td style="color: #999;"><strong>{{ examen.enBlanco }}</strong></td>
                                     <td>
-                                        <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-sm btn-primary">Ver Detalle</a>
+                                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                            <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-sm btn-primary">Ver Detalle</a>
+                                            <form method="post" action="{{ path('app_examen_delete', {'id': examen.id}) }}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este examen? Esta acción no se puede deshacer.');" style="display: inline;">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('delete_examen_' ~ examen.id) }}">
+                                                <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -640,7 +646,13 @@
                                     <td style="color: var(--color-danger);"><strong>{{ examen.errores }}</strong></td>
                                     <td style="color: #999;"><strong>{{ examen.enBlanco }}</strong></td>
                                     <td>
-                                        <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-sm btn-primary">Ver Detalle</a>
+                                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                            <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-sm btn-primary">Ver Detalle</a>
+                                            <form method="post" action="{{ path('app_examen_delete', {'id': examen.id}) }}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este examen? Esta acción no se puede deshacer.');" style="display: inline;">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('delete_examen_' ~ examen.id) }}">
+                                                <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             {% endfor %}

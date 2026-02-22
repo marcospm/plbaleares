@@ -25,6 +25,7 @@ use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -51,7 +52,8 @@ class ExamenSemanalController extends AbstractController
         private LeyRepository $leyRepository,
         private ArticuloRepository $articuloRepository,
         private ConfiguracionExamenRepository $configuracionExamenRepository,
-        private ConfiguracionExamenService $configuracionExamenService
+        private ConfiguracionExamenService $configuracionExamenService,
+        private ?CacheItemPoolInterface $cache = null
     ) {
     }
 
@@ -214,6 +216,8 @@ class ExamenSemanalController extends AbstractController
 
                 $this->entityManager->persist($examenSemanal);
                 $this->entityManager->flush();
+                
+                $this->invalidarCacheExamenesSemanales();
 
                 return new JsonResponse([
                     'success' => true,
@@ -285,6 +289,8 @@ class ExamenSemanalController extends AbstractController
 
                 $this->entityManager->persist($examenSemanal);
                 $this->entityManager->flush();
+                
+                $this->invalidarCacheExamenesSemanales();
 
                 return new JsonResponse([
                     'success' => true,
@@ -430,6 +436,8 @@ class ExamenSemanalController extends AbstractController
             $examenSemanal->setActivo(true);
             $this->entityManager->persist($examenSemanal);
             $this->entityManager->flush();
+            
+            $this->invalidarCacheExamenesSemanales();
 
             // Crear notificaciones
             $this->crearNotificaciones($examenSemanal);
@@ -506,6 +514,8 @@ class ExamenSemanalController extends AbstractController
             $examenSemanal->setActivo(true);
             $this->entityManager->persist($examenSemanal);
             $this->entityManager->flush();
+            
+            $this->invalidarCacheExamenesSemanales();
 
             // Crear notificaciones
             $this->crearNotificaciones($examenSemanal);
@@ -571,6 +581,8 @@ class ExamenSemanalController extends AbstractController
             $examenSemanal->setActivo(true);
             $this->entityManager->persist($examenSemanal);
             $this->entityManager->flush();
+            
+            $this->invalidarCacheExamenesSemanales();
 
             // Crear notificaciones
             $this->crearNotificaciones($examenSemanal);
@@ -980,6 +992,8 @@ class ExamenSemanalController extends AbstractController
             }
 
             $this->entityManager->flush();
+            
+            $this->invalidarCacheExamenesSemanales();
 
             // Crear notificaciones para todos los alumnos (filtrando por grupo si el examen tiene uno)
             try {
@@ -1050,6 +1064,8 @@ class ExamenSemanalController extends AbstractController
             }
 
             $this->entityManager->flush();
+            
+            $this->invalidarCacheExamenesSemanales();
 
             $this->addFlash('success', 'Examen semanal actualizado correctamente.');
             return $this->redirectToRoute('app_examen_semanal_index', [], Response::HTTP_SEE_OTHER);
@@ -1074,6 +1090,9 @@ class ExamenSemanalController extends AbstractController
             try {
                 $this->entityManager->remove($examenSemanal);
                 $this->entityManager->flush();
+                
+                $this->invalidarCacheExamenesSemanales();
+                
                 $this->addFlash('success', 'Examen semanal eliminado correctamente.');
             } catch (ForeignKeyConstraintViolationException $e) {
                 $this->addFlash('error', 'No se puede eliminar el examen semanal porque tiene datos relacionados. Por favor, elimina primero los exámenes asociados.');
@@ -1268,6 +1287,8 @@ class ExamenSemanalController extends AbstractController
         }
 
         $this->entityManager->flush();
+        
+        $this->invalidarCacheExamenesSemanales();
 
         return new JsonResponse([
             'success' => true,
@@ -1299,6 +1320,8 @@ class ExamenSemanalController extends AbstractController
         }
 
         $this->entityManager->flush();
+        
+        $this->invalidarCacheExamenesSemanales();
 
         return new JsonResponse([
             'success' => true,
@@ -1325,6 +1348,8 @@ class ExamenSemanalController extends AbstractController
         // Actualizar número de preguntas
         $examenSemanal->setNumeroPreguntas($totalPreguntas);
         $this->entityManager->flush();
+        
+        $this->invalidarCacheExamenesSemanales();
 
         // Crear notificaciones para todos los alumnos (filtrando por grupo si el examen tiene uno)
         try {
@@ -1734,6 +1759,24 @@ class ExamenSemanalController extends AbstractController
             'porcentajesPorTema' => $porcentajesPorTema,
             'examenesOrdenados' => $examenes,
         ]);
+    }
+
+    /**
+     * Invalida el caché de exámenes semanales incrementando la versión
+     */
+    private function invalidarCacheExamenesSemanales(): void
+    {
+        if (!$this->cache) {
+            return;
+        }
+
+        // Incrementar versión del caché de exámenes semanales
+        $versionKey = 'examenes_semanales_version';
+        $versionItem = $this->cache->getItem($versionKey);
+        $version = $versionItem->get() ?? 0;
+        $versionItem->set($version + 1);
+        $versionItem->expiresAfter(86400); // 24 horas
+        $this->cache->save($versionItem);
     }
 }
 

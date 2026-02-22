@@ -2987,10 +2987,36 @@ class ExamenController extends AbstractController
     public function delete(Examen $examen, Request $request): Response
     {
         $user = $this->getUser();
+        $esAdmin = $this->isGranted('ROLE_ADMIN');
+        $esProfesor = $this->isGranted('ROLE_PROFESOR');
         
-        // Verificar que el examen pertenezca al usuario actual
-        if ($examen->getUsuario() !== $user) {
+        // Verificar permisos: el usuario puede eliminar su propio examen, o ser profesor/admin
+        $puedeEliminar = false;
+        
+        if ($examen->getUsuario() === $user) {
+            // El usuario puede eliminar su propio examen
+            $puedeEliminar = true;
+        } elseif ($esAdmin) {
+            // Los administradores pueden eliminar cualquier examen
+            $puedeEliminar = true;
+        } elseif ($esProfesor) {
+            // Los profesores pueden eliminar exámenes de sus alumnos asignados
+            $alumnosIds = array_map(function($alumno) {
+                return $alumno->getId();
+            }, $user->getAlumnos()->toArray());
+            
+            if (in_array($examen->getUsuario()->getId(), $alumnosIds)) {
+                $puedeEliminar = true;
+            }
+        }
+        
+        if (!$puedeEliminar) {
             $this->addFlash('error', 'No tienes permiso para eliminar este examen.');
+            // Redirigir según el referer o a la página de profesor si viene de ahí
+            $referer = $request->headers->get('referer');
+            if ($referer && strpos($referer, '/examen/profesor') !== false) {
+                return $this->redirectToRoute('app_examen_profesor');
+            }
             return $this->redirectToRoute('app_examen_historial');
         }
         
@@ -2998,6 +3024,10 @@ class ExamenController extends AbstractController
         $token = $request->request->get('_token');
         if (!$this->isCsrfTokenValid('delete_examen_' . $examen->getId(), $token)) {
             $this->addFlash('error', 'Token de seguridad inválido.');
+            $referer = $request->headers->get('referer');
+            if ($referer && strpos($referer, '/examen/profesor') !== false) {
+                return $this->redirectToRoute('app_examen_profesor');
+            }
             return $this->redirectToRoute('app_examen_historial');
         }
         
@@ -3006,8 +3036,11 @@ class ExamenController extends AbstractController
         
         $this->addFlash('success', 'Examen eliminado correctamente.');
         
-        // Redirigir a la página anterior (historial o dashboard)
+        // Redirigir a la página anterior (historial, dashboard o profesor)
         $referer = $request->headers->get('referer');
+        if ($referer && strpos($referer, '/examen/profesor') !== false) {
+            return $this->redirectToRoute('app_examen_profesor');
+        }
         if ($referer) {
             return $this->redirect($referer);
         }
