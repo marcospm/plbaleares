@@ -51,6 +51,8 @@ security:
         - { path: ^/$, roles: PUBLIC_ACCESS }
         - { path: ^/contacto, roles: PUBLIC_ACCESS }
         - { path: ^/cookies, roles: PUBLIC_ACCESS }
+        # Rutas de administración de Redis solo para administradores
+        - { path: ^/redis, roles: ROLE_ADMIN }
         # Todas las demás rutas requieren autenticación
         - { path: ^/, roles: ROLE_USER }
 
