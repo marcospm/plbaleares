@@ -78,3 +78,11 @@ services:
             - { name: doctrine.event_listener, event: postPersist }
             - { name: doctrine.event_listener, event: postUpdate }
             - { name: doctrine.event_listener, event: postRemove }
+    
+    # Configurar RedisController con los servicios de Redis
+    # En producción (Upsun), cache.redis usa Redis y funcionará correctamente
+    # En local, cache.redis usa filesystem como fallback, así que el controlador funcionará pero no usará Redis real
+    App\Controller\RedisController:
+        arguments:
+            $redisCache: '@cache.redis'
+            $redisPool: '@cache.redis'

@@ -7,9 +7,10 @@ framework:
         # The data in this cache should persist between deploys.
         # Other options include:
 
-        # Redis
+        # Redis - configurado para usar Redis si está disponible, sino filesystem
         #app: cache.adapter.redis
-        #default_redis_provider: redis://localhost
+        # En Upsun, REDIS_URL se proporciona automáticamente cuando defines redis en relationships
+        # En local, si no defines REDIS_URL, se usará redis://localhost por defecto (ver configuración condicional abajo)
 
         # APCu (not recommended with heavy random-write workloads as memory fragmentation can cause perf issues)
         #app: cache.adapter.apcu
@@ -23,3 +24,20 @@ framework:
             cache.queries:
                 adapter: cache.adapter.filesystem
                 default_lifetime: 3600  # 1 hora para consultas comunes (leyes, temas, convocatorias)
+            # Pool de Redis - en local usa filesystem como fallback, en producción (Upsun) usa Redis
+            # En local (Windows), este pool usa filesystem para evitar errores si Redis no está instalado
+            # En producción (Upsun), se reemplaza con Redis usando REDIS_URL (ver configuración condicional abajo)
+            cache.redis:
+                adapter: cache.adapter.filesystem  # Fallback para local
+                default_lifetime: 3600
+
+# Configuración para producción (Upsun): usar Redis con REDIS_URL
+# En Upsun, REDIS_URL se configura automáticamente cuando defines redis en relationships
+when@prod:
+    framework:
+        cache:
+            default_redis_provider: '%env(REDIS_URL)%'
+            pools:
+                cache.redis:
+                    adapter: cache.adapter.redis
+                    provider: '%env(REDIS_URL)%'
