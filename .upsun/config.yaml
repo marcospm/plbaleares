@@ -1,3 +1,7 @@
+services:
+  redis:
+    type: redis:7.4
+
 applications:
   app:
     source:
