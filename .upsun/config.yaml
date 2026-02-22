@@ -89,11 +89,12 @@ applications:
       deploy: |
         set -e
 
-        # REDIS_URL se configura automáticamente desde PLATFORM_RELATIONSHIPS en public/index.php
-        # Para comandos de consola, necesitamos configurarlo manualmente usando el ConfigReader de Platform.sh
-        # Esto asegura que REDIS_URL esté disponible cuando ejecutamos comandos de Symfony
-        if [ -n "$PLATFORM_RELATIONSHIPS" ]; then
-          php -r "
+        # Configurar REDIS_URL desde PLATFORM_RELATIONSHIPS
+        # Upsun expone variables *_URL basadas en el nombre de la relationship key
+        # Si la relationship key es "redis", Upsun debería exportar REDIS_URL automáticamente
+        # Si no está disponible, la construimos manualmente desde PLATFORM_RELATIONSHIPS
+        if [ -z "$REDIS_URL" ] && [ -n "$PLATFORM_RELATIONSHIPS" ]; then
+          REDIS_URL_FROM_PHP=$(php -r "
             require_once 'vendor/autoload.php';
             use Platformsh\ConfigReader\Config;
             try {
@@ -101,22 +102,30 @@ applications:
               \$redisCreds = \$config->credentials('redis');
               if (!empty(\$redisCreds['host'])) {
                 if (!empty(\$redisCreds['password'])) {
-                  \$redisUrl = sprintf('redis://:%s@%s:%s', rawurlencode(\$redisCreds['password']), \$redisCreds['host'], \$redisCreds['port']);
+                  echo sprintf('redis://:%s@%s:%s', rawurlencode(\$redisCreds['password']), \$redisCreds['host'], \$redisCreds['port']);
                 } else {
-                  \$redisUrl = sprintf('redis://%s:%s', \$redisCreds['host'], \$redisCreds['port']);
+                  echo sprintf('redis://%s:%s', \$redisCreds['host'], \$redisCreds['port']);
                 }
-                putenv('REDIS_URL=' . \$redisUrl);
-                \$_ENV['REDIS_URL'] = \$redisUrl;
-                \$_SERVER['REDIS_URL'] = \$redisUrl;
               }
             } catch (\Exception \$e) {
               // Redis no está disponible
             }
-          " || true
+          " 2>/dev/null)
+          
+          if [ -n "$REDIS_URL_FROM_PHP" ]; then
+            export REDIS_URL="$REDIS_URL_FROM_PHP"
+          fi
+        fi
+
+        # Fallback: intentar usar otras variables *_URL que Upsun pueda haber exportado
+        # (por si la relationship key no es exactamente "redis")
+        if [ -z "$REDIS_URL" ]; then
+          export REDIS_URL="${CACHE_URL:-${REDISCACHE_URL:-${REDIS_CACHE_URL:-}}}"
         fi
 
         # Ejecutar scripts de composer que se saltaron durante el build
         # (cache:clear, assets:install, importmap:install)
+        # NOTA: composer run-script puede ejecutar cache:clear, pero ahora REDIS_URL está disponible
         composer run-script post-install-cmd --no-interaction || true
 
         # Cache Symfony (asegurar que está limpio)
