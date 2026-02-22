@@ -24,21 +24,23 @@ framework:
             cache.queries:
                 adapter: cache.adapter.filesystem
                 default_lifetime: 3600  # 1 hora para consultas comunes (leyes, temas, convocatorias)
-            # Pool de Redis - en local usa filesystem como fallback, en producción (Upsun) usa Redis
+            # Pool de Redis - en local usa filesystem como fallback, en producción usa Redis
             # En local (Windows), este pool usa filesystem para evitar errores si Redis no está instalado
-            # En producción (Upsun), se reemplaza con Redis usando REDIS_URL (ver configuración condicional abajo)
+            # En producción, se reemplaza con Redis usando REDIS_URL (ver configuración condicional abajo)
             cache.redis:
                 adapter: cache.adapter.filesystem  # Fallback para local
                 default_lifetime: 3600
 
-# Configuración para producción: usar Redis con REDIS_URL si está disponible
-# En cualquier entorno (Upsun, otros cloud, local con Redis), si REDIS_URL está definida, se usará Redis
-# Si REDIS_URL no está definida, se usará filesystem como fallback (definido arriba)
+# Configuración para producción: Redis es OBLIGATORIO
+# En producción, REDIS_URL debe estar definida en las variables de entorno
+# Funciona en cualquier entorno (Upsun, otros cloud providers, servidores propios, etc.)
+# Solo necesitas definir la variable de entorno REDIS_URL con la URL de conexión a Redis
+# Ejemplo: REDIS_URL=redis://localhost:6379 o REDIS_URL=redis://:password@host:6379
 when@prod:
     framework:
         cache:
             pools:
                 cache.redis:
                     adapter: cache.adapter.redis
-                    # Si REDIS_URL está definida, se usará. Si no, fallará y usará el fallback de filesystem
+                    # REDIS_URL es obligatoria en producción - debe estar definida en las variables de entorno
                     provider: '%env(REDIS_URL)%'
