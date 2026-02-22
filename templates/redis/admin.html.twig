@@ -124,17 +124,6 @@
                             <p class="mb-0">No se encontraron pools de caché configurados.</p>
                         </div>
                     {% endif %}
-                    
-                    {% if stats.available_cache_services is defined and stats.available_cache_services|length > 0 %}
-                        <div class="mt-3">
-                            <h6>Servicios de caché disponibles en el contenedor:</h6>
-                            <ul class="list-unstyled">
-                                {% for service in stats.available_cache_services %}
-                                    <li><code>{{ service }}</code></li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    {% endif %}
                 </div>
             </div>
             

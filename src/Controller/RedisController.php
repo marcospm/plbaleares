@@ -289,20 +289,6 @@ class RedisController extends AbstractController
             'cache.app' => 'Caché de Aplicación (App)',
         ];
         
-        // También intentar listar todos los servicios que empiezan con "cache."
-        $allCacheServices = [];
-        try {
-            // Obtener todos los servicios del contenedor que empiezan con "cache."
-            $serviceIds = $this->container->getServiceIds();
-            foreach ($serviceIds as $serviceId) {
-                if (strpos($serviceId, 'cache.') === 0) {
-                    $allCacheServices[] = $serviceId;
-                }
-            }
-        } catch (\Exception $e) {
-            // No se pueden listar servicios
-        }
-        
         foreach ($cachePools as $poolName => $poolLabel) {
             $poolStats = [
                 'name' => $poolName,
@@ -314,15 +300,16 @@ class RedisController extends AbstractController
             ];
             
             try {
-                // Verificar si el servicio existe
+                // Verificar si el servicio existe (ahora que los pools son públicos, deberían estar disponibles)
                 $hasService = $this->container->has($poolName);
                 
                 if (!$hasService) {
-                    $poolStats['error'] = 'Pool no encontrado en el contenedor. Servicios disponibles que empiezan con "cache.": ' . implode(', ', array_slice($allCacheServices, 0, 10));
+                    $poolStats['error'] = 'Pool no encontrado en el contenedor. Asegúrate de que el pool esté configurado con "public: true" en cache.yaml';
                     $stats['cache_pools'][] = $poolStats;
                     continue;
                 }
                 
+                // Obtener el pool (ahora que es público, debería funcionar)
                 $pool = $this->container->get($poolName);
                 $poolStats['available'] = true;
                 $poolStats['adapter_class'] = get_class($pool);
@@ -351,11 +338,6 @@ class RedisController extends AbstractController
             }
             
             $stats['cache_pools'][] = $poolStats;
-        }
-        
-        // Añadir información sobre servicios de caché encontrados
-        if (!empty($allCacheServices)) {
-            $stats['available_cache_services'] = $allCacheServices;
         }
         
         if ($this->isUsingRedis()) {
