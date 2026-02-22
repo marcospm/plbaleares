@@ -50,12 +50,12 @@
                 </div>
             </div>
             
-            {% if stats.cache_pools|length > 0 %}
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">Pools de Caché</h5>
-                    </div>
-                    <div class="card-body">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Pools de Caché</h5>
+                </div>
+                <div class="card-body">
+                    {% if stats.cache_pools|length > 0 %}
                         <div class="table-responsive">
                             <table class="table table-sm table-striped">
                                 <thead>
@@ -65,6 +65,7 @@
                                         <th>Adaptador</th>
                                         <th>Estado</th>
                                         <th>Claves</th>
+                                        <th>Disponible</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -73,12 +74,20 @@
                                             <td><code>{{ pool.name }}</code></td>
                                             <td>{{ pool.label }}</td>
                                             <td>
-                                                <small class="text-muted">{{ pool.adapter_class|split('\\')|last }}</small>
+                                                {% if pool.adapter_class != 'N/A' %}
+                                                    <small class="text-muted">{{ pool.adapter_class|split('\\')|last }}</small>
+                                                {% else %}
+                                                    <span class="text-muted">N/A</span>
+                                                {% endif %}
                                             </td>
                                             <td>
-                                                <span class="badge bg-{{ pool.is_redis ? 'success' : 'secondary' }}">
-                                                    {{ pool.is_redis ? 'Redis' : 'Filesystem' }}
-                                                </span>
+                                                {% if pool.available %}
+                                                    <span class="badge bg-{{ pool.is_redis ? 'success' : 'secondary' }}">
+                                                        {{ pool.is_redis ? 'Redis' : 'Filesystem' }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-warning">No disponible</span>
+                                                {% endif %}
                                             </td>
                                             <td>
                                                 {% if pool.keys_count is defined %}
@@ -91,14 +100,28 @@
                                                     <span class="text-muted">-</span>
                                                 {% endif %}
                                             </td>
+                                            <td>
+                                                {% if pool.available %}
+                                                    <span class="badge bg-success">Sí</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">No</span>
+                                                    {% if pool.error %}
+                                                        <br><small class="text-danger" title="{{ pool.error }}">Error</small>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </td>
                                         </tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
                         </div>
-                    </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <p class="mb-0">No se encontraron pools de caché configurados.</p>
+                        </div>
+                    {% endif %}
                 </div>
-            {% endif %}
+            </div>
             
             {% if stats.sample_keys|length > 0 %}
                 <div class="card mb-4">

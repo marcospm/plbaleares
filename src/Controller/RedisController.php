@@ -289,15 +289,21 @@ class RedisController extends AbstractController
         ];
         
         foreach ($cachePools as $poolName => $poolLabel) {
+            $poolStats = [
+                'name' => $poolName,
+                'label' => $poolLabel,
+                'adapter_class' => 'N/A',
+                'is_redis' => false,
+                'available' => false,
+                'error' => null,
+            ];
+            
             try {
                 if ($this->container->has($poolName)) {
                     $pool = $this->container->get($poolName);
-                    $poolStats = [
-                        'name' => $poolName,
-                        'label' => $poolLabel,
-                        'adapter_class' => get_class($pool),
-                        'is_redis' => $this->isPoolUsingRedis($pool),
-                    ];
+                    $poolStats['available'] = true;
+                    $poolStats['adapter_class'] = get_class($pool);
+                    $poolStats['is_redis'] = $this->isPoolUsingRedis($pool);
                     
                     // Si es Redis, intentar obtener estadísticas
                     if ($poolStats['is_redis']) {
@@ -310,18 +316,21 @@ class RedisController extends AbstractController
                                     $poolStats['keys_count'] = count($keys);
                                 } catch (\Exception $e) {
                                     $poolStats['keys_count'] = 'N/A';
+                                    $poolStats['error'] = $e->getMessage();
                                 }
                             }
                         } catch (\Exception $e) {
                             $poolStats['error'] = $e->getMessage();
                         }
                     }
-                    
-                    $stats['cache_pools'][] = $poolStats;
+                } else {
+                    $poolStats['error'] = 'Pool no encontrado en el contenedor';
                 }
             } catch (\Exception $e) {
-                // Pool no disponible
+                $poolStats['error'] = $e->getMessage();
             }
+            
+            $stats['cache_pools'][] = $poolStats;
         }
         
         if ($this->isUsingRedis()) {
