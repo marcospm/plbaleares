@@ -16,7 +16,10 @@ class RedisController extends AbstractController
 {
     public function __construct(
         private CacheInterface $redisCache,
-        private CacheItemPoolInterface $redisPool
+        private CacheItemPoolInterface $redisPool,
+        private ?CacheItemPoolInterface $cachePartidas = null,
+        private ?CacheItemPoolInterface $cacheBoe = null,
+        private ?CacheItemPoolInterface $cacheQueries = null
     ) {
     }
 
@@ -289,6 +292,15 @@ class RedisController extends AbstractController
             'cache.app' => 'Caché de Aplicación (App)',
         ];
         
+        // Mapear nombres de pools a las propiedades inyectadas
+        $poolMappings = [
+            'cache.redis' => $this->redisPool,
+            'cache.partidas' => $this->cachePartidas,
+            'cache.boe' => $this->cacheBoe,
+            'cache.queries' => $this->cacheQueries,
+            'cache.app' => null, // Intentar obtenerlo del contenedor si es necesario
+        ];
+        
         foreach ($cachePools as $poolName => $poolLabel) {
             $poolStats = [
                 'name' => $poolName,
@@ -300,17 +312,28 @@ class RedisController extends AbstractController
             ];
             
             try {
-                // Verificar si el servicio existe (ahora que los pools son públicos, deberían estar disponibles)
-                $hasService = $this->container->has($poolName);
+                // Obtener el pool desde las propiedades inyectadas o del contenedor
+                $pool = null;
                 
-                if (!$hasService) {
-                    $poolStats['error'] = 'Pool no encontrado en el contenedor. Asegúrate de que el pool esté configurado con "public: true" en cache.yaml';
+                if (isset($poolMappings[$poolName])) {
+                    $pool = $poolMappings[$poolName];
+                } elseif ($poolName === 'cache.app') {
+                    // Intentar obtener cache.app del contenedor
+                    try {
+                        if ($this->container->has('cache.app')) {
+                            $pool = $this->container->get('cache.app');
+                        }
+                    } catch (\Exception $e) {
+                        // No disponible
+                    }
+                }
+                
+                if ($pool === null) {
+                    $poolStats['error'] = 'Pool no disponible. Verifica que esté configurado correctamente en cache.yaml';
                     $stats['cache_pools'][] = $poolStats;
                     continue;
                 }
                 
-                // Obtener el pool (ahora que es público, debería funcionar)
-                $pool = $this->container->get($poolName);
                 $poolStats['available'] = true;
                 $poolStats['adapter_class'] = get_class($pool);
                 $poolStats['is_redis'] = $this->isPoolUsingRedis($pool);

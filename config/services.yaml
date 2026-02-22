@@ -102,3 +102,6 @@ services:
         arguments:
             $redisCache: '@cache.redis'
             $redisPool: '@cache.redis'
+            $cachePartidas: '@cache.partidas'
+            $cacheBoe: '@cache.boe'
+            $cacheQueries: '@cache.queries'

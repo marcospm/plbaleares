@@ -1944,6 +1944,7 @@ class ExamenController extends AbstractController
         // Query para exámenes generales (sin municipio)
         $qbGeneral = $this->examenRepository->createQueryBuilder('e')
             ->join('e.usuario', 'u')
+            ->addSelect('u')  // Cargar explícitamente el usuario para que esté disponible después del caché
             ->leftJoin('e.examenSemanal', 'es')
             ->addSelect('es')
             ->where('e.municipio IS NULL')
@@ -1952,6 +1953,7 @@ class ExamenController extends AbstractController
         // Query para exámenes municipales
         $qbMunicipal = $this->examenRepository->createQueryBuilder('e')
             ->join('e.usuario', 'u')
+            ->addSelect('u')  // Cargar explícitamente el usuario para que esté disponible después del caché
             ->leftJoin('e.examenSemanal', 'es')
             ->addSelect('es')
             ->where('e.municipio IS NOT NULL')
@@ -2042,6 +2044,27 @@ class ExamenController extends AbstractController
         if ($examenesFromCache !== null) {
             $examenesGeneral = $examenesFromCache['general'] ?? [];
             $examenesMunicipal = $examenesFromCache['municipal'] ?? [];
+            
+            // Asegurar que las relaciones lazy estén cargadas después de recuperar del caché
+            // Refrescar las entidades para que Doctrine las reconozca como "managed"
+            foreach ($examenesGeneral as $examen) {
+                if ($examen instanceof Examen) {
+                    // Asegurar que el usuario esté cargado
+                    if (!$examen->getUsuario() || !$this->entityManager->contains($examen->getUsuario())) {
+                        // Si el usuario no está cargado o no está "managed", refrescarlo
+                        $this->entityManager->refresh($examen);
+                    }
+                }
+            }
+            foreach ($examenesMunicipal as $examen) {
+                if ($examen instanceof Examen) {
+                    // Asegurar que el usuario esté cargado
+                    if (!$examen->getUsuario() || !$this->entityManager->contains($examen->getUsuario())) {
+                        // Si el usuario no está cargado o no está "managed", refrescarlo
+                        $this->entityManager->refresh($examen);
+                    }
+                }
+            }
         } else {
             // Consultar base de datos
             $examenesGeneral = $qbGeneral->getQuery()->getResult();
