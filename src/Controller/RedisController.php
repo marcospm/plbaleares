@@ -338,15 +338,142 @@ class RedisController extends AbstractController
                 $poolStats['adapter_class'] = get_class($pool);
                 $poolStats['is_redis'] = $this->isPoolUsingRedis($pool);
                 
-                // Si es Redis, intentar obtener estadísticas
+                // Si es Redis, intentar obtener estadísticas detalladas
                 if ($poolStats['is_redis']) {
                     try {
                         $redisClient = $this->getRedisClientFromPool($pool);
                         if ($redisClient) {
-                            // Contar claves que empiezan con el prefijo del pool
+                            // Obtener todas las claves
                             try {
-                                $keys = $redisClient->keys('*');
-                                $poolStats['keys_count'] = count($keys);
+                                $allKeys = $redisClient->keys('*');
+                                $poolStats['keys_count'] = count($allKeys);
+                                
+                                // Obtener muestra de claves con información detallada
+                                $sampleKeys = array_slice($allKeys, 0, 50); // Primeras 50 claves
+                                $poolStats['sample_keys'] = [];
+                                
+                                foreach ($sampleKeys as $key) {
+                                    $keyInfo = [
+                                        'key' => $key,
+                                        'type' => null,
+                                        'ttl' => null,
+                                        'size' => null,
+                                    ];
+                                    
+                                    try {
+                                        // Obtener tipo de la clave
+                                        if (method_exists($redisClient, 'type')) {
+                                            $keyInfo['type'] = $redisClient->type($key);
+                                        } elseif (method_exists($redisClient, 'executeCommand')) {
+                                            // Para Predis
+                                            $keyInfo['type'] = $redisClient->executeCommand(
+                                                $redisClient->createCommand('TYPE', [$key])
+                                            );
+                                        }
+                                        
+                                        // Obtener TTL (tiempo de vida restante)
+                                        $ttl = null;
+                                        if (method_exists($redisClient, 'ttl')) {
+                                            $ttl = $redisClient->ttl($key);
+                                        } elseif (method_exists($redisClient, 'executeCommand')) {
+                                            // Para Predis
+                                            $ttl = $redisClient->executeCommand(
+                                                $redisClient->createCommand('TTL', [$key])
+                                            );
+                                        }
+                                        
+                                        if ($ttl !== null) {
+                                            if ($ttl > 0) {
+                                                $keyInfo['ttl'] = $ttl; // Segundos restantes
+                                                $keyInfo['ttl_human'] = $this->formatTtl($ttl);
+                                            } elseif ($ttl === -1) {
+                                                $keyInfo['ttl'] = -1; // Sin expiración
+                                                $keyInfo['ttl_human'] = 'Sin expiración';
+                                            } else {
+                                                $keyInfo['ttl'] = 0; // Expirada
+                                                $keyInfo['ttl_human'] = 'Expirada';
+                                            }
+                                        }
+                                        
+                                        // Obtener tamaño aproximado
+                                        try {
+                                            $memoryUsage = null;
+                                            
+                                            // Intentar con MEMORY USAGE (Redis 4.0+)
+                                            if (method_exists($redisClient, 'executeCommand')) {
+                                                // Para Predis
+                                                try {
+                                                    $memoryUsage = $redisClient->executeCommand(
+                                                        $redisClient->createCommand('MEMORY', ['USAGE', $key])
+                                                    );
+                                                } catch (\Exception $e) {
+                                                    // MEMORY USAGE puede no estar disponible
+                                                }
+                                            } elseif (method_exists($redisClient, 'memory')) {
+                                                // Para PhpRedis
+                                                try {
+                                                    $memoryUsage = $redisClient->memory('usage', $key);
+                                                } catch (\Exception $e) {
+                                                    // MEMORY USAGE puede no estar disponible
+                                                }
+                                            }
+                                            
+                                            if ($memoryUsage !== null && $memoryUsage !== false) {
+                                                $keyInfo['size'] = (int)$memoryUsage;
+                                                $keyInfo['size_human'] = $this->formatBytes($keyInfo['size']);
+                                            } else {
+                                                // Fallback: estimar tamaño desde el valor
+                                                $value = null;
+                                                if (method_exists($redisClient, 'get')) {
+                                                    $value = $redisClient->get($key);
+                                                } elseif (method_exists($redisClient, 'executeCommand')) {
+                                                    $value = $redisClient->executeCommand(
+                                                        $redisClient->createCommand('GET', [$key])
+                                                    );
+                                                }
+                                                
+                                                if ($value !== false && $value !== null) {
+                                                    $keyInfo['size'] = strlen(serialize($value));
+                                                    $keyInfo['size_human'] = $this->formatBytes($keyInfo['size']);
+                                                }
+                                            }
+                                        } catch (\Exception $e) {
+                                            // Ignorar errores al obtener el tamaño
+                                        }
+                                    } catch (\Exception $e) {
+                                        // Ignorar errores al obtener información de la clave
+                                    }
+                                    
+                                    $poolStats['sample_keys'][] = $keyInfo;
+                                }
+                                
+                                // Estadísticas adicionales del pool
+                                try {
+                                    $info = null;
+                                    if (method_exists($redisClient, 'info')) {
+                                        $info = $redisClient->info('memory');
+                                    } elseif (method_exists($redisClient, 'executeCommand')) {
+                                        $info = $redisClient->executeCommand(
+                                            $redisClient->createCommand('INFO', ['memory'])
+                                        );
+                                    }
+                                    
+                                    if ($info !== null) {
+                                        if (is_array($info) && isset($info['used_memory'])) {
+                                            $poolStats['memory_used'] = $info['used_memory'];
+                                            $poolStats['memory_used_human'] = $this->formatBytes($info['used_memory']);
+                                        } elseif (is_string($info)) {
+                                            // Para Predis, info() devuelve un string
+                                            if (preg_match('/used_memory:(\d+)/', $info, $matches)) {
+                                                $poolStats['memory_used'] = (int)$matches[1];
+                                                $poolStats['memory_used_human'] = $this->formatBytes($poolStats['memory_used']);
+                                            }
+                                        }
+                                    }
+                                } catch (\Exception $e) {
+                                    // Ignorar si no se puede obtener info de memoria
+                                }
+                                
                             } catch (\Exception $e) {
                                 $poolStats['keys_count'] = 'N/A';
                                 $poolStats['error'] = $e->getMessage();
@@ -519,5 +646,40 @@ class RedisController extends AbstractController
         } catch (\Exception $e) {
             return false;
         }
+    }
+    
+    /**
+     * Formatea TTL en formato legible
+     */
+    private function formatTtl(int $seconds): string
+    {
+        if ($seconds < 60) {
+            return $seconds . ' seg';
+        } elseif ($seconds < 3600) {
+            $minutes = floor($seconds / 60);
+            return $minutes . ' min';
+        } elseif ($seconds < 86400) {
+            $hours = floor($seconds / 3600);
+            $minutes = floor(($seconds % 3600) / 60);
+            return $hours . 'h ' . $minutes . 'min';
+        } else {
+            $days = floor($seconds / 86400);
+            $hours = floor(($seconds % 86400) / 3600);
+            return $days . 'd ' . $hours . 'h';
+        }
+    }
+    
+    /**
+     * Formatea bytes en formato legible
+     */
+    private function formatBytes(int $bytes): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $i = 0;
+        while ($bytes >= 1024 && $i < count($units) - 1) {
+            $bytes /= 1024;
+            $i++;
+        }
+        return round($bytes, 2) . ' ' . $units[$i];
     }
 }
