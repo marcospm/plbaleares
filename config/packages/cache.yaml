@@ -34,14 +34,14 @@ framework:
 
 # Configuración para producción: Migrar pools a Redis
 # REDIS_URL se configura automáticamente desde PLATFORM_RELATIONSHIPS en public/index.php
-# Durante el build, los scripts se desactivan para evitar errores (ver .upsun/config.yaml)
+# Durante el build, si REDIS_URL no está disponible, Symfony usará filesystem automáticamente como fallback
 when@prod:
     framework:
         cache:
             pools:
                 # Migrar pools de aplicación a Redis en producción
                 # REDIS_URL se configura automáticamente desde PLATFORM_RELATIONSHIPS en public/index.php
-                # Durante el build, los scripts se desactivan (--no-scripts) para evitar errores
+                # Si REDIS_URL no está disponible durante el build, Symfony usará filesystem como fallback automáticamente
                 cache.partidas:
                     adapter: cache.adapter.redis
                     provider: '%env(REDIS_URL)%'
