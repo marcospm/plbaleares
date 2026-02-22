@@ -48,6 +48,30 @@ class ExamenRepository extends ServiceEntityRepository
 
     public function getEstadisticasUsuario(User $usuario): array
     {
+        if (!$this->cache) {
+            // Sin caché, consulta directa
+            $qb = $this->createQueryBuilder('e')
+                ->select('COUNT(e.id) as total', 'AVG(e.nota) as promedio', 'MAX(e.nota) as mejorNota')
+                ->andWhere('e.usuario = :usuario')
+                ->setParameter('usuario', $usuario)
+                ->getQuery()
+                ->getSingleResult();
+
+            return [
+                'total' => (int) $qb['total'],
+                'promedio' => $qb['promedio'] ? round((float) $qb['promedio'], 2) : 0,
+                'mejorNota' => $qb['mejorNota'] ? round((float) $qb['mejorNota'], 2) : 0,
+            ];
+        }
+        
+        $cacheKey = 'estadisticas_usuario_' . $usuario->getId();
+        $item = $this->cache->getItem($cacheKey);
+        
+        if ($item->isHit()) {
+            return $item->get();
+        }
+        
+        // Consulta a la base de datos
         $qb = $this->createQueryBuilder('e')
             ->select('COUNT(e.id) as total', 'AVG(e.nota) as promedio', 'MAX(e.nota) as mejorNota')
             ->andWhere('e.usuario = :usuario')
@@ -55,11 +79,18 @@ class ExamenRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleResult();
 
-        return [
+        $result = [
             'total' => (int) $qb['total'],
             'promedio' => $qb['promedio'] ? round((float) $qb['promedio'], 2) : 0,
             'mejorNota' => $qb['mejorNota'] ? round((float) $qb['mejorNota'], 2) : 0,
         ];
+        
+        // Guardar en caché
+        $item->set($result);
+        $item->expiresAfter(900); // 15 minutos
+        $this->cache->save($item);
+        
+        return $result;
     }
 
     /**
@@ -160,7 +191,19 @@ class ExamenRepository extends ServiceEntityRepository
         }
 
         // Calcular nota sobre 20
-        return $this->calcularNotaDesdeAciertosErrores($totalAciertos, $totalErrores, $totalEnBlanco);
+        $notaMedia = $this->calcularNotaDesdeAciertosErrores($totalAciertos, $totalErrores, $totalEnBlanco);
+        
+        // Guardar en caché
+        if ($this->cache) {
+            $temaId = $tema ? $tema->getId() : 'all';
+            $cacheKey = 'nota_media_' . $usuario->getId() . '_' . $dificultad . '_' . $cantidadExamenes . '_' . $temaId;
+            $item = $this->cache->getItem($cacheKey);
+            $item->set($notaMedia);
+            $item->expiresAfter(1800); // 30 minutos
+            $this->cache->save($item);
+        }
+        
+        return $notaMedia;
     }
 
     /**
@@ -261,23 +304,53 @@ class ExamenRepository extends ServiceEntityRepository
             return ($a['notaMedia'] > $b['notaMedia']) ? -1 : 1;
         });
 
+        // Guardar en caché
+        if ($this->cache) {
+            $cacheItem->set($ranking);
+            $cacheItem->expiresAfter(1800); // 30 minutos
+            $this->cache->save($cacheItem);
+        }
+
         return $ranking;
     }
 
     /**
      * Obtiene la posición de un usuario en el ranking por dificultad
+     * Con caché para mejorar rendimiento
      */
     public function getPosicionUsuario(User $usuario, string $dificultad, int $cantidadExamenes, ?Tema $tema = null): ?int
     {
-        $ranking = $this->getRankingPorDificultad($dificultad, $cantidadExamenes, $tema);
+        // Generar clave de caché única
+        $temaId = $tema ? $tema->getId() : 'all';
+        $cacheKey = 'posicion_' . $usuario->getId() . '_' . $dificultad . '_' . $cantidadExamenes . '_' . $temaId;
         
-        foreach ($ranking as $index => $entry) {
-            if ($entry['usuario']->getId() === $usuario->getId()) {
-                return $index + 1; // Posición (empezando en 1)
+        if ($this->cache) {
+            $item = $this->cache->getItem($cacheKey);
+            if ($item->isHit()) {
+                return $item->get();
             }
         }
-
-        return null; // Usuario no está en el ranking
+        
+        // Obtener ranking (ya tiene su propio caché)
+        $ranking = $this->getRankingPorDificultad($dificultad, $cantidadExamenes, $tema);
+        
+        $posicion = null;
+        foreach ($ranking as $index => $entry) {
+            if ($entry['usuario']->getId() === $usuario->getId()) {
+                $posicion = $index + 1; // Posición (empezando en 1)
+                break;
+            }
+        }
+        
+        // Guardar en caché (incluso si es null)
+        if ($this->cache) {
+            $item = $this->cache->getItem($cacheKey);
+            $item->set($posicion);
+            $item->expiresAfter(1800); // 30 minutos
+            $this->cache->save($item);
+        }
+        
+        return $posicion;
     }
 
     /**

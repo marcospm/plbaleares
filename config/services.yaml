@@ -54,7 +54,7 @@ services:
     
     App\Repository\ExamenRepository:
         arguments:
-            $cache: '@cache.queries'
+            $cache: '@cache.redis'  # Usar cache.redis para mejor rendimiento (Redis en prod, filesystem en local)
     
     App\Repository\MunicipioRepository:
         arguments:
@@ -63,6 +63,11 @@ services:
     App\Repository\TemaMunicipalRepository:
         arguments:
             $cache: '@cache.queries'
+    
+    # UserRepository con caché para login rápido
+    App\Repository\UserRepository:
+        arguments:
+            $cache: '@cache.redis'
     
     # Event listener para invalidar cache automáticamente
     App\EventListener\CacheInvalidationSubscriber:
@@ -73,11 +78,22 @@ services:
             $municipioRepository: '@App\Repository\MunicipioRepository'
             $temaMunicipalRepository: '@App\Repository\TemaMunicipalRepository'
             $examenRepository: '@App\Repository\ExamenRepository'
-            $cache: '@cache.queries'
+            $userRepository: '@App\Repository\UserRepository'
+            $cache: '@cache.redis'  # Usar cache.redis para invalidación (Redis en prod, filesystem en local)
         tags:
             - { name: doctrine.event_listener, event: postPersist }
             - { name: doctrine.event_listener, event: postUpdate }
             - { name: doctrine.event_listener, event: postRemove }
+    
+    # DashboardController con caché para métricas
+    App\Controller\DashboardController:
+        arguments:
+            $cache: '@cache.redis'
+    
+    # ExamenController con caché para lista de exámenes del profesor
+    App\Controller\ExamenController:
+        arguments:
+            $cache: '@cache.redis'
     
     # Configurar RedisController con los servicios de Redis
     # En producción (Upsun), cache.redis usa Redis y funcionará correctamente

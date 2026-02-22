@@ -14,6 +14,7 @@ use App\Repository\PreguntaMunicipalRepository;
 use App\Repository\ArticuloRepository;
 use App\Repository\TemaMunicipalRepository;
 use App\Service\PlanificacionService;
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,6 +22,11 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class DashboardController extends AbstractController
 {
+    public function __construct(
+        private ?CacheItemPoolInterface $cache = null
+    ) {
+    }
+
     #[Route('/dashboard', name: 'app_dashboard')]
     public function index(
         Request $request,
@@ -139,96 +145,171 @@ class DashboardController extends AbstractController
             
             $examenesSemana = $qbExamenesSemana->getQuery()->getSingleScalarResult();
 
-            // Estadísticas de contenido
-            $totalTemas = $temaRepository->createQueryBuilder('t')
-                ->select('COUNT(t.id)')
-                ->where('t.activo = :activo')
-                ->setParameter('activo', true)
-                ->getQuery()
-                ->getSingleScalarResult();
-
-            $totalPreguntas = $preguntaRepository->createQueryBuilder('p')
-                ->select('COUNT(p.id)')
-                ->where('p.activo = :activo')
-                ->setParameter('activo', true)
-                ->getQuery()
-                ->getSingleScalarResult();
-
-            $totalPreguntasMunicipales = $preguntaMunicipalRepository->createQueryBuilder('p')
-                ->select('COUNT(p.id)')
-                ->where('p.activo = :activo')
-                ->setParameter('activo', true)
-                ->getQuery()
-                ->getSingleScalarResult();
-
-            $totalArticulos = $articuloRepository->createQueryBuilder('a')
-                ->select('COUNT(a.id)')
-                ->getQuery()
-                ->getSingleScalarResult();
-
-            $totalMunicipios = $municipioRepository->createQueryBuilder('m')
-                ->select('COUNT(m.id)')
-                ->where('m.activo = :activo')
-                ->setParameter('activo', true)
-                ->getQuery()
-                ->getSingleScalarResult();
-
-            $totalTemasMunicipales = $temaMunicipalRepository->createQueryBuilder('t')
-                ->select('COUNT(t.id)')
-                ->where('t.activo = :activo')
-                ->setParameter('activo', true)
-                ->getQuery()
-                ->getSingleScalarResult();
-
-            $totalConvocatorias = $convocatoriaRepository->createQueryBuilder('c')
-                ->select('COUNT(c.id)')
-                ->where('c.activo = :activo')
-                ->setParameter('activo', true)
-                ->getQuery()
-                ->getSingleScalarResult();
-
-            // Últimos exámenes realizados con eager loading de usuario
-            $qbUltimosExamenes = $examenRepository->createQueryBuilder('e')
-                ->leftJoin('e.usuario', 'u')
-                ->addSelect('u')
-                ->where('u.roles NOT LIKE :roleProfesor')
-                ->andWhere('u.roles NOT LIKE :roleAdmin')
-                ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
-                ->setParameter('roleAdmin', '%"ROLE_ADMIN"%');
+            // Estadísticas de contenido (con caché - 1 hora)
+            $cacheKey = 'dashboard_metrics_global';
+            $metrics = null;
             
-            if (!$esAdmin && !empty($alumnosIds)) {
-                $qbUltimosExamenes->andWhere('u.id IN (:alumnosIds)')
-                    ->setParameter('alumnosIds', $alumnosIds);
+            if ($this->cache) {
+                $item = $this->cache->getItem($cacheKey);
+                if ($item->isHit()) {
+                    $metrics = $item->get();
+                }
             }
             
-            $ultimosExamenes = $qbUltimosExamenes->orderBy('e.fecha', 'DESC')
-                ->setMaxResults(10)
-                ->getQuery()
-                ->getResult();
+            if ($metrics === null) {
+                $totalTemas = $temaRepository->createQueryBuilder('t')
+                    ->select('COUNT(t.id)')
+                    ->where('t.activo = :activo')
+                    ->setParameter('activo', true)
+                    ->getQuery()
+                    ->getSingleScalarResult();
 
-            // Alumnos más activos (top 5 por cantidad de exámenes)
-            $qbAlumnosActivos = $examenRepository->createQueryBuilder('e')
-                ->select('u.id, u.username, COUNT(e.id) as totalExamenes, AVG(e.nota) as promedio')
-                ->join('e.usuario', 'u')
-                ->where('u.activo = :activo')
-                ->andWhere('u.eliminado = :eliminado')
-                ->andWhere('u.roles NOT LIKE :roleProfesor')
-                ->andWhere('u.roles NOT LIKE :roleAdmin')
-                ->setParameter('activo', true)
-                ->setParameter('eliminado', false)
-                ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
-                ->setParameter('roleAdmin', '%"ROLE_ADMIN"%');
+                $totalPreguntas = $preguntaRepository->createQueryBuilder('p')
+                    ->select('COUNT(p.id)')
+                    ->where('p.activo = :activo')
+                    ->setParameter('activo', true)
+                    ->getQuery()
+                    ->getSingleScalarResult();
+
+                $totalPreguntasMunicipales = $preguntaMunicipalRepository->createQueryBuilder('p')
+                    ->select('COUNT(p.id)')
+                    ->where('p.activo = :activo')
+                    ->setParameter('activo', true)
+                    ->getQuery()
+                    ->getSingleScalarResult();
+
+                $totalArticulos = $articuloRepository->createQueryBuilder('a')
+                    ->select('COUNT(a.id)')
+                    ->getQuery()
+                    ->getSingleScalarResult();
+
+                $totalMunicipios = $municipioRepository->createQueryBuilder('m')
+                    ->select('COUNT(m.id)')
+                    ->where('m.activo = :activo')
+                    ->setParameter('activo', true)
+                    ->getQuery()
+                    ->getSingleScalarResult();
+
+                $totalTemasMunicipales = $temaMunicipalRepository->createQueryBuilder('t')
+                    ->select('COUNT(t.id)')
+                    ->where('t.activo = :activo')
+                    ->setParameter('activo', true)
+                    ->getQuery()
+                    ->getSingleScalarResult();
+
+                $totalConvocatorias = $convocatoriaRepository->createQueryBuilder('c')
+                    ->select('COUNT(c.id)')
+                    ->where('c.activo = :activo')
+                    ->setParameter('activo', true)
+                    ->getQuery()
+                    ->getSingleScalarResult();
+                
+                $metrics = [
+                    'totalTemas' => $totalTemas,
+                    'totalPreguntas' => $totalPreguntas,
+                    'totalPreguntasMunicipales' => $totalPreguntasMunicipales,
+                    'totalArticulos' => $totalArticulos,
+                    'totalMunicipios' => $totalMunicipios,
+                    'totalTemasMunicipales' => $totalTemasMunicipales,
+                    'totalConvocatorias' => $totalConvocatorias,
+                ];
+                
+                // Guardar en caché (1 hora)
+                if ($this->cache) {
+                    $item->set($metrics);
+                    $item->expiresAfter(3600); // 1 hora
+                    $this->cache->save($item);
+                }
+            } else {
+                $totalTemas = $metrics['totalTemas'];
+                $totalPreguntas = $metrics['totalPreguntas'];
+                $totalPreguntasMunicipales = $metrics['totalPreguntasMunicipales'];
+                $totalArticulos = $metrics['totalArticulos'];
+                $totalMunicipios = $metrics['totalMunicipios'];
+                $totalTemasMunicipales = $metrics['totalTemasMunicipales'];
+                $totalConvocatorias = $metrics['totalConvocatorias'];
+            }
+
+            // Últimos exámenes realizados (con caché - 5 minutos)
+            $cacheKeyUltimosExamenes = 'dashboard_ultimos_examenes_' . ($esAdmin ? 'admin' : 'prof_' . $user->getId());
+            $ultimosExamenes = null;
             
-            if (!$esAdmin && !empty($alumnosIds)) {
-                $qbAlumnosActivos->andWhere('u.id IN (:alumnosIds)')
-                    ->setParameter('alumnosIds', $alumnosIds);
+            if ($this->cache) {
+                $item = $this->cache->getItem($cacheKeyUltimosExamenes);
+                if ($item->isHit()) {
+                    $ultimosExamenes = $item->get();
+                }
             }
             
-            $alumnosActivos = $qbAlumnosActivos->groupBy('u.id', 'u.username')
-                ->orderBy('totalExamenes', 'DESC')
-                ->setMaxResults(5)
-                ->getQuery()
-                ->getResult();
+            if ($ultimosExamenes === null) {
+                $qbUltimosExamenes = $examenRepository->createQueryBuilder('e')
+                    ->leftJoin('e.usuario', 'u')
+                    ->addSelect('u')
+                    ->where('u.roles NOT LIKE :roleProfesor')
+                    ->andWhere('u.roles NOT LIKE :roleAdmin')
+                    ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+                    ->setParameter('roleAdmin', '%"ROLE_ADMIN"%');
+                
+                if (!$esAdmin && !empty($alumnosIds)) {
+                    $qbUltimosExamenes->andWhere('u.id IN (:alumnosIds)')
+                        ->setParameter('alumnosIds', $alumnosIds);
+                }
+                
+                $ultimosExamenes = $qbUltimosExamenes->orderBy('e.fecha', 'DESC')
+                    ->setMaxResults(10)
+                    ->getQuery()
+                    ->getResult();
+                
+                // Guardar en caché (5 minutos)
+                if ($this->cache) {
+                    $item->set($ultimosExamenes);
+                    $item->expiresAfter(300); // 5 minutos
+                    $this->cache->save($item);
+                }
+            }
+
+            // Alumnos más activos (con caché - 15 minutos)
+            $cacheKeyAlumnosActivos = 'dashboard_alumnos_activos_' . ($esAdmin ? 'admin' : 'prof_' . $user->getId());
+            $alumnosActivos = null;
+            
+            if ($this->cache) {
+                $item = $this->cache->getItem($cacheKeyAlumnosActivos);
+                if ($item->isHit()) {
+                    $alumnosActivos = $item->get();
+                }
+            }
+            
+            if ($alumnosActivos === null) {
+                $qbAlumnosActivos = $examenRepository->createQueryBuilder('e')
+                    ->select('u.id, u.username, COUNT(e.id) as totalExamenes, AVG(e.nota) as promedio')
+                    ->join('e.usuario', 'u')
+                    ->where('u.activo = :activo')
+                    ->andWhere('u.eliminado = :eliminado')
+                    ->andWhere('u.roles NOT LIKE :roleProfesor')
+                    ->andWhere('u.roles NOT LIKE :roleAdmin')
+                    ->setParameter('activo', true)
+                    ->setParameter('eliminado', false)
+                    ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+                    ->setParameter('roleAdmin', '%"ROLE_ADMIN"%');
+                
+                if (!$esAdmin && !empty($alumnosIds)) {
+                    $qbAlumnosActivos->andWhere('u.id IN (:alumnosIds)')
+                        ->setParameter('alumnosIds', $alumnosIds);
+                }
+                
+                $alumnosActivos = $qbAlumnosActivos->groupBy('u.id', 'u.username')
+                    ->orderBy('totalExamenes', 'DESC')
+                    ->setMaxResults(5)
+                    ->getQuery()
+                    ->getResult();
+                
+                // Guardar en caché (15 minutos)
+                if ($this->cache) {
+                    $item->set($alumnosActivos);
+                    $item->expiresAfter(900); // 15 minutos
+                    $this->cache->save($item);
+                }
+            }
 
             // Obtener lista de alumnos asignados para mostrar en el dashboard
             $misAlumnos = [];

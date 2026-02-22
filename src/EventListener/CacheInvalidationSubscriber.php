@@ -8,12 +8,14 @@ use App\Entity\Convocatoria;
 use App\Entity\Municipio;
 use App\Entity\TemaMunicipal;
 use App\Entity\Examen;
+use App\Entity\User;
 use App\Repository\LeyRepository;
 use App\Repository\TemaRepository;
 use App\Repository\ConvocatoriaRepository;
 use App\Repository\MunicipioRepository;
 use App\Repository\TemaMunicipalRepository;
 use App\Repository\ExamenRepository;
+use App\Repository\UserRepository;
 use Doctrine\Persistence\Event\LifecycleEventArgs;
 use Psr\Cache\CacheItemPoolInterface;
 
@@ -29,6 +31,7 @@ class CacheInvalidationSubscriber
         private ?MunicipioRepository $municipioRepository = null,
         private ?TemaMunicipalRepository $temaMunicipalRepository = null,
         private ?ExamenRepository $examenRepository = null,
+        private ?UserRepository $userRepository = null,
         private ?CacheItemPoolInterface $cache = null
     ) {
     }
@@ -95,6 +98,27 @@ class CacheInvalidationSubscriber
             // Limpiar todos los caches de rankings (usando prefijo)
             // Los rankings tienen claves como: ranking_dificultad_*, ranking_municipio_*, ranking_convocatoria_*
             $this->clearRankingCache();
+            
+            // Invalidar caché del dashboard (últimos exámenes y alumnos activos)
+            $this->clearDashboardCache();
+            
+            // Invalidar caché de lista de exámenes del profesor
+            $this->clearProfesorExamenesCache();
+            
+            // Invalidar estadísticas del usuario que realizó el examen
+            if ($entity->getUsuario()) {
+                $this->clearUsuarioEstadisticasCache($entity->getUsuario());
+            }
+        }
+        
+        // Limpiar cache de usuarios cuando se crea/actualiza/elimina un usuario
+        if ($entity instanceof User && $this->userRepository) {
+            $this->userRepository->invalidateUserCache($entity);
+            
+            // También invalidar caché del dashboard si se actualiza un usuario
+            if ($this->cache) {
+                $this->clearDashboardCache();
+            }
         }
     }
 
@@ -135,5 +159,92 @@ class CacheInvalidationSubscriber
         // sería recomendable usar un cache backend con soporte de tags (Redis, Memcached)
         // o implementar un sistema de versionado de cache donde se incrementa una versión
         // y todas las claves incluyen esa versión.
+    }
+    
+    /**
+     * Limpia los caches del dashboard (últimos exámenes y alumnos activos)
+     * Como no podemos listar todas las claves, limpiamos los patrones comunes
+     */
+    private function clearDashboardCache(): void
+    {
+        if (!$this->cache) {
+            return;
+        }
+        
+        // Limpiar caché de métricas globales
+        $this->cache->deleteItem('dashboard_metrics_global');
+        
+        // Limpiar caché de últimos exámenes (admin y profesores)
+        // Nota: En un sistema con muchos profesores, sería mejor usar tags o versionado
+        // Por ahora, limpiamos los patrones comunes. Los específicos de profesores
+        // se invalidarán cuando se consulten ya que incluyen el ID del profesor
+        $this->cache->deleteItem('dashboard_ultimos_examenes_admin');
+        
+        // Limpiar caché de alumnos activos
+        $this->cache->deleteItem('dashboard_alumnos_activos_admin');
+    }
+    
+    /**
+     * Limpia el caché de estadísticas de un usuario específico
+     */
+    private function clearUsuarioEstadisticasCache(User $usuario): void
+    {
+        if (!$this->cache) {
+            return;
+        }
+        
+        // Invalidar estadísticas del usuario
+        $this->cache->deleteItem('estadisticas_usuario_' . $usuario->getId());
+        
+        // Invalidar notas medias del usuario (diferentes combinaciones)
+        $dificultades = ['facil', 'moderada', 'dificil'];
+        $cantidades = [3, 5, 10, 20];
+        
+        foreach ($dificultades as $dificultad) {
+            foreach ($cantidades as $cantidad) {
+                // Sin tema
+                $this->cache->deleteItem("nota_media_{$usuario->getId()}_{$dificultad}_{$cantidad}_all");
+                // Con tema (se invalidarán cuando se consulten)
+            }
+            
+            // Invalidar posiciones
+            foreach ($cantidades as $cantidad) {
+                $this->cache->deleteItem("posicion_{$usuario->getId()}_{$dificultad}_{$cantidad}_all");
+            }
+        }
+    }
+    
+    /**
+     * Limpia el caché de la lista de exámenes del profesor
+     * Usa un sistema de versionado: incrementa la versión para invalidar todas las claves de una vez
+     */
+    private function clearProfesorExamenesCache(): void
+    {
+        if (!$this->cache) {
+            return;
+        }
+        
+        // Obtener versión actual
+        $versionItem = $this->cache->getItem('profesor_examenes_version');
+        $currentVersion = 'v1';
+        
+        if ($versionItem->isHit()) {
+            $currentVersion = $versionItem->get();
+            // Extraer número de versión y incrementarlo
+            if (preg_match('/v(\d+)/', $currentVersion, $matches)) {
+                $versionNumber = (int)$matches[1];
+                $currentVersion = 'v' . ($versionNumber + 1);
+            } else {
+                $currentVersion = 'v2';
+            }
+        }
+        
+        // Guardar nueva versión (esto invalidará todas las claves antiguas automáticamente)
+        $versionItem->set($currentVersion);
+        // Sin expiresAfter - la versión persiste hasta que se incremente
+        $this->cache->save($versionItem);
+        
+        // Todas las claves antiguas quedarán obsoletas porque incluyen la versión anterior
+        // Las nuevas consultas usarán la nueva versión y generarán nuevas claves
     }
 }

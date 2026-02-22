@@ -22,6 +22,7 @@ use App\Service\NotificacionService;
 use App\Service\ConfiguracionExamenService;
 use App\Service\PreguntaRiesgoService;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -47,7 +48,8 @@ class ExamenController extends AbstractController
         private EntityManagerInterface $entityManager,
         private NotificacionService $notificacionService,
         private PreguntaRiesgoService $preguntaRiesgoService,
-        private PreguntaRiesgoRepository $preguntaRiesgoRepository
+        private PreguntaRiesgoRepository $preguntaRiesgoRepository,
+        private ?CacheItemPoolInterface $cache = null
     ) {
     }
 
@@ -2006,8 +2008,55 @@ class ExamenController extends AbstractController
                       ->having('COUNT(t.id) = 1');
         }
         
-        $examenesGeneral = $qbGeneral->getQuery()->getResult();
-        $examenesMunicipal = $qbMunicipal->getQuery()->getResult();
+        // Obtener versión del caché (se incrementa cuando se crea un examen)
+        $cacheVersion = 'v1'; // Versión base
+        if ($this->cache) {
+            $versionItem = $this->cache->getItem('profesor_examenes_version');
+            if ($versionItem->isHit()) {
+                $cacheVersion = $versionItem->get();
+            }
+        }
+        
+        // Generar clave de caché única basada en todos los filtros + versión
+        $cacheKeyParts = [
+            'profesor_examenes',
+            $cacheVersion,
+            'admin_' . ($esAdmin ? '1' : '0'),
+            'alumnos_' . md5(implode(',', $alumnosIds)),
+            'grupo_' . ($grupoId ?? '0'),
+            'usuario_' . ($usuarioId ?? '0'),
+            'dificultad_' . ($dificultad ?? 'all'),
+            'tema_' . ($tema ? $tema->getId() : '0'),
+        ];
+        $cacheKey = implode('_', $cacheKeyParts);
+        
+        // Intentar obtener de caché
+        $examenesFromCache = null;
+        if ($this->cache) {
+            $item = $this->cache->getItem($cacheKey);
+            if ($item->isHit()) {
+                $examenesFromCache = $item->get();
+            }
+        }
+        
+        if ($examenesFromCache !== null) {
+            $examenesGeneral = $examenesFromCache['general'] ?? [];
+            $examenesMunicipal = $examenesFromCache['municipal'] ?? [];
+        } else {
+            // Consultar base de datos
+            $examenesGeneral = $qbGeneral->getQuery()->getResult();
+            $examenesMunicipal = $qbMunicipal->getQuery()->getResult();
+            
+            // Guardar en caché (sin TTL, se invalidará cuando se cree un examen)
+            if ($this->cache) {
+                $item->set([
+                    'general' => $examenesGeneral,
+                    'municipal' => $examenesMunicipal,
+                ]);
+                // Sin expiresAfter - se invalidará manualmente cuando se cree un examen
+                $this->cache->save($item);
+            }
+        }
         
         // Filtrar en PHP para asegurar que solo sean exámenes íntegramente del tema
         if ($tema !== null) {

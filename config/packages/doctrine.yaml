@@ -42,7 +42,11 @@ when@prod:
   framework:
     cache:
       pools:
+        # Doctrine cache pools - usar Redis en producción para mejor rendimiento
+        # En local, cache.redis usa filesystem como fallback (compatible sin Redis)
         doctrine.result_cache_pool:
-          adapter: cache.app
+          adapter: cache.adapter.redis
+          provider: '%env(REDIS_URL)%'
         doctrine.system_cache_pool:
-          adapter: cache.system
+          adapter: cache.adapter.redis
+          provider: '%env(REDIS_URL)%'

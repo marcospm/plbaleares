@@ -17,12 +17,13 @@ framework:
 
         # Namespaced pools use the above "app" backend by default
         pools:
+            # Pools de caché - en local usan filesystem, en producción usan Redis (ver configuración condicional)
             cache.partidas:
-                adapter: cache.adapter.filesystem
+                adapter: cache.adapter.filesystem  # Fallback para local
             cache.boe:
-                adapter: cache.adapter.filesystem
+                adapter: cache.adapter.filesystem  # Fallback para local
             cache.queries:
-                adapter: cache.adapter.filesystem
+                adapter: cache.adapter.filesystem  # Fallback para local
                 default_lifetime: 3600  # 1 hora para consultas comunes (leyes, temas, convocatorias)
             # Pool de Redis - en local usa filesystem como fallback, en producción usa Redis
             # En local (Windows), este pool usa filesystem para evitar errores si Redis no está instalado
@@ -31,15 +32,26 @@ framework:
                 adapter: cache.adapter.filesystem  # Fallback para local
                 default_lifetime: 3600
 
-# Configuración para producción: Redis es OBLIGATORIO
+# Configuración para producción: Migrar pools a Redis
 # En producción, REDIS_URL debe estar definida en las variables de entorno
 # Funciona en cualquier entorno (Upsun, otros cloud providers, servidores propios, etc.)
-# Solo necesitas definir la variable de entorno REDIS_URL con la URL de conexión a Redis
-# Ejemplo: REDIS_URL=redis://localhost:6379 o REDIS_URL=redis://:password@host:6379
+# En local, todos los pools usan filesystem como fallback (compatible sin Redis)
 when@prod:
     framework:
         cache:
             pools:
+                # Migrar pools de aplicación a Redis en producción
+                cache.partidas:
+                    adapter: cache.adapter.redis
+                    provider: '%env(REDIS_URL)%'
+                cache.boe:
+                    adapter: cache.adapter.redis
+                    provider: '%env(REDIS_URL)%'
+                cache.queries:
+                    adapter: cache.adapter.redis
+                    provider: '%env(REDIS_URL)%'
+                    default_lifetime: 3600
+                # Pool principal de Redis
                 cache.redis:
                     adapter: cache.adapter.redis
                     # REDIS_URL es obligatoria en producción - debe estar definida en las variables de entorno

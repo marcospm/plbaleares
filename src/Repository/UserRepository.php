@@ -5,6 +5,8 @@ namespace App\Repository;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Psr\Cache\CacheItemInterface;
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
@@ -14,16 +16,35 @@ use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
  */
 class UserRepository extends ServiceEntityRepository implements PasswordUpgraderInterface
 {
-    public function __construct(ManagerRegistry $registry)
+    private ?CacheItemPoolInterface $cache = null;
+
+    public function __construct(ManagerRegistry $registry, CacheItemPoolInterface $cache = null)
     {
         parent::__construct($registry, User::class);
+        $this->cache = $cache;
     }
 
     /**
      * Sobrescribe findOneBy para excluir usuarios eliminados por defecto
+     * Con caché para mejorar rendimiento del login
      */
     public function findOneBy(array $criteria, ?array $orderBy = null): ?User
     {
+        // Si hay caché y solo buscamos por username, email o id, usar caché
+        if ($this->cache && count($criteria) === 1) {
+            $field = array_key_first($criteria);
+            $value = $criteria[$field];
+            
+            if ($field === 'username') {
+                return $this->findByUsernameCached($value);
+            } elseif ($field === 'email') {
+                return $this->findByEmailCached($value);
+            } elseif ($field === 'id') {
+                return $this->findByIdCached($value);
+            }
+        }
+        
+        // Para otros casos, consulta directa sin caché
         $qb = $this->createQueryBuilder('u');
         
         foreach ($criteria as $field => $value) {
@@ -46,10 +67,180 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
 
     /**
      * Busca un usuario incluyendo los eliminados (para validaciones)
+     * Con caché para mejorar rendimiento del login
      */
     public function findOneByIncludingDeleted(array $criteria, ?array $orderBy = null): ?User
     {
+        // Si hay caché y solo buscamos por username o email, usar caché
+        if ($this->cache && count($criteria) === 1) {
+            $field = array_key_first($criteria);
+            $value = $criteria[$field];
+            
+            if ($field === 'username') {
+                return $this->findByUsernameCached($value, true);
+            } elseif ($field === 'email') {
+                return $this->findByEmailCached($value, true);
+            }
+        }
+        
+        // Para otros casos, consulta directa sin caché
         return parent::findOneBy($criteria, $orderBy);
+    }
+    
+    /**
+     * Busca usuario por username con caché
+     * @param string $username
+     * @param bool $includeDeleted Si true, incluye usuarios eliminados
+     * @return User|null
+     */
+    public function findByUsernameCached(string $username, bool $includeDeleted = false): ?User
+    {
+        if (!$this->cache) {
+            // Sin caché, consulta directa
+            if ($includeDeleted) {
+                return parent::findOneBy(['username' => $username]);
+            }
+            return $this->findOneBy(['username' => $username]);
+        }
+        
+        $cacheKey = 'user_by_username_' . md5($username);
+        $item = $this->cache->getItem($cacheKey);
+        
+        if ($item->isHit()) {
+            return $item->get();
+        }
+        
+        // Obtener usuario de la base de datos
+        if ($includeDeleted) {
+            $user = parent::findOneBy(['username' => $username]);
+        } else {
+            $qb = $this->createQueryBuilder('u')
+                ->where('u.username = :username')
+                ->andWhere('u.eliminado = :eliminado')
+                ->setParameter('username', $username)
+                ->setParameter('eliminado', false);
+            $user = $qb->getQuery()->getOneOrNullResult();
+        }
+        
+        // Guardar en caché
+        if ($user) {
+            $item->set($user);
+            $item->expiresAfter(86400); // 24 horas
+            $this->cache->save($item);
+        }
+        
+        return $user;
+    }
+    
+    /**
+     * Busca usuario por email con caché
+     * @param string $email
+     * @param bool $includeDeleted Si true, incluye usuarios eliminados
+     * @return User|null
+     */
+    public function findByEmailCached(string $email, bool $includeDeleted = false): ?User
+    {
+        if (!$this->cache) {
+            // Sin caché, consulta directa
+            if ($includeDeleted) {
+                return parent::findOneBy(['email' => $email]);
+            }
+            return $this->findOneBy(['email' => $email]);
+        }
+        
+        $cacheKey = 'user_by_email_' . md5(strtolower($email));
+        $item = $this->cache->getItem($cacheKey);
+        
+        if ($item->isHit()) {
+            return $item->get();
+        }
+        
+        // Obtener usuario de la base de datos
+        if ($includeDeleted) {
+            $user = parent::findOneBy(['email' => $email]);
+        } else {
+            $qb = $this->createQueryBuilder('u')
+                ->where('u.email = :email')
+                ->andWhere('u.eliminado = :eliminado')
+                ->setParameter('email', $email)
+                ->setParameter('eliminado', false);
+            $user = $qb->getQuery()->getOneOrNullResult();
+        }
+        
+        // Guardar en caché
+        if ($user) {
+            $item->set($user);
+            $item->expiresAfter(86400); // 24 horas
+            $this->cache->save($item);
+        }
+        
+        return $user;
+    }
+    
+    /**
+     * Busca usuario por ID con caché
+     * @param int $id
+     * @return User|null
+     */
+    public function findByIdCached(int $id): ?User
+    {
+        if (!$this->cache) {
+            // Sin caché, consulta directa
+            return $this->findOneBy(['id' => $id]);
+        }
+        
+        $cacheKey = 'user_by_id_' . $id;
+        $item = $this->cache->getItem($cacheKey);
+        
+        if ($item->isHit()) {
+            return $item->get();
+        }
+        
+        // Obtener usuario de la base de datos
+        $qb = $this->createQueryBuilder('u')
+            ->where('u.id = :id')
+            ->andWhere('u.eliminado = :eliminado')
+            ->setParameter('id', $id)
+            ->setParameter('eliminado', false);
+        $user = $qb->getQuery()->getOneOrNullResult();
+        
+        // Guardar en caché
+        if ($user) {
+            $item->set($user);
+            $item->expiresAfter(86400); // 24 horas
+            $this->cache->save($item);
+        }
+        
+        return $user;
+    }
+    
+    /**
+     * Invalida el caché de un usuario
+     * @param User $user
+     */
+    public function invalidateUserCache(User $user): void
+    {
+        if (!$this->cache) {
+            return;
+        }
+        
+        // Invalidar por username
+        if ($user->getUsername()) {
+            $cacheKey = 'user_by_username_' . md5($user->getUsername());
+            $this->cache->deleteItem($cacheKey);
+        }
+        
+        // Invalidar por email
+        if ($user->getEmail()) {
+            $cacheKey = 'user_by_email_' . md5(strtolower($user->getEmail()));
+            $this->cache->deleteItem($cacheKey);
+        }
+        
+        // Invalidar por ID
+        if ($user->getId()) {
+            $cacheKey = 'user_by_id_' . $user->getId();
+            $this->cache->deleteItem($cacheKey);
+        }
     }
 
     /**
