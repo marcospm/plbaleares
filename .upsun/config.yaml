@@ -1,7 +1,3 @@
-services:
-  redis:
-    type: redis:7
-
 applications:
   app:
     source:
@@ -35,7 +31,8 @@ applications:
 
     relationships:
       database: "database:mysql"
-      redis: "redis:redis"
+      # Redis se configura automáticamente si está disponible en el entorno
+      # La variable REDIS_URL se puede definir manualmente o mediante addons
 
     mounts:
       "/var": "shared:files/var"

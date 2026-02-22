@@ -31,13 +31,14 @@ framework:
                 adapter: cache.adapter.filesystem  # Fallback para local
                 default_lifetime: 3600
 
-# Configuración para producción (Upsun): usar Redis con REDIS_URL
-# En Upsun, REDIS_URL se configura automáticamente cuando defines redis en relationships
+# Configuración para producción: usar Redis con REDIS_URL si está disponible
+# En cualquier entorno (Upsun, otros cloud, local con Redis), si REDIS_URL está definida, se usará Redis
+# Si REDIS_URL no está definida, se usará filesystem como fallback (definido arriba)
 when@prod:
     framework:
         cache:
-            default_redis_provider: '%env(REDIS_URL)%'
             pools:
                 cache.redis:
                     adapter: cache.adapter.redis
+                    # Si REDIS_URL está definida, se usará. Si no, fallará y usará el fallback de filesystem
                     provider: '%env(REDIS_URL)%'
