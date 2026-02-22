@@ -50,6 +50,56 @@
                 </div>
             </div>
             
+            {% if stats.cache_pools|length > 0 %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Pools de Caché</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Pool</th>
+                                        <th>Descripción</th>
+                                        <th>Adaptador</th>
+                                        <th>Estado</th>
+                                        <th>Claves</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for pool in stats.cache_pools %}
+                                        <tr>
+                                            <td><code>{{ pool.name }}</code></td>
+                                            <td>{{ pool.label }}</td>
+                                            <td>
+                                                <small class="text-muted">{{ pool.adapter_class|split('\\')|last }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{{ pool.is_redis ? 'success' : 'secondary' }}">
+                                                    {{ pool.is_redis ? 'Redis' : 'Filesystem' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if pool.keys_count is defined %}
+                                                    {% if pool.keys_count is same as('N/A') %}
+                                                        <span class="text-muted">N/A</span>
+                                                    {% else %}
+                                                        {{ pool.keys_count|number_format(0, ',', '.') }}
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
             {% if stats.sample_keys|length > 0 %}
                 <div class="card mb-4">
                     <div class="card-header">

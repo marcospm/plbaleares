@@ -11,12 +11,14 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
+use Psr\Container\ContainerInterface;
 
 class RedisController extends AbstractController
 {
     public function __construct(
         private CacheInterface $redisCache,
-        private CacheItemPoolInterface $redisPool
+        private CacheItemPoolInterface $redisPool,
+        private \Psr\Container\ContainerInterface $container
     ) {
     }
 
@@ -277,7 +279,52 @@ class RedisController extends AbstractController
             'keys_count' => null,
             'info' => null,
             'sample_keys' => [],
+            'cache_pools' => [],
         ];
+        
+        // Obtener información de todos los pools de caché
+        $cachePools = [
+            'cache.redis' => 'Caché Principal (Redis)',
+            'cache.partidas' => 'Caché de Partidas',
+            'cache.boe' => 'Caché de BOE',
+            'cache.queries' => 'Caché de Consultas',
+        ];
+        
+        foreach ($cachePools as $poolName => $poolLabel) {
+            try {
+                if ($this->container->has($poolName)) {
+                    $pool = $this->container->get($poolName);
+                    $poolStats = [
+                        'name' => $poolName,
+                        'label' => $poolLabel,
+                        'adapter_class' => get_class($pool),
+                        'is_redis' => $this->isPoolUsingRedis($pool),
+                    ];
+                    
+                    // Si es Redis, intentar obtener estadísticas
+                    if ($poolStats['is_redis']) {
+                        try {
+                            $redisClient = $this->getRedisClientFromPool($pool);
+                            if ($redisClient) {
+                                // Contar claves que empiezan con el prefijo del pool
+                                try {
+                                    $keys = $redisClient->keys('*');
+                                    $poolStats['keys_count'] = count($keys);
+                                } catch (\Exception $e) {
+                                    $poolStats['keys_count'] = 'N/A';
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            $poolStats['error'] = $e->getMessage();
+                        }
+                    }
+                    
+                    $stats['cache_pools'][] = $poolStats;
+                }
+            } catch (\Exception $e) {
+                // Pool no disponible
+            }
+        }
         
         if ($this->isUsingRedis()) {
             try {
@@ -321,6 +368,51 @@ class RedisController extends AbstractController
         }
         
         return $stats;
+    }
+    
+    /**
+     * Detecta si un pool específico está usando Redis
+     */
+    private function isPoolUsingRedis($pool): bool
+    {
+        try {
+            $reflection = new \ReflectionClass($pool);
+            $className = $reflection->getName();
+            return strpos($className, 'Redis') !== false || 
+                   strpos($className, 'Predis') !== false;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+    
+    /**
+     * Obtiene el cliente Redis desde un pool específico
+     */
+    private function getRedisClientFromPool($pool)
+    {
+        try {
+            $reflection = new \ReflectionClass($pool);
+            
+            if (method_exists($pool, 'getConnection')) {
+                return $pool->getConnection();
+            }
+            
+            $properties = ['redis', 'client', 'connection'];
+            foreach ($properties as $prop) {
+                if ($reflection->hasProperty($prop)) {
+                    $property = $reflection->getProperty($prop);
+                    $property->setAccessible(true);
+                    $client = $property->getValue($pool);
+                    if ($client && (is_object($client) && method_exists($client, 'info'))) {
+                        return $client;
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            // No se pudo obtener el cliente
+        }
+        
+        return null;
     }
     
     /**
