@@ -8,15 +8,19 @@ framework:
             cache.partidas:
                 adapter: cache.adapter.redis
                 provider: '%env(REDIS_URL)%'
+                public: true  # Hacer público para poder acceder desde el contenedor
             cache.boe:
                 adapter: cache.adapter.redis
                 provider: '%env(REDIS_URL)%'
+                public: true  # Hacer público para poder acceder desde el contenedor
             cache.queries:
                 adapter: cache.adapter.redis
                 provider: '%env(REDIS_URL)%'
                 default_lifetime: 3600
+                public: true  # Hacer público para poder acceder desde el contenedor
             # Pool principal de Redis
             cache.redis:
                 adapter: cache.adapter.redis
                 provider: '%env(REDIS_URL)%'
                 default_lifetime: 3600
+                public: true  # Hacer público para poder acceder desde el contenedor
