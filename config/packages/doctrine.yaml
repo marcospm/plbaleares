@@ -43,12 +43,12 @@ when@prod:
     cache:
       pools:
         # Doctrine cache pools - usar Redis en producción para mejor rendimiento
-        # Durante el build, REDIS_URL puede no estar disponible, por lo que usamos un valor por defecto
+        # Durante el build, si REDIS_URL no está disponible, se usará default_redis_url como fallback
         # En runtime, REDIS_URL se configurará automáticamente desde PLATFORM_RELATIONSHIPS
-        # El valor por defecto 'redis://localhost:6379' solo se usa durante el build, no en runtime
+        # default_redis_url se define en el build hook de .upsun/config.yaml
         doctrine.result_cache_pool:
           adapter: cache.adapter.redis
-          provider: '%env(default:REDIS_URL:redis://localhost:6379)%'
+          provider: '%env(default:REDIS_URL:default_redis_url)%'
         doctrine.system_cache_pool:
           adapter: cache.adapter.redis
-          provider: '%env(default:REDIS_URL:redis://localhost:6379)%'
+          provider: '%env(default:REDIS_URL:default_redis_url)%'

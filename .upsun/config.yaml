@@ -67,15 +67,19 @@ applications:
           public/recursos_especificos \
           public/videos
 
-        # Ejecutar composer install sin scripts (cache:clear requiere REDIS_URL que no está disponible durante el build)
-        # Los scripts se ejecutarán en el deploy hook donde REDIS_URL está disponible desde PLATFORM_RELATIONSHIPS
+        # Definir REDIS_URL y default_redis_url para el build
+        # Durante el build, REDIS_URL puede no estar disponible, así que usamos un valor por defecto
+        # default_redis_url se usa como fallback en la configuración de cache.yaml
+        export REDIS_URL="${REDIS_URL:-redis://localhost:6379}"
+        export default_redis_url="redis://localhost:6379"
+
+        # Ejecutar composer install (los scripts ahora pueden ejecutarse porque REDIS_URL está definida)
         composer install \
           --no-dev \
           --prefer-dist \
           --no-progress \
           --no-interaction \
-          --optimize-autoloader \
-          --no-scripts
+          --optimize-autoloader
 
         # Compilar assets (Asset Mapper)
         php bin/console asset-map:compile --env=prod
