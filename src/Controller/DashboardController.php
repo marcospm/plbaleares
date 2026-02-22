@@ -75,75 +75,100 @@ class DashboardController extends AbstractController
                 }
             }
 
-            // Estadísticas de alumnos
-            $qbAlumnos = $userRepository->createQueryBuilder('u')
-                ->select('COUNT(u.id)')
-                ->where('u.activo = :activo')
-                ->andWhere('u.eliminado = :eliminado')
-                ->andWhere('u.roles NOT LIKE :roleProfesor')
-                ->andWhere('u.roles NOT LIKE :roleAdmin')
-                ->setParameter('activo', true)
-                ->setParameter('eliminado', false)
-                ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
-                ->setParameter('roleAdmin', '%"ROLE_ADMIN"%');
+            // Cachear estadísticas de profesor (5 minutos) para reducir consultas
+            $cacheKeyStats = 'dashboard_stats_prof_' . ($esAdmin ? 'admin' : 'prof_' . $user->getId());
+            $stats = null;
             
-            if (!$esAdmin && !empty($alumnosIds)) {
-                $qbAlumnos->andWhere('u.id IN (:alumnosIds)')
-                    ->setParameter('alumnosIds', $alumnosIds);
+            if ($this->cache) {
+                $item = $this->cache->getItem($cacheKeyStats);
+                if ($item->isHit()) {
+                    $stats = $item->get();
+                }
             }
             
-            $totalAlumnos = $qbAlumnos->getQuery()->getSingleScalarResult();
+            if ($stats === null) {
+                // Estadísticas de alumnos
+                $qbAlumnos = $userRepository->createQueryBuilder('u')
+                    ->select('COUNT(u.id)')
+                    ->where('u.activo = :activo')
+                    ->andWhere('u.eliminado = :eliminado')
+                    ->andWhere('u.roles NOT LIKE :roleProfesor')
+                    ->andWhere('u.roles NOT LIKE :roleAdmin')
+                    ->setParameter('activo', true)
+                    ->setParameter('eliminado', false)
+                    ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+                    ->setParameter('roleAdmin', '%"ROLE_ADMIN"%');
+                
+                if (!$esAdmin && !empty($alumnosIds)) {
+                    $qbAlumnos->andWhere('u.id IN (:alumnosIds)')
+                        ->setParameter('alumnosIds', $alumnosIds);
+                }
+                
+                $totalAlumnos = $qbAlumnos->getQuery()->getSingleScalarResult();
 
-            // Estadísticas de exámenes
-            $qbExamenes = $examenRepository->createQueryBuilder('e')
-                ->select('COUNT(e.id)');
-            
-            if (!$esAdmin && !empty($alumnosIds)) {
-                $qbExamenes->join('e.usuario', 'u')
-                    ->where('u.id IN (:alumnosIds)')
-                    ->setParameter('alumnosIds', $alumnosIds);
-            }
-            
-            $totalExamenes = $qbExamenes->getQuery()->getSingleScalarResult();
+                // Estadísticas de exámenes - optimizar con una sola consulta usando CASE WHEN
+                $qbExamenes = $examenRepository->createQueryBuilder('e')
+                    ->select('COUNT(e.id) as totalExamenes, AVG(e.nota) as promedioGeneral')
+                    ->leftJoin('e.usuario', 'u');
+                
+                if (!$esAdmin && !empty($alumnosIds)) {
+                    $qbExamenes->where('u.id IN (:alumnosIds)')
+                        ->setParameter('alumnosIds', $alumnosIds);
+                }
+                
+                $examenesData = $qbExamenes->getQuery()->getSingleResult();
+                $totalExamenes = (int) $examenesData['totalExamenes'];
+                $promedioGeneral = $examenesData['promedioGeneral'] ? (float) $examenesData['promedioGeneral'] : 0;
 
-            $qbPromedio = $examenRepository->createQueryBuilder('e')
-                ->select('AVG(e.nota)');
-            
-            if (!$esAdmin && !empty($alumnosIds)) {
-                $qbPromedio->join('e.usuario', 'u')
-                    ->where('u.id IN (:alumnosIds)')
-                    ->setParameter('alumnosIds', $alumnosIds);
-            }
-            
-            $promedioGeneral = $qbPromedio->getQuery()->getSingleScalarResult();
+                $hoy = new \DateTime('today');
+                $qbExamenesHoy = $examenRepository->createQueryBuilder('e')
+                    ->select('COUNT(e.id)')
+                    ->leftJoin('e.usuario', 'u')
+                    ->where('e.fecha >= :hoy')
+                    ->setParameter('hoy', $hoy);
+                
+                if (!$esAdmin && !empty($alumnosIds)) {
+                    $qbExamenesHoy->andWhere('u.id IN (:alumnosIds)')
+                        ->setParameter('alumnosIds', $alumnosIds);
+                }
+                
+                $examenesHoy = $qbExamenesHoy->getQuery()->getSingleScalarResult();
 
-            $hoy = new \DateTime('today');
-            $qbExamenesHoy = $examenRepository->createQueryBuilder('e')
-                ->select('COUNT(e.id)')
-                ->where('e.fecha >= :hoy')
-                ->setParameter('hoy', $hoy);
-            
-            if (!$esAdmin && !empty($alumnosIds)) {
-                $qbExamenesHoy->join('e.usuario', 'u')
-                    ->andWhere('u.id IN (:alumnosIds)')
-                    ->setParameter('alumnosIds', $alumnosIds);
+                $semanaPasada = new \DateTime('-7 days');
+                $qbExamenesSemana = $examenRepository->createQueryBuilder('e')
+                    ->select('COUNT(e.id)')
+                    ->leftJoin('e.usuario', 'u')
+                    ->where('e.fecha >= :semanaPasada')
+                    ->setParameter('semanaPasada', $semanaPasada);
+                
+                if (!$esAdmin && !empty($alumnosIds)) {
+                    $qbExamenesSemana->andWhere('u.id IN (:alumnosIds)')
+                        ->setParameter('alumnosIds', $alumnosIds);
+                }
+                
+                $examenesSemana = $qbExamenesSemana->getQuery()->getSingleScalarResult();
+                
+                $stats = [
+                    'totalAlumnos' => $totalAlumnos,
+                    'totalExamenes' => $totalExamenes,
+                    'promedioGeneral' => $promedioGeneral,
+                    'examenesHoy' => $examenesHoy,
+                    'examenesSemana' => $examenesSemana,
+                ];
+                
+                // Guardar en caché (5 minutos)
+                if ($this->cache) {
+                    $item->set($stats);
+                    $item->expiresAfter(300); // 5 minutos
+                    $this->cache->save($item);
+                }
+            } else {
+                $totalAlumnos = $stats['totalAlumnos'];
+                $totalExamenes = $stats['totalExamenes'];
+                $promedioGeneral = $stats['promedioGeneral'];
+                $examenesHoy = $stats['examenesHoy'];
+                $examenesSemana = $stats['examenesSemana'];
             }
-            
-            $examenesHoy = $qbExamenesHoy->getQuery()->getSingleScalarResult();
-
-            $semanaPasada = new \DateTime('-7 days');
-            $qbExamenesSemana = $examenRepository->createQueryBuilder('e')
-                ->select('COUNT(e.id)')
-                ->where('e.fecha >= :semanaPasada')
-                ->setParameter('semanaPasada', $semanaPasada);
-            
-            if (!$esAdmin && !empty($alumnosIds)) {
-                $qbExamenesSemana->join('e.usuario', 'u')
-                    ->andWhere('u.id IN (:alumnosIds)')
-                    ->setParameter('alumnosIds', $alumnosIds);
-            }
-            
-            $examenesSemana = $qbExamenesSemana->getQuery()->getSingleScalarResult();
 
             // Estadísticas de contenido (con caché - 1 hora)
             $cacheKey = 'dashboard_metrics_global';
@@ -414,83 +439,114 @@ class DashboardController extends AbstractController
         if ($cantidadRanking < 2) {
             $cantidadRanking = 2;
         }
-        $rankings = [];
-        $posicionesUsuario = [];
-        $dificultades = ['facil', 'moderada', 'dificil'];
         
-        // Rankings del temario general
-        foreach ($dificultades as $dificultad) {
-            $ranking = $examenRepository->getRankingPorDificultad($dificultad, $cantidadRanking);
-            $rankings[$dificultad] = $ranking;
-            $posicion = $examenRepository->getPosicionUsuario($user, $dificultad, $cantidadRanking);
-            $notaMedia = $examenRepository->getNotaMediaUsuario($user, $dificultad, $cantidadRanking);
-            $posicionesUsuario[$dificultad] = [
-                'posicion' => $posicion,
-                'notaMedia' => $notaMedia,
-                'totalUsuarios' => count($ranking),
-            ];
+        // Cachear toda la estructura de rankings para el usuario (15 minutos)
+        $cacheKeyRankings = 'dashboard_rankings_user_' . $user->getId() . '_cantidad_' . $cantidadRanking;
+        $rankingsData = null;
+        
+        if ($this->cache) {
+            $item = $this->cache->getItem($cacheKeyRankings);
+            if ($item->isHit()) {
+                $rankingsData = $item->get();
+            }
         }
-
-        // Rankings por convocatoria
-        $rankingsPorConvocatoria = [];
         
-        foreach ($convocatorias as $convocatoria) {
-            $rankingsConvocatoria = [];
-            $posicionesConvocatoria = [];
+        if ($rankingsData === null) {
+            $rankings = [];
+            $posicionesUsuario = [];
+            $dificultades = ['facil', 'moderada', 'dificil'];
             
-            // Rankings generales de la convocatoria
+            // Rankings del temario general
             foreach ($dificultades as $dificultad) {
-                $ranking = $examenRepository->getRankingPorConvocatoriaYDificultad($convocatoria, $dificultad, $cantidadRanking);
-                $rankingsConvocatoria[$dificultad] = $ranking;
-                $posicion = $examenRepository->getPosicionUsuarioPorConvocatoria($user, $convocatoria, $dificultad, $cantidadRanking);
-                $notaMedia = $examenRepository->getNotaMediaUsuarioPorConvocatoria($user, $convocatoria, $dificultad, $cantidadRanking);
-                $posicionesConvocatoria[$dificultad] = [
+                $ranking = $examenRepository->getRankingPorDificultad($dificultad, $cantidadRanking);
+                $rankings[$dificultad] = $ranking;
+                $posicion = $examenRepository->getPosicionUsuario($user, $dificultad, $cantidadRanking);
+                $notaMedia = $examenRepository->getNotaMediaUsuario($user, $dificultad, $cantidadRanking);
+                $posicionesUsuario[$dificultad] = [
                     'posicion' => $posicion,
                     'notaMedia' => $notaMedia,
                     'totalUsuarios' => count($ranking),
                 ];
             }
+
+            // Rankings por convocatoria
+            $rankingsPorConvocatoria = [];
             
-            // Rankings por municipio dentro de la convocatoria (solo si tiene más de un municipio)
-            $rankingsPorMunicipioConvocatoria = [];
-            $municipiosConvocatoria = $convocatoria->getMunicipios();
-            
-            if ($municipiosConvocatoria->count() > 1) {
-                foreach ($municipiosConvocatoria as $municipio) {
-                    if (!$municipio->isActivo()) {
-                        continue;
-                    }
-                    
-                    $rankingsMunicipio = [];
-                    $posicionesMunicipio = [];
-                    
-                    foreach ($dificultades as $dificultad) {
-                        $ranking = $examenRepository->getRankingPorMunicipioYDificultad($municipio, $dificultad, $cantidadRanking);
-                        $rankingsMunicipio[$dificultad] = $ranking;
-                        $posicion = $examenRepository->getPosicionUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidadRanking);
-                        $notaMedia = $examenRepository->getNotaMediaUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidadRanking);
-                        $posicionesMunicipio[$dificultad] = [
-                            'posicion' => $posicion,
-                            'notaMedia' => $notaMedia,
-                            'totalUsuarios' => count($ranking),
-                        ];
-                    }
-                    
-                    $rankingsPorMunicipioConvocatoria[$municipio->getId()] = [
-                        'municipio' => $municipio,
-                        'rankings' => $rankingsMunicipio,
-                        'posiciones' => $posicionesMunicipio,
+            foreach ($convocatorias as $convocatoria) {
+                $rankingsConvocatoria = [];
+                $posicionesConvocatoria = [];
+                
+                // Rankings generales de la convocatoria
+                foreach ($dificultades as $dificultad) {
+                    $ranking = $examenRepository->getRankingPorConvocatoriaYDificultad($convocatoria, $dificultad, $cantidadRanking);
+                    $rankingsConvocatoria[$dificultad] = $ranking;
+                    $posicion = $examenRepository->getPosicionUsuarioPorConvocatoria($user, $convocatoria, $dificultad, $cantidadRanking);
+                    $notaMedia = $examenRepository->getNotaMediaUsuarioPorConvocatoria($user, $convocatoria, $dificultad, $cantidadRanking);
+                    $posicionesConvocatoria[$dificultad] = [
+                        'posicion' => $posicion,
+                        'notaMedia' => $notaMedia,
+                        'totalUsuarios' => count($ranking),
                     ];
                 }
+                
+                // Rankings por municipio dentro de la convocatoria (solo si tiene más de un municipio)
+                $rankingsPorMunicipioConvocatoria = [];
+                $municipiosConvocatoria = $convocatoria->getMunicipios();
+                
+                if ($municipiosConvocatoria->count() > 1) {
+                    foreach ($municipiosConvocatoria as $municipio) {
+                        if (!$municipio->isActivo()) {
+                            continue;
+                        }
+                        
+                        $rankingsMunicipio = [];
+                        $posicionesMunicipio = [];
+                        
+                        foreach ($dificultades as $dificultad) {
+                            $ranking = $examenRepository->getRankingPorMunicipioYDificultad($municipio, $dificultad, $cantidadRanking);
+                            $rankingsMunicipio[$dificultad] = $ranking;
+                            $posicion = $examenRepository->getPosicionUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidadRanking);
+                            $notaMedia = $examenRepository->getNotaMediaUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidadRanking);
+                            $posicionesMunicipio[$dificultad] = [
+                                'posicion' => $posicion,
+                                'notaMedia' => $notaMedia,
+                                'totalUsuarios' => count($ranking),
+                            ];
+                        }
+                        
+                        $rankingsPorMunicipioConvocatoria[$municipio->getId()] = [
+                            'municipio' => $municipio,
+                            'rankings' => $rankingsMunicipio,
+                            'posiciones' => $posicionesMunicipio,
+                        ];
+                    }
+                }
+                
+                $rankingsPorConvocatoria[$convocatoria->getId()] = [
+                    'convocatoria' => $convocatoria,
+                    'rankings' => $rankingsConvocatoria,
+                    'posiciones' => $posicionesConvocatoria,
+                    'rankingsPorMunicipio' => $rankingsPorMunicipioConvocatoria,
+                ];
             }
             
-            $rankingsPorConvocatoria[$convocatoria->getId()] = [
-                'convocatoria' => $convocatoria,
-                'rankings' => $rankingsConvocatoria,
-                'posiciones' => $posicionesConvocatoria,
-                'rankingsPorMunicipio' => $rankingsPorMunicipioConvocatoria,
+            $rankingsData = [
+                'rankings' => $rankings,
+                'posicionesUsuario' => $posicionesUsuario,
+                'rankingsPorConvocatoria' => $rankingsPorConvocatoria,
             ];
+            
+            // Guardar en caché (15 minutos)
+            if ($this->cache) {
+                $item->set($rankingsData);
+                $item->expiresAfter(900); // 15 minutos
+                $this->cache->save($item);
+            }
         }
+        
+        $rankings = $rankingsData['rankings'];
+        $posicionesUsuario = $rankingsData['posicionesUsuario'];
+        $rankingsPorConvocatoria = $rankingsData['rankingsPorConvocatoria'];
 
         return $this->render('dashboard/index.html.twig', [
             'isProfesor' => false,

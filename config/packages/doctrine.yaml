@@ -31,6 +31,9 @@ when@test:
 
 when@prod:
   doctrine:
+    dbal:
+      # Desactivar profiling en producción para ahorrar recursos
+      profiling_collect_backtrace: false
     orm:
       query_cache_driver:
         type: pool
