@@ -1,6 +1,6 @@
 services:
   redis:
-    type: redis:7.4
+    type: redis:7
 
 applications:
   app:
