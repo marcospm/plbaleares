@@ -33,19 +33,15 @@ framework:
                 default_lifetime: 3600
 
 # Configuración para producción: Migrar pools a Redis
-# REDIS_URL debe estar definida en runtime (no durante el build)
-# Durante el build, si REDIS_URL no está disponible, se usa filesystem como fallback
-# Funciona en cualquier entorno (Upsun, otros cloud providers, servidores propios, etc.)
-# NOTA: Durante el build, REDIS_URL puede no estar disponible. En ese caso, se usará filesystem.
-# En runtime, REDIS_URL se configurará automáticamente desde PLATFORM_RELATIONSHIPS (Upsun) o variables de entorno.
+# REDIS_URL se configura automáticamente desde PLATFORM_RELATIONSHIPS en public/index.php
+# Durante el build, los scripts se desactivan para evitar errores (ver .upsun/config.yaml)
 when@prod:
     framework:
         cache:
             pools:
                 # Migrar pools de aplicación a Redis en producción
-                # REDIS_URL debe estar definida (en build hook o runtime)
-                # Durante el build, REDIS_URL se define en .upsun/config.yaml build hook
-                # En runtime, REDIS_URL se configurará automáticamente desde PLATFORM_RELATIONSHIPS
+                # REDIS_URL se configura automáticamente desde PLATFORM_RELATIONSHIPS en public/index.php
+                # Durante el build, los scripts se desactivan (--no-scripts) para evitar errores
                 cache.partidas:
                     adapter: cache.adapter.redis
                     provider: '%env(REDIS_URL)%'
