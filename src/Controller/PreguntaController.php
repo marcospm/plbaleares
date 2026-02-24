@@ -353,5 +353,67 @@ class PreguntaController extends AbstractController
 
         return new JsonResponse($articulosData);
     }
+
+    #[Route('/descargar-por-tema', name: 'app_pregunta_descargar_por_tema', methods: ['GET'])]
+    public function descargarPorTema(
+        PreguntaRepository $preguntaRepository,
+        TemaRepository $temaRepository,
+        Request $request
+    ): Response {
+        $temaId = $request->query->getInt('tema', 0);
+        
+        if ($temaId <= 0) {
+            $this->addFlash('error', 'Debes seleccionar un tema para descargar las preguntas.');
+            return $this->redirectToRoute('app_pregunta_index');
+        }
+
+        $tema = $temaRepository->find($temaId);
+        if (!$tema) {
+            $this->addFlash('error', 'Tema no encontrado.');
+            return $this->redirectToRoute('app_pregunta_index');
+        }
+
+        // Obtener todas las preguntas del tema (sin paginación)
+        $preguntas = $preguntaRepository->findBy(
+            ['tema' => $tema],
+            ['id' => 'ASC']
+        );
+
+        // Generar contenido del documento
+        $contenido = "PREGUNTAS DEL TEMA: " . $tema->getNombre() . "\n";
+        $contenido .= "Total de preguntas: " . count($preguntas) . "\n";
+        $contenido .= str_repeat("=", 80) . "\n\n";
+
+        foreach ($preguntas as $index => $pregunta) {
+            $contenido .= "PREGUNTA #" . ($index + 1) . "\n";
+            $contenido .= "ID: " . $pregunta->getId() . "\n";
+            $contenido .= str_repeat("-", 80) . "\n";
+            $contenido .= "TEXTO:\n" . strip_tags($pregunta->getTexto()) . "\n\n";
+            $contenido .= "OPCIONES:\n";
+            $contenido .= "A) " . strip_tags($pregunta->getOpcionA()) . "\n";
+            $contenido .= "B) " . strip_tags($pregunta->getOpcionB()) . "\n";
+            $contenido .= "C) " . strip_tags($pregunta->getOpcionC()) . "\n";
+            $contenido .= "D) " . strip_tags($pregunta->getOpcionD()) . "\n\n";
+            $contenido .= "RESPUESTA CORRECTA: " . strtoupper($pregunta->getRespuestaCorrecta()) . "\n\n";
+            
+            if ($pregunta->getRetroalimentacion()) {
+                $contenido .= "RETROALIMENTACIÓN:\n" . strip_tags($pregunta->getRetroalimentacion()) . "\n";
+            } else {
+                $contenido .= "RETROALIMENTACIÓN: (sin retroalimentación)\n";
+            }
+            
+            $contenido .= "\n" . str_repeat("=", 80) . "\n\n";
+        }
+
+        // Crear respuesta con el archivo
+        $nombreArchivo = 'preguntas_tema_' . $tema->getId() . '_' . date('Y-m-d') . '.txt';
+        $nombreArchivo = preg_replace('/[^a-zA-Z0-9._-]/', '_', $nombreArchivo);
+
+        $response = new Response($contenido);
+        $response->headers->set('Content-Type', 'text/plain; charset=utf-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $nombreArchivo . '"');
+
+        return $response;
+    }
 }
 

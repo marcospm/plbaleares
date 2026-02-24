@@ -240,6 +240,71 @@ class PreguntaMunicipalController extends AbstractController
 
         return new JsonResponse(['temas' => $temasArray]);
     }
+
+    #[Route('/descargar-por-tema', name: 'app_pregunta_municipal_descargar_por_tema', methods: ['GET'])]
+    public function descargarPorTema(
+        PreguntaMunicipalRepository $preguntaMunicipalRepository,
+        TemaMunicipalRepository $temaMunicipalRepository,
+        Request $request
+    ): Response {
+        $temaId = $request->query->getInt('tema', 0);
+        
+        if ($temaId <= 0) {
+            $this->addFlash('error', 'Debes seleccionar un tema para descargar las preguntas.');
+            return $this->redirectToRoute('app_pregunta_municipal_index');
+        }
+
+        $tema = $temaMunicipalRepository->find($temaId);
+        if (!$tema) {
+            $this->addFlash('error', 'Tema no encontrado.');
+            return $this->redirectToRoute('app_pregunta_municipal_index');
+        }
+
+        // Obtener todas las preguntas del tema (sin paginación)
+        $preguntas = $preguntaMunicipalRepository->findBy(
+            ['temaMunicipal' => $tema],
+            ['id' => 'ASC']
+        );
+
+        // Generar contenido del documento
+        $contenido = "PREGUNTAS MUNICIPALES DEL TEMA: " . $tema->getNombre() . "\n";
+        if ($tema->getMunicipio()) {
+            $contenido .= "Municipio: " . $tema->getMunicipio()->getNombre() . "\n";
+        }
+        $contenido .= "Total de preguntas: " . count($preguntas) . "\n";
+        $contenido .= str_repeat("=", 80) . "\n\n";
+
+        foreach ($preguntas as $index => $pregunta) {
+            $contenido .= "PREGUNTA #" . ($index + 1) . "\n";
+            $contenido .= "ID: " . $pregunta->getId() . "\n";
+            $contenido .= str_repeat("-", 80) . "\n";
+            $contenido .= "TEXTO:\n" . strip_tags($pregunta->getTexto()) . "\n\n";
+            $contenido .= "OPCIONES:\n";
+            $contenido .= "A) " . strip_tags($pregunta->getOpcionA()) . "\n";
+            $contenido .= "B) " . strip_tags($pregunta->getOpcionB()) . "\n";
+            $contenido .= "C) " . strip_tags($pregunta->getOpcionC()) . "\n";
+            $contenido .= "D) " . strip_tags($pregunta->getOpcionD()) . "\n\n";
+            $contenido .= "RESPUESTA CORRECTA: " . strtoupper($pregunta->getRespuestaCorrecta()) . "\n\n";
+            
+            if ($pregunta->getRetroalimentacion()) {
+                $contenido .= "RETROALIMENTACIÓN:\n" . strip_tags($pregunta->getRetroalimentacion()) . "\n";
+            } else {
+                $contenido .= "RETROALIMENTACIÓN: (sin retroalimentación)\n";
+            }
+            
+            $contenido .= "\n" . str_repeat("=", 80) . "\n\n";
+        }
+
+        // Crear respuesta con el archivo
+        $nombreArchivo = 'preguntas_municipales_tema_' . $tema->getId() . '_' . date('Y-m-d') . '.txt';
+        $nombreArchivo = preg_replace('/[^a-zA-Z0-9._-]/', '_', $nombreArchivo);
+
+        $response = new Response($contenido);
+        $response->headers->set('Content-Type', 'text/plain; charset=utf-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $nombreArchivo . '"');
+
+        return $response;
+    }
 }
 
 

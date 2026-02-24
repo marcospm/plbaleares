@@ -266,6 +266,11 @@
                 <div>
                     <button type="submit" class="btn btn-primary">Filtrar</button>
                     <a href="{{ path('app_pregunta_municipal_index') }}" class="btn btn-secondary">Limpiar</a>
+                    {% if temaSeleccionado > 0 %}
+                        <a href="{{ path('app_pregunta_municipal_descargar_por_tema', {'tema': temaSeleccionado}) }}" class="btn btn-success" style="margin-left: 0.5rem;">
+                            📥 Descargar Preguntas del Tema
+                        </a>
+                    {% endif %}
                 </div>
             </div>
             <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #dee2e6;">
