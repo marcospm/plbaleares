@@ -1,0 +1,85 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Previsualizar Actualización CSV{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Previsualizar Actualización CSV</h1>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-warning mb-4">
+            <h5>Información de la actualización:</h5>
+            <ul class="mb-0">
+                <li><strong>Total de preguntas a actualizar:</strong> {{ total }}</li>
+                <li><strong>Nota:</strong> Se actualizarán las preguntas existentes con los datos del CSV.</li>
+            </ul>
+        </div>
+
+        <div class="mb-4">
+            <h4>Preguntas a actualizar:</h4>
+            <div style="max-height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 1rem;">
+                {% for item in preguntas %}
+                    {% set pregunta = item.pregunta %}
+                    {% set data = item.data %}
+                    <div class="card mb-3" style="border-left: 4px solid var(--color-warning);">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="mb-0">
+                                    <span class="badge badge-warning" style="background-color: var(--color-warning); color: white; margin-right: 0.5rem;">ACTUALIZAR</span>
+                                    Pregunta #{{ loop.index }} (ID: {{ pregunta.id }})
+                                </h6>
+                                <small class="text-muted">Línea {{ data.linea }}</small>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-2"><strong>Texto:</strong> {{ data.texto }}</p>
+                                    <div class="mb-2">
+                                        <small><strong>A)</strong> {{ data.opcionA }}</small><br>
+                                        <small><strong>B)</strong> {{ data.opcionB }}</small><br>
+                                        <small><strong>C)</strong> {{ data.opcionC }}</small><br>
+                                        <small><strong>D)</strong> {{ data.opcionD }}</small>
+                                    </div>
+                                    <p class="mb-1">
+                                        <strong>Respuesta correcta:</strong> 
+                                        <span class="badge badge-success" style="background-color: var(--color-success); color: white;">
+                                            {{ data.respuestaCorrecta }}
+                                        </span>
+                                    </p>
+                                    {% if data.retroalimentacion %}
+                                        <p class="mb-0">
+                                            <strong>Retroalimentación:</strong> 
+                                            <small>{{ data.retroalimentacion }}</small>
+                                        </p>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Municipio:</strong> {{ item.municipio.nombre }}</p>
+                                    <p class="mb-1"><strong>Tema Municipal:</strong> {{ item.temaMunicipal.nombre }}</p>
+                                    <p class="mb-0">
+                                        <strong>Dificultad:</strong> 
+                                        {% if data.dificultad == 'facil' %}Fácil
+                                        {% elseif data.dificultad == 'moderada' %}Moderada
+                                        {% elseif data.dificultad == 'dificil' %}Difícil
+                                        {% else %}{{ data.dificultad }}
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <form method="post" action="{{ path('app_pregunta_municipal_confirmar_actualizar_csv') }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('actualizar_csv_municipal') }}">
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-warning">Confirmar y Actualizar {{ total }} Preguntas</button>
+                <a href="{{ path('app_pregunta_municipal_actualizar_csv') }}" class="btn btn-secondary">Volver</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -221,7 +221,11 @@
 {% block body %}
 <div class="d-flex justify-content-between mb-4" style="flex-wrap: wrap; gap: 1rem;">
     <h1 style="flex: 1; min-width: 0;">Preguntas Municipales</h1>
-    <a href="{{ path('app_pregunta_municipal_new') }}" class="btn btn-primary" style="min-height: 48px; font-size: 16px; white-space: nowrap; align-self: flex-start;">Nueva Pregunta Municipal</a>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{{ path('app_pregunta_municipal_new') }}" class="btn btn-primary" style="min-height: 48px; font-size: 16px; white-space: nowrap; align-self: flex-start;">Nueva Pregunta Municipal</a>
+        <a href="{{ path('app_pregunta_municipal_new_csv') }}" class="btn btn-success" style="min-height: 48px; font-size: 16px; white-space: nowrap; align-self: flex-start;">Nueva Pregunta CSV</a>
+        <a href="{{ path('app_pregunta_municipal_actualizar_csv') }}" class="btn btn-warning" style="min-height: 48px; font-size: 16px; white-space: nowrap; align-self: flex-start; background-color: #ffc107; border-color: #ffc107; color: #000;">Actualizar Preguntas CSV</a>
+    </div>
 </div>
 
 <form method="get" action="{{ path('app_pregunta_municipal_index') }}" style="margin-bottom: 2rem;">

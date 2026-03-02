@@ -1,0 +1,452 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nueva Pregunta Municipal CSV{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .searchable-select {
+            position: relative;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .select-options {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            display: none;
+            position: absolute;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .select-options.show {
+            display: block;
+        }
+        
+        .select-option {
+            padding: 0.5rem;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .select-option:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .select-option.selected {
+            background-color: #e3f2fd;
+            font-weight: bold;
+        }
+        
+        .select-display {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .select-display:after {
+            content: '▼';
+            margin-left: auto;
+            color: #666;
+        }
+        
+        .file-upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            background: #f8f9fa;
+            transition: all 0.3s;
+        }
+        
+        .file-upload-area:hover {
+            border-color: var(--color-primary);
+            background: #e3f2fd;
+        }
+        
+        .file-upload-area.dragover {
+            border-color: var(--color-primary);
+            background: #e3f2fd;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Nueva Pregunta Municipal CSV</h1>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <strong>Instrucciones:</strong>
+            <ul class="mb-0">
+                <li>Selecciona el Municipio, Tema Municipal y Dificultad que se aplicarán a todas las preguntas del CSV.</li>
+                <li>Descarga el archivo CSV de ejemplo para ver el formato requerido.</li>
+                <li>El CSV debe contener las columnas: <strong>id</strong> (opcional), texto, opcion_a, opcion_b, opcion_c, opcion_d, respuesta_correcta, retroalimentacion</li>
+                <li><strong>ID:</strong> Si proporcionas un ID de pregunta existente, se actualizará. Si está vacío o no existe, se creará una nueva pregunta.</li>
+                <li>La respuesta correcta debe ser A, B, C o D.</li>
+                <li>La retroalimentación es opcional.</li>
+            </ul>
+        </div>
+
+        <form method="post" action="{{ path('app_pregunta_municipal_procesar_csv') }}" enctype="multipart/form-data" id="csv-form">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Municipio <span class="text-danger">*</span></label>
+                    <div class="searchable-select" id="municipio-select-container">
+                        <div class="select-display" id="municipio-display">Selecciona un municipio</div>
+                        <input type="text" class="search-input" id="municipio-search" placeholder="Buscar municipio..." style="display: none;">
+                        <div class="select-options" id="municipio-options">
+                            {% for municipio in municipios %}
+                                <div class="select-option" data-value="{{ municipio.id }}" data-text="{{ municipio.nombre }}">
+                                    {{ municipio.nombre }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="municipio" id="municipio-value" required>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Tema Municipal <span class="text-danger">*</span></label>
+                    <div class="searchable-select" id="tema-select-container">
+                        <div class="select-display" id="tema-display">Primero selecciona un municipio</div>
+                        <input type="text" class="search-input" id="tema-search" placeholder="Buscar tema..." style="display: none;">
+                        <div class="select-options" id="tema-options">
+                            <div class="select-option" style="color: #999; cursor: default;">Primero selecciona un municipio</div>
+                        </div>
+                        <input type="hidden" name="tema_municipal" id="tema-value" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Dificultad <span class="text-danger">*</span></label>
+                    <select name="dificultad" class="form-control" required>
+                        <option value="">Selecciona una dificultad</option>
+                        <option value="facil">Fácil</option>
+                        <option value="moderada">Moderada</option>
+                        <option value="dificil">Difícil</option>
+                        <option value="indeterminado">Indeterminado</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Archivo CSV <span class="text-danger">*</span></label>
+                <div class="file-upload-area" id="file-upload-area">
+                    <input type="file" name="archivo_csv" id="archivo_csv" accept=".csv" required style="display: none;">
+                    <p class="mb-2">
+                        <strong>Haz clic aquí para seleccionar un archivo CSV</strong>
+                    </p>
+                    <p class="text-muted mb-0" id="file-name">Ningún archivo seleccionado</p>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Procesar CSV</button>
+                <a href="{{ path('app_pregunta_municipal_descargar_csv_ejemplo') }}" class="btn btn-secondary">Descargar CSV de Ejemplo</a>
+                <a href="{{ path('app_pregunta_municipal_index') }}" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Función para cargar temas cuando se selecciona un municipio
+    function loadTemas(municipioId) {
+        const temaDisplay = document.getElementById('tema-display');
+        const temaValue = document.getElementById('tema-value');
+        const temaOptions = document.getElementById('tema-options');
+        const temaSearch = document.getElementById('tema-search');
+
+        if (municipioId) {
+            temaDisplay.textContent = 'Cargando...';
+            temaValue.value = '';
+            
+            fetch(`/pregunta-municipal/api/temas-por-municipio/${municipioId}`)
+                .then(response => response.json())
+                .then(data => {
+                    temaOptions.innerHTML = '';
+                    temaValue.value = '';
+                    
+                    if (data.temas && data.temas.length === 0) {
+                        temaDisplay.textContent = 'No hay temas disponibles';
+                        const noResults = document.createElement('div');
+                        noResults.className = 'select-option';
+                        noResults.style.color = '#999';
+                        noResults.style.cursor = 'default';
+                        noResults.textContent = 'No hay temas disponibles';
+                        temaOptions.appendChild(noResults);
+                    } else {
+                        temaDisplay.textContent = 'Selecciona un tema';
+                        if (data.temas) {
+                            data.temas.forEach(item => {
+                                const option = document.createElement('div');
+                                option.className = 'select-option';
+                                option.setAttribute('data-value', item.id);
+                                option.setAttribute('data-text', item.nombre);
+                                option.textContent = item.nombre;
+                                temaOptions.appendChild(option);
+                            });
+                            
+                            // Re-asignar event listeners para las nuevas opciones
+                            temaOptions.querySelectorAll('.select-option').forEach(option => {
+                                if (option.getAttribute('data-value')) {
+                                    // Remover listeners anteriores clonando el elemento
+                                    const newOption = option.cloneNode(true);
+                                    option.parentNode.replaceChild(newOption, option);
+                                    
+                                    // Agregar nuevo listener
+                                    newOption.addEventListener('click', function() {
+                                        const selectedValue = newOption.getAttribute('data-value');
+                                        const selectedText = newOption.getAttribute('data-text');
+                                        
+                                        temaValue.value = selectedValue;
+                                        temaDisplay.textContent = selectedText;
+                                        
+                                        // Remover selección anterior
+                                        temaOptions.querySelectorAll('.select-option').forEach(opt => {
+                                            opt.classList.remove('selected');
+                                        });
+                                        newOption.classList.add('selected');
+                                        
+                                        temaOptions.classList.remove('show');
+                                        temaSearch.style.display = 'none';
+                                    });
+                                }
+                            });
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al cargar temas:', error);
+                    temaDisplay.textContent = 'Error al cargar temas';
+                });
+        } else {
+            temaOptions.innerHTML = '<div class="select-option" style="color: #999; cursor: default;">Primero selecciona un municipio</div>';
+            temaValue.value = '';
+            temaDisplay.textContent = 'Primero selecciona un municipio';
+        }
+    }
+
+    // Inicializar selectores buscables
+    function initSearchableSelect(containerId, displayId, searchId, optionsId, valueId) {
+        const container = document.getElementById(containerId);
+        const display = document.getElementById(displayId);
+        const search = document.getElementById(searchId);
+        const options = document.getElementById(optionsId);
+        const valueInput = document.getElementById(valueId);
+        let isOpen = false;
+
+        function filterOptions(query) {
+            const allOptions = options.querySelectorAll('.select-option');
+            let visibleCount = 0;
+            
+            allOptions.forEach(option => {
+                const text = option.getAttribute('data-text')?.toLowerCase() || '';
+                if (text.includes(query.toLowerCase())) {
+                    option.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+            
+            if (visibleCount === 0) {
+                const noResults = options.querySelector('.no-results');
+                if (!noResults) {
+                    const noResultsEl = document.createElement('div');
+                    noResultsEl.className = 'select-option no-results';
+                    noResultsEl.style.color = '#999';
+                    noResultsEl.textContent = 'No se encontraron resultados';
+                    options.appendChild(noResultsEl);
+                }
+            } else {
+                const noResults = options.querySelector('.no-results');
+                if (noResults) {
+                    noResults.remove();
+                }
+            }
+        }
+
+        function selectOption(option) {
+            const selectedValue = option.getAttribute('data-value');
+            const selectedText = option.getAttribute('data-text');
+            
+            if (!selectedValue) return;
+            
+            valueInput.value = selectedValue;
+            display.textContent = selectedText;
+            
+            // Remover selección anterior
+            options.querySelectorAll('.select-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            option.classList.add('selected');
+            
+            closeSelect();
+            
+            // Si es el municipio, cargar temas
+            if (containerId === 'municipio-select-container') {
+                loadTemas(selectedValue);
+            }
+        }
+
+        function openSelect() {
+            isOpen = true;
+            options.classList.add('show');
+            search.style.display = 'block';
+            search.focus();
+        }
+
+        function closeSelect() {
+            isOpen = false;
+            options.classList.remove('show');
+            search.style.display = 'none';
+            search.value = '';
+            filterOptions('');
+        }
+
+        display.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (isOpen) {
+                closeSelect();
+            } else {
+                openSelect();
+            }
+        });
+
+        search.addEventListener('input', (e) => {
+            filterOptions(e.target.value);
+        });
+
+        search.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeSelect();
+            }
+        });
+
+        options.querySelectorAll('.select-option').forEach(option => {
+            option.addEventListener('click', () => {
+                if (option.getAttribute('data-value')) {
+                    selectOption(option);
+                }
+            });
+        });
+
+        // Cerrar al hacer clic fuera
+        document.addEventListener('click', (e) => {
+            if (!container.contains(e.target)) {
+                closeSelect();
+            }
+        });
+    }
+
+    // Inicializar selectores
+    initSearchableSelect('municipio-select-container', 'municipio-display', 'municipio-search', 'municipio-options', 'municipio-value');
+    initSearchableSelect('tema-select-container', 'tema-display', 'tema-search', 'tema-options', 'tema-value');
+
+    // Manejo de archivo
+    const fileUploadArea = document.getElementById('file-upload-area');
+    const fileInput = document.getElementById('archivo_csv');
+    const fileName = document.getElementById('file-name');
+
+    fileUploadArea.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            fileName.textContent = e.target.files[0].name;
+            fileUploadArea.style.borderColor = '#28a745';
+        } else {
+            fileName.textContent = 'Ningún archivo seleccionado';
+            fileUploadArea.style.borderColor = '#ddd';
+        }
+    });
+
+    fileUploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        fileUploadArea.classList.add('dragover');
+    });
+
+    fileUploadArea.addEventListener('dragleave', () => {
+        fileUploadArea.classList.remove('dragover');
+    });
+
+    fileUploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        fileUploadArea.classList.remove('dragover');
+        
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            fileName.textContent = e.dataTransfer.files[0].name;
+            fileUploadArea.style.borderColor = '#28a745';
+        }
+    });
+
+    // Validación del formulario antes de enviar
+    document.getElementById('csv-form').addEventListener('submit', function(e) {
+        const municipio = document.getElementById('municipio-value').value;
+        const tema = document.getElementById('tema-value').value;
+        const dificultad = document.querySelector('select[name="dificultad"]').value;
+        const archivo = document.getElementById('archivo_csv').files[0];
+
+        let errores = [];
+
+        if (!municipio || municipio === '') {
+            errores.push('Debes seleccionar un municipio');
+        }
+
+        if (!tema || tema === '') {
+            errores.push('Debes seleccionar un tema municipal');
+        }
+
+        if (!dificultad || dificultad === '') {
+            errores.push('Debes seleccionar una dificultad');
+        }
+
+        if (!archivo) {
+            errores.push('Debes seleccionar un archivo CSV');
+        } else {
+            // Validar extensión
+            const extension = archivo.name.split('.').pop().toLowerCase();
+            if (extension !== 'csv') {
+                errores.push('El archivo debe ser un CSV (extensión .csv)');
+            }
+
+            // Validar tamaño (5MB)
+            const maxSize = 5 * 1024 * 1024;
+            if (archivo.size > maxSize) {
+                errores.push('El archivo no puede ser mayor a 5MB');
+            }
+        }
+
+        if (errores.length > 0) {
+            e.preventDefault();
+            alert('Por favor, corrige los siguientes errores:\n\n' + errores.join('\n'));
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

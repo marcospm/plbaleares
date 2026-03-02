@@ -1,0 +1,502 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nueva Pregunta CSV{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .searchable-select {
+            position: relative;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .select-options {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            display: none;
+            position: absolute;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .select-options.show {
+            display: block;
+        }
+        
+        .select-option {
+            padding: 0.5rem;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .select-option:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .select-option.selected {
+            background-color: #e3f2fd;
+            font-weight: bold;
+        }
+        
+        .select-display {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .select-display:after {
+            content: '▼';
+            margin-left: auto;
+            color: #666;
+        }
+        
+        .file-upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            background: #f8f9fa;
+            transition: all 0.3s;
+        }
+        
+        .file-upload-area:hover {
+            border-color: var(--color-primary);
+            background: #e3f2fd;
+        }
+        
+        .file-upload-area.dragover {
+            border-color: var(--color-primary);
+            background: #e3f2fd;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Nueva Pregunta CSV</h1>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <strong>Instrucciones:</strong>
+            <ul class="mb-0">
+                <li>Selecciona el Tema, Ley, Artículo y Dificultad que se aplicarán a todas las preguntas del CSV.</li>
+                <li>Descarga el archivo CSV de ejemplo para ver el formato requerido.</li>
+                <li>El CSV debe contener las columnas: <strong>id</strong> (opcional), texto, opcion_a, opcion_b, opcion_c, opcion_d, respuesta_correcta, retroalimentacion</li>
+                <li><strong>ID:</strong> Si proporcionas un ID de pregunta existente, se actualizará. Si está vacío o no existe, se creará una nueva pregunta.</li>
+                <li>La respuesta correcta debe ser A, B, C o D.</li>
+                <li>La retroalimentación es opcional.</li>
+            </ul>
+        </div>
+
+        <form method="post" action="{{ path('app_pregunta_procesar_csv') }}" enctype="multipart/form-data" id="csv-form">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Tema <span class="text-danger">*</span></label>
+                    <div class="searchable-select" id="tema-select-container">
+                        <div class="select-display" id="tema-display">Selecciona un tema</div>
+                        <input type="text" class="search-input" id="tema-search" placeholder="Buscar tema..." style="display: none;">
+                        <div class="select-options" id="tema-options">
+                            {% for tema in temas %}
+                                <div class="select-option" data-value="{{ tema.id }}" data-text="{{ tema.nombre }}">
+                                    {{ tema.nombre }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="tema" id="tema-value" required>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Ley <span class="text-danger">*</span></label>
+                    <div class="searchable-select" id="ley-select-container">
+                        <div class="select-display" id="ley-display">Selecciona una ley</div>
+                        <input type="text" class="search-input" id="ley-search" placeholder="Buscar ley..." style="display: none;">
+                        <div class="select-options" id="ley-options">
+                            {% for ley in leyes %}
+                                <div class="select-option" data-value="{{ ley.id }}" data-text="{{ ley.nombre }}">
+                                    {{ ley.nombre }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="ley" id="ley-value" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Artículo <span class="text-danger">*</span></label>
+                    <div class="searchable-select" id="articulo-select-container">
+                        <div class="select-display" id="articulo-display">Primero selecciona una ley</div>
+                        <input type="text" class="search-input" id="articulo-search" placeholder="Buscar artículo..." style="display: none;">
+                        <div class="select-options" id="articulo-options">
+                            <div class="select-option" style="color: #999; cursor: default;">Primero selecciona una ley</div>
+                        </div>
+                        <input type="hidden" name="articulo" id="articulo-value" required>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Dificultad <span class="text-danger">*</span></label>
+                    <select name="dificultad" class="form-control" required>
+                        <option value="">Selecciona una dificultad</option>
+                        <option value="facil">Fácil</option>
+                        <option value="moderada">Moderada</option>
+                        <option value="dificil">Difícil</option>
+                        <option value="indeterminado">Indeterminado</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Archivo CSV <span class="text-danger">*</span></label>
+                <div class="file-upload-area" id="file-upload-area">
+                    <input type="file" name="archivo_csv" id="archivo_csv" accept=".csv" required style="display: none;">
+                    <p class="mb-2">
+                        <strong>Haz clic aquí para seleccionar un archivo CSV</strong>
+                    </p>
+                    <p class="text-muted mb-0" id="file-name">Ningún archivo seleccionado</p>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Procesar CSV</button>
+                <a href="{{ path('app_pregunta_descargar_csv_ejemplo') }}" class="btn btn-secondary">Descargar CSV de Ejemplo</a>
+                <a href="{{ path('app_pregunta_index') }}" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Función para cargar artículos cuando se selecciona una ley
+    function loadArticulos(leyId) {
+        const articuloDisplay = document.getElementById('articulo-display');
+        const articuloValue = document.getElementById('articulo-value');
+        const articuloOptions = document.getElementById('articulo-options');
+        const articuloSearch = document.getElementById('articulo-search');
+
+        if (leyId) {
+            articuloDisplay.textContent = 'Cargando...';
+            articuloValue.value = '';
+            
+            fetch(`/pregunta/api/articulos-por-ley/${leyId}`)
+                .then(response => response.json())
+                .then(data => {
+                    articuloOptions.innerHTML = '';
+                    articuloValue.value = '';
+                    
+                    if (data.length === 0) {
+                        articuloDisplay.textContent = 'No hay artículos disponibles';
+                        const noResults = document.createElement('div');
+                        noResults.className = 'select-option';
+                        noResults.style.color = '#999';
+                        noResults.style.cursor = 'default';
+                        noResults.textContent = 'No hay artículos disponibles';
+                        articuloOptions.appendChild(noResults);
+                    } else {
+                        articuloDisplay.textContent = 'Selecciona un artículo';
+                        data.forEach(item => {
+                            const option = document.createElement('div');
+                            option.className = 'select-option';
+                            option.setAttribute('data-value', item.id);
+                            option.setAttribute('data-text', item.label);
+                            option.textContent = item.label;
+                            articuloOptions.appendChild(option);
+                        });
+                        
+                        // Re-asignar event listeners a las nuevas opciones
+                        articuloOptions.querySelectorAll('.select-option').forEach(option => {
+                            if (option.getAttribute('data-value')) {
+                                option.addEventListener('click', function() {
+                                    const selectedValue = option.getAttribute('data-value');
+                                    const selectedText = option.getAttribute('data-text');
+                                    
+                                    articuloValue.value = selectedValue;
+                                    articuloDisplay.textContent = selectedText;
+                                    
+                                    // Remover selección anterior
+                                    articuloOptions.querySelectorAll('.select-option').forEach(opt => {
+                                        opt.classList.remove('selected');
+                                    });
+                                    option.classList.add('selected');
+                                    
+                                    articuloOptions.classList.remove('show');
+                                    articuloSearch.style.display = 'none';
+                                });
+                            }
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al cargar artículos:', error);
+                    articuloDisplay.textContent = 'Error al cargar artículos';
+                });
+        } else {
+            articuloOptions.innerHTML = '<div class="select-option" style="color: #999; cursor: default;">Primero selecciona una ley</div>';
+            articuloValue.value = '';
+            articuloDisplay.textContent = 'Primero selecciona una ley';
+        }
+    }
+
+    // Inicializar selectores buscables
+    function initSearchableSelect(containerId, displayId, searchId, optionsId, valueId, apiUrl = null) {
+        const container = document.getElementById(containerId);
+        const display = document.getElementById(displayId);
+        const search = document.getElementById(searchId);
+        const options = document.getElementById(optionsId);
+        const valueInput = document.getElementById(valueId);
+        let isOpen = false;
+
+        function filterOptions(query) {
+            const allOptions = options.querySelectorAll('.select-option');
+            let visibleCount = 0;
+            
+            allOptions.forEach(option => {
+                const text = option.getAttribute('data-text').toLowerCase();
+                if (text.includes(query.toLowerCase())) {
+                    option.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+            
+            if (visibleCount === 0) {
+                const noResults = document.createElement('div');
+                noResults.className = 'select-option';
+                noResults.style.color = '#999';
+                noResults.textContent = 'No se encontraron resultados';
+                if (!options.querySelector('.no-results')) {
+                    noResults.classList.add('no-results');
+                    options.appendChild(noResults);
+                }
+            } else {
+                const noResults = options.querySelector('.no-results');
+                if (noResults) {
+                    noResults.remove();
+                }
+            }
+        }
+
+        function selectOption(option) {
+            const selectedValue = option.getAttribute('data-value');
+            const selectedText = option.getAttribute('data-text');
+            
+            valueInput.value = selectedValue;
+            display.textContent = selectedText;
+            
+            // Remover selección anterior
+            options.querySelectorAll('.select-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            option.classList.add('selected');
+            
+            closeSelect();
+            
+            // Si es la ley, cargar artículos
+            if (containerId === 'ley-select-container') {
+                loadArticulos(selectedValue);
+            }
+        }
+
+        function openSelect() {
+            isOpen = true;
+            options.classList.add('show');
+            search.style.display = 'block';
+            search.focus();
+            
+            // Si hay API URL, cargar opciones dinámicamente
+            if (apiUrl && containerId === 'articulo-select-container' && valueInput.value === '') {
+                const leyId = document.getElementById('ley-value').value;
+                if (leyId) {
+                    fetch(apiUrl.replace('{leyId}', leyId))
+                        .then(response => response.json())
+                        .then(data => {
+                            options.innerHTML = '';
+                            if (data.length === 0) {
+                                const noResults = document.createElement('div');
+                                noResults.className = 'select-option';
+                                noResults.style.color = '#999';
+                                noResults.textContent = 'No hay artículos disponibles';
+                                options.appendChild(noResults);
+                            } else {
+                                data.forEach(item => {
+                                    const option = document.createElement('div');
+                                    option.className = 'select-option';
+                                    option.setAttribute('data-value', item.id);
+                                    option.setAttribute('data-text', item.label);
+                                    option.textContent = item.label;
+                                    option.addEventListener('click', () => selectOption(option));
+                                    options.appendChild(option);
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error al cargar artículos:', error);
+                        });
+                }
+            }
+        }
+
+        function closeSelect() {
+            isOpen = false;
+            options.classList.remove('show');
+            search.style.display = 'none';
+            search.value = '';
+            filterOptions('');
+        }
+
+        display.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (isOpen) {
+                closeSelect();
+            } else {
+                openSelect();
+            }
+        });
+
+        search.addEventListener('input', (e) => {
+            filterOptions(e.target.value);
+        });
+
+        search.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeSelect();
+            }
+        });
+
+        options.querySelectorAll('.select-option').forEach(option => {
+            option.addEventListener('click', () => {
+                if (option.getAttribute('data-value')) {
+                    selectOption(option);
+                    // Disparar evento personalizado para ley
+                    if (containerId === 'ley-select-container') {
+                        valueInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }
+            });
+        });
+
+        // Cerrar al hacer clic fuera
+        document.addEventListener('click', (e) => {
+            if (!container.contains(e.target)) {
+                closeSelect();
+            }
+        });
+    }
+
+    // Inicializar selectores
+    initSearchableSelect('tema-select-container', 'tema-display', 'tema-search', 'tema-options', 'tema-value');
+    initSearchableSelect('ley-select-container', 'ley-display', 'ley-search', 'ley-options', 'ley-value');
+    initSearchableSelect('articulo-select-container', 'articulo-display', 'articulo-search', 'articulo-options', 'articulo-value', '/pregunta/api/articulos-por-ley/{leyId}');
+
+
+    // Manejo de archivo
+    const fileUploadArea = document.getElementById('file-upload-area');
+    const fileInput = document.getElementById('archivo_csv');
+    const fileName = document.getElementById('file-name');
+
+    fileUploadArea.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            fileName.textContent = e.target.files[0].name;
+            fileUploadArea.style.borderColor = '#28a745';
+        } else {
+            fileName.textContent = 'Ningún archivo seleccionado';
+            fileUploadArea.style.borderColor = '#ddd';
+        }
+    });
+
+    fileUploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        fileUploadArea.classList.add('dragover');
+    });
+
+    fileUploadArea.addEventListener('dragleave', () => {
+        fileUploadArea.classList.remove('dragover');
+    });
+
+    fileUploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        fileUploadArea.classList.remove('dragover');
+        
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            fileName.textContent = e.dataTransfer.files[0].name;
+            fileUploadArea.style.borderColor = '#28a745';
+        }
+    });
+
+    // Validación del formulario antes de enviar
+    document.getElementById('csv-form').addEventListener('submit', function(e) {
+        const tema = document.getElementById('tema-value').value;
+        const ley = document.getElementById('ley-value').value;
+        const articulo = document.getElementById('articulo-value').value;
+        const dificultad = document.querySelector('select[name="dificultad"]').value;
+        const archivo = document.getElementById('archivo_csv').files[0];
+
+        let errores = [];
+
+        if (!tema || tema === '') {
+            errores.push('Debes seleccionar un tema');
+        }
+
+        if (!ley || ley === '') {
+            errores.push('Debes seleccionar una ley');
+        }
+
+        if (!articulo || articulo === '') {
+            errores.push('Debes seleccionar un artículo');
+        }
+
+        if (!dificultad || dificultad === '') {
+            errores.push('Debes seleccionar una dificultad');
+        }
+
+        if (!archivo) {
+            errores.push('Debes seleccionar un archivo CSV');
+        } else {
+            // Validar extensión
+            const extension = archivo.name.split('.').pop().toLowerCase();
+            if (extension !== 'csv') {
+                errores.push('El archivo debe ser un CSV (extensión .csv)');
+            }
+
+            // Validar tamaño (5MB)
+            const maxSize = 5 * 1024 * 1024;
+            if (archivo.size > maxSize) {
+                errores.push('El archivo no puede ser mayor a 5MB');
+            }
+        }
+
+        if (errores.length > 0) {
+            e.preventDefault();
+            alert('Por favor, corrige los siguientes errores:\n\n' + errores.join('\n'));
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}
