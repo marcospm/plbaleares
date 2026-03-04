@@ -1,0 +1,358 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}BOE - Boletín Oficial del Estado{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .boe-header {
+            background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .boe-header h1 {
+            color: white;
+            margin-bottom: 0.5rem;
+            font-size: 2rem;
+        }
+        
+        .boe-header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.1rem;
+            margin: 0;
+        }
+        
+        .fecha-selector {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .fecha-selector form {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        
+        .fecha-selector .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .fecha-selector label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .fecha-selector input[type="date"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .fecha-selector input[type="date"]:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.15);
+        }
+        
+        .fecha-selector .btn {
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .resultados-container {
+            margin-top: 2rem;
+        }
+        
+        .resultado-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .resultado-item:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+            border-color: #d32f2f;
+        }
+        
+        .resultado-item h3 {
+            color: #d32f2f;
+            margin-bottom: 0.75rem;
+            font-size: 1.3rem;
+        }
+        
+        .resultado-item .info {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .resultado-item .info span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .termino-badge {
+            display: inline-block;
+            background-color: #ffc107;
+            color: #856404;
+            padding: 0.4rem 0.8rem;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .resultado-item .enlaces {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .resultado-item .enlace {
+            display: inline-block;
+            background-color: #d32f2f;
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .resultado-item .enlace:hover {
+            background-color: #b71c1c;
+            transform: translateX(4px);
+        }
+        
+        .resultado-item .enlace-secundario {
+            background-color: #6c757d;
+        }
+        
+        .resultado-item .enlace-secundario:hover {
+            background-color: #5a6268;
+        }
+        
+        .sin-resultados {
+            text-align: center;
+            padding: 3rem;
+            background: white;
+            border-radius: 8px;
+            border: 2px dashed #ddd;
+        }
+        
+        .sin-resultados h3 {
+            color: #666;
+            margin-bottom: 1rem;
+        }
+        
+        .sin-resultados p {
+            color: #999;
+        }
+        
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            border: 1px solid #f5c6cb;
+        }
+        
+        @media (max-width: 768px) {
+            .boe-header {
+                padding: 1.5rem 1rem !important;
+            }
+            
+            .boe-header h1 {
+                font-size: 1.5rem !important;
+                word-wrap: break-word;
+            }
+            
+            .boe-header p {
+                font-size: 1rem !important;
+                word-wrap: break-word;
+            }
+            
+            .fecha-selector form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .fecha-selector .form-group {
+                width: 100%;
+            }
+            
+            .fecha-selector .btn {
+                width: 100%;
+                min-height: 48px;
+                font-size: 16px;
+            }
+            
+            .resultado-item {
+                padding: 1rem !important;
+            }
+            
+            .resultado-item h3 {
+                font-size: 1.1rem !important;
+                word-wrap: break-word;
+            }
+            
+            .resultado-item .info {
+                flex-direction: column !important;
+                gap: 0.75rem !important;
+            }
+            
+            .resultado-item .info span {
+                word-wrap: break-word;
+                display: flex;
+                flex-wrap: wrap;
+            }
+            
+            .resultado-item .enlaces {
+                flex-direction: column !important;
+                gap: 0.75rem !important;
+            }
+            
+            .resultado-item .enlace {
+                width: 100%;
+                min-height: 48px;
+                font-size: 16px;
+                text-align: center;
+                padding: 0.75rem 1rem !important;
+            }
+            
+            .sin-resultados {
+                padding: 2rem 1rem !important;
+            }
+            
+            .sin-resultados h3 {
+                font-size: 1.2rem;
+            }
+            
+            .error-message {
+                padding: 1rem !important;
+                font-size: 0.95rem;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <div class="boe-header">
+            <h1>📋 BOE - Boletín Oficial del Estado</h1>
+            <p>Búsqueda en el sumario del BOE por fecha, filtrando el departamento de Illes Balears y términos de policía / proceso unificado</p>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="fecha-selector">
+            <form method="GET" action="{{ path('app_boe_index') }}">
+                <div class="form-group">
+                    <label for="fecha">Seleccionar fecha:</label>
+                    <input 
+                        type="date" 
+                        id="fecha" 
+                        name="fecha" 
+                        value="{{ fechaSeleccionada ?? '' }}"
+                        max="{{ 'now'|date('Y-m-d') }}"
+                        required
+                    >
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    🔍 Buscar en BOE
+                </button>
+            </form>
+        </div>
+
+        {% if error %}
+            <div class="error-message">
+                <strong>Error:</strong> {{ error }}
+            </div>
+        {% endif %}
+
+        {% if resultados is defined and resultados|length > 0 %}
+            <div class="resultados-container">
+                <h2 style="margin-bottom: 1.5rem; color: #d32f2f;">
+                    Resultados encontrados: {{ resultados|length }}
+                </h2>
+                
+                <div style="display: grid; gap: 1rem;">
+                    {% for resultado in resultados %}
+                        <div class="resultado-item">
+                            <h3>
+                                {{ resultado.titulo }}
+                            </h3>
+                            
+                            <div class="info">
+                                {% if resultado.identificador %}
+                                    <span>🆔 <strong>Identificador:</strong> {{ resultado.identificador }}</span>
+                                {% endif %}
+                                {% if resultado.control %}
+                                    <span>📄 <strong>Control:</strong> {{ resultado.control }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            {% if resultado.terminos is defined and resultado.terminos|length > 0 %}
+                                <div style="margin: 1rem 0; padding: 0.75rem; background-color: #fff3cd; border-radius: 6px; border-left: 4px solid #ffc107;">
+                                    <strong style="display: block; margin-bottom: 0.5rem; color: #856404;">🔍 Términos encontrados en el título:</strong>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                        {% for termino in resultado.terminos %}
+                                            <span class="termino-badge">
+                                                {{ termino }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                            
+                            <div class="enlaces">
+                                {% if resultado.url_pdf %}
+                                    <a href="{{ resultado.url_pdf }}" target="_blank" rel="noopener noreferrer" class="enlace">
+                                        📄 Ver PDF
+                                    </a>
+                                {% endif %}
+                                {% if resultado.url_html %}
+                                    <a href="{{ resultado.url_html }}" target="_blank" rel="noopener noreferrer" class="enlace enlace-secundario">
+                                        🌐 Ver HTML
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% elseif fechaSeleccionada and not error %}
+            <div class="sin-resultados">
+                <h3>No se encontraron resultados</h3>
+                <p>No se encontraron entradas del departamento de Illes Balears con los términos buscados para la fecha seleccionada.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

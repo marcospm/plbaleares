@@ -49,6 +49,7 @@ class BreadcrumbExtension extends AbstractExtension
             'app_articulo_publico_show' => ['label' => 'Detalle de Artículo', 'parent' => 'app_articulo_publico_index'],
             'app_recurso_publico_index' => ['label' => 'Temario y Recursos', 'parent' => 'app_dashboard'],
             'app_boib_index' => ['label' => 'BOIB', 'parent' => 'app_dashboard'],
+            'app_boe_index' => ['label' => 'BOE', 'parent' => 'app_dashboard'],
             'app_boib_consultar' => ['label' => 'Consultar BOIB', 'parent' => 'app_boib_index'],
             
             // Alumno - Mensajes
