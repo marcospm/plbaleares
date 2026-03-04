@@ -9,13 +9,15 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Component\DomCrawler\Crawler;
+use App\Repository\MunicipioRepository;
 
 #[Route('/boe')]
 #[IsGranted('ROLE_USER')]
 class BoeController extends AbstractController
 {
     public function __construct(
-        private HttpClientInterface $httpClient
+        private HttpClientInterface $httpClient,
+        private MunicipioRepository $municipioRepository
     ) {
     }
 
@@ -82,26 +84,21 @@ class BoeController extends AbstractController
 
     /**
      * Procesa el XML del sumario del BOE para una fecha concreta.
-     * - Filtra el departamento de código 8121 (Illes Balears)
-     * - Busca términos relacionados con policía / proceso unificado en el título del item
-     * - Devuelve los enlaces a PDF / HTML para cada item que tenga coincidencias
+     * - Busca directamente en todos los <item> por el título
+     * - Criterio 1: términos de policía / proceso / OEP... en el título
+     * - Criterio 2: título contiene nombre de municipio + convocatoria / plaza(s)
+     * - Devuelve enlaces a PDF / HTML para cada item que cumpla alguno de los criterios
      */
     private function procesarXmlBoe(string $xmlContent): array
     {
-        $resultados = [];
+        // Usamos un array indexado por identificador/url para evitar duplicados
+        $resultadosIndexados = [];
 
         try {
             $crawler = new Crawler($xmlContent);
 
-            // Buscar el departamento de Illes Balears (código 8121)
-            $departamentos = $crawler->filter('departamento[codigo="8121"]');
-
-            if ($departamentos->count() === 0) {
-                return [];
-            }
-
             // Términos a buscar en los títulos (combinando los usados en BOIB)
-            $terminosBusqueda = [
+            $terminosBusquedaTitulo = [
                 'policía',
                 'policia',
                 'policía local',
@@ -129,80 +126,219 @@ class BoeController extends AbstractController
                 'bases.*policia',
             ];
 
-            foreach ($departamentos as $departamentoNode) {
-                $departamentoCrawler = new Crawler($departamentoNode);
+            // Búsqueda de convocatorias/plazas por municipios de Mallorca (lista fija)
+            $nombresMunicipios = [
+                'Alaró',
+                'Alcúdia',
+                'Algaida',
+                'Andratx',
+                'Ariany',
+                'Artà',
+                'Banyalbufar',
+                'Binissalem',
+                'Búger',
+                'Bunyola',
+                'Calvià',
+                'Campanet',
+                'Campos',
+                'Capdepera',
+                'Consell',
+                'Costitx',
+                'Deià',
+                'Escorca',
+                'Esporles',
+                'Estellencs',
+                'Felanitx',
+                'Fornalutx',
+                'Inca',
+                'Lloret de Vistalegre',
+                'Lloseta',
+                'Llubí',
+                'Llucmajor',
+                'Manacor',
+                'Mancor de la Vall',
+                'Maria de la Salut',
+                'Marratxí',
+                'Montuïri',
+                'Muro',
+                'Palma',
+                'Petra',
+                'Pollença',
+                'Porreres',
+                'Puigpunyent',
+                'Sa Pobla',
+                'Sant Joan',
+                'Sant Llorenç des Cardassar',
+                'Santa Eugènia',
+                'Santa Margalida',
+                'Santa Maria del Camí',
+                'Santanyí',
+                'Selva',
+                'Sencelles',
+                'Ses Salines',
+                'Sineu',
+                'Sóller',
+                'Son Servera',
+                'Valldemossa',
+                'Vilafranca de Bonany',
+            ];
 
-                // Todos los <item> dentro de los epígrafes de este departamento
-                $items = $departamentoCrawler->filter('item');
+            // Preparar versión normalizada de los nombres de municipios para búsqueda robusta
+            $municipiosNormalizados = [];
+            foreach ($nombresMunicipios as $nombreMunicipio) {
+                $municipiosNormalizados[] = [
+                    'original' => $nombreMunicipio,
+                    'normalizado' => $this->normalizarTextoBusqueda($nombreMunicipio),
+                ];
+            }
 
-                foreach ($items as $itemNode) {
-                    $itemCrawler = new Crawler($itemNode);
+            // Recorremos directamente TODOS los <item> del sumario
+            $items = $crawler->filter('item');
 
-                    // Extraer información del item
-                    $identificador = $itemCrawler->filter('identificador')->count() > 0
-                        ? trim($itemCrawler->filter('identificador')->text())
-                        : '';
+            foreach ($items as $itemNode) {
+                $itemCrawler = new Crawler($itemNode);
 
-                    $titulo = $itemCrawler->filter('titulo')->count() > 0
-                        ? trim($itemCrawler->filter('titulo')->text())
-                        : '';
+                $identificador = $itemCrawler->filter('identificador')->count() > 0
+                    ? trim($itemCrawler->filter('identificador')->text())
+                    : '';
 
-                    $urlPdf = $itemCrawler->filter('url_pdf')->count() > 0
-                        ? trim($itemCrawler->filter('url_pdf')->text())
-                        : '';
+                $titulo = $itemCrawler->filter('titulo')->count() > 0
+                    ? trim($itemCrawler->filter('titulo')->text())
+                    : '';
 
-                    $urlHtml = $itemCrawler->filter('url_html')->count() > 0
-                        ? trim($itemCrawler->filter('url_html')->text())
-                        : '';
+                $urlPdf = $itemCrawler->filter('url_pdf')->count() > 0
+                    ? trim($itemCrawler->filter('url_pdf')->text())
+                    : '';
 
-                    $control = $itemCrawler->filter('control')->count() > 0
-                        ? trim($itemCrawler->filter('control')->text())
-                        : '';
+                $urlHtml = $itemCrawler->filter('url_html')->count() > 0
+                    ? trim($itemCrawler->filter('url_html')->text())
+                    : '';
 
-                    if ($titulo === '') {
-                        continue;
-                    }
+                $control = $itemCrawler->filter('control')->count() > 0
+                    ? trim($itemCrawler->filter('control')->text())
+                    : '';
 
-                    // Buscar términos en el título
-                    $tituloLower = mb_strtolower($titulo, 'UTF-8');
-                    $terminosEncontrados = [];
+                if ($titulo === '' || $urlPdf === '') {
+                    continue;
+                }
 
-                    foreach ($terminosBusqueda as $termino) {
-                        $terminoLower = mb_strtolower($termino, 'UTF-8');
+                $tituloLower = mb_strtolower($titulo, 'UTF-8');
+                $tituloNormalizado = $this->normalizarTextoBusqueda($titulo);
 
-                        // Si el término contiene .* lo tratamos como expresión regular
-                        if (str_contains($termino, '.*')) {
-                            $pattern = '/' . $termino . '/i';
-                            if (preg_match($pattern, $titulo)) {
-                                $terminosEncontrados[] = $termino;
-                            }
-                        } else {
-                            // Búsqueda simple por substring (insensible a mayúsculas/minúsculas)
-                            if (mb_stripos($tituloLower, $terminoLower, 0, 'UTF-8') !== false) {
-                                $terminosEncontrados[] = $termino;
-                            }
+                // 1) Búsqueda general por términos de policía / proceso / OEP, etc.
+                $terminosTituloEncontrados = [];
+                foreach ($terminosBusquedaTitulo as $termino) {
+                    $terminoLower = mb_strtolower($termino, 'UTF-8');
+
+                    if (str_contains($termino, '.*')) {
+                        $pattern = '/' . $termino . '/i';
+                        if (preg_match($pattern, $titulo)) {
+                            $terminosTituloEncontrados[] = $termino;
+                        }
+                    } else {
+                        if (mb_stripos($tituloLower, $terminoLower, 0, 'UTF-8') !== false) {
+                            $terminosTituloEncontrados[] = $termino;
                         }
                     }
+                }
 
-                    if (!empty($terminosEncontrados) && $urlPdf !== '') {
-                        $terminosEncontrados = array_values(array_unique($terminosEncontrados));
-
-                        $resultados[] = [
-                            'identificador' => $identificador,
-                            'titulo' => $titulo,
-                            'url_pdf' => $urlPdf,
-                            'url_html' => $urlHtml,
-                            'control' => $control,
-                            'terminos' => $terminosEncontrados,
-                        ];
+                // 2) Comprobar que el título contiene el nombre de algún municipio + convocatoria/plaza(s)
+                $municipiosEncontrados = [];
+                foreach ($municipiosNormalizados as $municipio) {
+                    if ($municipio['normalizado'] !== '' && str_contains($tituloNormalizado, $municipio['normalizado'])) {
+                        $municipiosEncontrados[] = $municipio['original'];
                     }
                 }
+
+                $terminosConvocatoria = [];
+                if (str_contains($tituloNormalizado, 'convocatoria')) {
+                    $terminosConvocatoria[] = 'convocatoria';
+                }
+                if (str_contains($tituloNormalizado, 'plaza')) {
+                    // cubre plaza y plazas
+                    $terminosConvocatoria[] = 'plaza/plazas';
+                }
+
+                $coincidePorMunicipio = !empty($municipiosEncontrados) && !empty($terminosConvocatoria);
+                $coincidePorTitulo = !empty($terminosTituloEncontrados);
+
+                // Si no coincide por ninguno de los dos criterios, saltamos
+                if (!$coincidePorMunicipio && !$coincidePorTitulo) {
+                    continue;
+                }
+
+                $key = $identificador !== '' ? $identificador : $urlPdf;
+
+                if (!isset($resultadosIndexados[$key])) {
+                    $resultadosIndexados[$key] = [
+                        'identificador' => $identificador,
+                        'titulo' => $titulo,
+                        'url_pdf' => $urlPdf,
+                        'url_html' => $urlHtml,
+                        'control' => $control,
+                        'terminos' => [],
+                    ];
+                }
+
+                // Añadir términos generales del título (policía, proceso unificado, etc.)
+                if (!empty($terminosTituloEncontrados)) {
+                    $resultadosIndexados[$key]['terminos'] = array_values(array_unique(array_merge(
+                        $resultadosIndexados[$key]['terminos'],
+                        $terminosTituloEncontrados
+                    )));
+                }
+
+                // Añadimos los nombres de municipios y los términos de convocatoria/plazas como "términos" adicionales
+                if ($coincidePorMunicipio) {
+                    $nuevosTerminos = array_merge(
+                        array_map(static fn (string $m) => 'municipio: ' . $m, $municipiosEncontrados),
+                        $terminosConvocatoria
+                    );
+
+                    $resultadosIndexados[$key]['terminos'] = array_values(array_unique(array_merge(
+                        $resultadosIndexados[$key]['terminos'],
+                        $nuevosTerminos
+                    )));
+                }
             }
+
+            // Convertir el array indexado a array simple
+            $resultados = array_values($resultadosIndexados);
         } catch (\Exception $e) {
             throw new \Exception('Error al procesar el XML del BOE: ' . $e->getMessage());
         }
 
         return $resultados;
+    }
+
+    /**
+     * Normaliza texto para búsquedas:
+     * - pasa a minúsculas
+     * - elimina acentos y caracteres especiales
+     * - deja solo letras, números y espacios, compactando espacios
+     */
+    private function normalizarTextoBusqueda(string $texto): string
+    {
+        $texto = mb_strtolower($texto, 'UTF-8');
+
+        // Quitar acentos y caracteres especiales típicos en castellano/catalán
+        $reemplazos = [
+            'á' => 'a', 'à' => 'a', 'ä' => 'a', 'â' => 'a', 'ã' => 'a',
+            'é' => 'e', 'è' => 'e', 'ë' => 'e', 'ê' => 'e',
+            'í' => 'i', 'ì' => 'i', 'ï' => 'i', 'î' => 'i',
+            'ó' => 'o', 'ò' => 'o', 'ö' => 'o', 'ô' => 'o', 'õ' => 'o',
+            'ú' => 'u', 'ù' => 'u', 'ü' => 'u', 'û' => 'u',
+            'ñ' => 'n', 'ç' => 'c',
+        ];
+        $texto = strtr($texto, $reemplazos);
+
+        // Eliminar todo lo que no sean letras, números o espacios
+        $texto = preg_replace('/[^a-z0-9\s]/u', ' ', $texto);
+
+        // Compactar espacios múltiples
+        $texto = preg_replace('/\s+/', ' ', $texto);
+
+        return trim($texto ?? '');
     }
 }
 
