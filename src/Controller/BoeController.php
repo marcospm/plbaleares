@@ -225,7 +225,29 @@ class BoeController extends AbstractController
                 $tituloLower = mb_strtolower($titulo, 'UTF-8');
                 $tituloNormalizado = $this->normalizarTextoBusqueda($titulo);
 
-                // 1) Búsqueda general por términos de policía / proceso / OEP, etc.
+                // PASO 1: PRIMERO buscar municipio (obligatorio)
+                // Si no hay municipio, saltamos directamente sin buscar palabras clave
+                $municipiosEncontrados = [];
+                foreach ($municipiosNormalizados as $municipio) {
+                    if ($municipio['normalizado'] === '') {
+                        continue;
+                    }
+                    
+                    // Buscar el municipio como palabra completa (no como subcadena)
+                    // Usamos límites de palabra (\b) para evitar falsos positivos
+                    $pattern = '/\b' . preg_quote($municipio['normalizado'], '/') . '\b/u';
+                    if (preg_match($pattern, $tituloNormalizado)) {
+                        $municipiosEncontrados[] = $municipio['original'];
+                    }
+                }
+
+                // Si NO hay municipio, saltamos este item (no buscamos palabras clave)
+                if (empty($municipiosEncontrados)) {
+                    continue;
+                }
+
+                // PASO 2: Si hay municipio, AHORA buscar palabras clave
+                // 2a) Búsqueda por términos de policía / proceso / OEP, etc.
                 $terminosTituloEncontrados = [];
                 foreach ($terminosBusquedaTitulo as $termino) {
                     $terminoLower = mb_strtolower($termino, 'UTF-8');
@@ -242,15 +264,7 @@ class BoeController extends AbstractController
                     }
                 }
 
-                // 2) Comprobar que el título contiene el nombre de algún municipio
-                $municipiosEncontrados = [];
-                foreach ($municipiosNormalizados as $municipio) {
-                    if ($municipio['normalizado'] !== '' && str_contains($tituloNormalizado, $municipio['normalizado'])) {
-                        $municipiosEncontrados[] = $municipio['original'];
-                    }
-                }
-
-                // 3) Comprobar términos adicionales (convocatoria, plaza) para el filtro de municipios
+                // 2b) Comprobar términos adicionales (convocatoria, plaza)
                 $terminosConvocatoria = [];
                 if (str_contains($tituloNormalizado, 'convocatoria')) {
                     $terminosConvocatoria[] = 'convocatoria';
@@ -260,19 +274,8 @@ class BoeController extends AbstractController
                     $terminosConvocatoria[] = 'plaza/plazas';
                 }
 
-                // Lógica: El municipio es OBLIGATORIO siempre
-                // - Si hay municipio mencionado Y hay palabras clave (policía, convocatoria, plaza, proceso unificado, etc.) → SÍ se incluye
-                // - Si hay municipio pero NO hay palabras clave → NO se incluye
-                // - Si NO hay municipio (aunque haya palabras clave) → NO se incluye
-                $hayMunicipio = !empty($municipiosEncontrados);
+                // Si hay municipio pero NO hay palabras clave, no incluimos el resultado
                 $hayPalabrasClave = !empty($terminosTituloEncontrados) || !empty($terminosConvocatoria);
-                
-                // El municipio es obligatorio: si no hay municipio, no incluimos el resultado
-                if (!$hayMunicipio) {
-                    continue;
-                }
-                
-                // Si hay municipio pero no hay palabras clave, no incluimos el resultado
                 if (!$hayPalabrasClave) {
                     continue;
                 }
