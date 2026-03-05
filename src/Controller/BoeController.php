@@ -242,7 +242,7 @@ class BoeController extends AbstractController
                     }
                 }
 
-                // 2) Comprobar que el título contiene el nombre de algún municipio + convocatoria/plaza(s)
+                // 2) Comprobar que el título contiene el nombre de algún municipio
                 $municipiosEncontrados = [];
                 foreach ($municipiosNormalizados as $municipio) {
                     if ($municipio['normalizado'] !== '' && str_contains($tituloNormalizado, $municipio['normalizado'])) {
@@ -250,6 +250,7 @@ class BoeController extends AbstractController
                     }
                 }
 
+                // 3) Comprobar términos adicionales (convocatoria, plaza) para el filtro de municipios
                 $terminosConvocatoria = [];
                 if (str_contains($tituloNormalizado, 'convocatoria')) {
                     $terminosConvocatoria[] = 'convocatoria';
@@ -259,11 +260,20 @@ class BoeController extends AbstractController
                     $terminosConvocatoria[] = 'plaza/plazas';
                 }
 
-                $coincidePorMunicipio = !empty($municipiosEncontrados) && !empty($terminosConvocatoria);
-                $coincidePorTitulo = !empty($terminosTituloEncontrados);
-
-                // Si no coincide por ninguno de los dos criterios, saltamos
-                if (!$coincidePorMunicipio && !$coincidePorTitulo) {
+                // Lógica: El municipio es OBLIGATORIO siempre
+                // - Si hay municipio mencionado Y hay palabras clave (policía, convocatoria, plaza, proceso unificado, etc.) → SÍ se incluye
+                // - Si hay municipio pero NO hay palabras clave → NO se incluye
+                // - Si NO hay municipio (aunque haya palabras clave) → NO se incluye
+                $hayMunicipio = !empty($municipiosEncontrados);
+                $hayPalabrasClave = !empty($terminosTituloEncontrados) || !empty($terminosConvocatoria);
+                
+                // El municipio es obligatorio: si no hay municipio, no incluimos el resultado
+                if (!$hayMunicipio) {
+                    continue;
+                }
+                
+                // Si hay municipio pero no hay palabras clave, no incluimos el resultado
+                if (!$hayPalabrasClave) {
                     continue;
                 }
 
@@ -289,7 +299,7 @@ class BoeController extends AbstractController
                 }
 
                 // Añadimos los nombres de municipios y los términos de convocatoria/plazas como "términos" adicionales
-                if ($coincidePorMunicipio) {
+                if ($hayMunicipio) {
                     $nuevosTerminos = array_merge(
                         array_map(static fn (string $m) => 'municipio: ' . $m, $municipiosEncontrados),
                         $terminosConvocatoria
