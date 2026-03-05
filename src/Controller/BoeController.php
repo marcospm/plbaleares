@@ -192,7 +192,7 @@ class BoeController extends AbstractController
                 ];
             }
 
-            // Recorremos directamente TODOS los <item> del sumario
+            // Recorremosdirectamente TODOS los <item> del sumario
             $items = $crawler->filter('item');
 
             foreach ($items as $itemNode) {
