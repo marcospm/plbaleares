@@ -10,11 +10,16 @@
     <div class="card-body">
         <form method="post">
             <div class="form-group">
-                <label class="form-label"><strong>Selecciona los alumnos que participarán en esta convocatoria:</strong></label>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <label class="form-label" style="margin: 0;"><strong>Selecciona los alumnos que participarán en esta convocatoria:</strong></label>
+                    <button type="button" id="toggleTodos" class="btn btn-sm btn-outline-primary" style="white-space: nowrap;">
+                        Seleccionar Todo
+                    </button>
+                </div>
                 <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 1rem; border-radius: 4px; margin-top: 0.5rem;">
                     {% for usuario in usuarios %}
                         <div class="form-check" style="padding: 0.5rem;">
-                            <input class="form-check-input" type="checkbox" name="usuarios[]" value="{{ usuario.id }}" id="usuario_{{ usuario.id }}"
+                            <input class="form-check-input checkbox-alumno" type="checkbox" name="usuarios[]" value="{{ usuario.id }}" id="usuario_{{ usuario.id }}"
                                    {% if convocatoria.usuarios.contains(usuario) %}checked{% endif %}>
                             <label class="form-check-label" for="usuario_{{ usuario.id }}">
                                 {{ usuario.nombreDisplay }}
@@ -31,6 +36,53 @@
         </form>
     </div>
 </div>
+
+<script>
+    (function() {
+        const toggleBtn = document.getElementById('toggleTodos');
+        const checkboxes = document.querySelectorAll('.checkbox-alumno');
+        
+        if (!toggleBtn || checkboxes.length === 0) {
+            return;
+        }
+        
+        // Función para actualizar el estado del botón según los checkboxes
+        function actualizarEstadoBoton() {
+            const todosMarcados = Array.from(checkboxes).every(cb => cb.checked);
+            const ningunoMarcado = Array.from(checkboxes).every(cb => !cb.checked);
+            
+            if (todosMarcados) {
+                toggleBtn.textContent = 'Deseleccionar Todo';
+                toggleBtn.classList.remove('btn-outline-primary');
+                toggleBtn.classList.add('btn-outline-secondary');
+            } else {
+                toggleBtn.textContent = 'Seleccionar Todo';
+                toggleBtn.classList.remove('btn-outline-secondary');
+                toggleBtn.classList.add('btn-outline-primary');
+            }
+        }
+        
+        // Inicializar estado del botón
+        actualizarEstadoBoton();
+        
+        // Manejar clic en el botón
+        toggleBtn.addEventListener('click', function() {
+            const todosMarcados = Array.from(checkboxes).every(cb => cb.checked);
+            const nuevoEstado = !todosMarcados;
+            
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = nuevoEstado;
+            });
+            
+            actualizarEstadoBoton();
+        });
+        
+        // Actualizar estado del botón cuando cambie cualquier checkbox
+        checkboxes.forEach(function(checkbox) {
+            checkbox.addEventListener('change', actualizarEstadoBoton);
+        });
+    })();
+</script>
 {% endblock %}
 
 
