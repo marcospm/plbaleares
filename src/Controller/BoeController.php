@@ -302,7 +302,7 @@ class BoeController extends AbstractController
                 }
 
                 // Añadimos los nombres de municipios y los términos de convocatoria/plazas como "términos" adicionales
-                if ($hayMunicipio) {
+                if (!empty($municipiosEncontrados)) {
                     $nuevosTerminos = array_merge(
                         array_map(static fn (string $m) => 'municipio: ' . $m, $municipiosEncontrados),
                         $terminosConvocatoria
