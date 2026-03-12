@@ -39,7 +39,7 @@ class SesionPublicoController extends AbstractController
         $convocatoriaId = $convocatoriaId !== '' && $convocatoriaId !== null ? (int)$convocatoriaId : null;
         
         // Parámetros de paginación
-        $itemsPerPage = 12;
+        $itemsPerPage = 10;
         $page = max(1, $request->query->getInt('page', 1));
 
         // Obtener sesiones con paginación y filtros

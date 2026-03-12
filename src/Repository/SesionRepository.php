@@ -74,20 +74,43 @@ class SesionRepository extends ServiceEntityRepository
                ->setParameter('convocatoriaId', $convocatoriaId);
         }
         
-        // Contar total antes de paginar
+        // Contar total antes de paginar (usar DISTINCT para evitar duplicados por los joins)
         $totalQb = clone $qb;
-        $total = (int) $totalQb->select('COUNT(s.id)')
+        $total = (int) $totalQb->select('COUNT(DISTINCT s.id)')
                                ->getQuery()
                                ->getSingleScalarResult();
         
-        // Aplicar paginación - ordenar por fecha de creación descendente (más recientes primero)
-        $offset = ($page - 1) * $itemsPerPage;
-        $qb->orderBy('s.fechaCreacion', 'DESC')
-           ->setFirstResult($offset)
-           ->setMaxResults($itemsPerPage);
+        // Obtener IDs únicos de sesiones con paginación
+        $idsQb = clone $qb;
+        $idsQb->select('DISTINCT s.id')
+              ->orderBy('s.fechaCreacion', 'DESC')
+              ->setFirstResult(($page - 1) * $itemsPerPage)
+              ->setMaxResults($itemsPerPage);
+        
+        $ids = array_map(function($row) {
+            return is_array($row) ? $row['id'] : $row;
+        }, $idsQb->getQuery()->getResult());
+        
+        if (empty($ids)) {
+            return [
+                'sesiones' => [],
+                'total' => $total,
+            ];
+        }
+        
+        // Obtener las sesiones completas con sus relaciones usando los IDs
+        $finalQb = $this->createQueryBuilder('s')
+            ->leftJoin('s.temas', 't')
+            ->leftJoin('s.temasMunicipales', 'tm')
+            ->leftJoin('s.municipios', 'm')
+            ->leftJoin('s.convocatorias', 'c')
+            ->addSelect('t', 'tm', 'm', 'c')
+            ->where('s.id IN (:ids)')
+            ->setParameter('ids', $ids)
+            ->orderBy('s.fechaCreacion', 'DESC');
         
         return [
-            'sesiones' => $qb->getQuery()->getResult(),
+            'sesiones' => $finalQb->getQuery()->getResult(),
             'total' => $total,
         ];
     }
@@ -166,20 +189,44 @@ class SesionRepository extends ServiceEntityRepository
                ->setParameter('creadoPor', $creadoPor);
         }
         
-        // Contar total antes de paginar
+        // Contar total antes de paginar (usar DISTINCT para evitar duplicados por los joins)
         $totalQb = clone $qb;
         $total = (int) $totalQb->select('COUNT(DISTINCT s.id)')
                                ->getQuery()
                                ->getSingleScalarResult();
         
-        // Aplicar paginación - ordenar por fecha de creación descendente
-        $offset = ($page - 1) * $itemsPerPage;
-        $qb->orderBy('s.fechaCreacion', 'DESC')
-           ->setFirstResult($offset)
-           ->setMaxResults($itemsPerPage);
+        // Obtener IDs únicos de sesiones con paginación
+        $idsQb = clone $qb;
+        $idsQb->select('DISTINCT s.id')
+              ->orderBy('s.fechaCreacion', 'DESC')
+              ->setFirstResult(($page - 1) * $itemsPerPage)
+              ->setMaxResults($itemsPerPage);
+        
+        $ids = array_map(function($row) {
+            return is_array($row) ? $row['id'] : $row;
+        }, $idsQb->getQuery()->getResult());
+        
+        if (empty($ids)) {
+            return [
+                'sesiones' => [],
+                'total' => $total,
+            ];
+        }
+        
+        // Obtener las sesiones completas con sus relaciones usando los IDs
+        $finalQb = $this->createQueryBuilder('s')
+            ->leftJoin('s.temas', 't')
+            ->leftJoin('s.temasMunicipales', 'tm')
+            ->leftJoin('s.municipios', 'm')
+            ->leftJoin('s.convocatorias', 'c')
+            ->leftJoin('s.creadoPor', 'u')
+            ->addSelect('t', 'tm', 'm', 'c', 'u')
+            ->where('s.id IN (:ids)')
+            ->setParameter('ids', $ids)
+            ->orderBy('s.fechaCreacion', 'DESC');
         
         return [
-            'sesiones' => $qb->getQuery()->getResult(),
+            'sesiones' => $finalQb->getQuery()->getResult(),
             'total' => $total,
         ];
     }
