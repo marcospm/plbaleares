@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Form\UserType;
+use App\Repository\ConvocatoriaRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -53,7 +54,7 @@ class UserController extends AbstractController
 
     #[Route('/new', name: 'app_user_new', methods: ['GET', 'POST'])]
     #[IsGranted('ROLE_ADMIN')]
-    public function new(Request $request, EntityManagerInterface $entityManager, UserPasswordHasherInterface $passwordHasher): Response
+    public function new(Request $request, EntityManagerInterface $entityManager, UserPasswordHasherInterface $passwordHasher, ConvocatoriaRepository $convocatoriaRepository): Response
     {
         $user = new User();
         $form = $this->createForm(UserType::class, $user, ['is_new' => true]);
@@ -104,6 +105,12 @@ class UserController extends AbstractController
 
             // El usuario se crea activo por defecto
             $user->setActivo(true);
+
+            // Asignar todas las convocatorias activas al usuario nuevo
+            $convocatoriasActivas = $convocatoriaRepository->findActivas();
+            foreach ($convocatoriasActivas as $convocatoria) {
+                $user->addConvocatoria($convocatoria);
+            }
 
             $entityManager->persist($user);
             $entityManager->flush();

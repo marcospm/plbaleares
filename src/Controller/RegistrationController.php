@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Form\RegistrationFormType;
+use App\Repository\ConvocatoriaRepository;
 use App\Service\NotificacionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,7 +20,8 @@ class RegistrationController extends AbstractController
         Request $request,
         UserPasswordHasherInterface $passwordHasher,
         EntityManagerInterface $entityManager,
-        NotificacionService $notificacionService
+        NotificacionService $notificacionService,
+        ConvocatoriaRepository $convocatoriaRepository
     ): Response {
         // Si el usuario ya está autenticado, redirigir al dashboard
         if ($this->getUser()) {
@@ -66,6 +68,12 @@ class RegistrationController extends AbstractController
             // El usuario se crea inactivo por defecto
             $user->setActivo(false);
             $user->setRoles(['ROLE_USER']);
+
+            // Asignar todas las convocatorias activas al usuario nuevo
+            $convocatoriasActivas = $convocatoriaRepository->findActivas();
+            foreach ($convocatoriasActivas as $convocatoria) {
+                $user->addConvocatoria($convocatoria);
+            }
 
             $entityManager->persist($user);
             $entityManager->flush();
