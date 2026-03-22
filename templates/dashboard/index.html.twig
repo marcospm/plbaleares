@@ -1471,8 +1471,9 @@
                     </table>
                     </div>
                 </div>
-                <div style="text-align: center; margin-top: 1rem;">
+                <div style="text-align: center; margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;">
                     <a href="{{ path('app_examen_historial') }}" class="btn btn-secondary">Ver Historial Completo</a>
+                    <a href="{{ path('app_informe_mensual_alumno_index') }}" class="btn btn-outline-primary">📄 Informe mensual (PDF)</a>
                 </div>
             {% else %}
                 <div class="card">

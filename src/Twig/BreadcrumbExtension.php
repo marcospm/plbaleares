@@ -36,6 +36,8 @@ class BreadcrumbExtension extends AbstractExtension
             'app_examen_semanal_alumno_index' => ['label' => 'Exámenes Semanales', 'parent' => 'app_dashboard'],
             'app_examen_historial' => ['label' => 'Historial de Exámenes', 'parent' => 'app_dashboard'],
             'app_examen_historial_grupo' => ['label' => 'Historial del Grupo', 'parent' => 'app_examen_historial'],
+            'app_informe_mensual_alumno_index' => ['label' => 'Informe mensual', 'parent' => 'app_dashboard'],
+            'app_informe_mensual_alumno_generar' => ['label' => 'PDF del informe', 'parent' => 'app_informe_mensual_alumno_index'],
             'app_examen_detalle' => ['label' => 'Detalle del Examen', 'parent' => 'app_examen_historial'],
             
             // Alumno - Planificación

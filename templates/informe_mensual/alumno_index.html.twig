@@ -1,0 +1,123 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Informe mensual{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .informe-alumno-wrap {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        .informe-alumno-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        .informe-alumno-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .informe-alumno-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .informe-alumno-card p {
+            color: #555;
+            margin-bottom: 1.25rem;
+            line-height: 1.5;
+        }
+        .informe-alumno-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+        .informe-alumno-field label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.35rem;
+        }
+        .informe-alumno-field select,
+        .informe-alumno-field input {
+            padding: 0.5rem 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            min-width: 160px;
+        }
+        .informe-alumno-field select:focus,
+        .informe-alumno-field input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .informe-alumno-btn {
+            padding: 0.55rem 1.25rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .informe-alumno-btn:hover {
+            opacity: 0.92;
+        }
+        @media (max-width: 520px) {
+            .informe-alumno-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .informe-alumno-btn {
+                width: 100%;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="informe-alumno-wrap">
+    <div class="informe-alumno-header">
+        <h1><i class="fas fa-file-chart-line"></i> Informe mensual</h1>
+    </div>
+    <div class="informe-alumno-card">
+        <p>
+            Genera tu informe mensual: estadísticas del mes, exámenes, tareas y temas con más fallos. Solo incluye tu actividad.
+        </p>
+        <form method="get" action="{{ path('app_informe_mensual_alumno_generar') }}" target="_blank" class="informe-alumno-form">
+            <div class="informe-alumno-field">
+                <label for="informe_mes">Mes</label>
+                <select name="mes" id="informe_mes">
+                    {% for i in 1..12 %}
+                        <option value="{{ i }}" {% if i == mesActual %}selected{% endif %}>
+                            {% set meses = {
+                                1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+                                5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+                                9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+                            } %}
+                            {{ meses[i] }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="informe-alumno-field">
+                <label for="informe_anio">Año</label>
+                <input type="number" name="anio" id="informe_anio" value="{{ anioActual }}" min="2000" max="2100">
+            </div>
+            <button type="submit" class="informe-alumno-btn">
+                <i class="fas fa-file-pdf"></i> Generar PDF
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
