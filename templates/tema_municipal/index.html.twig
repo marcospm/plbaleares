@@ -151,6 +151,16 @@
                     <button type="submit" class="btn" style="background: white; color: #667eea; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; min-height: 48px; font-size: 1rem; transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         Filtrar
                     </button>
+                    
+                    {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_PROFESOR') %}
+                        <a
+                            href="{{ path('app_tema_municipal_descargar_pdfs', {'convocatoria': convocatoriaSeleccionada, 'municipio': municipioSeleccionado}) }}"
+                            class="btn"
+                            style="background: #16a34a; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; min-height: 48px; font-size: 1rem; text-decoration: none; text-align: center;"
+                        >
+                            Descargar PDFs activos
+                        </a>
+                    {% endif %}
                     <a href="{{ path('app_tema_municipal_index') }}" class="btn" style="background: rgba(255,255,255,0.2); color: white; border: 2px solid white; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; min-height: 48px; font-size: 1rem; transition: all 0.3s; text-decoration: none; text-align: center;">
                         Limpiar
                     </a>
