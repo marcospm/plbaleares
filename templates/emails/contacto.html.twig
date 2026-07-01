@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Nuevo mensaje de contacto</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
+    <h2>Nuevo mensaje de contacto</h2>
+
+    <p><strong>Fecha:</strong> {{ mensaje.fechaCreacion|date('d/m/Y H:i') }}</p>
+    <p><strong>Nombre:</strong> {{ mensaje.nombre }}</p>
+    <p><strong>Email:</strong> {{ mensaje.email }}</p>
+    {% if mensaje.asunto %}
+        <p><strong>Asunto:</strong> {{ mensaje.asunto }}</p>
+    {% endif %}
+    {% if mensaje.usuario %}
+        <p><strong>Usuario registrado:</strong> {{ mensaje.usuario.nombreDisplay }}</p>
+    {% endif %}
+
+    <h3>Mensaje</h3>
+    <p style="white-space: pre-wrap;">{{ mensaje.mensaje }}</p>
+</body>
+</html>

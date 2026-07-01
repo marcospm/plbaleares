@@ -94,6 +94,11 @@ services:
     App\Controller\ExamenController:
         arguments:
             $cache: '@cache.redis'
+
+    App\Service\ContactoMailService:
+        arguments:
+            $contactEmail: '%env(CONTACT_EMAIL)%'
+            $mailerFrom: '%env(MAILER_FROM)%'
     
     # Configurar RedisController con los servicios de Redis
     # En producción (Upsun), cache.redis usa Redis y funcionará correctamente

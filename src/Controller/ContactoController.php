@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\MensajeContacto;
 use App\Form\MensajeContactoType;
 use App\Repository\MensajeContactoRepository;
+use App\Service\ContactoMailService;
 use App\Service\NotificacionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,7 +20,8 @@ class ContactoController extends AbstractController
     public function index(
         Request $request,
         EntityManagerInterface $entityManager,
-        NotificacionService $notificacionService
+        NotificacionService $notificacionService,
+        ContactoMailService $contactoMailService
     ): Response {
         $mensaje = new MensajeContacto();
         
@@ -39,6 +41,7 @@ class ContactoController extends AbstractController
 
             // Notificar a todos los administradores sobre el nuevo mensaje de contacto
             $notificacionService->crearNotificacionMensajeContacto($mensaje);
+            $contactoMailService->enviarMensajeContacto($mensaje);
 
             $this->addFlash('success', '¡Mensaje enviado correctamente! Te responderemos lo antes posible.');
             return $this->redirectToRoute('app_contacto');
