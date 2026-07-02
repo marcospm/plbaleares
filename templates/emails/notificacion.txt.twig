@@ -1,0 +1,11 @@
+Hola {{ destinatario.nombreDisplay }},
+
+Tienes una nueva notificación en la plataforma:
+
+{{ notificacion.titulo }}
+{{ notificacion.mensaje }}
+
+Fecha: {{ notificacion.fechaCreacion|date('d/m/Y H:i') }}
+
+---
+Este correo se ha enviado automáticamente. No respondas a este mensaje.

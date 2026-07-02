@@ -82,6 +82,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?\DateTimeInterface $ultimoLogin = null;
 
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $resetPasswordToken = null;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTimeInterface $resetPasswordExpiresAt = null;
+
     #[ORM\ManyToMany(targetEntity: Convocatoria::class, mappedBy: 'usuarios')]
     private Collection $convocatorias;
 
@@ -396,6 +402,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setUltimoLogin(?\DateTimeInterface $ultimoLogin): static
     {
         $this->ultimoLogin = $ultimoLogin;
+
+        return $this;
+    }
+
+    public function getResetPasswordToken(): ?string
+    {
+        return $this->resetPasswordToken;
+    }
+
+    public function setResetPasswordToken(?string $resetPasswordToken): static
+    {
+        $this->resetPasswordToken = $resetPasswordToken;
+
+        return $this;
+    }
+
+    public function getResetPasswordExpiresAt(): ?\DateTimeInterface
+    {
+        return $this->resetPasswordExpiresAt;
+    }
+
+    public function setResetPasswordExpiresAt(?\DateTimeInterface $resetPasswordExpiresAt): static
+    {
+        $this->resetPasswordExpiresAt = $resetPasswordExpiresAt;
 
         return $this;
     }

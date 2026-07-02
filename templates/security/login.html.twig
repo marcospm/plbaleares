@@ -9,6 +9,12 @@
             <h1>Iniciar Sesión</h1>
         </div>
         <div class="card-body">
+            {% if app.request.query.get('password_reset') == 'success' %}
+                <div class="alert alert-success">
+                    <strong>Perfecto:</strong> tu contraseña se ha actualizado correctamente. Ya puedes iniciar sesión.
+                </div>
+            {% endif %}
+
             {% if error %}
                 <div class="alert alert-danger">
                     <strong>Error:</strong> {{ error.messageKey|trans(error.messageData, 'security') }}
@@ -60,6 +66,10 @@
                             Iniciar Sesión
                         </button>
                         <a href="{{ path('app_home') }}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+
+                    <div style="margin-top: 1rem; text-align: center;">
+                        <a href="{{ path('app_forgot_password') }}">¿Olvidaste tu contraseña?</a>
                     </div>
                 </form>
 

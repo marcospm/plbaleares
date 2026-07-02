@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ notificacion.titulo }}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, Helvetica, sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f4f4f4; padding: 24px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                    <tr>
+                        <td style="background-color: #1a5276; padding: 20px 32px;">
+                            <h1 style="margin: 0; font-size: 20px; color: #ffffff; font-weight: 600;">
+                                Nueva notificación
+                            </h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 32px;">
+                            <p style="margin: 0 0 16px; font-size: 15px; color: #333;">
+                                Hola <strong>{{ destinatario.nombreDisplay }}</strong>,
+                            </p>
+                            <p style="margin: 0 0 24px; font-size: 15px; color: #555;">
+                                Tienes una nueva notificación en la plataforma:
+                            </p>
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8f9fa; border-left: 4px solid #1a5276; border-radius: 4px;">
+                                <tr>
+                                    <td style="padding: 20px 24px;">
+                                        <p style="margin: 0 0 8px; font-size: 13px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">
+                                            {{ notificacion.titulo }}
+                                        </p>
+                                        <p style="margin: 0; font-size: 15px; color: #333; line-height: 1.6; white-space: pre-wrap;">{{ notificacion.mensaje }}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin: 24px 0 0; font-size: 13px; color: #999;">
+                                Fecha: {{ notificacion.fechaCreacion|date('d/m/Y H:i') }}
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 16px 32px; border-top: 1px solid #eee;">
+                            <p style="margin: 0; font-size: 12px; color: #aaa; text-align: center;">
+                                Este correo se ha enviado automáticamente. No respondas a este mensaje.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

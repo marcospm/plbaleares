@@ -16,13 +16,19 @@ use App\Entity\User;
 use App\Repository\NotificacionRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
+use Symfony\Bridge\Twig\Mime\TemplatedEmail;
+use Symfony\Component\Mailer\MailerInterface;
 
 class NotificacionService
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
         private NotificacionRepository $notificacionRepository,
-        private UserRepository $userRepository
+        private UserRepository $userRepository,
+        private MailerInterface $mailer,
+        private LoggerInterface $logger,
+        private string $mailerFrom,
     ) {
     }
 
@@ -78,7 +84,7 @@ class NotificacionService
             $notificacion->setAlumno($alumno);
             $notificacion->setExamen($examen);
             
-            $this->entityManager->persist($notificacion);
+            $this->registrarNotificacion($notificacion);
         }
         
         $this->entityManager->flush();
@@ -114,7 +120,7 @@ class NotificacionService
             $notificacion->setAlumno($alumno);
             $notificacion->setTareaAsignada($tareaAsignada);
             
-            $this->entityManager->persist($notificacion);
+            $this->registrarNotificacion($notificacion);
         }
         
         $this->entityManager->flush();
@@ -160,7 +166,7 @@ class NotificacionService
             $notificacion->setAlumno($alumno);
             $notificacion->setArticulo($articulo);
             
-            $this->entityManager->persist($notificacion);
+            $this->registrarNotificacion($notificacion);
         }
         
         $this->entityManager->flush();
@@ -189,7 +195,7 @@ class NotificacionService
         $notificacion->setProfesor($profesor);
         $notificacion->setAlumno($alumno);
         
-        $this->entityManager->persist($notificacion);
+        $this->registrarNotificacion($notificacion);
         $this->entityManager->flush();
     }
 
@@ -219,7 +225,7 @@ class NotificacionService
         $notificacion->setAlumno($alumno);
         $notificacion->setPlanificacionSemanal(null); // Ya no usamos PlanificacionSemanal
         
-        $this->entityManager->persist($notificacion);
+        $this->registrarNotificacion($notificacion);
     }
 
     /**
@@ -248,7 +254,7 @@ class NotificacionService
         $notificacion->setAlumno($alumno);
         $notificacion->setPlanificacionSemanal(null);
         
-        $this->entityManager->persist($notificacion);
+        $this->registrarNotificacion($notificacion);
         $this->entityManager->flush();
     }
 
@@ -276,7 +282,7 @@ class NotificacionService
             $notificacion->setProfesor(null);
             $notificacion->setAlumno($alumno);
             
-            $this->entityManager->persist($notificacion);
+            $this->registrarNotificacion($notificacion);
         }
         
         $this->entityManager->flush();
@@ -306,7 +312,7 @@ class NotificacionService
         $notificacion->setAlumno($alumno);
         $notificacion->setTarea($tarea);
         
-        $this->entityManager->persist($notificacion);
+        $this->registrarNotificacion($notificacion);
     }
 
     /**
@@ -339,7 +345,7 @@ class NotificacionService
             $notificacion->setAlumno($alumno);
             $notificacion->setTarea($tarea);
             
-            $this->entityManager->persist($notificacion);
+            $this->registrarNotificacion($notificacion);
         }
         
         $this->entityManager->flush();
@@ -369,7 +375,7 @@ class NotificacionService
             $notificacion->setProfesor(null);
             $notificacion->setAlumno($alumno);
             
-            $this->entityManager->persist($notificacion);
+            $this->registrarNotificacion($notificacion);
         }
         
         $this->entityManager->flush();
@@ -400,7 +406,7 @@ class NotificacionService
         $notificacion->setAlumno($alumno);
         $notificacion->setExamenSemanal($examenSemanal);
         
-        $this->entityManager->persist($notificacion);
+        $this->registrarNotificacion($notificacion);
     }
 
     /**
@@ -432,7 +438,7 @@ class NotificacionService
         $notificacion->setAlumno($alumno);
         $notificacion->setArticulo($articulo);
         
-        $this->entityManager->persist($notificacion);
+        $this->registrarNotificacion($notificacion);
         $this->entityManager->flush();
     }
 
@@ -476,7 +482,7 @@ class NotificacionService
             $notificacion->setAlumno($alumno);
             $notificacion->setPregunta($pregunta);
             
-            $this->entityManager->persist($notificacion);
+            $this->registrarNotificacion($notificacion);
         }
         
         $this->entityManager->flush();
@@ -511,7 +517,7 @@ class NotificacionService
         $notificacion->setAlumno($alumno);
         $notificacion->setPregunta($pregunta);
         
-        $this->entityManager->persist($notificacion);
+        $this->registrarNotificacion($notificacion);
         $this->entityManager->flush();
     }
 
@@ -541,7 +547,7 @@ class NotificacionService
             $notificacion->setProfesor(null);
             $notificacion->setAlumno($alumno);
             
-            $this->entityManager->persist($notificacion);
+            $this->registrarNotificacion($notificacion);
         }
         
         $this->entityManager->flush();
@@ -591,7 +597,7 @@ class NotificacionService
             $notificacion->setProfesor($administrador);
             $notificacion->setAlumno($nuevoUsuario); // Para referencia del nuevo usuario
             
-            $this->entityManager->persist($notificacion);
+            $this->registrarNotificacion($notificacion);
         }
         
         $this->entityManager->flush();
@@ -653,10 +659,51 @@ class NotificacionService
                 $notificacion->setAlumno($mensaje->getUsuario());
             }
             
-            $this->entityManager->persist($notificacion);
+            $this->registrarNotificacion($notificacion);
         }
         
         $this->entityManager->flush();
+    }
+
+    private function registrarNotificacion(Notificacion $notificacion): void
+    {
+        $this->entityManager->persist($notificacion);
+
+        $destinatario = $notificacion->getProfesor() ?? $notificacion->getAlumno();
+        if (!$destinatario instanceof User) {
+            return;
+        }
+
+        $this->enviarNotificacionPorEmail($destinatario, $notificacion);
+    }
+
+    private function enviarNotificacionPorEmail(User $destinatario, Notificacion $notificacion): void
+    {
+        $emailDestino = $destinatario->getEmail();
+        if (!$emailDestino) {
+            return;
+        }
+
+        $email = (new TemplatedEmail())
+            ->from($this->mailerFrom)
+            ->to($emailDestino)
+            ->subject(sprintf('[Notificacion] %s', $notificacion->getTitulo()))
+            ->htmlTemplate('emails/notificacion.html.twig')
+            ->textTemplate('emails/notificacion.txt.twig')
+            ->context([
+                'notificacion' => $notificacion,
+                'destinatario' => $destinatario,
+            ]);
+
+        try {
+            $this->mailer->send($email);
+        } catch (\Throwable $e) {
+            $this->logger->error('No se pudo enviar email de notificacion', [
+                'destinatario' => $emailDestino,
+                'tipo' => $notificacion->getTipo(),
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
 

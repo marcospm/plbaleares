@@ -48,6 +48,8 @@ security:
         # Permitir acceso público solo a login, registro, home, contacto y cookies
         - { path: ^/login, roles: PUBLIC_ACCESS }
         - { path: ^/register, roles: PUBLIC_ACCESS }
+        - { path: ^/forgot-password, roles: PUBLIC_ACCESS }
+        - { path: ^/reset-password, roles: PUBLIC_ACCESS }
         - { path: ^/$, roles: PUBLIC_ACCESS }
         - { path: ^/contacto, roles: PUBLIC_ACCESS }
         - { path: ^/cookies, roles: PUBLIC_ACCESS }
