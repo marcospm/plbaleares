@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Nueva solicitud de cuenta</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
+    <h2>Nueva solicitud de cuenta</h2>
+
+    <p><strong>Fecha:</strong> {{ fecha|date('d/m/Y H:i') }}</p>
+    <p><strong>Nombre:</strong> {{ solicitud.nombre }}</p>
+    <p><strong>Email:</strong> {{ solicitud.email }}</p>
+    {% if solicitud.telefono %}
+        <p><strong>Teléfono:</strong> {{ solicitud.telefono }}</p>
+    {% endif %}
+
+    <h3>Mensaje del opositor</h3>
+    <p style="white-space: pre-wrap;">{{ solicitud.mensaje }}</p>
+</body>
+</html>

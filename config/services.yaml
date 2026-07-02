@@ -100,6 +100,11 @@ services:
             $contactEmail: '%env(CONTACT_EMAIL)%'
             $mailerFrom: '%env(MAILER_FROM)%'
 
+    App\Service\SolicitudCuentaMailService:
+        arguments:
+            $contactEmail: '%env(CONTACT_EMAIL)%'
+            $mailerFrom: '%env(MAILER_FROM)%'
+
     App\Service\NotificacionService:
         arguments:
             $mailerFrom: '%env(MAILER_FROM)%'
