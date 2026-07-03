@@ -179,7 +179,7 @@
         <div class="info-grid">
             <div class="info-card">
                 <div class="info-label">📊 Total de Artículos</div>
-                <div class="info-value">{{ ley.articulos|length }} artículos</div>
+                <div class="info-value">{{ ley.articulos|filter(a => a.isActivo)|length }} artículos</div>
             </div>
 
             <div class="info-card">
@@ -264,10 +264,11 @@
         </div>
     {% endif %}
 
-    {% if ley.articulos|length > 0 %}
+    {% set articulosActivos = ley.articulos|filter(a => a.isActivo) %}
+    {% if articulosActivos|length > 0 %}
         <h2 class="section-title">📄 Artículos de esta Ley</h2>
         <div class="alert alert-info">
-            <strong>{{ ley.articulos|length }}</strong> artículo(s) disponible(s).
+            <strong>{{ articulosActivos|length }}</strong> artículo(s) disponible(s).
             <a href="{{ path('app_articulo_publico_index', {'ley': ley.id}) }}" class="btn btn-primary btn-sm ms-2">
                 Ver Artículos
             </a>
@@ -277,7 +278,7 @@
                 <div class="card-body">
                     <h4 style="color: #ffc107; margin-bottom: 1rem;">Artículos destacados (afectados por última actualización):</h4>
                     <ul>
-                        {% for item in articulos_afectados %}
+                        {% for item in articulos_afectados|filter(item => item.articulo.isActivo) %}
                             {% set articulo = item.articulo %}
                             <li style="margin-bottom: 0.5rem;">
                                 <a href="{{ path('app_articulo_publico_show', {'id': articulo.id}) }}" style="font-weight: 600;">

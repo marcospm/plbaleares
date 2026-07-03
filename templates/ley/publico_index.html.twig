@@ -264,7 +264,7 @@
                     <div class="ley-info">
                         <div class="info-item">
                             <span class="info-label">📊 Artículos</span>
-                            <span class="info-value">{{ item.ley.articulos|length }} artículos</span>
+                            <span class="info-value">{{ item.ley.articulos|filter(a => a.isActivo)|length }} artículos</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">📚 Temas</span>

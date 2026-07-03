@@ -2,16 +2,25 @@
 
 namespace App\Twig;
 
+use App\Entity\Ley;
+use App\Service\BoeLeyService;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 use Twig\TwigFilter;
 
 class AppExtension extends AbstractExtension
 {
+    public function __construct(
+        private BoeLeyService $boeLeyService,
+    ) {
+    }
+
     public function getFunctions(): array
     {
         return [
             new TwigFunction('ofuscar_nombre', [$this, 'ofuscarNombre']),
+            new TwigFunction('ley_actualizada_recientemente', [$this, 'leyActualizadaRecientemente']),
+            new TwigFunction('info_actualizacion_ley', [$this, 'infoActualizacionLey']),
         ];
     }
 
@@ -37,6 +46,27 @@ class AppExtension extends AbstractExtension
         $numero = hexdec(substr($hash, 0, 8)) % 9999;
         
         return 'Usuario #' . str_pad((string)$numero, 4, '0', STR_PAD_LEFT);
+    }
+
+    public function leyActualizadaRecientemente(?Ley $ley, ?int $ano = null): bool
+    {
+        if (!$ley) {
+            return false;
+        }
+
+        return $this->boeLeyService->isLeyActualizadaEnAno($ley, $ano);
+    }
+
+    /**
+     * @return array{ano: int, fecha: \DateTime, ley_nombre: string}|null
+     */
+    public function infoActualizacionLey(?Ley $ley, ?int $ano = null): ?array
+    {
+        if (!$ley) {
+            return null;
+        }
+
+        return $this->boeLeyService->getInfoActualizacionLey($ley, $ano);
     }
 
     /**

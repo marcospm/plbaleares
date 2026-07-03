@@ -41,6 +41,9 @@
                     {% for articulo in ley.articulos %}
                         <li>
                             <a href="{{ path('app_articulo_show', {'id': articulo.id}) }}">Art. {{ articulo.getNumeroCompleto() }}</a>
+                            {% if not articulo.isActivo %}
+                                <span class="badge badge-danger" style="background-color: var(--color-danger); margin-left: 0.5rem;">Inactivo</span>
+                            {% endif %}
                             {% set articuloAfectado = articulos_afectados|filter(a => a.articulo.id == articulo.id)|first %}
                             {% if articuloAfectado %}
                                 <span class="badge badge-warning" style="background-color: #ffc107; color: #000; margin-left: 0.5rem;">Afectado</span>

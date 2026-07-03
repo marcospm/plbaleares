@@ -332,11 +332,8 @@ class PreguntaController extends AbstractController
             return new JsonResponse([], Response::HTTP_NOT_FOUND);
         }
 
-        // Obtener todos los artículos de esta ley, ordenados por número
-        $articulos = $articuloRepository->findBy(
-            ['ley' => $ley],
-            ['numero' => 'ASC', 'sufijo' => 'ASC']
-        );
+        // Obtener artículos activos de esta ley, ordenados por número
+        $articulos = $articuloRepository->findActivosByLey($leyId);
         
         $articulosData = array_map(function($articulo) {
             $label = 'Art. ' . $articulo->getNumeroCompleto();

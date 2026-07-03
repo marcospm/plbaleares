@@ -130,6 +130,7 @@ class ArticuloController extends AbstractController
     #[Route('/{id}', name: 'app_articulo_show', methods: ['GET'])]
     public function show(
         Articulo $articulo,
+        ArticuloRepository $articuloRepository,
         MensajeArticuloRepository $mensajeArticuloRepository,
         Request $request
     ): Response {
@@ -152,11 +153,13 @@ class ArticuloController extends AbstractController
 
         $mensajes = $mensajeArticuloRepository->findMensajesPrincipales($articulo);
         $totalMensajes = count($mensajes);
+        $totalPreguntas = $articuloRepository->countPreguntasAsociadas($articulo);
         
         return $this->render('articulo/show.html.twig', [
             'articulo' => $articulo,
             'mensajes' => $mensajes,
             'totalMensajes' => $totalMensajes,
+            'totalPreguntas' => $totalPreguntas,
             'filtros' => $filtros,
         ]);
     }
@@ -251,15 +254,23 @@ class ArticuloController extends AbstractController
             $entityManager->flush();
 
             $estado = $articulo->isActivo() ? 'activado' : 'desactivado';
-            $this->addFlash('success', "El artículo '{$articulo->getNumero()}' ha sido {$estado} correctamente.");
+            $this->addFlash('success', "El artículo '{$articulo->getNumeroCompleto()}' ha sido {$estado} correctamente.");
+        }
+
+        if ($request->query->get('return') === 'show') {
+            return $this->redirectToRoute('app_articulo_show', ['id' => $articulo->getId()] + $filtros, Response::HTTP_SEE_OTHER);
         }
 
         return $this->redirectToRoute('app_articulo_index', $filtros, Response::HTTP_SEE_OTHER);
     }
 
     #[Route('/{id}', name: 'app_articulo_delete', methods: ['POST'])]
-    public function delete(Request $request, Articulo $articulo, EntityManagerInterface $entityManager): Response
-    {
+    public function delete(
+        Request $request,
+        Articulo $articulo,
+        ArticuloRepository $articuloRepository,
+        EntityManagerInterface $entityManager
+    ): Response {
         // Obtener parámetros de filtro de la query string
         $filtros = [];
         if ($request->query->get('search')) {
@@ -278,6 +289,17 @@ class ArticuloController extends AbstractController
         }
 
         if ($this->isCsrfTokenValid('delete'.$articulo->getId(), $request->getPayload()->get('_token'))) {
+            $totalPreguntas = $articuloRepository->countPreguntasAsociadas($articulo);
+
+            if ($totalPreguntas > 0) {
+                $this->addFlash(
+                    'error',
+                    "No se puede eliminar este artículo porque tiene {$totalPreguntas} pregunta(s) asociada(s) (exámenes, historial, etc.). Desactívalo en su lugar: dejará de mostrarse en la app pero se conservará para las preguntas existentes."
+                );
+
+                return $this->redirectToRoute('app_articulo_show', ['id' => $articulo->getId()] + $filtros, Response::HTTP_SEE_OTHER);
+            }
+
             $entityManager->remove($articulo);
             $entityManager->flush();
             $this->addFlash('success', 'Artículo eliminado correctamente.');

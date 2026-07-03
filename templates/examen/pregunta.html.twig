@@ -149,6 +149,10 @@
                                 {% endif %}
                             </div>
                         {% endif %}
+
+                        {% if pregunta.ley is defined and pregunta.ley %}
+                            {% include 'partials/_aviso_ley_actualizada.html.twig' with { ley: pregunta.ley, compact: true } %}
+                        {% endif %}
                         
                         {# Checkbox "Me la juego" #}
                         <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(133, 100, 4, 0.2);">

@@ -21,6 +21,7 @@ use App\Entity\ExamenBorrador;
 use App\Service\NotificacionService;
 use App\Service\ConfiguracionExamenService;
 use App\Service\PreguntaRiesgoService;
+use App\Service\BoeLeyService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -49,6 +50,7 @@ class ExamenController extends AbstractController
         private NotificacionService $notificacionService,
         private PreguntaRiesgoService $preguntaRiesgoService,
         private PreguntaRiesgoRepository $preguntaRiesgoRepository,
+        private BoeLeyService $boeLeyService,
         private ?CacheItemPoolInterface $cache = null
     ) {
     }
@@ -788,6 +790,23 @@ class ExamenController extends AbstractController
                     $explicacion = $pregunta->getArticulo()->getExplicacion();
                     $textoLegal = $pregunta->getArticulo()->getTextoLegal();
                 }
+
+                $leyActualizada = false;
+                $infoActualizacionLey = null;
+                if (!$esMunicipal && $pregunta->getLey()) {
+                    $ley = $pregunta->getLey();
+                    $leyActualizada = $this->boeLeyService->isLeyActualizadaEnAno($ley);
+                    if ($leyActualizada) {
+                        $info = $this->boeLeyService->getInfoActualizacionLey($ley);
+                        if ($info) {
+                            $infoActualizacionLey = [
+                                'ano' => $info['ano'],
+                                'fecha' => $info['fecha']->format('d/m/Y'),
+                                'ley_nombre' => $info['ley_nombre'],
+                            ];
+                        }
+                    }
+                }
                 
                 // Obtener la respuesta actual del alumno
                 $respuestaActual = $respuestas[$pregunta->getId()] ?? null;
@@ -834,6 +853,8 @@ class ExamenController extends AbstractController
                     'retroalimentacion' => $retroalimentacion,
                     'explicacion' => $explicacion,
                     'textoLegal' => $textoLegal,
+                    'leyActualizada' => $leyActualizada,
+                    'infoActualizacionLey' => $infoActualizacionLey,
                     'estadoPreguntas' => $estadoPreguntas,
                 ]);
             }

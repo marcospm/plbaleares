@@ -1,0 +1,14 @@
+{# Aviso cuando la ley o reglamento ha sufrido modificaciones recientes en el BOE #}
+{% if ley is defined and ley and ley_actualizada_recientemente(ley) %}
+    {% set infoActualizacion = info_actualizacion_ley(ley) %}
+    {% set esCompacto = compact is defined and compact %}
+    <div class="aviso-ley-actualizada" style="{% if esCompacto %}margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid rgba(133, 100, 4, 0.25);{% else %}margin-top: 0.75rem; padding: 0.75rem; background: rgba(255, 152, 0, 0.08); border-radius: 4px; border-left: 3px solid #ff9800;{% endif %}">
+        <div style="color: #e65100; font-size: {% if esCompacto %}0.82rem{% else %}0.85rem{% endif %}; font-weight: 600; margin-bottom: 0.35rem;">
+            ⚠️ Norma actualizada{% if infoActualizacion %} en {{ infoActualizacion.ano }}{% endif %}
+        </div>
+        <p style="margin: 0; color: {% if esCompacto %}#856404{% else %}#5d4037{% endif %}; font-size: {% if esCompacto %}0.8rem{% else %}0.85rem{% endif %}; line-height: 1.5;">
+            <strong>{{ infoActualizacion.ley_nombre|default(ley.nombre) }}</strong> ha tenido cambios en el BOE.
+            La plataforma está actualizada; si esta pregunta no lo está, <strong>repórtala</strong>{% if esCompacto %} con el formulario de abajo{% else %} usando el formulario de reporte de errores{% endif %}.
+        </p>
+    </div>
+{% endif %}

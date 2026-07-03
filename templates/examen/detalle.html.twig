@@ -345,6 +345,10 @@
                         </div>
                     {% endif %}
 
+                    {% if not esMunicipal and not esConvocatoria and item.pregunta.ley is defined and item.pregunta.ley %}
+                        {% include 'partials/_aviso_ley_actualizada.html.twig' with { ley: item.pregunta.ley, compact: true } %}
+                    {% endif %}
+
                     {% if not esMunicipal and not esConvocatoria and item.pregunta.articulo is defined and item.pregunta.articulo %}
                         {% if item.pregunta.articulo.explicacion or item.pregunta.articulo.textoLegal %}
                         <details style="margin-top: 1rem;">

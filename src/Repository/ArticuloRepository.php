@@ -17,6 +17,33 @@ class ArticuloRepository extends ServiceEntityRepository
     }
 
     /**
+     * @return Articulo[]
+     */
+    public function findActivosByLey(int $leyId): array
+    {
+        return $this->createQueryBuilder('a')
+            ->where('a.ley = :leyId')
+            ->andWhere('a.activo = :activo')
+            ->setParameter('leyId', $leyId)
+            ->setParameter('activo', true)
+            ->orderBy('a.numero', 'ASC')
+            ->addOrderBy('a.sufijo', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function countPreguntasAsociadas(Articulo $articulo): int
+    {
+        return (int) $this->getEntityManager()->createQueryBuilder()
+            ->select('COUNT(p.id)')
+            ->from(\App\Entity\Pregunta::class, 'p')
+            ->where('p.articulo = :articulo')
+            ->setParameter('articulo', $articulo)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    /**
      * Obtiene artículos activos ordenados por número
      * 
      * @param int|null $leyId ID de la ley para filtrar (opcional)

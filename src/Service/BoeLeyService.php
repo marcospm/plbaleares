@@ -6,6 +6,8 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Cache\CacheItemPoolInterface;
+use App\Entity\Articulo;
+use App\Entity\Ley;
 use App\Repository\LeyRepository;
 use App\Repository\ArticuloRepository;
 use \SimpleXMLElement;
@@ -399,6 +401,191 @@ class BoeLeyService
             'articulos_afectados' => $elementosAfectados['articulos'],
             'otros_afectados' => $elementosAfectados['otros'],
         ];
+    }
+
+    /**
+     * Comprueba si una ley o reglamento ha tenido actualizaciones en el BOE en un año concreto.
+     * Por defecto usa el año en curso.
+     */
+    public function isLeyActualizadaEnAno(Ley $ley, ?int $ano = null): bool
+    {
+        if (!$ley->getId() || !$ley->getBoeLink()) {
+            return false;
+        }
+
+        $ano = $ano ?? (int) date('Y');
+        $info = $this->getUltimaActualizacionLeyEnAno($ley->getId(), $ano);
+
+        return $info !== null;
+    }
+
+    /**
+     * Devuelve información de la última actualización BOE de una ley en un año, o null si no aplica.
+     *
+     * @return array{ano: int, fecha: \DateTime, ley_nombre: string}|null
+     */
+    public function getInfoActualizacionLey(Ley $ley, ?int $ano = null): ?array
+    {
+        if (!$ley->getId()) {
+            return null;
+        }
+
+        $ano = $ano ?? (int) date('Y');
+
+        return $this->getUltimaActualizacionLeyEnAno($ley->getId(), $ano);
+    }
+
+    /**
+     * @return array{ano: int, fecha: \DateTime, ley_nombre: string}|null
+     */
+    private function getUltimaActualizacionLeyEnAno(int $leyId, int $ano): ?array
+    {
+        $cacheKey = self::CACHE_PREFIX . 'actualizada_' . $leyId . '_' . $ano;
+        $cacheItem = $this->cache->getItem($cacheKey);
+
+        if ($cacheItem->isHit()) {
+            $cached = $cacheItem->get();
+            if ($cached === false) {
+                return null;
+            }
+
+            return [
+                'ano' => $cached['ano'],
+                'fecha' => new \DateTime($cached['fecha']),
+                'ley_nombre' => $cached['ley_nombre'],
+            ];
+        }
+
+        $ley = $this->leyRepository->find($leyId);
+        if (!$ley || !$ley->getBoeLink()) {
+            $cacheItem->set(false);
+            $cacheItem->expiresAfter(self::CACHE_TTL);
+            $this->cache->save($cacheItem);
+
+            return null;
+        }
+
+        $xml = $this->getXmlCached($leyId);
+        if ($xml === null) {
+            $cacheItem->set(false);
+            $cacheItem->expiresAfter(self::CACHE_TTL);
+            $this->cache->save($cacheItem);
+
+            return null;
+        }
+
+        $ultimaActualizacion = $this->getUltimaActualizacion($leyId, $xml);
+        if ($ultimaActualizacion === null || (int) $ultimaActualizacion->format('Y') !== $ano) {
+            $cacheItem->set(false);
+            $cacheItem->expiresAfter(self::CACHE_TTL);
+            $this->cache->save($cacheItem);
+
+            return null;
+        }
+
+        $info = [
+            'ano' => $ano,
+            'fecha' => $ultimaActualizacion->format('Y-m-d'),
+            'ley_nombre' => $ley->getNombre() ?? '',
+        ];
+
+        $cacheItem->set($info);
+        $cacheItem->expiresAfter(self::CACHE_TTL);
+        $this->cache->save($cacheItem);
+
+        return [
+            'ano' => $ano,
+            'fecha' => $ultimaActualizacion,
+            'ley_nombre' => $ley->getNombre() ?? '',
+        ];
+    }
+
+    /**
+     * Comprueba si un artículo ha sido afectado por una actualización del BOE en un año concreto.
+     * Por defecto usa el año en curso.
+     */
+    public function isArticuloAfectadoEnAno(Articulo $articulo, ?int $ano = null): bool
+    {
+        $ley = $articulo->getLey();
+        if (!$ley || !$ley->getId()) {
+            return false;
+        }
+
+        $ano = $ano ?? (int) date('Y');
+        $idsAfectados = $this->getArticulosAfectadosIdsPorAno($ley->getId(), $ano);
+
+        return in_array($articulo->getId(), $idsAfectados, true);
+    }
+
+    /**
+     * Devuelve información de la modificación BOE de un artículo en un año, o null si no aplica.
+     *
+     * @return array{ano: int, fecha: \DateTime, ley_nombre: string}|null
+     */
+    public function getInfoModificacionArticulo(Articulo $articulo, ?int $ano = null): ?array
+    {
+        $ley = $articulo->getLey();
+        if (!$ley || !$ley->getId()) {
+            return null;
+        }
+
+        $ano = $ano ?? (int) date('Y');
+        if (!$this->isArticuloAfectadoEnAno($articulo, $ano)) {
+            return null;
+        }
+
+        $xml = $this->getXmlCached($ley->getId());
+        if ($xml === null) {
+            return null;
+        }
+
+        $ultimaActualizacion = $this->getUltimaActualizacion($ley->getId(), $xml);
+        if ($ultimaActualizacion === null || (int) $ultimaActualizacion->format('Y') !== $ano) {
+            return null;
+        }
+
+        return [
+            'ano' => $ano,
+            'fecha' => $ultimaActualizacion,
+            'ley_nombre' => $ley->getNombre() ?? '',
+        ];
+    }
+
+    /**
+     * Obtiene los IDs de artículos afectados por actualizaciones del BOE en un año.
+     *
+     * @return int[]
+     */
+    private function getArticulosAfectadosIdsPorAno(int $leyId, int $ano): array
+    {
+        $cacheKey = self::CACHE_PREFIX . 'afectados_ids_' . $leyId . '_' . $ano;
+        $cacheItem = $this->cache->getItem($cacheKey);
+
+        if ($cacheItem->isHit()) {
+            return $cacheItem->get();
+        }
+
+        $xml = $this->getXmlCached($leyId);
+        if ($xml === null) {
+            return [];
+        }
+
+        $ultimaActualizacion = $this->getUltimaActualizacion($leyId, $xml);
+        if ($ultimaActualizacion === null || (int) $ultimaActualizacion->format('Y') !== $ano) {
+            $ids = [];
+        } else {
+            $elementos = $this->getArticulosAfectados($leyId, $xml, $ultimaActualizacion);
+            $ids = array_values(array_filter(array_map(
+                static fn (array $item): ?int => $item['articulo']?->getId(),
+                $elementos['articulos']
+            )));
+        }
+
+        $cacheItem->set($ids);
+        $cacheItem->expiresAfter(self::CACHE_TTL);
+        $this->cache->save($cacheItem);
+
+        return $ids;
     }
 
     /**
