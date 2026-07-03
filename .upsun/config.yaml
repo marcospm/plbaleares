@@ -56,6 +56,10 @@ applications:
         APP_ENV: "prod"
         APP_DEBUG: "0"
         APP_SECRET: "a4f9fd292b86d214adcd16b1496e853dd56ecc807fae04e316b26a6079690b72"
+      php:
+        upload_max_filesize: 100M
+        post_max_size: 105M
+        max_input_vars: 10000
 
     hooks:
       build: |

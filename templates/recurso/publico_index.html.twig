@@ -401,7 +401,11 @@
                                                             {{ recurso.descripcion|slice(0, 80) }}{% if recurso.descripcion|length > 80 %}...{% endif %}
                                                         </p>
                                                     {% endif %}
-                                                    {% if recurso.nombreArchivoOriginal %}
+                                                    {% if recurso.tieneEnlace %}
+                                                        <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.8rem;">
+                                                            <strong>Enlace externo</strong>
+                                                        </p>
+                                                    {% elseif recurso.nombreArchivoOriginal %}
                                                         <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.8rem;">
                                                             <strong>Archivo:</strong> {{ recurso.nombreArchivoOriginal }}
                                                         </p>
@@ -411,7 +415,11 @@
                                                     </p>
                                                 </div>
                                                 <div>
-                                                    {% if recurso.rutaArchivo %}
+                                                    {% if recurso.tieneEnlace %}
+                                                        <a href="{{ recurso.enlace }}" target="_blank" class="btn btn-sm" style="background-color: #FF9800; color: white; border: none;" rel="noopener noreferrer">
+                                                            Abrir enlace
+                                                        </a>
+                                                    {% elseif recurso.tieneArchivo %}
                                                         <a href="{{ recurso.rutaArchivo }}" target="_blank" class="btn btn-sm" style="background-color: #FF9800; color: white; border: none;" rel="noopener noreferrer">
                                                             Descargar
                                                         </a>

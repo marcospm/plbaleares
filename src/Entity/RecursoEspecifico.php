@@ -22,8 +22,11 @@ class RecursoEspecifico
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $descripcion = null;
 
-    #[ORM\Column(length: 500)]
+    #[ORM\Column(length: 500, nullable: true)]
     private ?string $rutaArchivo = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $enlace = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $nombreArchivoOriginal = null;
@@ -83,11 +86,33 @@ class RecursoEspecifico
         return $this->rutaArchivo;
     }
 
-    public function setRutaArchivo(string $rutaArchivo): static
+    public function setRutaArchivo(?string $rutaArchivo): static
     {
         $this->rutaArchivo = $rutaArchivo;
 
         return $this;
+    }
+
+    public function getEnlace(): ?string
+    {
+        return $this->enlace;
+    }
+
+    public function setEnlace(?string $enlace): static
+    {
+        $this->enlace = $enlace;
+
+        return $this;
+    }
+
+    public function tieneArchivo(): bool
+    {
+        return $this->rutaArchivo !== null && $this->rutaArchivo !== '';
+    }
+
+    public function tieneEnlace(): bool
+    {
+        return $this->enlace !== null && trim($this->enlace) !== '';
     }
 
     public function getNombreArchivoOriginal(): ?string

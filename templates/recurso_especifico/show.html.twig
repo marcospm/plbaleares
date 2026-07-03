@@ -20,27 +20,20 @@
         </div>
 
         <div style="margin-bottom: 1.5rem;">
-            <h3>Archivo</h3>
-            {% if recursoEspecifico.rutaArchivo %}
+            <h3>Contenido</h3>
+            {% if recursoEspecifico.tieneEnlace %}
                 <p>
+                    <strong>Tipo:</strong> Enlace externo<br>
+                    <a href="{{ recursoEspecifico.enlace }}" target="_blank" class="btn btn-primary" rel="noopener noreferrer">Abrir enlace</a>
+                </p>
+            {% elseif recursoEspecifico.tieneArchivo %}
+                <p>
+                    <strong>Tipo:</strong> Archivo adjunto<br>
                     <strong>Nombre:</strong> {{ recursoEspecifico.nombreArchivoOriginal ?? 'Sin nombre' }}<br>
-                    <a href="{{ recursoEspecifico.rutaArchivo }}" target="_blank" class="btn btn-primary" rel="noopener noreferrer">Descargar Archivo</a>
+                    <a href="{{ recursoEspecifico.rutaArchivo }}" target="_blank" class="btn btn-primary" rel="noopener noreferrer">Descargar archivo</a>
                 </p>
             {% else %}
-                <p class="text-muted">No hay archivo asociado.</p>
-            {% endif %}
-        </div>
-
-        <div style="margin-bottom: 1.5rem;">
-            <h3>Alumnos Asignados</h3>
-            {% if recursoEspecifico.alumnos|length > 0 %}
-                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                    {% for alumno in recursoEspecifico.alumnos %}
-                        <span class="badge" style="background-color: var(--color-primary); font-size: 0.9rem;">{{ alumno.nombreDisplay }}</span>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p class="text-muted">No hay alumnos asignados.</p>
+                <p class="text-muted">No hay archivo ni enlace asociado.</p>
             {% endif %}
         </div>
 

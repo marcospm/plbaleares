@@ -7,11 +7,15 @@ use App\Entity\User;
 use App\Entity\Grupo;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\File;
 
 class RecursoEspecificoType extends AbstractType
 {
@@ -59,23 +63,60 @@ class RecursoEspecificoType extends AbstractType
                 ],
                 'help' => 'Selecciona alumnos adicionales si lo deseas. Si has seleccionado un grupo, todos los alumnos del grupo se asignarán automáticamente.'
             ])
+            ->add('tipoRecurso', ChoiceType::class, [
+                'label' => 'Tipo de recurso',
+                'mapped' => false,
+                'choices' => [
+                    'Archivo adjunto' => 'archivo',
+                    'Enlace externo' => 'enlace',
+                ],
+                'expanded' => true,
+                'data' => 'archivo',
+                'attr' => ['class' => 'tipo-recurso-options'],
+            ])
+            ->add('enlace', TextType::class, [
+                'label' => 'Enlace',
+                'required' => false,
+                'attr' => [
+                    'class' => 'form-control',
+                    'placeholder' => 'https://ejemplo.com/documento.pdf',
+                    'id' => 'recurso-enlace-input',
+                ],
+                'help' => 'URL del recurso (web, Drive, Dropbox, etc.).',
+            ])
             ->add('archivo', FileType::class, [
                 'label' => 'Archivo',
-                'required' => $options['require_file'],
+                'required' => false,
                 'mapped' => false,
                 'attr' => [
-                    'class' => 'form-control'
+                    'class' => 'form-control',
+                    'id' => 'recurso-archivo-input',
                 ],
-                'help' => 'Tamaño máximo: 50MB. Se aceptan cualquier tipo de archivo.'
+                'constraints' => [
+                    new File(
+                        maxSize: '100M',
+                        maxSizeMessage: 'El archivo es demasiado grande. Tamaño máximo: 100 MB.'
+                    ),
+                ],
+                'help' => 'Tamaño máximo: 100 MB. PDF u otro tipo de archivo.',
             ])
         ;
+
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event): void {
+            $recurso = $event->getData();
+            if (!$recurso instanceof RecursoEspecifico) {
+                return;
+            }
+
+            $tipo = $recurso->tieneEnlace() && !$recurso->tieneArchivo() ? 'enlace' : 'archivo';
+            $event->getForm()->get('tipoRecurso')->setData($tipo);
+        });
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
             'data_class' => RecursoEspecifico::class,
-            'require_file' => true,
             'alumnos_query_builder' => null,
             'grupos_query_builder' => null,
         ]);

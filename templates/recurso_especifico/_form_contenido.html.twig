@@ -1,0 +1,60 @@
+<div class="form-group">
+    {{ form_label(form.tipoRecurso) }}
+    <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+        {{ form_widget(form.tipoRecurso) }}
+    </div>
+    {{ form_errors(form.tipoRecurso) }}
+</div>
+
+<div id="bloque-archivo-recurso" class="form-group">
+    {{ form_label(form.archivo) }}
+    {% if recursoEspecifico is defined and recursoEspecifico.tieneArchivo %}
+        <div style="margin-bottom: 0.5rem; padding: 0.5rem; background-color: #e8f5e9; border-radius: 4px;">
+            <strong>Archivo actual:</strong> {{ recursoEspecifico.nombreArchivoOriginal ?? 'Archivo sin nombre' }}
+            <br>
+            <small>Deja este campo vacío si no deseas cambiar el archivo.</small>
+        </div>
+    {% endif %}
+    {{ form_widget(form.archivo) }}
+    {{ form_help(form.archivo) }}
+    {{ form_errors(form.archivo) }}
+</div>
+
+<div id="bloque-enlace-recurso" class="form-group" style="display: none;">
+    {{ form_label(form.enlace) }}
+    {% if recursoEspecifico is defined and recursoEspecifico.tieneEnlace %}
+        <div style="margin-bottom: 0.5rem; padding: 0.5rem; background-color: #e3f2fd; border-radius: 4px;">
+            <strong>Enlace actual:</strong>
+            <a href="{{ recursoEspecifico.enlace }}" target="_blank" rel="noopener noreferrer">{{ recursoEspecifico.enlace }}</a>
+        </div>
+    {% endif %}
+    {{ form_widget(form.enlace) }}
+    {{ form_help(form.enlace) }}
+    {{ form_errors(form.enlace) }}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const bloqueArchivo = document.getElementById('bloque-archivo-recurso');
+    const bloqueEnlace = document.getElementById('bloque-enlace-recurso');
+    const tipoInputs = document.querySelectorAll('input[name="recurso_especifico[tipoRecurso]"]');
+
+    function actualizarTipoRecurso() {
+        const seleccionado = document.querySelector('input[name="recurso_especifico[tipoRecurso]"]:checked');
+        const esEnlace = seleccionado && seleccionado.value === 'enlace';
+
+        if (bloqueArchivo) {
+            bloqueArchivo.style.display = esEnlace ? 'none' : 'block';
+        }
+        if (bloqueEnlace) {
+            bloqueEnlace.style.display = esEnlace ? 'block' : 'none';
+        }
+    }
+
+    tipoInputs.forEach(function(input) {
+        input.addEventListener('change', actualizarTipoRecurso);
+    });
+
+    actualizarTipoRecurso();
+});
+</script>
