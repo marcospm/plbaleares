@@ -17,6 +17,8 @@ use Symfony\Component\Routing\Attribute\Route;
 
 class PasswordResetController extends AbstractController
 {
+    private const RESET_TOKEN_TTL = '+1 hour';
+
     #[Route('/forgot-password', name: 'app_forgot_password', methods: ['GET', 'POST'])]
     public function forgotPassword(
         Request $request,
@@ -30,19 +32,19 @@ class PasswordResetController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $email = (string) $form->get('email')->getData();
-            $user = $userRepository->findOneBy(['email' => $email]);
+            // Evitar caché de usuarios: necesitamos una entidad managed fresca para persistir el token
+            $user = $userRepository->findActiveByEmail($email);
 
-            if ($user && !$user->isEliminado()) {
+            if ($user) {
                 $token = bin2hex(random_bytes(32));
+                $expiresAt = new \DateTimeImmutable(self::RESET_TOKEN_TTL);
+                // Doctrine datetime solo acepta DateTime mutable al persistir
                 $user->setResetPasswordToken($token);
-                $user->setResetPasswordExpiresAt((new \DateTime('+1 hour')));
+                $user->setResetPasswordExpiresAt(\DateTime::createFromImmutable($expiresAt));
                 $entityManager->flush();
 
-                $resetUrl = $this->generateUrl(
-                    'app_reset_password',
-                    ['token' => $token],
-                    \Symfony\Component\Routing\Generator\UrlGeneratorInterface::ABSOLUTE_URL
-                );
+                $resetUrl = $request->getSchemeAndHttpHost()
+                    . $this->generateUrl('app_reset_password', ['token' => $token]);
 
                 $emailMessage = (new TemplatedEmail())
                     ->from($mailerFrom)
@@ -67,7 +69,7 @@ class PasswordResetController extends AbstractController
         ]);
     }
 
-    #[Route('/reset-password/{token}', name: 'app_reset_password', methods: ['GET', 'POST'])]
+    #[Route('/reset-password/{token}', name: 'app_reset_password', methods: ['GET', 'POST'], requirements: ['token' => '[a-fA-F0-9]+'])]
     public function resetPassword(
         string $token,
         Request $request,
@@ -75,13 +77,14 @@ class PasswordResetController extends AbstractController
         EntityManagerInterface $entityManager,
         UserPasswordHasherInterface $passwordHasher,
     ): Response {
-        $user = $userRepository->findOneBy(['resetPasswordToken' => $token]);
+        $token = strtolower(trim($token));
+        $user = (strlen($token) === 64)
+            ? $userRepository->findActiveByResetPasswordToken($token)
+            : null;
+        $expiresAt = $user?->getResetPasswordExpiresAt();
 
-        if (
-            !$user
-            || !$user->getResetPasswordExpiresAt()
-            || $user->getResetPasswordExpiresAt() < new \DateTimeImmutable()
-        ) {
+        // Comparar por timestamp Unix: evita falsos "caducado" por DateTime vs DateTimeImmutable / TZ
+        if (!$user || !$expiresAt || $expiresAt->getTimestamp() < time()) {
             $this->addFlash('error', 'El enlace de recuperacion no es valido o ha caducado.');
 
             return $this->redirectToRoute('app_forgot_password');

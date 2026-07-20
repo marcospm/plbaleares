@@ -2,6 +2,13 @@
 framework:
     secret: '%env(APP_SECRET)%'
 
+    # Upsun/Platform.sh termina TLS en el proxy; confiar en X-Forwarded-* para URLs https correctas
+    trusted_proxies: '127.0.0.1,REMOTE_ADDR'
+    trusted_headers:
+        - x-forwarded-for
+        - x-forwarded-proto
+        - x-forwarded-port
+
     # Note that the session will be started ONLY if you read or write from it.
     session:
         enabled: true

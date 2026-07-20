@@ -11,8 +11,8 @@ class Kernel extends BaseKernel
     
     public function boot(): void
     {
-        parent::boot();
-        // Configurar zona horaria por defecto
+        // Zona horaria antes de bootear el contenedor (Doctrine/fechas)
         date_default_timezone_set('Europe/Madrid');
+        parent::boot();
     }
 }

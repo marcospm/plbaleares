@@ -83,6 +83,34 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     }
 
     /**
+     * Busca un usuario activo por email sin usar caché (p. ej. recuperación de contraseña).
+     */
+    public function findActiveByEmail(string $email): ?User
+    {
+        return $this->createQueryBuilder('u')
+            ->andWhere('u.email = :email')
+            ->andWhere('u.eliminado = :eliminado')
+            ->setParameter('email', $email)
+            ->setParameter('eliminado', false)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
+     * Busca un usuario activo por token de recuperación sin usar caché.
+     */
+    public function findActiveByResetPasswordToken(string $token): ?User
+    {
+        return $this->createQueryBuilder('u')
+            ->andWhere('u.resetPasswordToken = :token')
+            ->andWhere('u.eliminado = :eliminado')
+            ->setParameter('token', $token)
+            ->setParameter('eliminado', false)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
      * Busca un usuario incluyendo los eliminados (para validaciones)
      * Con caché para mejorar rendimiento del login
      */
