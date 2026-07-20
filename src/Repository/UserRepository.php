@@ -87,10 +87,12 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
      */
     public function findActiveByEmail(string $email): ?User
     {
+        $normalizedEmail = strtolower(trim($email));
+
         return $this->createQueryBuilder('u')
-            ->andWhere('u.email = :email')
+            ->andWhere('LOWER(u.email) = :email')
             ->andWhere('u.eliminado = :eliminado')
-            ->setParameter('email', $email)
+            ->setParameter('email', $normalizedEmail)
             ->setParameter('eliminado', false)
             ->getQuery()
             ->getOneOrNullResult();
