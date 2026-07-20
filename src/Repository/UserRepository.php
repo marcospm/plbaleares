@@ -111,6 +111,22 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     }
 
     /**
+     * Igual que findActiveByResetPasswordToken pero exige que el token no haya caducado (comparación en SQL).
+     */
+    public function findActiveByValidResetPasswordToken(string $token): ?User
+    {
+        return $this->createQueryBuilder('u')
+            ->andWhere('u.resetPasswordToken = :token')
+            ->andWhere('u.eliminado = :eliminado')
+            ->andWhere('u.resetPasswordExpiresAt > :now')
+            ->setParameter('token', $token)
+            ->setParameter('eliminado', false)
+            ->setParameter('now', new \DateTimeImmutable())
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
      * Busca un usuario incluyendo los eliminados (para validaciones)
      * Con caché para mejorar rendimiento del login
      */
