@@ -23,6 +23,7 @@ class UserController extends AbstractController
     {
         $search = $request->query->get('search', '');
         $mostrarTodos = $request->query->getBoolean('mostrar_todos', false);
+        $mostrarEliminados = $request->query->getBoolean('mostrar_eliminados', false);
 
         // Parámetros de paginación
         $itemsPerPage = 20; // Número de usuarios por página
@@ -33,7 +34,7 @@ class UserController extends AbstractController
         $activo = $mostrarTodos ? null : '1';
 
         // Obtener usuarios con paginación y filtros a nivel de base de datos
-        $result = $userRepository->findPaginated($search, $activo, $page, $itemsPerPage);
+        $result = $userRepository->findPaginated($search, $activo, $page, $itemsPerPage, $mostrarEliminados);
         $users = $result['users'];
         $totalItems = $result['total'];
         
@@ -45,6 +46,7 @@ class UserController extends AbstractController
             'users' => $users,
             'search' => $search,
             'mostrarTodos' => $mostrarTodos,
+            'mostrarEliminados' => $mostrarEliminados,
             'page' => $page,
             'totalPages' => $totalPages,
             'totalItems' => $totalItems,
@@ -66,7 +68,7 @@ class UserController extends AbstractController
                 ->findOneByIncludingDeleted(['username' => $user->getUsername()]);
 
             if ($existingUser) {
-                $this->addFlash('error', 'Este nombre de usuario ya está en uso. Por favor, elige otro.');
+                $this->addFlash('error', $this->formatExistingUserError('nombre de usuario', $existingUser));
                 return $this->render('user/new.html.twig', [
                     'user' => $user,
                     'form' => $form,
@@ -76,10 +78,10 @@ class UserController extends AbstractController
             // Verificar si el email ya existe (incluyendo eliminados)
             if ($user->getEmail()) {
                 $existingUserByEmail = $entityManager->getRepository(User::class)
-                    ->findOneByIncludingDeleted(['email' => $user->getEmail()]);
+                    ->findOneByEmailIncludingDeleted($user->getEmail());
 
                 if ($existingUserByEmail) {
-                    $this->addFlash('error', 'Este email ya está registrado. Por favor, usa otro email.');
+                    $this->addFlash('error', $this->formatExistingUserError('email', $existingUserByEmail));
                     return $this->render('user/new.html.twig', [
                         'user' => $user,
                         'form' => $form,
@@ -272,6 +274,36 @@ class UserController extends AbstractController
         }
 
         return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
+    }
+
+    private function formatExistingUserError(string $fieldLabel, User $existing): string
+    {
+        $estado = match (true) {
+            $existing->isEliminado() => 'eliminado',
+            !$existing->isActivo() => 'inactivo',
+            default => 'activo',
+        };
+
+        $message = sprintf(
+            'El %s ya está registrado. Usuario existente: «%s» (ID: %d)',
+            $fieldLabel,
+            $existing->getUsername(),
+            $existing->getId()
+        );
+
+        if ($existing->getEmail()) {
+            $message .= sprintf(', email: %s', $existing->getEmail());
+        }
+
+        $message .= sprintf('. Estado: %s.', $estado);
+
+        if ($existing->isEliminado()) {
+            $message .= ' No aparece en el listado porque fue eliminado. Activa «Mostrar eliminados» en la gestión de usuarios para encontrarlo.';
+        } elseif (!$existing->isActivo()) {
+            $message .= ' No aparece en el listado por defecto. Activa «Mostrar todos (incluyendo desactivados)» para encontrarlo.';
+        }
+
+        return $message;
     }
 }
 

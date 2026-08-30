@@ -396,24 +396,41 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     //    }
 
     /**
+     * Busca un usuario por email incluyendo eliminados (comparación sin distinguir mayúsculas).
+     */
+    public function findOneByEmailIncludingDeleted(string $email): ?User
+    {
+        $normalizedEmail = strtolower(trim($email));
+
+        return $this->createQueryBuilder('u')
+            ->andWhere('LOWER(u.email) = :email')
+            ->setParameter('email', $normalizedEmail)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
      * Busca usuarios con paginación y filtros
-     * @param string $search Término de búsqueda (username o nombre)
+     * @param string $search Término de búsqueda (username, nombre o email)
      * @param string|null $activo Filtro por estado activo ('1', '0' o null)
      * @param int $page Número de página (empezando en 1)
      * @param int $itemsPerPage Items por página
+     * @param bool $mostrarEliminados Si true, incluye usuarios con borrado lógico
      * @return array ['users' => User[], 'total' => int]
      */
-    public function findPaginated(?string $search = null, ?string $activo = null, int $page = 1, int $itemsPerPage = 20): array
+    public function findPaginated(?string $search = null, ?string $activo = null, int $page = 1, int $itemsPerPage = 20, bool $mostrarEliminados = false): array
     {
         $qb = $this->createQueryBuilder('u');
-        
-        // Siempre excluir usuarios eliminados
-        $qb->andWhere('u.eliminado = :eliminado')
-           ->setParameter('eliminado', false);
+
+        if (!$mostrarEliminados) {
+            $qb->andWhere('u.eliminado = :eliminado')
+               ->setParameter('eliminado', false);
+        }
         
         // Filtro por búsqueda
         if (!empty($search)) {
-            $qb->andWhere('(u.username LIKE :search OR u.nombre LIKE :search)')
+            $qb->andWhere('(u.username LIKE :search OR u.nombre LIKE :search OR u.email LIKE :search)')
                ->setParameter('search', '%' . $search . '%');
         }
         
