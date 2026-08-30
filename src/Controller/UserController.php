@@ -255,6 +255,25 @@ class UserController extends AbstractController
         ]);
     }
 
+    #[Route('/{id}/restaurar', name: 'app_user_restaurar', methods: ['POST'], requirements: ['id' => '\d+'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function restaurar(User $user, EntityManagerInterface $entityManager, Request $request): Response
+    {
+        if ($this->isCsrfTokenValid('restaurar'.$user->getId(), $request->getPayload()->getString('_token'))) {
+            if (!$user->isEliminado()) {
+                $this->addFlash('error', 'Este usuario no está eliminado.');
+                return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
+            }
+
+            $user->setEliminado(false);
+            $entityManager->flush();
+
+            $this->addFlash('success', "El usuario '{$user->getUsername()}' ha sido restaurado correctamente.");
+        }
+
+        return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
+    }
+
     #[Route('/{id}/eliminar', name: 'app_user_eliminar', methods: ['POST'], requirements: ['id' => '\d+'])]
     #[IsGranted('ROLE_ADMIN')]
     public function eliminar(User $user, EntityManagerInterface $entityManager, Request $request): Response
@@ -298,7 +317,7 @@ class UserController extends AbstractController
         $message .= sprintf('. Estado: %s.', $estado);
 
         if ($existing->isEliminado()) {
-            $message .= ' No aparece en el listado porque fue eliminado. Activa «Mostrar eliminados» en la gestión de usuarios para encontrarlo.';
+            $message .= ' No aparece en el listado porque fue eliminado. Activa «Mostrar eliminados» en la gestión de usuarios para encontrarlo y restaurarlo.';
         } elseif (!$existing->isActivo()) {
             $message .= ' No aparece en el listado por defecto. Activa «Mostrar todos (incluyendo desactivados)» para encontrarlo.';
         }

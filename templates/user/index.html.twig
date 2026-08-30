@@ -329,8 +329,14 @@
                                         </button>
                                     </form>
                                     {% endif %}
+                                    {% if is_granted('ROLE_ADMIN') and user.isEliminado %}
+                                        <form method="post" action="{{ path('app_user_restaurar', {'id': user.id}) }}" style="display: inline;" onsubmit="return confirm('¿Restaurar este usuario? Volverá a aparecer en el listado y podrá ser activado de nuevo.');">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('restaurar' ~ user.id) }}">
+                                            <button type="submit" class="btn btn-sm btn-success">Restaurar</button>
+                                        </form>
+                                    {% endif %}
                                     {% if is_granted('ROLE_ADMIN') and not user.isEliminado %}
-                                        <form method="post" action="{{ path('app_user_eliminar', {'id': user.id}) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer y el usuario no aparecerá en ningún lugar del sistema.');">
+                                        <form method="post" action="{{ path('app_user_eliminar', {'id': user.id}) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este usuario? El usuario dejará de aparecer en el listado hasta que sea restaurado.');">
                                             <input type="hidden" name="_token" value="{{ csrf_token('eliminar' ~ user.id) }}">
                                             <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
                                         </form>
@@ -420,8 +426,14 @@
                         </button>
                     </form>
                     {% endif %}
+                    {% if is_granted('ROLE_ADMIN') and user.isEliminado %}
+                        <form method="post" action="{{ path('app_user_restaurar', {'id': user.id}) }}" style="display: inline; width: 100%;" onsubmit="return confirm('¿Restaurar este usuario? Volverá a aparecer en el listado y podrá ser activado de nuevo.');">
+                            <input type="hidden" name="_token" value="{{ csrf_token('restaurar' ~ user.id) }}">
+                            <button type="submit" class="btn btn-sm btn-success" style="width: 100%;">Restaurar</button>
+                        </form>
+                    {% endif %}
                     {% if is_granted('ROLE_ADMIN') and not user.isEliminado %}
-                        <form method="post" action="{{ path('app_user_eliminar', {'id': user.id}) }}" style="display: inline; width: 100%;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer y el usuario no aparecerá en ningún lugar del sistema.');">
+                        <form method="post" action="{{ path('app_user_eliminar', {'id': user.id}) }}" style="display: inline; width: 100%;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este usuario? El usuario dejará de aparecer en el listado hasta que sea restaurado.');">
                             <input type="hidden" name="_token" value="{{ csrf_token('eliminar' ~ user.id) }}">
                             <button type="submit" class="btn btn-sm btn-danger" style="width: 100%;">Eliminar</button>
                         </form>
