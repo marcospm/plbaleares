@@ -45,9 +45,13 @@ class PlanificacionController extends AbstractController
         
         $usuarios = $userRepository->createQueryBuilder('u')
             ->where('u.activo = :activo')
-            ->andWhere('u.roles LIKE :role')
+            ->andWhere('u.eliminado = :eliminado')
+            ->andWhere('u.roles NOT LIKE :roleProfesor')
+            ->andWhere('u.roles NOT LIKE :roleAdmin')
             ->setParameter('activo', true)
-            ->setParameter('role', '%ROLE_USER%')
+            ->setParameter('eliminado', false)
+            ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+            ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
             ->orderBy('u.username', 'ASC')
             ->getQuery()
             ->getResult();
@@ -70,9 +74,13 @@ class PlanificacionController extends AbstractController
     ): Response {
         $usuarios = $userRepository->createQueryBuilder('u')
             ->where('u.activo = :activo')
-            ->andWhere('u.roles LIKE :role')
+            ->andWhere('u.eliminado = :eliminado')
+            ->andWhere('u.roles NOT LIKE :roleProfesor')
+            ->andWhere('u.roles NOT LIKE :roleAdmin')
             ->setParameter('activo', true)
-            ->setParameter('role', '%ROLE_USER%')
+            ->setParameter('eliminado', false)
+            ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+            ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
             ->orderBy('u.username', 'ASC')
             ->getQuery()
             ->getResult();

@@ -60,14 +60,18 @@ class PlanificacionFechaEspecificaType extends AbstractType
                 'choice_label' => 'username',
                 'placeholder' => 'Selecciona uno o más alumnos',
                 'query_builder' => function ($er) {
+                    // Alumnos = activos, no eliminados, sin rol profesor/admin.
+                    // No exigir ROLE_USER en BD: getRoles() lo añade en memoria y muchos
+                    // alumnos lo tienen vacío en la columna roles.
                     return $er->createQueryBuilder('u')
-                        ->where('u.roles LIKE :role')
-                        ->andWhere('u.activo = :activo')
-                        ->andWhere('(u.roles NOT LIKE :roleProfesor AND u.roles NOT LIKE :roleAdmin)')
-                        ->setParameter('role', '%ROLE_USER%')
-                        ->setParameter('roleProfesor', '%ROLE_PROFESOR%')
-                        ->setParameter('roleAdmin', '%ROLE_ADMIN%')
+                        ->where('u.activo = :activo')
+                        ->andWhere('u.eliminado = :eliminado')
+                        ->andWhere('u.roles NOT LIKE :roleProfesor')
+                        ->andWhere('u.roles NOT LIKE :roleAdmin')
                         ->setParameter('activo', true)
+                        ->setParameter('eliminado', false)
+                        ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+                        ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
                         ->orderBy('u.username', 'ASC');
                 },
                 'attr' => [
