@@ -38,7 +38,7 @@ services:
     App\Service\BoeLeyService:
         arguments:
             $cache: '@cache.app'
-    
+
     # Repositorios con cache para consultas comunes
     App\Repository\LeyRepository:
         arguments:

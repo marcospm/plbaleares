@@ -38,6 +38,7 @@ class PlanificacionAlumnoController extends AbstractController
         if (empty($planificaciones)) {
             return $this->render('planificacion_alumno/index.html.twig', [
                 'planificaciones' => [],
+                'planificacionesConDescripcion' => [],
                 'haySinHora' => false,
                 'franjasPorDia' => [],
                 'tareasPendientesPorSemana' => [],
@@ -147,8 +148,27 @@ class PlanificacionAlumnoController extends AbstractController
             }
         }
 
+        $domingoSemana = clone $lunesSemana;
+        $domingoSemana->modify('+6 days');
+        $planificacionesConDescripcion = [];
+        foreach ($planificaciones as $planificacion) {
+            $descripcion = $planificacion->getDescripcion();
+            $textoPlano = $descripcion === null ? '' : trim(html_entity_decode(strip_tags($descripcion), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            $textoPlano = preg_replace('/\x{00A0}/u', ' ', $textoPlano ?? '') ?? '';
+            if (trim($textoPlano) === '') {
+                continue;
+            }
+
+            $inicio = \DateTime::createFromInterface($planificacion->getFechaInicio())->setTime(0, 0, 0);
+            $fin = \DateTime::createFromInterface($planificacion->getFechaFin())->setTime(0, 0, 0);
+            if ($inicio <= $domingoSemana && $fin >= $lunesSemana) {
+                $planificacionesConDescripcion[] = $planificacion;
+            }
+        }
+
         return $this->render('planificacion_alumno/index.html.twig', [
             'planificaciones' => $planificaciones,
+            'planificacionesConDescripcion' => $planificacionesConDescripcion,
             'haySinHora' => $haySinHora,
             'franjasPorDia' => $franjasPorDia,
             'tareasPendientesPorSemana' => $tareasPendientesPorSemana,

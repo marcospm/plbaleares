@@ -144,6 +144,24 @@
                     <div class="badge badge-danger">Vencidas: {{ resumen.vencidas }}</div>
                 {% endif %}
             </div>
+
+            {% if planificacionesConDescripcion is defined and planificacionesConDescripcion|length > 0 %}
+                <div class="mt-3">
+                    {% for plan in planificacionesConDescripcion %}
+                        <div class="card mb-3" style="border-left: 4px solid var(--color-primary, #1a4d7a); background: #f8fbff;">
+                            <div class="card-body" style="padding: 1rem 1.25rem;">
+                                <div style="display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                                    <strong>Qué se debe hacer{% if plan.nombre %} — {{ plan.nombre }}{% endif %}</strong>
+                                    <span style="color: #6c757d; font-size: 0.9rem;">
+                                        {{ plan.fechaInicio|date('d/m/Y') }} - {{ plan.fechaFin|date('d/m/Y') }}
+                                    </span>
+                                </div>
+                                <div class="contenido-enriquecido">{{ plan.descripcion|raw }}</div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
 
         <div class="table-responsive">
