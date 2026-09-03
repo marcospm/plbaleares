@@ -28,14 +28,15 @@ class ActividadFechaEspecificaType extends AbstractType
                 ]
             ])
             ->add('horaInicio', TimeType::class, [
-                'label' => 'Hora Inicio',
-                'required' => true,
+                'label' => 'Hora Inicio (opcional)',
+                'required' => false,
                 'widget' => 'single_text',
                 'html5' => true,
+                'help' => 'Déjalo vacío para una actividad sin horario concreto.',
             ])
             ->add('horaFin', TimeType::class, [
-                'label' => 'Hora Fin',
-                'required' => true,
+                'label' => 'Hora Fin (opcional)',
+                'required' => false,
                 'widget' => 'single_text',
                 'html5' => true,
             ])
@@ -52,11 +53,11 @@ class ActividadFechaEspecificaType extends AbstractType
                 ]
             ])
             ->add('descripcionRepaso', TextareaType::class, [
-                'label' => 'Descripción',
+                'label' => 'Indicaciones',
                 'required' => false,
                 'attr' => [
                     'rows' => 2,
-                    'placeholder' => 'Descripción breve de la actividad...'
+                    'placeholder' => 'Texto breve de lo que debe hacer el alumno...'
                 ]
             ])
             ->add('temas', TextareaType::class, [
@@ -80,7 +81,7 @@ class ActividadFechaEspecificaType extends AbstractType
                 'required' => false,
                 'attr' => [
                     'rows' => 2,
-                    'placeholder' => 'Enlaces externos relevantes (uno por línea)...'
+                    'placeholder' => 'Enlaces externos (uno por línea, con https://)...'
                 ]
             ])
             ->add('notas', TextareaType::class, [

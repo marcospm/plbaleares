@@ -6,14 +6,11 @@ use App\Entity\PlanificacionPersonalizada;
 use App\Entity\User;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\Form\FormEvent;
-use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class PlanificacionFechaEspecificaType extends AbstractType
@@ -21,19 +18,8 @@ class PlanificacionFechaEspecificaType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $isEdit = $options['is_edit'] ?? false;
-        
+
         $builder
-            ->add('modo', ChoiceType::class, [
-                'label' => 'Tipo de planificación',
-                'required' => true,
-                'expanded' => true,
-                'multiple' => false,
-                'choices' => [
-                    'Por día y hora' => PlanificacionPersonalizada::MODO_HORARIO,
-                    'Por rango de fechas (sin horas)' => PlanificacionPersonalizada::MODO_RANGO,
-                ],
-                'help' => 'Elige si quieres definir actividades con horario o solo un periodo con lo que hay que hacer.',
-            ])
             ->add('nombre', TextType::class, [
                 'label' => 'Nombre de la Planificación',
                 'required' => true,
@@ -47,7 +33,7 @@ class PlanificacionFechaEspecificaType extends AbstractType
                 'attr' => [
                     'rows' => 8,
                     'class' => 'form-control tinymce-editor',
-                    'placeholder' => 'En modo rango, indica aquí lo que el alumno debe hacer durante esas fechas...'
+                    'placeholder' => 'Indica qué debe hacer el alumno. Puedes usar negrita, listas, enlaces, etc.'
                 ]
             ])
             ->add('fechaInicio', DateType::class, [
@@ -62,7 +48,7 @@ class PlanificacionFechaEspecificaType extends AbstractType
                 'widget' => 'single_text',
                 'html5' => true,
             ]);
-            
+
         // Solo agregar el campo de usuarios si no estamos editando
         if (!$isEdit) {
             $builder->add('usuarios', EntityType::class, [
@@ -71,7 +57,7 @@ class PlanificacionFechaEspecificaType extends AbstractType
                 'required' => true,
                 'multiple' => true,
                 'expanded' => false,
-                'mapped' => false, // No mapear a la entidad
+                'mapped' => false,
                 'choice_label' => 'username',
                 'placeholder' => 'Selecciona uno o más alumnos',
                 'query_builder' => function ($er) {
@@ -95,7 +81,7 @@ class PlanificacionFechaEspecificaType extends AbstractType
                 ]
             ]);
         }
-        
+
         $builder->add('franjasHorarias', CollectionType::class, [
             'entry_type' => ActividadFechaEspecificaType::class,
             'entry_options' => ['label' => false],
@@ -108,17 +94,6 @@ class PlanificacionFechaEspecificaType extends AbstractType
                 'class' => 'actividades-collection'
             ]
         ]);
-
-        $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
-            $data = $event->getData();
-            if (!is_array($data)) {
-                return;
-            }
-            if (($data['modo'] ?? null) === PlanificacionPersonalizada::MODO_RANGO) {
-                $data['franjasHorarias'] = [];
-                $event->setData($data);
-            }
-        });
     }
 
     public function configureOptions(OptionsResolver $resolver): void
@@ -127,8 +102,7 @@ class PlanificacionFechaEspecificaType extends AbstractType
             'data_class' => PlanificacionPersonalizada::class,
             'is_edit' => false,
         ]);
-        
+
         $resolver->setAllowedTypes('is_edit', 'bool');
     }
 }
-

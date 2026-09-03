@@ -95,8 +95,12 @@ class FranjaHorariaPersonalizadaRepository extends ServiceEntityRepository
     /**
      * Verifica si hay solapamiento de horarios en una fecha específica
      */
-    public function tieneSolapamiento(User $usuario, \DateTime $fecha, \DateTime $horaInicio, \DateTime $horaFin, ?int $excluirFranjaId = null): bool
+    public function tieneSolapamiento(User $usuario, \DateTime $fecha, ?\DateTimeInterface $horaInicio, ?\DateTimeInterface $horaFin, ?int $excluirFranjaId = null): bool
     {
+        if ($horaInicio === null || $horaFin === null) {
+            return false;
+        }
+
         $fechaNormalizada = clone $fecha;
         $fechaNormalizada->setTime(0, 0, 0);
         
@@ -106,6 +110,8 @@ class FranjaHorariaPersonalizadaRepository extends ServiceEntityRepository
             ->andWhere('f.fechaEspecifica = :fecha')
             ->andWhere('p.fechaInicio <= :fecha')
             ->andWhere('p.fechaFin >= :fecha')
+            ->andWhere('f.horaInicio IS NOT NULL')
+            ->andWhere('f.horaFin IS NOT NULL')
             ->andWhere('(f.horaInicio < :horaFin AND f.horaFin > :horaInicio)')
             ->setParameter('usuario', $usuario)
             ->setParameter('fecha', $fechaNormalizada)

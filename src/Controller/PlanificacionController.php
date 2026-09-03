@@ -149,11 +149,10 @@ class PlanificacionController extends AbstractController
                     $nuevaPlanificacion->setCreadoPor($creadoPor);
                     $nuevaPlanificacion->setNombre($planificacionOrigen->getNombre());
                     $nuevaPlanificacion->setDescripcion($planificacionOrigen->getDescripcion());
-                    $nuevaPlanificacion->setModo($planificacionOrigen->getModo());
                     $nuevaPlanificacion->setFechaInicio($planificacionOrigen->getFechaInicio());
                     $nuevaPlanificacion->setFechaFin($planificacionOrigen->getFechaFin());
 
-                    // Clonar todas las franjas horarias (solo aplica en modo horario)
+                    // Clonar todas las franjas horarias
                     foreach ($planificacionOrigen->getFranjasHorarias() as $franjaOrigen) {
                         $nuevaFranja = new \App\Entity\FranjaHorariaPersonalizada();
                         $nuevaFranja->setPlanificacion($nuevaPlanificacion);
@@ -228,11 +227,9 @@ class PlanificacionController extends AbstractController
             // Obtener datos de la planificación temporal
             $nombre = $planificacionTemp->getNombre();
             $descripcion = $planificacionTemp->getDescripcion();
-            $modo = $planificacionTemp->getModo() ?: PlanificacionPersonalizada::MODO_HORARIO;
             $fechaInicio = $planificacionTemp->getFechaInicio();
             $fechaFin = $planificacionTemp->getFechaFin();
             $franjasHorarias = $planificacionTemp->getFranjasHorarias();
-            $esModoRango = $modo === PlanificacionPersonalizada::MODO_RANGO;
 
             // Validar que se hayan seleccionado alumnos
             if (empty($usuarios)) {
@@ -250,17 +247,7 @@ class PlanificacionController extends AbstractController
                 ]);
             }
 
-            if ($esModoRango) {
-                $descripcionTexto = $descripcion === null ? '' : trim(html_entity_decode(strip_tags($descripcion), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
-                $descripcionTexto = preg_replace('/\x{00A0}/u', ' ', $descripcionTexto ?? '');
-                if ($descripcionTexto === null || trim($descripcionTexto) === '') {
-                    $this->addFlash('error', 'En el modo por rango de fechas debes indicar qué se debe hacer.');
-                    return $this->render('planificacion/new.html.twig', [
-                        'form' => $form,
-                    ]);
-                }
-            } elseif (empty($franjasHorarias) || (is_array($franjasHorarias) && count($franjasHorarias) === 0) || (is_object($franjasHorarias) && $franjasHorarias->count() === 0)) {
-                // Validar que haya al menos una actividad en modo horario
+            if (empty($franjasHorarias) || (is_array($franjasHorarias) && count($franjasHorarias) === 0) || (is_object($franjasHorarias) && $franjasHorarias->count() === 0)) {
                 $this->addFlash('error', 'Debes agregar al menos una actividad.');
                 return $this->render('planificacion/new.html.twig', [
                     'form' => $form,
@@ -279,42 +266,38 @@ class PlanificacionController extends AbstractController
                     $planificacion->setCreadoPor($creadoPor);
                     $planificacion->setNombre($nombre);
                     $planificacion->setDescripcion($descripcion);
-                    $planificacion->setModo($modo);
                     $planificacion->setFechaInicio($fechaInicio);
                     $planificacion->setFechaFin($fechaFin);
 
-                    if (!$esModoRango) {
-                        // Copiar las franjas horarias para este usuario
-                        foreach ($franjasHorarias as $franjaData) {
-                            $franja = new \App\Entity\FranjaHorariaPersonalizada();
-                            $franja->setPlanificacion($planificacion);
-                            $franja->setFechaEspecifica($franjaData->getFechaEspecifica());
-                            $franja->setHoraInicio($franjaData->getHoraInicio());
-                            $franja->setHoraFin($franjaData->getHoraFin());
-                            $franja->setTipoActividad($franjaData->getTipoActividad());
-                            $franja->setDescripcionRepaso($franjaData->getDescripcionRepaso());
-                            $franja->setTemas($franjaData->getTemas());
-                            $franja->setRecursos($franjaData->getRecursos());
-                            $franja->setEnlaces($franjaData->getEnlaces());
-                            $franja->setNotas($franjaData->getNotas());
-                            $franja->setOrden($franjaData->getOrden());
-                            $planificacion->addFranjaHoraria($franja);
-                        }
+                    foreach ($franjasHorarias as $franjaData) {
+                        $franja = new \App\Entity\FranjaHorariaPersonalizada();
+                        $franja->setPlanificacion($planificacion);
+                        $franja->setFechaEspecifica($franjaData->getFechaEspecifica());
+                        $franja->setHoraInicio($franjaData->getHoraInicio());
+                        $franja->setHoraFin($franjaData->getHoraFin());
+                        $franja->setTipoActividad($franjaData->getTipoActividad());
+                        $franja->setDescripcionRepaso($franjaData->getDescripcionRepaso());
+                        $franja->setTemas($franjaData->getTemas());
+                        $franja->setRecursos($franjaData->getRecursos());
+                        $franja->setEnlaces($franjaData->getEnlaces());
+                        $franja->setNotas($franjaData->getNotas());
+                        $franja->setOrden($franjaData->getOrden());
+                        $planificacion->addFranjaHoraria($franja);
+                    }
 
-                        // Validar fechas de actividades dentro del rango
-                        $erroresFechas = $planificacionService->validarFechasEnRango($planificacion);
-                        if (!empty($erroresFechas)) {
-                            $errores[] = "Alumno {$usuario->getUsername()}: " . implode(', ', $erroresFechas);
-                            continue;
-                        }
+                    // Validar fechas de actividades dentro del rango
+                    $erroresFechas = $planificacionService->validarFechasEnRango($planificacion);
+                    if (!empty($erroresFechas)) {
+                        $errores[] = "Alumno {$usuario->getUsername()}: " . implode(', ', $erroresFechas);
+                        continue;
+                    }
 
-                        // Validar solapamientos
-                        $franjasArray = $planificacion->getFranjasHorarias()->toArray();
-                        $erroresValidacion = $planificacionService->validarFranjas($franjasArray, $usuario);
-                        if (!empty($erroresValidacion)) {
-                            $errores[] = "Alumno {$usuario->getUsername()}: " . implode(', ', $erroresValidacion);
-                            continue;
-                        }
+                    // Validar solapamientos (solo aplica a actividades con horas)
+                    $franjasArray = $planificacion->getFranjasHorarias()->toArray();
+                    $erroresValidacion = $planificacionService->validarFranjas($franjasArray, $usuario);
+                    if (!empty($erroresValidacion)) {
+                        $errores[] = "Alumno {$usuario->getUsername()}: " . implode(', ', $erroresValidacion);
+                        continue;
                     }
 
                     $entityManager->persist($planificacion);
@@ -489,11 +472,6 @@ class PlanificacionController extends AbstractController
         $planificacion = $entityManager->getRepository(PlanificacionPersonalizada::class)->find($planificacionId);
         if (!$planificacion) {
             throw $this->createNotFoundException('Planificación no encontrada');
-        }
-
-        if ($planificacion->isModoRango()) {
-            $this->addFlash('error', 'No se pueden agregar actividades por hora a una planificación por rango de fechas.');
-            return $this->redirectToRoute('app_planificacion_edit', ['id' => $planificacionId], Response::HTTP_SEE_OTHER);
         }
 
         $nuevaActividad = new \App\Entity\FranjaHorariaPersonalizada();

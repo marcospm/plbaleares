@@ -58,25 +58,4 @@ class PlanificacionPersonalizadaRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
-
-    /**
-     * Planificaciones en modo rango activas en un intervalo de fechas.
-     * @return PlanificacionPersonalizada[]
-     */
-    public function findRangoActivasPorIntervalo(User $usuario, \DateTimeInterface $fechaInicio, \DateTimeInterface $fechaFin): array
-    {
-        return $this->createQueryBuilder('p')
-            ->where('p.usuario = :usuario')
-            ->andWhere('p.modo = :modo')
-            ->andWhere('p.fechaInicio <= :fechaFin')
-            ->andWhere('p.fechaFin >= :fechaInicio')
-            ->setParameter('usuario', $usuario)
-            ->setParameter('modo', PlanificacionPersonalizada::MODO_RANGO)
-            ->setParameter('fechaInicio', $fechaInicio)
-            ->setParameter('fechaFin', $fechaFin)
-            ->orderBy('p.fechaInicio', 'ASC')
-            ->getQuery()
-            ->getResult();
-    }
 }
-

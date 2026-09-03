@@ -11,9 +11,6 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: PlanificacionPersonalizadaRepository::class)]
 class PlanificacionPersonalizada
 {
-    public const MODO_HORARIO = 'horario';
-    public const MODO_RANGO = 'rango';
-
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -28,10 +25,6 @@ class PlanificacionPersonalizada
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $descripcion = null;
-
-    /** @var self::MODO_HORARIO|self::MODO_RANGO */
-    #[ORM\Column(length: 20)]
-    private string $modo = self::MODO_HORARIO;
 
     #[ORM\Column(type: Types::DATE_MUTABLE)]
     private ?\DateTimeInterface $fechaInicio = null;
@@ -98,28 +91,6 @@ class PlanificacionPersonalizada
         $this->descripcion = $descripcion;
 
         return $this;
-    }
-
-    public function getModo(): string
-    {
-        return $this->modo;
-    }
-
-    public function setModo(string $modo): static
-    {
-        $this->modo = $modo;
-
-        return $this;
-    }
-
-    public function isModoRango(): bool
-    {
-        return $this->modo === self::MODO_RANGO;
-    }
-
-    public function isModoHorario(): bool
-    {
-        return $this->modo === self::MODO_HORARIO;
     }
 
     public function getFechaInicio(): ?\DateTimeInterface

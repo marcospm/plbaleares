@@ -156,15 +156,31 @@ class PlanificacionService
         // Validar cada fecha
         foreach ($franjasPorFecha as $fechaKey => $franjasDelDia) {
             $fecha = $franjasDelDia[0]->getFechaEspecifica();
-            
-            // Verificar solapamientos
-            usort($franjasDelDia, function($a, $b) {
+
+            foreach ($franjasDelDia as $franja) {
+                $tieneInicio = $franja->getHoraInicio() !== null;
+                $tieneFin = $franja->getHoraFin() !== null;
+                if ($tieneInicio xor $tieneFin) {
+                    $errores[] = sprintf(
+                        'La actividad del %s debe tener hora de inicio y fin, o ninguna de las dos.',
+                        $fecha->format('d/m/Y')
+                    );
+                }
+            }
+
+            // Solo validar solapamientos entre franjas con horario
+            $franjasConHorario = array_values(array_filter(
+                $franjasDelDia,
+                static fn (FranjaHorariaPersonalizada $franja) => $franja->tieneHorario()
+            ));
+
+            usort($franjasConHorario, function ($a, $b) {
                 return $a->getHoraInicio() <=> $b->getHoraInicio();
             });
 
-            for ($i = 0; $i < count($franjasDelDia) - 1; $i++) {
-                $franja1 = $franjasDelDia[$i];
-                $franja2 = $franjasDelDia[$i + 1];
+            for ($i = 0; $i < count($franjasConHorario) - 1; $i++) {
+                $franja1 = $franjasConHorario[$i];
+                $franja2 = $franjasConHorario[$i + 1];
 
                 if ($franja1->getHoraFin() > $franja2->getHoraInicio()) {
                     $errores[] = sprintf(
@@ -179,7 +195,7 @@ class PlanificacionService
             }
 
             // Verificar solapamientos con otras planificaciones del usuario
-            foreach ($franjasDelDia as $franja) {
+            foreach ($franjasConHorario as $franja) {
                 if ($this->franjaRepository->tieneSolapamiento(
                     $usuario,
                     $franja->getFechaEspecifica(),

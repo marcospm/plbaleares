@@ -224,21 +224,6 @@
             Tienes {{ planificaciones|length }} planificaciones activas.
         {% endif %}
     </div>
-
-    {% if planificacionesRango is defined and planificacionesRango|length > 0 %}
-        <div class="info-box" style="border-left: 4px solid #6f42c1;">
-            <strong>Planificaciones por periodo:</strong>
-            {% for planRango in planificacionesRango %}
-                <div style="margin-top: 8px;">
-                    <strong>{{ planRango.nombre ?: 'Planificación por periodo' }}</strong>
-                    ({{ planRango.fechaInicio|date('d/m/Y') }} - {{ planRango.fechaFin|date('d/m/Y') }})
-                    {% if planRango.descripcion %}
-                        <div class="contenido-enriquecido" style="margin-top: 4px;">{{ planRango.descripcion|raw }}</div>
-                    {% endif %}
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
     
     <table class="activities-table">
         <thead>
@@ -282,7 +267,11 @@
                             
                             <td>
                                 <div class="activity-time">
-                                    {{ franja.horaInicio|date('H:i') }} - {{ franja.horaFin|date('H:i') }}
+                                    {% if franja.horaInicio and franja.horaFin %}
+                                        {{ franja.horaInicio|date('H:i') }} - {{ franja.horaFin|date('H:i') }}
+                                    {% else %}
+                                        Todo el día
+                                    {% endif %}
                                 </div>
                             </td>
                             

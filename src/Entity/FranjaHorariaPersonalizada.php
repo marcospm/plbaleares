@@ -27,10 +27,10 @@ class FranjaHorariaPersonalizada
     #[ORM\Column(type: Types::DATE_MUTABLE)]
     private ?\DateTimeInterface $fechaEspecifica = null;
 
-    #[ORM\Column(type: 'time')]
+    #[ORM\Column(type: 'time', nullable: true)]
     private ?\DateTimeInterface $horaInicio = null;
 
-    #[ORM\Column(type: 'time')]
+    #[ORM\Column(type: 'time', nullable: true)]
     private ?\DateTimeInterface $horaFin = null;
 
     #[ORM\Column(length: 50)]
@@ -108,7 +108,7 @@ class FranjaHorariaPersonalizada
         return $this->horaInicio;
     }
 
-    public function setHoraInicio(\DateTimeInterface $horaInicio): static
+    public function setHoraInicio(?\DateTimeInterface $horaInicio): static
     {
         $this->horaInicio = $horaInicio;
 
@@ -120,11 +120,16 @@ class FranjaHorariaPersonalizada
         return $this->horaFin;
     }
 
-    public function setHoraFin(\DateTimeInterface $horaFin): static
+    public function setHoraFin(?\DateTimeInterface $horaFin): static
     {
         $this->horaFin = $horaFin;
 
         return $this;
+    }
+
+    public function tieneHorario(): bool
+    {
+        return $this->horaInicio !== null && $this->horaFin !== null;
     }
 
     public function getTipoActividad(): ?string

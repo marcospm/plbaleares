@@ -737,3 +737,61 @@ input[type="radio"] {
         align-items: flex-start;
     }
 }
+
+/* Contenido HTML del editor enriquecido (CKEditor) */
+.contenido-enriquecido {
+    line-height: 1.6;
+    color: #333;
+    overflow-wrap: anywhere;
+}
+.contenido-enriquecido > *:first-child {
+    margin-top: 0 !important;
+}
+.contenido-enriquecido > *:last-child {
+    margin-bottom: 0 !important;
+}
+.contenido-enriquecido p {
+    margin: 0.5rem 0;
+}
+.contenido-enriquecido ul,
+.contenido-enriquecido ol {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+}
+.contenido-enriquecido ul {
+    list-style-type: disc !important;
+    list-style-position: outside !important;
+}
+.contenido-enriquecido ol {
+    list-style-type: decimal !important;
+    list-style-position: outside !important;
+}
+.contenido-enriquecido li {
+    margin: 0.25rem 0;
+    display: list-item !important;
+    list-style: inherit !important;
+}
+.contenido-enriquecido ul ul {
+    list-style-type: circle !important;
+}
+.contenido-enriquecido a {
+    color: var(--color-primary, #1a4d7a);
+    text-decoration: underline;
+}
+.contenido-enriquecido h1,
+.contenido-enriquecido h2,
+.contenido-enriquecido h3 {
+    margin: 0.75rem 0 0.4rem;
+    line-height: 1.3;
+}
+.contenido-enriquecido strong,
+.contenido-enriquecido b {
+    font-weight: 700;
+}
+.contenido-enriquecido em,
+.contenido-enriquecido i {
+    font-style: italic;
+}
+.ck-editor__editable {
+    min-height: 160px;
+}
