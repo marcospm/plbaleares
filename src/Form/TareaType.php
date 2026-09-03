@@ -50,11 +50,18 @@ class TareaType extends AbstractType
                 'mapped' => false,
                 'label' => 'Usuarios',
                 'query_builder' => function ($er) {
+                    // Alumnos = activos, no eliminados, sin rol profesor/admin.
+                    // No exigir ROLE_USER en BD: getRoles() lo añade en memoria y muchos
+                    // alumnos lo tienen vacío en la columna roles.
                     return $er->createQueryBuilder('u')
                         ->where('u.activo = :activo')
-                        ->andWhere('u.roles LIKE :role')
+                        ->andWhere('u.eliminado = :eliminado')
+                        ->andWhere('u.roles NOT LIKE :roleProfesor')
+                        ->andWhere('u.roles NOT LIKE :roleAdmin')
                         ->setParameter('activo', true)
-                        ->setParameter('role', '%ROLE_USER%')
+                        ->setParameter('eliminado', false)
+                        ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+                        ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
                         ->orderBy('u.username', 'ASC');
                 },
                 'attr' => ['class' => 'form-control']
