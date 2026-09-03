@@ -147,7 +147,7 @@
                                 </span>
                             </div>
                             {% if planRango.descripcion %}
-                                <p style="white-space: pre-line; margin: 0;">{{ planRango.descripcion }}</p>
+                                <div class="contenido-enriquecido" style="margin: 0;">{{ planRango.descripcion|raw }}</div>
                             {% endif %}
                         </div>
                     </div>

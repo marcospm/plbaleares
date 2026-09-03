@@ -45,7 +45,8 @@ class PlanificacionFechaEspecificaType extends AbstractType
                 'label' => 'Qué se debe hacer / Descripción',
                 'required' => false,
                 'attr' => [
-                    'rows' => 4,
+                    'rows' => 8,
+                    'class' => 'form-control tinymce-editor',
                     'placeholder' => 'En modo rango, indica aquí lo que el alumno debe hacer durante esas fechas...'
                 ]
             ])

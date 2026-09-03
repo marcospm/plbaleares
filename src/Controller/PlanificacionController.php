@@ -251,7 +251,9 @@ class PlanificacionController extends AbstractController
             }
 
             if ($esModoRango) {
-                if ($descripcion === null || trim($descripcion) === '') {
+                $descripcionTexto = $descripcion === null ? '' : trim(html_entity_decode(strip_tags($descripcion), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+                $descripcionTexto = preg_replace('/\x{00A0}/u', ' ', $descripcionTexto ?? '');
+                if ($descripcionTexto === null || trim($descripcionTexto) === '') {
                     $this->addFlash('error', 'En el modo por rango de fechas debes indicar qué se debe hacer.');
                     return $this->render('planificacion/new.html.twig', [
                         'form' => $form,
@@ -403,8 +405,12 @@ class PlanificacionController extends AbstractController
                 'required' => true,
             ])
             ->add('descripcion', \Symfony\Component\Form\Extension\Core\Type\TextareaType::class, [
-                'label' => 'Descripción',
+                'label' => 'Qué se debe hacer / Descripción',
                 'required' => false,
+                'attr' => [
+                    'rows' => 8,
+                    'class' => 'form-control tinymce-editor',
+                ],
             ])
             ->add('fechaInicio', \Symfony\Component\Form\Extension\Core\Type\DateType::class, [
                 'label' => 'Fecha de Inicio',

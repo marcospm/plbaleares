@@ -17,7 +17,7 @@
         {% if planificacion.descripcion %}
             <div class="mb-3">
                 <strong>{% if planificacion.modoRango %}Qué se debe hacer:{% else %}Descripción:{% endif %}</strong>
-                <p style="white-space: pre-line;">{{ planificacion.descripcion }}</p>
+                <p class="contenido-enriquecido">{{ planificacion.descripcion|raw }}</p>
             </div>
         {% endif %}
 

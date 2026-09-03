@@ -233,7 +233,7 @@
                     <strong>{{ planRango.nombre ?: 'Planificación por periodo' }}</strong>
                     ({{ planRango.fechaInicio|date('d/m/Y') }} - {{ planRango.fechaFin|date('d/m/Y') }})
                     {% if planRango.descripcion %}
-                        <div style="white-space: pre-line; margin-top: 4px;">{{ planRango.descripcion }}</div>
+                        <div class="contenido-enriquecido" style="margin-top: 4px;">{{ planRango.descripcion|raw }}</div>
                     {% endif %}
                 </div>
             {% endfor %}
