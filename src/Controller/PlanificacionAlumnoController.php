@@ -38,6 +38,7 @@ class PlanificacionAlumnoController extends AbstractController
         if (empty($planificaciones)) {
             return $this->render('planificacion_alumno/index.html.twig', [
                 'planificaciones' => [],
+                'planificacionesRango' => [],
                 'franjasPorDia' => [],
                 'tareasPendientesPorSemana' => [],
                 'lunesSemana' => new \DateTime('monday this week'),
@@ -127,8 +128,17 @@ class PlanificacionAlumnoController extends AbstractController
         
         $esSemanaActual = ($lunesSemana->format('Y-m-d') === $lunesActual->format('Y-m-d'));
 
+        $domingoSemana = clone $lunesSemana;
+        $domingoSemana->modify('+6 days');
+        $planificacionesRango = $planificacionRepository->findRangoActivasPorIntervalo(
+            $usuario,
+            $lunesSemana,
+            $domingoSemana
+        );
+
         return $this->render('planificacion_alumno/index.html.twig', [
             'planificaciones' => $planificaciones,
+            'planificacionesRango' => $planificacionesRango,
             'franjasPorDia' => $franjasPorDia,
             'tareasPendientesPorSemana' => $tareasPendientesPorSemana,
             'lunesSemana' => $lunesSemana,
@@ -162,9 +172,15 @@ class PlanificacionAlumnoController extends AbstractController
         $lunesSemana->modify('monday this week');
 
         $franjasDelDia = $planificacionService->obtenerFranjasDelDia($usuario, $fechaObj);
+        $planificacionesRango = $planificacionRepository->findRangoActivasPorIntervalo(
+            $usuario,
+            $fechaObj,
+            $fechaObj
+        );
 
         return $this->render('planificacion_alumno/dia.html.twig', [
             'planificaciones' => $planificaciones,
+            'planificacionesRango' => $planificacionesRango,
             'fecha' => $fechaObj,
             'diaSemana' => $diaSemana,
             'franjasDelDia' => $franjasDelDia,
@@ -299,6 +315,13 @@ class PlanificacionAlumnoController extends AbstractController
             }
         }
 
+        // Obtener planificaciones por rango activas en el mes
+        $planificacionesRango = $planificacionRepository->findRangoActivasPorIntervalo(
+            $usuario,
+            $primerDiaMes,
+            $ultimoDiaMes
+        );
+
         // Generar HTML para el PDF
         $html = $this->renderView('planificacion_alumno/pdf_mensual.html.twig', [
             'usuario' => $usuario,
@@ -309,6 +332,7 @@ class PlanificacionAlumnoController extends AbstractController
             'franjasPorDia' => $franjasPorDia,
             'tareasDelMes' => $tareasDelMes,
             'planificaciones' => $planificaciones,
+            'planificacionesRango' => $planificacionesRango,
         ]);
 
         // Configurar DomPDF

@@ -6,11 +6,14 @@ use App\Entity\PlanificacionPersonalizada;
 use App\Entity\User;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class PlanificacionFechaEspecificaType extends AbstractType
@@ -20,6 +23,17 @@ class PlanificacionFechaEspecificaType extends AbstractType
         $isEdit = $options['is_edit'] ?? false;
         
         $builder
+            ->add('modo', ChoiceType::class, [
+                'label' => 'Tipo de planificación',
+                'required' => true,
+                'expanded' => true,
+                'multiple' => false,
+                'choices' => [
+                    'Por día y hora' => PlanificacionPersonalizada::MODO_HORARIO,
+                    'Por rango de fechas (sin horas)' => PlanificacionPersonalizada::MODO_RANGO,
+                ],
+                'help' => 'Elige si quieres definir actividades con horario o solo un periodo con lo que hay que hacer.',
+            ])
             ->add('nombre', TextType::class, [
                 'label' => 'Nombre de la Planificación',
                 'required' => true,
@@ -28,11 +42,11 @@ class PlanificacionFechaEspecificaType extends AbstractType
                 ]
             ])
             ->add('descripcion', TextareaType::class, [
-                'label' => 'Descripción',
+                'label' => 'Qué se debe hacer / Descripción',
                 'required' => false,
                 'attr' => [
-                    'rows' => 3,
-                    'placeholder' => 'Descripción opcional de la planificación...'
+                    'rows' => 4,
+                    'placeholder' => 'En modo rango, indica aquí lo que el alumno debe hacer durante esas fechas...'
                 ]
             ])
             ->add('fechaInicio', DateType::class, [
@@ -88,10 +102,22 @@ class PlanificacionFechaEspecificaType extends AbstractType
             'allow_delete' => true,
             'by_reference' => false,
             'label' => 'Actividades por Fecha',
+            'required' => false,
             'attr' => [
                 'class' => 'actividades-collection'
             ]
         ]);
+
+        $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event) {
+            $data = $event->getData();
+            if (!is_array($data)) {
+                return;
+            }
+            if (($data['modo'] ?? null) === PlanificacionPersonalizada::MODO_RANGO) {
+                $data['franjasHorarias'] = [];
+                $event->setData($data);
+            }
+        });
     }
 
     public function configureOptions(OptionsResolver $resolver): void

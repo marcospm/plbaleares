@@ -8,6 +8,27 @@
         <h1>Planificación del Día: {{ fecha|date('l, d/m/Y') }}</h1>
     </div>
     <div class="card-body">
+        {% if planificacionesRango is defined and planificacionesRango|length > 0 %}
+            <div class="mb-4">
+                <h3>Planificaciones por periodo</h3>
+                {% for planRango in planificacionesRango %}
+                    <div class="card mb-3" style="border-left: 4px solid #6f42c1; background: #faf8ff;">
+                        <div class="card-body">
+                            <div style="display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                                <strong>{{ planRango.nombre ?: 'Planificación por periodo' }}</strong>
+                                <span style="color: #6c757d;">
+                                    {{ planRango.fechaInicio|date('d/m/Y') }} - {{ planRango.fechaFin|date('d/m/Y') }}
+                                </span>
+                            </div>
+                            {% if planRango.descripcion %}
+                                <p style="white-space: pre-line; margin: 0;">{{ planRango.descripcion }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         {% if franjasDelDia|length > 0 %}
             {% for franja in franjasDelDia %}
                 <div class="card mb-3" style="border-left: 4px solid {% if franja.tipoActividad == 'repaso_basico' %}#2196F3{% elseif franja.tipoActividad == 'realizar_examenes' %}#FF9800{% else %}#4CAF50{% endif %};">
@@ -101,7 +122,9 @@
                 </div>
             {% endfor %}
         {% else %}
-            <p class="text-muted">No hay franjas horarias configuradas para este día.</p>
+            {% if planificacionesRango is not defined or planificacionesRango|length == 0 %}
+                <p class="text-muted">No hay franjas horarias configuradas para este día.</p>
+            {% endif %}
         {% endif %}
 
 

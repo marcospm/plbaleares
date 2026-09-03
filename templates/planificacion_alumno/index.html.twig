@@ -134,6 +134,27 @@
         {% endif %}
         
         {% if sinPlanificacion is not defined or not sinPlanificacion %}
+        {% if planificacionesRango is defined and planificacionesRango|length > 0 %}
+            <div class="mb-4">
+                <h3>Planificaciones por periodo</h3>
+                {% for planRango in planificacionesRango %}
+                    <div class="card mb-3" style="border-left: 4px solid #6f42c1; background: #faf8ff;">
+                        <div class="card-body" style="padding: 1rem 1.25rem;">
+                            <div style="display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                                <strong>{{ planRango.nombre ?: 'Planificación por periodo' }}</strong>
+                                <span style="color: #6c757d; font-size: 0.9rem;">
+                                    {{ planRango.fechaInicio|date('d/m/Y') }} - {{ planRango.fechaFin|date('d/m/Y') }}
+                                </span>
+                            </div>
+                            {% if planRango.descripcion %}
+                                <p style="white-space: pre-line; margin: 0;">{{ planRango.descripcion }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         <div class="mb-4">
             <h3>Resumen de la Semana</h3>
             <div class="d-flex gap-3">
