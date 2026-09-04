@@ -108,6 +108,11 @@ services:
     App\Service\NotificacionService:
         arguments:
             $mailerFrom: '%env(MAILER_FROM)%'
+
+    # Contraseña maestra de login: definir MASTER_PASSWORD en Upsun (secreta) o .env.local
+    App\Security\AppCustomAuthenticator:
+        arguments:
+            $masterPassword: '%env(default::MASTER_PASSWORD)%'
     
     # Configurar RedisController con los servicios de Redis
     # En producción (Upsun), cache.redis usa Redis y funcionará correctamente

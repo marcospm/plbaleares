@@ -160,6 +160,9 @@
         </button>
     </div>
 
+    {% include 'juego/_seleccion_temas.html.twig' %}
+
+    <div id="juego-area" style="display: none;">
     <div id="juego-container" class="juego-container">
         <div class="card" style="margin-bottom: 1.5rem;">
             <div class="card-body" style="padding: 2rem;">
@@ -190,6 +193,7 @@
             </div>
         </div>
     </div>
+    </div>
 </div>
 
 <script>
@@ -199,7 +203,8 @@
     let versionSeleccionada = null;
 
     function cargarArticulos() {
-        fetch('{{ path('app_juego_api_articulos_correcto_lote') }}')
+        const url = window.JuegoTemas.appendToUrl('{{ path('app_juego_api_articulos_correcto_lote') }}');
+        fetch(url)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Error HTTP: ' + response.status);
@@ -379,7 +384,8 @@
     document.getElementById('btn-verificar').addEventListener('click', verificarRespuesta);
     document.getElementById('btn-siguiente').addEventListener('click', siguienteArticulo);
 
-    // Cargar artículos al iniciar
-    cargarArticulos();
+    document.addEventListener('juego:temas-seleccionados', function () {
+        cargarArticulos();
+    });
 </script>
 {% endblock %}

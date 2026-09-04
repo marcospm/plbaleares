@@ -81,6 +81,9 @@
         </button>
     </div>
 
+    {% include 'juego/_seleccion_temas.html.twig' %}
+
+    <div id="juego-area" style="display: none;">
     <div id="juego-container" class="juego-container">
         <div class="card" style="margin-bottom: 1.5rem;">
             <div class="card-body" style="padding: 2rem;">
@@ -112,8 +115,7 @@
                 <div id="feedback" style="display: none; padding: 1rem; border-radius: 8px; margin-top: 1rem;"></div>
             </div>
         </div>
-
-       
+    </div>
     </div>
 </div>
 
@@ -137,7 +139,8 @@
 
 
     function cargarArticulos() {
-        fetch('{{ path('app_juego_api_articulos_lote') }}')
+        const url = window.JuegoTemas.appendToUrl('{{ path('app_juego_api_articulos_lote') }}');
+        fetch(url)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Error HTTP: ' + response.status);
@@ -151,13 +154,11 @@
                 }
                 
                 if (!data || data.length === 0) {
-                    alert('No hay artículos disponibles');
+                    alert('No hay artículos disponibles para los temas seleccionados');
                     return;
                 }
                 
-                // Mezclar los artículos para asegurar variedad de leyes
                 articulos = data;
-                // Mezclar aleatoriamente el array
                 for (let i = articulos.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [articulos[i], articulos[j]] = [articulos[j], articulos[i]];
@@ -168,7 +169,7 @@
             })
             .catch(error => {
                 console.error('Error al cargar artículos:', error);
-                alert('Error al cargar los artículos. Por favor, recarga la página e intenta de nuevo.');
+                alert('Error al cargar los artículos. Prueba con otros temas o recarga la página.');
             });
     }
 
@@ -257,10 +258,10 @@
         }
     });
 
-    // Cargar artículos al iniciar
-    cargarArticulos();
+    document.addEventListener('juego:temas-seleccionados', function () {
+        cargarArticulos();
+    });
 
-    // Botón de salir del juego
     document.getElementById('btn-salir-juego').addEventListener('click', function() {
         if (confirm('⚠️ ¿Estás seguro de que quieres salir del juego?\n\nEl progreso del juego NO se guarda y deberás empezar de nuevo.')) {
             window.location.href = '{{ path('app_dashboard') }}';

@@ -83,12 +83,12 @@ class LeyRepository extends ServiceEntityRepository
     }
 
     /**
-     * Encuentra todas las leyes activas que tienen el formato "número/número, de día de mes"
-     * Ejemplo: "20/2006, de 15 de diciembre" o "Ley 20/2006, de 15 de diciembre"
+     * Encuentra leyes activas con formato de fecha en el nombre.
+     * @param int[]|null $temaIds Si se indica, solo leyes de esos temas
+     * @return Ley[]
      */
-    public function findLeyesConFormatoFecha(): array
+    public function findLeyesConFormatoFecha(?array $temaIds = null): array
     {
-        // Excluir ley "Accidentes de Tráfico"
         $qb = $this->createQueryBuilder('l')
             ->where('l.activo = :activo')
             ->andWhere('l.nombre != :nombreLeyExcluida')
@@ -96,14 +96,17 @@ class LeyRepository extends ServiceEntityRepository
             ->setParameter('nombreLeyExcluida', 'Accidentes de Tráfico')
             ->orderBy('l.nombre', 'ASC');
 
+        if ($temaIds !== null && $temaIds !== []) {
+            $qb->innerJoin('l.temas', 't')
+                ->andWhere('t.id IN (:temaIds)')
+                ->setParameter('temaIds', $temaIds);
+        }
+
         $leyes = $qb->getQuery()->getResult();
-        
-        // Filtrar leyes que coincidan con el patrón: número/número, de día de mes
-        // Patrón más flexible: puede empezar con "Ley" o no, y permite espacios variables
-        // Ejemplos: "20/2006, de 15 de diciembre", "Ley 20/2006, de 15 de diciembre"
+
         $patron = '/\d+\/\d+,\s*de\s+\d+\s+de\s+\w+/i';
-        
-        return array_filter($leyes, function(Ley $ley) use ($patron) {
+
+        return array_filter($leyes, function (Ley $ley) use ($patron) {
             $nombre = $ley->getNombre() ?? '';
             return preg_match($patron, $nombre) === 1;
         });

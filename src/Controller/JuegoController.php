@@ -6,6 +6,7 @@ use App\Entity\PartidaJuego;
 use App\Repository\ArticuloRepository;
 use App\Repository\LeyRepository;
 use App\Repository\PreguntaRepository;
+use App\Repository\TemaRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,7 +18,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class JuegoController extends AbstractController
 {
     public function __construct(
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        private TemaRepository $temaRepository,
     ) {
     }
 
@@ -31,35 +33,78 @@ class JuegoController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function adivinaNumeroArticulo(): Response
     {
-        return $this->render('juego/adivina_numero_articulo.html.twig');
+        return $this->render('juego/adivina_numero_articulo.html.twig', $this->temasViewData());
     }
 
     #[Route('/juegos/adivina-nombre-articulo', name: 'app_juego_adivina_nombre_articulo')]
     #[IsGranted('ROLE_USER')]
     public function adivinaNombreArticulo(): Response
     {
-        return $this->render('juego/adivina_nombre_articulo.html.twig');
+        return $this->render('juego/adivina_nombre_articulo.html.twig', $this->temasViewData());
     }
 
     #[Route('/juegos/completa-fecha-ley', name: 'app_juego_completa_fecha_ley')]
     #[IsGranted('ROLE_USER')]
     public function completaFechaLey(): Response
     {
-        return $this->render('juego/completa_fecha_ley.html.twig');
+        return $this->render('juego/completa_fecha_ley.html.twig', $this->temasViewData());
     }
 
     #[Route('/juegos/completa-texto-legal', name: 'app_juego_completa_texto_legal')]
     #[IsGranted('ROLE_USER')]
     public function completaTextoLegal(): Response
     {
-        return $this->render('juego/completa_texto_legal.html.twig');
+        return $this->render('juego/completa_texto_legal.html.twig', $this->temasViewData());
     }
 
     #[Route('/juegos/articulo-correcto', name: 'app_juego_articulo_correcto')]
     #[IsGranted('ROLE_USER')]
     public function articuloCorrecto(): Response
     {
-        return $this->render('juego/articulo_correcto.html.twig');
+        return $this->render('juego/articulo_correcto.html.twig', $this->temasViewData());
+    }
+
+    /**
+     * @return array{temas: list<\App\Entity\Tema>}
+     */
+    private function temasViewData(): array
+    {
+        return [
+            'temas' => $this->temaRepository->findActivosOrderedByNombre(),
+        ];
+    }
+
+    /**
+     * @return int[]
+     */
+    private function parseTemaIds(Request $request): array
+    {
+        $temas = $request->query->all('temas');
+        if ($temas === []) {
+            $raw = $request->query->get('temas');
+            if (is_string($raw) && $raw !== '') {
+                $temas = explode(',', $raw);
+            }
+        }
+
+        if (!is_array($temas)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(
+            array_map('intval', $temas),
+            static fn (int $id): bool => $id > 0
+        )));
+    }
+
+    private function requireTemaIds(Request $request): array|JsonResponse
+    {
+        $temaIds = $this->parseTemaIds($request);
+        if ($temaIds === []) {
+            return new JsonResponse(['error' => 'Debes seleccionar al menos un tema'], 400);
+        }
+
+        return $temaIds;
     }
 
     #[Route('/api/juegos/guardar-partida', name: 'app_juego_api_guardar_partida', methods: ['POST'])]
@@ -69,7 +114,6 @@ class JuegoController extends AbstractController
         $data = json_decode($request->getContent(), true);
         $tipoJuego = $data['tipoJuego'] ?? null;
 
-        // Validar tipo de juego
         $tiposValidos = [
             'adivina_numero_articulo',
             'adivina_nombre_articulo',
@@ -87,9 +131,6 @@ class JuegoController extends AbstractController
         return new JsonResponse(['success' => true]);
     }
 
-    /**
-     * Guarda una partida de juego en la base de datos
-     */
     private function guardarPartida(string $tipoJuego): void
     {
         $user = $this->getUser();
@@ -97,7 +138,6 @@ class JuegoController extends AbstractController
             return;
         }
 
-        // Verificar que el usuario no sea profesor ni admin (solo alumnos)
         $roles = $user->getRoles();
         if (in_array('ROLE_PROFESOR', $roles) || in_array('ROLE_ADMIN', $roles)) {
             return;
@@ -107,15 +147,10 @@ class JuegoController extends AbstractController
             $partida = new PartidaJuego();
             $partida->setUsuario($user);
             $partida->setTipoJuego($tipoJuego);
-            // fechaCreacion se establece automáticamente en el constructor
 
             $this->entityManager->persist($partida);
-            // Usar flush sin esperar para no bloquear la respuesta
             $this->entityManager->flush();
         } catch (\Exception $e) {
-            // Silenciar errores para no interrumpir el juego
-            // En producción, podrías loguear el error
-            // Resetear el entity manager en caso de error
             if ($this->entityManager->isOpen()) {
                 $this->entityManager->clear();
             }
@@ -126,21 +161,18 @@ class JuegoController extends AbstractController
     public function getPreguntaAleatoria(PreguntaRepository $preguntaRepository): JsonResponse
     {
         $pregunta = $preguntaRepository->findAleatoriaActiva();
-        
+
         if (!$pregunta) {
             return new JsonResponse(['error' => 'No hay preguntas disponibles'], 404);
         }
 
-        // Verificar que la pregunta tenga texto
         if (!$pregunta->getTexto() || trim($pregunta->getTexto()) === '') {
-            // Si esta pregunta no tiene texto, intentar obtener otra
             $pregunta = $preguntaRepository->findAleatoriaActiva();
             if (!$pregunta || !$pregunta->getTexto() || trim($pregunta->getTexto()) === '') {
                 return new JsonResponse(['error' => 'No hay preguntas con texto disponible'], 404);
             }
         }
 
-        // Obtener la respuesta correcta completa
         $respuestaCorrecta = '';
         switch ($pregunta->getRespuestaCorrecta()) {
             case 'A':
@@ -157,7 +189,6 @@ class JuegoController extends AbstractController
                 break;
         }
 
-        // Verificar que la respuesta correcta no esté vacía
         if (empty($respuestaCorrecta) || trim($respuestaCorrecta) === '') {
             return new JsonResponse(['error' => 'La pregunta no tiene respuesta correcta válida'], 404);
         }
@@ -179,17 +210,21 @@ class JuegoController extends AbstractController
     }
 
     #[Route('/api/juegos/preguntas-lote', name: 'app_juego_api_preguntas_lote')]
-    public function getPreguntasLote(PreguntaRepository $preguntaRepository): JsonResponse
+    public function getPreguntasLote(Request $request, PreguntaRepository $preguntaRepository): JsonResponse
     {
-        $preguntas = $preguntaRepository->findAleatoriasActivas(20);
-        
+        $temaIds = $this->requireTemaIds($request);
+        if ($temaIds instanceof JsonResponse) {
+            return $temaIds;
+        }
+
+        $preguntas = $preguntaRepository->findAleatoriasActivasPorDificultad(20, null, $temaIds);
+
         if (empty($preguntas)) {
-            return new JsonResponse(['error' => 'No hay preguntas disponibles'], 404);
+            return new JsonResponse(['error' => 'No hay preguntas disponibles para los temas seleccionados'], 404);
         }
 
         $resultado = [];
         foreach ($preguntas as $pregunta) {
-            // Obtener la respuesta correcta completa
             $respuestaCorrecta = '';
             switch ($pregunta->getRespuestaCorrecta()) {
                 case 'A':
@@ -207,7 +242,7 @@ class JuegoController extends AbstractController
             }
 
             if (empty($respuestaCorrecta) || trim($respuestaCorrecta) === '') {
-                continue; // Saltar preguntas sin respuesta válida
+                continue;
             }
 
             $resultado[] = [
@@ -234,12 +269,17 @@ class JuegoController extends AbstractController
     }
 
     #[Route('/api/juegos/articulos-lote', name: 'app_juego_api_articulos_lote')]
-    public function getArticulosLote(ArticuloRepository $articuloRepository): JsonResponse
+    public function getArticulosLote(Request $request, ArticuloRepository $articuloRepository): JsonResponse
     {
-        $articulos = $articuloRepository->findAleatoriosConNombre(20);
-        
+        $temaIds = $this->requireTemaIds($request);
+        if ($temaIds instanceof JsonResponse) {
+            return $temaIds;
+        }
+
+        $articulos = $articuloRepository->findAleatoriosConNombre(20, $temaIds);
+
         if (empty($articulos)) {
-            return new JsonResponse(['error' => 'No hay artículos disponibles'], 404);
+            return new JsonResponse(['error' => 'No hay artículos disponibles para los temas seleccionados'], 404);
         }
 
         $resultado = [];
@@ -261,29 +301,31 @@ class JuegoController extends AbstractController
     }
 
     #[Route('/api/juegos/leyes-con-fecha', name: 'app_juego_api_leyes_con_fecha')]
-    public function getLeyesConFecha(LeyRepository $leyRepository): JsonResponse
+    public function getLeyesConFecha(Request $request, LeyRepository $leyRepository): JsonResponse
     {
-        $leyes = $leyRepository->findLeyesConFormatoFecha();
-        
+        $temaIds = $this->requireTemaIds($request);
+        if ($temaIds instanceof JsonResponse) {
+            return $temaIds;
+        }
+
+        $leyes = $leyRepository->findLeyesConFormatoFecha($temaIds);
+
         if (empty($leyes)) {
-            return new JsonResponse(['error' => 'No hay leyes con formato de fecha disponible'], 404);
+            return new JsonResponse(['error' => 'No hay leyes con formato de fecha para los temas seleccionados'], 404);
         }
 
         $resultado = [];
         foreach ($leyes as $ley) {
             $nombre = $ley->getNombre() ?? '';
-            
-            // Extraer los componentes: número/número, de día de mes
-            // Patrón más flexible: puede empezar con "Ley" o no, y permite espacios variables
-            // Ejemplos: "20/2006, de 15 de diciembre", "Ley 20/2006, de 15 de diciembre"
+
             if (preg_match('/(\d+)\/(\d+),\s*de\s+(\d+)\s+de\s+(\w+)/i', $nombre, $matches)) {
                 $resultado[] = [
                     'id' => $ley->getId(),
                     'nombre' => $nombre,
-                    'numero1' => $matches[1],      // Primer número
-                    'numero2' => $matches[2],       // Año
-                    'dia' => $matches[3],          // Día
-                    'mes' => $matches[4],          // Mes
+                    'numero1' => $matches[1],
+                    'numero2' => $matches[2],
+                    'dia' => $matches[3],
+                    'mes' => $matches[4],
                 ];
             }
         }
@@ -292,19 +334,23 @@ class JuegoController extends AbstractController
             return new JsonResponse(['error' => 'No se pudieron procesar las leyes'], 404);
         }
 
-        // Mezclar aleatoriamente
         shuffle($resultado);
 
         return new JsonResponse($resultado);
     }
 
     #[Route('/api/juegos/articulos-texto-legal-lote', name: 'app_juego_api_articulos_texto_legal_lote')]
-    public function getArticulosTextoLegalLote(ArticuloRepository $articuloRepository): JsonResponse
+    public function getArticulosTextoLegalLote(Request $request, ArticuloRepository $articuloRepository): JsonResponse
     {
-        $articulos = $articuloRepository->findAleatoriosConTextoLegal(20);
-        
+        $temaIds = $this->requireTemaIds($request);
+        if ($temaIds instanceof JsonResponse) {
+            return $temaIds;
+        }
+
+        $articulos = $articuloRepository->findAleatoriosConTextoLegal(20, $temaIds);
+
         if (empty($articulos)) {
-            return new JsonResponse(['error' => 'No hay artículos con texto legal disponibles'], 404);
+            return new JsonResponse(['error' => 'No hay artículos con texto legal para los temas seleccionados'], 404);
         }
 
         $resultado = [];
@@ -327,20 +373,29 @@ class JuegoController extends AbstractController
     }
 
     #[Route('/api/juegos/articulos-correcto-lote', name: 'app_juego_api_articulos_correcto_lote')]
-    public function getArticulosCorrectoLote(ArticuloRepository $articuloRepository): JsonResponse
+    public function getArticulosCorrectoLote(Request $request, ArticuloRepository $articuloRepository): JsonResponse
     {
-        // Obtener artículos para el juego (excluye Tema 17 y numero 0)
-        $articulos = $articuloRepository->findAleatoriosConTextoLegalParaJuego(20);
-        
-        if (empty($articulos) || count($articulos) < 20) {
-            return new JsonResponse(['error' => 'No hay suficientes artículos con texto legal disponibles'], 404);
+        $temaIds = $this->requireTemaIds($request);
+        if ($temaIds instanceof JsonResponse) {
+            return $temaIds;
         }
 
-        // Obtener IDs de los artículos del lote principal para excluirlos
-        $idsArticulosLote = array_map(fn($a) => $a->getId(), $articulos);
-        
-        // Obtener más artículos para generar versiones incorrectas (excluyendo los del lote)
-        // Obtener todos los artículos disponibles excepto los del lote
+        return $this->buildArticulosCorrectoLote($articuloRepository, $temaIds, 1);
+    }
+
+    /**
+     * @param int[] $temaIds
+     */
+    private function buildArticulosCorrectoLote(ArticuloRepository $articuloRepository, array $temaIds, int $intento): JsonResponse
+    {
+        $articulos = $articuloRepository->findAleatoriosConTextoLegalParaJuego(20, $temaIds);
+
+        if (empty($articulos)) {
+            return new JsonResponse(['error' => 'No hay artículos suficientes para los temas seleccionados'], 404);
+        }
+
+        $idsArticulosLote = array_map(fn ($a) => $a->getId(), $articulos);
+
         $qb = $articuloRepository->createQueryBuilder('a')
             ->innerJoin('a.ley', 'l')
             ->addSelect('l')
@@ -354,8 +409,7 @@ class JuegoController extends AbstractController
             ->setParameter('numeroExcluido', 0)
             ->setParameter('vacio', '')
             ->setParameter('idsLote', $idsArticulosLote);
-        
-        // Excluir ley "Accidentes de Tráfico"
+
         $subquery = $articuloRepository->getEntityManager()->createQueryBuilder()
             ->select('l2.id')
             ->from('App\Entity\Ley', 'l2')
@@ -363,70 +417,59 @@ class JuegoController extends AbstractController
             ->setMaxResults(1);
         $qb->andWhere('l.id != (' . $subquery->getDQL() . ')')
            ->setParameter('nombreLeyExcluida', 'Accidentes de Tráfico');
-        
+
+        $qb->innerJoin('l.temas', 'temaFiltro')
+            ->andWhere('temaFiltro.id IN (:temaIds)')
+            ->setParameter('temaIds', $temaIds);
+
         $articulosParaIncorrectas = $qb->getQuery()->getResult();
-        
-        // Mezclar para aleatoriedad
         shuffle($articulosParaIncorrectas);
-        
+
         $resultado = [];
-        $textosUsadosEnJuego = []; // Rastrear todos los textos usados en el juego para evitar duplicados
-        
+        $textosUsadosEnJuego = [];
+
         foreach ($articulos as $articulo) {
             $textoCorrecto = trim($articulo->getTextoLegal());
-            
+
             if (empty($textoCorrecto)) {
-                continue; // Saltar artículos sin texto legal válido
+                continue;
             }
 
-            // Generar 2 versiones incorrectas usando textos de artículos FUERA del lote de 20
             $versionesIncorrectas = [];
-            $articulosUsados = [$articulo->getId()]; // Evitar usar el mismo artículo
-            
+            $articulosUsados = [$articulo->getId()];
+
             foreach ($articulosParaIncorrectas as $articuloAdicional) {
                 if (count($versionesIncorrectas) >= 2) {
                     break;
                 }
-                
+
                 $textoIncorrecto = trim($articuloAdicional->getTextoLegal());
-                
-                // Verificar que el texto no esté vacío, no sea el mismo que el correcto,
-                // no esté ya usado en este juego, y no sea del artículo actual
-                if (!empty($textoIncorrecto) && 
-                    $textoIncorrecto !== $textoCorrecto &&
-                    !in_array($textoIncorrecto, $textosUsadosEnJuego) &&
-                    !in_array($articuloAdicional->getId(), $articulosUsados)) {
+
+                if (!empty($textoIncorrecto)
+                    && $textoIncorrecto !== $textoCorrecto
+                    && !in_array($textoIncorrecto, $textosUsadosEnJuego, true)
+                    && !in_array($articuloAdicional->getId(), $articulosUsados, true)
+                ) {
                     $versionesIncorrectas[] = $textoIncorrecto;
                     $articulosUsados[] = $articuloAdicional->getId();
-                    $textosUsadosEnJuego[] = $textoIncorrecto; // Marcar como usado
+                    $textosUsadosEnJuego[] = $textoIncorrecto;
                 }
             }
 
-            // Validar que tenemos 2 versiones incorrectas
             if (count($versionesIncorrectas) < 2) {
-                // Si no se pueden generar, intentar recargar más artículos
-                // o simplemente continuar - en este caso, mejor reintentar con otro artículo
-                // Por ahora, saltamos este artículo y esperamos tener suficientes
                 continue;
             }
 
-            // Marcar el texto correcto como usado también para evitar que aparezca como incorrecta en otros
             $textosUsadosEnJuego[] = $textoCorrecto;
 
-            // Crear array con 3 versiones: correcta + 2 incorrectas
             $versiones = [$textoCorrecto, $versionesIncorrectas[0], $versionesIncorrectas[1]];
-            
-            // Mezclar aleatoriamente
             shuffle($versiones);
-            
-            // Buscar el índice correcto después de mezclar
-            $indiceCorrecto = array_search($textoCorrecto, $versiones);
-            
-            // Validar que se encontró el índice correcto
+
+            $indiceCorrecto = array_search($textoCorrecto, $versiones, true);
             if ($indiceCorrecto === false) {
-                continue; // Saltar este artículo si hay problema con la mezcla
+                continue;
             }
-            
+
             $resultado[] = [
                 'id' => $articulo->getId(),
                 'numero' => $articulo->getNumero(),
@@ -442,22 +485,18 @@ class JuegoController extends AbstractController
             ];
         }
 
-        // Si no tenemos exactamente 20 artículos, intentar recargar desde el principio
-        if (count($resultado) < 20) {
-            // Reintentar una vez más con un nuevo lote
-            return $this->getArticulosCorrectoLote($articuloRepository);
+        if (count($resultado) < 5 && $intento < 2) {
+            return $this->buildArticulosCorrectoLote($articuloRepository, $temaIds, $intento + 1);
         }
 
-        // Limitar a exactamente 20 artículos
         if (count($resultado) > 20) {
             $resultado = array_slice($resultado, 0, 20);
         }
 
         if (empty($resultado)) {
-            return new JsonResponse(['error' => 'No se pudieron generar artículos con versiones válidas'], 404);
+            return new JsonResponse(['error' => 'No se pudieron generar artículos con versiones válidas para los temas seleccionados'], 404);
         }
 
         return new JsonResponse($resultado);
     }
 }
-

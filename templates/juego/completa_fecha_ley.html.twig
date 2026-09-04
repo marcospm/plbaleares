@@ -93,6 +93,9 @@
         <p style="color: #666;">Completa los campos vacíos de la ley. Formato: número/número, de día de mes</p>
     </div>
 
+    {% include 'juego/_seleccion_temas.html.twig' %}
+
+    <div id="juego-area" style="display: none;">
     <div id="juego-container" class="juego-container">
         <div class="card" style="margin-bottom: 1.5rem;">
             <div class="card-body" style="padding: 2rem;">
@@ -130,6 +133,7 @@
                 <div id="feedback" style="display: none; padding: 1rem; border-radius: 8px; margin-top: 1rem;"></div>
             </div>
         </div>
+    </div>
     </div>
 </div>
 
@@ -177,7 +181,8 @@
     let leyActual = null;
 
     function cargarLeyes() {
-        fetch('{{ path('app_juego_api_leyes_con_fecha') }}')
+        const url = window.JuegoTemas.appendToUrl('{{ path('app_juego_api_leyes_con_fecha') }}');
+        fetch(url)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Error HTTP: ' + response.status);
@@ -353,12 +358,14 @@
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
             inicializarEventListeners();
-            cargarLeyes();
         });
     } else {
         inicializarEventListeners();
-        cargarLeyes();
     }
+
+    document.addEventListener('juego:temas-seleccionados', function () {
+        cargarLeyes();
+    });
 
     // Reinicializar en navegaciones de Turbo
     document.addEventListener('turbo:load', function() {

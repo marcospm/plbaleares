@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Service\PartidaPreguntasService;
+use App\Repository\TemaRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,12 +25,17 @@ class PartidaPreguntasController extends AbstractController
     }
 
     #[Route('/juegos/partida-preguntas/crear', name: 'app_partida_preguntas_crear', methods: ['GET', 'POST'])]
-    public function crear(Request $request, SessionInterface $session): Response
+    public function crear(Request $request, SessionInterface $session, TemaRepository $temaRepository): Response
     {
         if ($request->isMethod('POST')) {
             $numPreguntas = $request->request->getInt('numPreguntas', 10);
             $tiempoLimite = $request->request->getInt('tiempoLimite', 20);
             $dificultad = $request->request->get('dificultad');
+            $temaIdsRaw = $request->request->all('temas');
+            $temaIds = array_values(array_unique(array_filter(
+                array_map('intval', is_array($temaIdsRaw) ? $temaIdsRaw : []),
+                static fn (int $id): bool => $id > 0
+            )));
 
             // Validar
             if ($numPreguntas < 5 || $numPreguntas > 20) {
@@ -43,16 +49,23 @@ class PartidaPreguntasController extends AbstractController
                 return $this->redirectToRoute('app_partida_preguntas_crear');
             }
 
-            // Normalizar dificultad (null si está vacío)
+            if ($temaIds === []) {
+                $this->addFlash('error', 'Debes seleccionar al menos un tema');
+                return $this->redirectToRoute('app_partida_preguntas_crear');
+            }
+
+            // Normalizar dificultad (null si está vacío); "moderada" -> "media"
             if ($dificultad === '' || $dificultad === null) {
                 $dificultad = null;
+            } elseif ($dificultad === 'moderada') {
+                $dificultad = 'media';
             }
 
             // Obtener ID del usuario si está logueado
             $creadoPorId = $this->getUser() ? $this->getUser()->getId() : null;
 
             try {
-                $codigo = $this->partidaService->crearPartida($numPreguntas, $tiempoLimite, $dificultad, $creadoPorId);
+                $codigo = $this->partidaService->crearPartida($numPreguntas, $tiempoLimite, $dificultad, $creadoPorId, $temaIds);
                 return $this->redirectToRoute('app_partida_preguntas_compartir', ['codigo' => $codigo]);
             } catch (\Exception $e) {
                 $this->addFlash('error', 'Error al crear la partida: ' . $e->getMessage());
@@ -60,7 +73,9 @@ class PartidaPreguntasController extends AbstractController
             }
         }
 
-        return $this->render('juego/partida_preguntas/crear.html.twig');
+        return $this->render('juego/partida_preguntas/crear.html.twig', [
+            'temas' => $temaRepository->findActivosOrderedByNombre(),
+        ]);
     }
 
     #[Route('/juegos/partida-preguntas/{codigo}', name: 'app_partida_preguntas_unirse', methods: ['GET', 'POST'])]

@@ -150,16 +150,14 @@ class PreguntaRepository extends ServiceEntityRepository
     }
 
     /**
-     * Obtiene preguntas activas aleatorias con filtro de dificultad
-     * Solo del temario general (no municipales)
+     * Obtiene preguntas activas aleatorias con filtro de dificultad y temas.
      * @param int $limit Número de preguntas a obtener
      * @param string|null $dificultad Dificultad ('facil', 'media', 'dificil') o null para todas
+     * @param int[]|null $temaIds Temas seleccionados (obligatorio para filtrar; null = todos)
      * @return Pregunta[]
      */
-    public function findAleatoriasActivasPorDificultad(int $limit = 20, ?string $dificultad = null): array
+    public function findAleatoriasActivasPorDificultad(int $limit = 20, ?string $dificultad = null, ?array $temaIds = null): array
     {
-        // Obtener solo los IDs de las preguntas activas con texto
-        // Excluir ley "Accidentes de Tráfico"
         $subquery = $this->getEntityManager()->createQueryBuilder()
             ->select('l2.id')
             ->from('App\Entity\Ley', 'l2')
@@ -179,11 +177,14 @@ class PreguntaRepository extends ServiceEntityRepository
             ->setParameter('nombreLeyExcluida', 'Accidentes de Tráfico')
             ->setParameter('vacio', '');
 
-        // Filtrar por dificultad si se especifica (normalizar el valor)
+        if ($temaIds !== null && $temaIds !== []) {
+            $qb->andWhere('t.id IN (:temaIds)')
+                ->setParameter('temaIds', $temaIds);
+        }
+
         if ($dificultad !== null && $dificultad !== '') {
-            // Asegurar que la dificultad sea válida
             $dificultadesValidas = ['facil', 'media', 'dificil'];
-            if (in_array(strtolower($dificultad), $dificultadesValidas)) {
+            if (in_array(strtolower($dificultad), $dificultadesValidas, true)) {
                 $qb->andWhere('p.dificultad = :dificultad')
                    ->setParameter('dificultad', strtolower($dificultad));
             }
@@ -195,22 +196,18 @@ class PreguntaRepository extends ServiceEntityRepository
             return [];
         }
 
-        // Convertir a array simple de IDs
-        $idsArray = array_map(function($row) {
+        $idsArray = array_map(function ($row) {
             return $row['id'];
         }, $ids);
 
-        // Mezclar los IDs para aleatoriedad
         shuffle($idsArray);
 
-        // Tomar solo el número necesario de IDs
         $idsSeleccionados = array_slice($idsArray, 0, min($limit, count($idsArray)));
 
         if (empty($idsSeleccionados)) {
             return [];
         }
 
-        // Ahora cargar solo las preguntas seleccionadas con sus relaciones
         return $this->createQueryBuilder('p')
             ->innerJoin('p.tema', 't')
             ->addSelect('t')

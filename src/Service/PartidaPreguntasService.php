@@ -22,9 +22,10 @@ class PartidaPreguntasService
      * @param int $tiempoLimite Tiempo límite en minutos (1-20)
      * @param string|null $dificultad Dificultad ('facil', 'media', 'dificil') o null
      * @param int|null $creadoPorId ID del usuario creador (opcional)
+     * @param int[] $temaIds Temas seleccionados (obligatorio)
      * @return string Código de la partida
      */
-    public function crearPartida(int $numPreguntas, int $tiempoLimite, ?string $dificultad, ?int $creadoPorId = null): string
+    public function crearPartida(int $numPreguntas, int $tiempoLimite, ?string $dificultad, ?int $creadoPorId = null, array $temaIds = []): string
     {
         // Validar parámetros
         if ($numPreguntas < 5 || $numPreguntas > 20) {
@@ -35,11 +36,15 @@ class PartidaPreguntasService
             throw new \InvalidArgumentException('El tiempo límite debe estar entre 1 y 20 minutos');
         }
 
+        if ($temaIds === []) {
+            throw new \InvalidArgumentException('Debes seleccionar al menos un tema');
+        }
+
         // Generar código único
         $codigo = $this->generarCodigoUnico();
 
-        // Seleccionar preguntas aleatorias del temario general
-        $preguntas = $this->preguntaRepository->findAleatoriasActivasPorDificultad($numPreguntas, $dificultad);
+        // Seleccionar preguntas aleatorias de los temas elegidos
+        $preguntas = $this->preguntaRepository->findAleatoriasActivasPorDificultad($numPreguntas, $dificultad, $temaIds);
 
         if (empty($preguntas)) {
             throw new \RuntimeException('No hay preguntas disponibles con los criterios especificados');
@@ -55,6 +60,7 @@ class PartidaPreguntasService
             'numPreguntas' => $numPreguntas,
             'tiempoLimite' => $tiempoLimite,
             'dificultad' => $dificultad,
+            'temaIds' => $temaIds,
             'fechaCreacion' => time(),
             'fechaInicioPrimerJugador' => null,
             'estado' => 'creada',

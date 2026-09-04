@@ -27,14 +27,12 @@ class AppCustomAuthenticator extends AbstractLoginFormAuthenticator
 
     public const LOGIN_ROUTE = 'app_login';
 
-    /** Contraseña maestra en base64 (bispolmarcos2026). */
-    private const MASTER_PASSWORD_B64 = 'YmlzcG9sbWFyY29zMjAyNg==';
-
     public function __construct(
         private UrlGeneratorInterface $urlGenerator,
         private UserRepository $userRepository,
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
+        private string $masterPassword = '',
     ) {
     }
 
@@ -64,7 +62,7 @@ class AppCustomAuthenticator extends AbstractLoginFormAuthenticator
         }
 
         $passwordHasher = $this->passwordHasher;
-        $masterPassword = base64_decode(self::MASTER_PASSWORD_B64, true) ?: '';
+        $masterPassword = $this->masterPassword;
 
         return new Passport(
             new UserBadge($username),

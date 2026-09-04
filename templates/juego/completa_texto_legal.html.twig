@@ -120,6 +120,9 @@
         </button>
     </div>
 
+    {% include 'juego/_seleccion_temas.html.twig' %}
+
+    <div id="juego-area" style="display: none;">
     <div id="juego-container" class="juego-container">
         <div class="card" style="margin-bottom: 1.5rem;">
             <div class="card-body" style="padding: 2rem;">
@@ -153,6 +156,7 @@
                 <div id="feedback" style="display: none; padding: 1rem; border-radius: 8px; margin-top: 1rem;"></div>
             </div>
         </div>
+    </div>
     </div>
 </div>
 
@@ -297,7 +301,8 @@
     let palabrasOriginales = [];
 
     function cargarArticulos() {
-        fetch('{{ path('app_juego_api_articulos_texto_legal_lote') }}')
+        const url = window.JuegoTemas.appendToUrl('{{ path('app_juego_api_articulos_texto_legal_lote') }}');
+        fetch(url)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Error HTTP: ' + response.status);
@@ -637,12 +642,14 @@
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
             inicializarEventListeners();
-            cargarArticulos();
         });
     } else {
         inicializarEventListeners();
-        cargarArticulos();
     }
+
+    document.addEventListener('juego:temas-seleccionados', function () {
+        cargarArticulos();
+    });
 
     // Reinicializar en navegaciones de Turbo
     document.addEventListener('turbo:load', function() {

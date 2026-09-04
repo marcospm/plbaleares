@@ -1,0 +1,129 @@
+{# Panel de selección de temas antes de empezar un juego.
+   Requiere variable `temas` (listado de Tema activos). #}
+<div id="seleccion-temas-panel" class="card" style="margin-bottom: 1.5rem;">
+    <div class="card-body" style="padding: 1.75rem;">
+        <h2 style="color: var(--color-primary); font-size: 1.35rem; margin-bottom: 0.5rem;">Selecciona los temas</h2>
+        <p style="color: #666; margin-bottom: 1.25rem;">Elige uno o más temas. Todas las preguntas y artículos del juego saldrán solo de esos temas.</p>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-sm btn-outline-primary" id="juego-temas-seleccionar-todos">✓ Seleccionar todos</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="juego-temas-deseleccionar-todos">✗ Deseleccionar todos</button>
+        </div>
+
+        <div class="border rounded p-3 bg-light" style="max-height: 320px; overflow-y: auto;" id="juego-temas-lista">
+            {% if temas is defined and temas|length > 0 %}
+                {% for tema in temas %}
+                    <div class="form-check mb-2">
+                        <input class="form-check-input juego-tema-checkbox" type="checkbox" value="{{ tema.id }}" id="juego_tema_{{ tema.id }}">
+                        <label class="form-check-label" for="juego_tema_{{ tema.id }}">{{ tema.nombre }}</label>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted mb-0">No hay temas disponibles.</p>
+            {% endif %}
+        </div>
+
+        <p id="juego-temas-error" style="display: none; color: #b02a37; margin-top: 0.75rem; margin-bottom: 0;"></p>
+
+        <button type="button" id="juego-temas-empezar" class="btn btn-primary" style="width: 100%; margin-top: 1.25rem; padding: 0.75rem; font-weight: 600;">
+            Empezar juego
+        </button>
+    </div>
+</div>
+
+<script>
+(function () {
+    function initSeleccionTemas() {
+        const STORAGE_KEY = 'juegoTemasSeleccionados';
+        const panel = document.getElementById('seleccion-temas-panel');
+        const juegoArea = document.getElementById('juego-area');
+        const btnEmpezar = document.getElementById('juego-temas-empezar');
+        const btnTodos = document.getElementById('juego-temas-seleccionar-todos');
+        const btnNinguno = document.getElementById('juego-temas-deseleccionar-todos');
+        const errorEl = document.getElementById('juego-temas-error');
+        const checkboxes = () => Array.from(document.querySelectorAll('.juego-tema-checkbox'));
+
+        window.JuegoTemas = {
+            ids: [],
+            queryString: function () {
+                return this.ids.map(function (id) { return 'temas[]=' + encodeURIComponent(id); }).join('&');
+            },
+            appendToUrl: function (url) {
+                const qs = this.queryString();
+                if (!qs) return url;
+                return url + (url.indexOf('?') >= 0 ? '&' : '?') + qs;
+            }
+        };
+
+        if (juegoArea) {
+            juegoArea.style.display = 'none';
+        }
+
+        try {
+            const guardados = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]');
+            if (Array.isArray(guardados) && guardados.length) {
+                checkboxes().forEach(function (cb) {
+                    const val = parseInt(cb.value, 10);
+                    if (guardados.indexOf(val) !== -1 || guardados.indexOf(cb.value) !== -1) {
+                        cb.checked = true;
+                    }
+                });
+            }
+        } catch (e) { /* ignore */ }
+
+        if (btnTodos) {
+            btnTodos.addEventListener('click', function () {
+                checkboxes().forEach(function (cb) { cb.checked = true; });
+            });
+        }
+        if (btnNinguno) {
+            btnNinguno.addEventListener('click', function () {
+                checkboxes().forEach(function (cb) { cb.checked = false; });
+            });
+        }
+
+        function idsSeleccionados() {
+            return checkboxes()
+                .filter(function (cb) { return cb.checked; })
+                .map(function (cb) { return parseInt(cb.value, 10); })
+                .filter(function (id) { return id > 0; });
+        }
+
+        if (btnEmpezar) {
+            btnEmpezar.addEventListener('click', function () {
+                const ids = idsSeleccionados();
+                if (!ids.length) {
+                    if (errorEl) {
+                        errorEl.style.display = 'block';
+                        errorEl.textContent = 'Selecciona al menos un tema para empezar.';
+                    }
+                    return;
+                }
+                if (errorEl) {
+                    errorEl.style.display = 'none';
+                }
+
+                window.JuegoTemas.ids = ids;
+                try {
+                    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+                } catch (e) { /* ignore */ }
+
+                if (panel) {
+                    panel.style.display = 'none';
+                }
+                if (juegoArea) {
+                    juegoArea.style.display = 'block';
+                }
+
+                document.dispatchEvent(new CustomEvent('juego:temas-seleccionados', { detail: { ids: ids } }));
+            });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSeleccionTemas);
+    } else {
+        initSeleccionTemas();
+    }
+})();
+</script>

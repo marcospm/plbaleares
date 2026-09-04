@@ -91,7 +91,7 @@
     <div class="juego-container">
         <div class="card">
             <div class="card-body" style="padding: 2rem;">
-                <form method="POST" action="{{ path('app_partida_preguntas_crear') }}">
+                <form method="POST" action="{{ path('app_partida_preguntas_crear') }}" id="form-crear-partida">
                     <div class="mb-3">
                         <label for="numPreguntas" class="form-label" style="font-weight: 600;">Número de Preguntas</label>
                         <select class="form-select" id="numPreguntas" name="numPreguntas" required>
@@ -100,7 +100,29 @@
                             <option value="15">15 preguntas</option>
                             <option value="20">20 preguntas</option>
                         </select>
-                        <small class="form-text text-muted">Las preguntas serán de los 30 temas del temario general</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                            <label class="form-label mb-0" style="font-weight: 600;">Temas</label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="seleccionar_todos_temas">✓ Seleccionar todos</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="deseleccionar_todos_temas">✗ Deseleccionar todos</button>
+                            </div>
+                        </div>
+                        <div class="border rounded p-3 bg-light" style="max-height: 280px; overflow-y: auto;">
+                            {% if temas is defined and temas|length > 0 %}
+                                {% for tema in temas %}
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input tema-partida-checkbox" type="checkbox" name="temas[]" value="{{ tema.id }}" id="tema_partida_{{ tema.id }}">
+                                        <label class="form-check-label" for="tema_partida_{{ tema.id }}">{{ tema.nombre }}</label>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted mb-0">No hay temas disponibles.</p>
+                            {% endif %}
+                        </div>
+                        <small class="form-text text-muted">Obligatorio: las preguntas saldrán solo de los temas que marques.</small>
                     </div>
 
                     <div class="mb-3">
@@ -119,7 +141,7 @@
                         <select class="form-select" id="dificultad" name="dificultad">
                             <option value="">Todas las dificultades</option>
                             <option value="facil">Fácil</option>
-                            <option value="moderada">Moderada</option>
+                            <option value="media">Media</option>
                             <option value="dificil">Difícil</option>
                         </select>
                     </div>
@@ -133,5 +155,20 @@
         </div>
     </div>
 </div>
+<script>
+document.getElementById('seleccionar_todos_temas')?.addEventListener('click', function () {
+    document.querySelectorAll('.tema-partida-checkbox').forEach(function (cb) { cb.checked = true; });
+});
+document.getElementById('deseleccionar_todos_temas')?.addEventListener('click', function () {
+    document.querySelectorAll('.tema-partida-checkbox').forEach(function (cb) { cb.checked = false; });
+});
+document.getElementById('form-crear-partida')?.addEventListener('submit', function (e) {
+    const alguno = Array.from(document.querySelectorAll('.tema-partida-checkbox')).some(function (cb) { return cb.checked; });
+    if (!alguno) {
+        e.preventDefault();
+        alert('Selecciona al menos un tema para crear la partida.');
+    }
+});
+</script>
 {% endblock %}
 
