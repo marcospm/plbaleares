@@ -17,7 +17,7 @@
                 <div class="form-group">
                     <label class="form-label">PDF Actual:</label>
                     <div>
-                        <a href="{{ tema_municipal.rutaPdf }}" target="_blank" class="btn btn-secondary">Ver PDF Actual</a>
+                        <a href="{{ path('app_tema_municipal_pdf_ver', {id: tema_municipal.id}) }}" target="_blank" class="btn btn-secondary">Ver PDF Actual</a>
                     </div>
                     <p style="font-size: 0.85rem; color: var(--color-text-light); margin-top: 0.5rem;">
                         Sube un nuevo PDF para reemplazar el actual.

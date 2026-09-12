@@ -176,7 +176,7 @@
                                                 </div>
                                                 {% if tema.rutaPdf %}
                                                     <div style="margin-left: 1rem;">
-                                                        <a href="{{ tema.rutaPdf }}" target="_blank" class="btn btn-sm btn-success" rel="noopener noreferrer">
+                                                        <a href="{{ path('app_tema_pdf_ver', {id: tema.id}) }}" target="_blank" class="btn btn-sm btn-success" rel="noopener noreferrer">
                                                             Ver PDF
                                                         </a>
                                                     </div>
@@ -217,7 +217,7 @@
                                                             </div>
                                                             {% if tema.rutaPdf %}
                                                                 <div style="margin-left: 1rem;">
-                                                                    <a href="{{ tema.rutaPdf }}" target="_blank" class="btn btn-sm" style="background-color: #9C27B0; color: white; border: none;" rel="noopener noreferrer">
+                                                                    <a href="{{ path('app_tema_municipal_pdf_ver', {id: tema.id}) }}" target="_blank" class="btn btn-sm" style="background-color: #9C27B0; color: white; border: none;" rel="noopener noreferrer">
                                                                         Ver PDF
                                                                     </a>
                                                                 </div>
@@ -254,7 +254,7 @@
                                                     </div>
                                                     {% if tema.rutaPdf %}
                                                         <div style="margin-left: 1rem;">
-                                                            <a href="{{ tema.rutaPdf }}" target="_blank" class="btn btn-sm btn-primary" rel="noopener noreferrer">
+                                                            <a href="{{ path('app_tema_municipal_pdf_ver', {id: tema.id}) }}" target="_blank" class="btn btn-sm btn-primary" rel="noopener noreferrer">
                                                                 Ver PDF
                                                             </a>
                                                         </div>

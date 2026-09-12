@@ -7,6 +7,7 @@ use App\Form\TemaMunicipalType;
 use App\Repository\TemaMunicipalRepository;
 use App\Repository\MunicipioRepository;
 use App\Repository\ConvocatoriaRepository;
+use App\Service\PdfTitleService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
@@ -24,7 +25,8 @@ use Symfony\Component\String\Slugger\SluggerInterface;
 class TemaMunicipalController extends AbstractController
 {
     public function __construct(
-        private KernelInterface $kernel
+        private KernelInterface $kernel,
+        private PdfTitleService $pdfTitleService,
     ) {
     }
 
@@ -225,10 +227,9 @@ class TemaMunicipalController extends AbstractController
                 $newFilename = $safeFilename . '-' . uniqid() . '.pdf';
                 
                 try {
-                    $pdfFile->move(
-                        $this->kernel->getProjectDir() . '/public/pdf_municipales',
-                        $newFilename
-                    );
+                    $directorio = $this->kernel->getProjectDir() . '/public/pdf_municipales';
+                    $pdfFile->move($directorio, $newFilename);
+                    $this->aplicarTituloPdf($directorio . '/' . $newFilename, $temaMunicipal->getNombre());
                     $temaMunicipal->setRutaPdf('/pdf_municipales/' . $newFilename);
                 } catch (FileException $e) {
                     $this->addFlash('error', 'Error al subir el PDF: ' . $e->getMessage());
@@ -288,10 +289,9 @@ class TemaMunicipalController extends AbstractController
                 $newFilename = $safeFilename . '-' . uniqid() . '.pdf';
                 
                 try {
-                    $pdfFile->move(
-                        $this->kernel->getProjectDir() . '/public/pdf_municipales',
-                        $newFilename
-                    );
+                    $directorio = $this->kernel->getProjectDir() . '/public/pdf_municipales';
+                    $pdfFile->move($directorio, $newFilename);
+                    $this->aplicarTituloPdf($directorio . '/' . $newFilename, $temaMunicipal->getNombre());
                     $temaMunicipal->setRutaPdf('/pdf_municipales/' . $newFilename);
                 } catch (FileException $e) {
                     $this->addFlash('error', 'Error al subir el PDF: ' . $e->getMessage());
@@ -322,6 +322,19 @@ class TemaMunicipalController extends AbstractController
         }
 
         return $this->redirectToRoute('app_tema_municipal_index', [], Response::HTTP_SEE_OTHER);
+    }
+
+    private function aplicarTituloPdf(string $rutaAbsoluta, ?string $titulo): void
+    {
+        if (!$titulo || !is_file($rutaAbsoluta)) {
+            return;
+        }
+
+        try {
+            $this->pdfTitleService->applyTitleToFile($rutaAbsoluta, $titulo);
+        } catch (\Throwable) {
+            // Si falla el metadato, el PDF sigue siendo usable; el visor vía ruta lo corrige al abrir.
+        }
     }
 }
 

@@ -16,7 +16,7 @@
             {% if tema.rutaPdf %}
                 <div class="alert alert-info mt-3">
                     <strong>PDF actual:</strong> 
-                    <a href="{{ tema.rutaPdf }}" target="_blank" class="btn btn-sm btn-success">Ver PDF Actual</a>
+                    <a href="{{ path('app_tema_pdf_ver', {id: tema.id}) }}" target="_blank" class="btn btn-sm btn-success">Ver PDF Actual</a>
                     <small class="d-block mt-2">Si subes un nuevo archivo, se reemplazará el actual.</small>
                 </div>
             {% endif %}

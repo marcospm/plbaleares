@@ -39,10 +39,10 @@
                         <strong>✓ PDF disponible</strong>
                     </p>
                     <div class="d-flex gap-2" style="flex-wrap: wrap;">
-                        <a href="{{ tema.rutaPdf }}" target="_blank" class="btn btn-success" rel="noopener noreferrer">
+                        <a href="{{ path('app_tema_pdf_ver', {id: tema.id}) }}" target="_blank" class="btn btn-success" rel="noopener noreferrer">
                             📄 Ver PDF
                         </a>
-                        <a href="{{ tema.rutaPdf }}" download class="btn btn-primary">
+                        <a href="{{ path('app_tema_pdf_descargar', {id: tema.id}) }}" class="btn btn-primary">
                             ⬇️ Descargar PDF
                         </a>
                     </div>

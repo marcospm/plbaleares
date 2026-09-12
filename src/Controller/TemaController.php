@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Tema;
 use App\Form\TemaType;
 use App\Repository\TemaRepository;
+use App\Service\PdfTitleService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
@@ -21,7 +22,8 @@ use Symfony\Component\String\Slugger\SluggerInterface;
 class TemaController extends AbstractController
 {
     public function __construct(
-        private KernelInterface $kernel
+        private KernelInterface $kernel,
+        private PdfTitleService $pdfTitleService,
     ) {
     }
     #[Route('/', name: 'app_tema_index', methods: ['GET'])]
@@ -84,7 +86,9 @@ class TemaController extends AbstractController
                     }
                     
                     $pdfFile->move($directorio, $newFilename);
-                    $tema->setRutaPdf('/pdfs/' . $newFilename);
+                    $rutaRelativa = '/pdfs/' . $newFilename;
+                    $this->aplicarTituloPdf($directorio . '/' . $newFilename, $tema->getNombre());
+                    $tema->setRutaPdf($rutaRelativa);
                 } catch (FileException $e) {
                     $this->addFlash('error', 'Error al subir el PDF: ' . $e->getMessage());
                     return $this->render('tema/new.html.twig', [
@@ -173,7 +177,9 @@ class TemaController extends AbstractController
                     }
                     
                     $pdfFile->move($directorio, $newFilename);
-                    $tema->setRutaPdf('/pdfs/' . $newFilename);
+                    $rutaRelativa = '/pdfs/' . $newFilename;
+                    $this->aplicarTituloPdf($directorio . '/' . $newFilename, $tema->getNombre());
+                    $tema->setRutaPdf($rutaRelativa);
                 } catch (FileException $e) {
                     $this->addFlash('error', 'Error al subir el PDF: ' . $e->getMessage());
                     return $this->render('tema/edit.html.twig', [
@@ -219,6 +225,19 @@ class TemaController extends AbstractController
         }
 
         return $this->redirectToRoute('app_tema_index', [], Response::HTTP_SEE_OTHER);
+    }
+
+    private function aplicarTituloPdf(string $rutaAbsoluta, ?string $titulo): void
+    {
+        if (!$titulo || !is_file($rutaAbsoluta)) {
+            return;
+        }
+
+        try {
+            $this->pdfTitleService->applyTitleToFile($rutaAbsoluta, $titulo);
+        } catch (\Throwable) {
+            // Si falla el metadato, el PDF sigue siendo usable; el visor vía ruta lo corrige al abrir.
+        }
     }
 }
 

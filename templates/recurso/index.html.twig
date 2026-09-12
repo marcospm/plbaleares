@@ -50,7 +50,7 @@
                                 <td>{{ tema.descripcion|default('Sin descripción')|slice(0, 80) }}{% if tema.descripcion|length > 80 %}...{% endif %}</td>
                                 <td>
                                     {% if tema.rutaPdf %}
-                                        <a href="{{ tema.rutaPdf }}" target="_blank" class="btn btn-sm btn-success" rel="noopener noreferrer">
+                                        <a href="{{ path('app_tema_pdf_ver', {id: tema.id}) }}" target="_blank" class="btn btn-sm btn-success" rel="noopener noreferrer">
                                             Ver PDF
                                         </a>
                                     {% else %}

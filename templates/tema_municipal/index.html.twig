@@ -209,7 +209,7 @@
                         <td>{{ tema.municipio.nombre }}</td>
                         <td>
                             {% if tema.rutaPdf %}
-                                <a href="{{ tema.rutaPdf }}" target="_blank" class="btn btn-sm btn-secondary">Ver PDF</a>
+                                <a href="{{ path('app_tema_municipal_pdf_ver', {id: tema.id}) }}" target="_blank" class="btn btn-sm btn-secondary">Ver PDF</a>
                             {% else %}
                                 <span class="text-muted">Sin PDF</span>
                             {% endif %}
