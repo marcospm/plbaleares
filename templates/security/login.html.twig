@@ -9,12 +9,6 @@
             <h1>Iniciar Sesión</h1>
         </div>
         <div class="card-body">
-            {% if app.request.query.get('password_reset') == 'success' %}
-                <div class="alert alert-success">
-                    <strong>Perfecto:</strong> tu contraseña se ha actualizado correctamente. Ya puedes iniciar sesión.
-                </div>
-            {% endif %}
-
             {% if error %}
                 <div class="alert alert-danger">
                     <strong>Error:</strong> {{ error.messageKey|trans(error.messageData, 'security') }}

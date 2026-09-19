@@ -43,7 +43,7 @@ class PasswordResetController extends AbstractController
                     $emailMessage = (new TemplatedEmail())
                         ->from($mailerFrom)
                         ->to($user->getEmail() ?? '')
-                        ->subject('Recuperar contrasena')
+                        ->subject('Recuperar contraseña')
                         ->htmlTemplate('emails/reset_password.html.twig')
                         ->context([
                             'usuario' => $user,
@@ -52,16 +52,16 @@ class PasswordResetController extends AbstractController
 
                     $mailer->send($emailMessage);
                 } catch (\Throwable $e) {
-                    $logger->error('Error al procesar recuperacion de contrasena', [
+                    $logger->error('Error al procesar recuperación de contraseña', [
                         'user_id' => $user->getId(),
                         'error' => $e->getMessage(),
                     ]);
                 }
             }
 
-            $this->addFlash('success', 'Si el correo existe, hemos enviado instrucciones para cambiar la contrasena.');
+            $this->addFlash('success', 'Si el correo existe, hemos enviado instrucciones para cambiar la contraseña.');
 
-            return $this->redirectToRoute('app_login', ['password_reset' => 'success']);
+            return $this->redirectToRoute('app_login');
         }
 
         return $this->render('security/forgot_password.html.twig', [
@@ -81,7 +81,7 @@ class PasswordResetController extends AbstractController
         $user = $passwordResetService->findUserByToken($token);
 
         if (!$user) {
-            $this->addFlash('error', 'El enlace de recuperacion no es valido o ya fue utilizado.');
+            $this->addFlash('error', 'El enlace de recuperación no es válido o ya fue utilizado.');
 
             return $this->redirectToRoute('app_forgot_password');
         }
@@ -91,7 +91,7 @@ class PasswordResetController extends AbstractController
             $this->addFlash(
                 'error',
                 sprintf(
-                    'El enlace de recuperacion ha caducado (valido hasta %s). Solicita uno nuevo.',
+                    'El enlace de recuperación ha caducado (válido hasta %s). Solicita uno nuevo.',
                     $expiresAt?->format('d/m/Y H:i') ?? 'desconocido'
                 )
             );
@@ -109,7 +109,7 @@ class PasswordResetController extends AbstractController
 
             $passwordResetService->clearToken($user);
 
-            $this->addFlash('success', 'Contrasena actualizada correctamente. Ya puedes iniciar sesion.');
+            $this->addFlash('success', 'Contraseña actualizada correctamente. Ya puedes iniciar sesión.');
 
             return $this->redirectToRoute('app_login');
         }
