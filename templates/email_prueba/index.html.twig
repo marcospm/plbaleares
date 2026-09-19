@@ -12,7 +12,8 @@
     <div class="card">
         <div class="card-body">
             <div class="alert alert-info" style="margin-bottom: 1.5rem;">
-                <strong>Remitente configurado:</strong> {{ mailerFrom }}
+                <div><strong>Remitente:</strong> {{ mailerFrom }}</div>
+                <div style="margin-top: 0.35rem;"><strong>SMTP:</strong> {{ mailerHostInfo }}</div>
             </div>
 
             <form method="post" action="{{ path('app_email_prueba') }}">

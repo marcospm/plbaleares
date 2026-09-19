@@ -22,8 +22,10 @@ class EmailPruebaController extends AbstractController
         MailerInterface $mailer,
         LoggerInterface $logger,
         #[Autowire('%env(MAILER_FROM)%')] string $mailerFrom,
+        #[Autowire('%env(MAILER_DSN)%')] string $mailerDsn,
     ): Response {
         $emailDestino = '';
+        $mailerHostInfo = $this->describeMailerDsn($mailerDsn);
 
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('email_prueba', (string) $request->request->get('_token'))) {
@@ -40,6 +42,7 @@ class EmailPruebaController extends AbstractController
                 return $this->render('email_prueba/index.html.twig', [
                     'email' => $emailDestino,
                     'mailerFrom' => $mailerFrom,
+                    'mailerHostInfo' => $mailerHostInfo,
                 ]);
             }
 
@@ -82,6 +85,7 @@ class EmailPruebaController extends AbstractController
                 $logger->error('Error al enviar correo de prueba', [
                     'to' => $emailDestino,
                     'from' => $mailerFrom,
+                    'mailer' => $mailerHostInfo,
                     'error' => $e->getMessage(),
                 ]);
 
@@ -95,6 +99,24 @@ class EmailPruebaController extends AbstractController
         return $this->render('email_prueba/index.html.twig', [
             'email' => $emailDestino,
             'mailerFrom' => $mailerFrom,
+            'mailerHostInfo' => $mailerHostInfo,
         ]);
+    }
+
+    /**
+     * Describe el DSN sin exponer credenciales (útil para depurar en admin).
+     */
+    private function describeMailerDsn(string $dsn): string
+    {
+        $parts = parse_url($dsn);
+        if ($parts === false) {
+            return '(DSN no válido)';
+        }
+
+        $scheme = $parts['scheme'] ?? '?';
+        $host = $parts['host'] ?? '?';
+        $port = isset($parts['port']) ? ':' . $parts['port'] : '';
+
+        return sprintf('%s://%s%s', $scheme, $host, $port);
     }
 }

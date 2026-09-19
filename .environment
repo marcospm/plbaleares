@@ -1,2 +1,11 @@
+# Variables de entorno en runtime (Upsun).
+# Se carga al arrancar el contenedor y tiene prioridad sobre .env.
 
 export DATABASE_URL="${DB_SCHEME}://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_PATH}"
+
+# En Upsun, el SMTP externo (bispol.es:465) hace timeout desde el contenedor.
+# Usar el proxy integrado (PLATFORM_SMTP_HOST, puerto 25 interno → salida cifrada).
+# Requiere "Enable outgoing emails" activo en el entorno de Upsun.
+if [ -n "${PLATFORM_SMTP_HOST:-}" ]; then
+  export MAILER_DSN="smtp://${PLATFORM_SMTP_HOST}:25"
+fi

@@ -56,8 +56,9 @@ applications:
         APP_ENV: "prod"
         APP_DEBUG: "0"
         APP_SECRET: "a4f9fd292b86d214adcd16b1496e853dd56ecc807fae04e316b26a6079690b72"
-        # Mailer: MAILER_PASSWORD se define como variable secreta en el panel de Upsun
-        # MASTER_PASSWORD: definir como variable secreta en Upsun (no en este fichero)
+        # Mailer: en producción el DSN lo fija .environment con PLATFORM_SMTP_HOST
+        # (proxy SMTP de Upsun). No usar bispol.es:465 desde el contenedor (timeout).
+        # Remitente visible en los correos:
         MAILER_USER: "info@bispol.es"
         MAILER_FROM: "info@bispol.es"
         CONTACT_EMAIL: "info@bispol.es"
