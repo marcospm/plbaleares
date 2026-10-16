@@ -399,6 +399,37 @@
     </div>
 </form>
 
+<form method="post" action="{{ path('app_pregunta_examen_pdf') }}" id="examen-pdf-form" style="margin-bottom: 2rem;">
+    <input type="hidden" name="_token" value="{{ csrf_token('examen_pdf') }}">
+    <div class="card">
+        <div class="card-header" style="background-color: #e8f4f8; border-bottom: 1px solid #dee2e6;">
+            <h3 style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #0071B5;">
+                Generar examen PDF (50 preguntas)
+            </h3>
+        </div>
+        <div class="card-body">
+            <p style="margin-top: 0; color: #555; font-size: 0.95rem;">
+                Selecciona uno o varios temas. Se generará un examen de exactamente 50 preguntas activas,
+                con las opciones de respuesta mezcladas (la correcta no siempre es la misma letra)
+                y una plantilla de respuestas al final del PDF.
+            </p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.5rem 1rem; margin-bottom: 1rem; max-height: 220px; overflow-y: auto; padding: 0.5rem; border: 1px solid #dee2e6; border-radius: 6px; background: #fafafa;">
+                {% for tema in temas %}
+                    <label style="display: flex; align-items: flex-start; gap: 0.4rem; cursor: pointer; font-size: 0.9rem; margin: 0;">
+                        <input type="checkbox" name="temas[]" value="{{ tema.id }}" class="examen-pdf-tema" style="margin-top: 0.2rem;">
+                        <span>{{ tema.nombre }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+                <button type="button" class="btn btn-secondary" id="examen-pdf-todos" style="min-height: 44px;">Seleccionar todos</button>
+                <button type="button" class="btn btn-secondary" id="examen-pdf-ninguno" style="min-height: 44px;">Quitar selección</button>
+                <button type="submit" class="btn btn-primary" style="min-height: 44px;">Descargar examen PDF</button>
+            </div>
+        </div>
+    </div>
+</form>
+
 <script>
 document.getElementById('filtro-form').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -416,6 +447,29 @@ document.getElementById('filtro-form').addEventListener('submit', function(e) {
     const url = this.action + (params.toString() ? '?' + params.toString() : '');
     window.location.href = url;
 });
+
+(function () {
+    const form = document.getElementById('examen-pdf-form');
+    if (!form) return;
+
+    const checkboxes = () => form.querySelectorAll('.examen-pdf-tema');
+
+    document.getElementById('examen-pdf-todos')?.addEventListener('click', function () {
+        checkboxes().forEach(function (cb) { cb.checked = true; });
+    });
+
+    document.getElementById('examen-pdf-ninguno')?.addEventListener('click', function () {
+        checkboxes().forEach(function (cb) { cb.checked = false; });
+    });
+
+    form.addEventListener('submit', function (e) {
+        const selected = Array.from(checkboxes()).filter(function (cb) { return cb.checked; });
+        if (selected.length === 0) {
+            e.preventDefault();
+            alert('Selecciona al menos un tema para generar el examen.');
+        }
+    });
+})();
 </script>
 
 {% if preguntas|length > 0 %}
