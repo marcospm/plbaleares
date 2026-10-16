@@ -2397,7 +2397,6 @@ class ExamenController extends AbstractController
             'tipoRanking' => $tipoRanking,
             'convocatoriaRankingSeleccionada' => $convocatoriaRankingId !== null && $convocatoriaRankingId > 0 ? $convocatoriaRankingId : null,
             'rankings' => $rankings,
-            'fechaCorteRanking' => $this->examenRepository->getFechaCorteRanking(),
             // Paginación general
             'currentPageGeneral' => $pageGeneral,
             'totalPagesGeneral' => $totalPagesGeneral,
@@ -2408,70 +2407,6 @@ class ExamenController extends AbstractController
             'totalPagesMunicipal' => $totalPagesMunicipal,
             'totalItemsMunicipal' => $totalItemsMunicipal,
         ]);
-    }
-
-    #[Route('/profesor/reset-ranking', name: 'app_examen_profesor_reset_ranking', methods: ['POST'])]
-    #[IsGranted('ROLE_ADMIN')]
-    public function resetRanking(
-        Request $request,
-        \App\Repository\ConfiguracionRankingRepository $configuracionRankingRepository,
-        ?\Psr\Cache\CacheItemPoolInterface $cache = null
-    ): Response {
-        if (!$this->isCsrfTokenValid('reset_ranking', $request->request->get('_token'))) {
-            $this->addFlash('error', 'Token de seguridad inválido.');
-            return $this->redirectToRoute('app_examen_profesor');
-        }
-
-        $accion = (string) $request->request->get('accion', 'establecer');
-        $fechaCorteEstablecida = null;
-
-        if ($accion === 'quitar') {
-            $configuracionRankingRepository->establecerFechaCorte(null);
-            $this->addFlash('success', 'Se ha restaurado el ranking histórico completo (sin fecha de corte).');
-        } else {
-            $fechaStr = trim((string) $request->request->get('fecha_corte', ''));
-            if ($fechaStr === '') {
-                $this->addFlash('error', 'Debes indicar una fecha de corte.');
-                return $this->redirectToRoute('app_examen_profesor');
-            }
-
-            $fecha = \DateTime::createFromFormat('Y-m-d', $fechaStr);
-            if ($fecha === false) {
-                $this->addFlash('error', 'Fecha de corte no válida.');
-                return $this->redirectToRoute('app_examen_profesor');
-            }
-
-            $fecha->setTime(0, 0, 0);
-            $configuracionRankingRepository->establecerFechaCorte($fecha);
-            $fechaCorteEstablecida = $fecha;
-            $this->addFlash(
-                'success',
-                sprintf(
-                    'Rankings reiniciados: solo cuentan exámenes y partidas de juego desde el %s (incluido). El historial de exámenes no se borra.',
-                    $fecha->format('d/m/Y')
-                )
-            );
-        }
-
-        // Invalidar caches comunes de ranking (las claves con sufijo de corte se regeneran solas)
-        if ($cache) {
-            $dificultades = ['facil', 'moderada', 'dificil'];
-            $cantidades = [3, 5, 10, 20];
-            $sufijos = ['sin_corte'];
-            if ($fechaCorteEstablecida !== null) {
-                $sufijos[] = 'corte_' . $fechaCorteEstablecida->format('Ymd');
-            }
-            foreach ($dificultades as $dificultad) {
-                foreach ($cantidades as $cantidad) {
-                    $cache->deleteItem("ranking_dificultad_{$dificultad}_{$cantidad}_all");
-                    foreach ($sufijos as $sufijo) {
-                        $cache->deleteItem("ranking_dificultad_{$dificultad}_{$cantidad}_all_{$sufijo}");
-                    }
-                }
-            }
-        }
-
-        return $this->redirectToRoute('app_examen_profesor');
     }
 
     #[Route('/detalle/{id}', name: 'app_examen_detalle', methods: ['GET'])]

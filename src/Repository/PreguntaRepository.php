@@ -244,35 +244,5 @@ class PreguntaRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
-
-    /**
-     * Preguntas activas de uno o varios temas, con relaciones para PDF/examen.
-     *
-     * @param int[] $temaIds
-     * @return Pregunta[]
-     */
-    public function findActivasByTemaIds(array $temaIds): array
-    {
-        if ($temaIds === []) {
-            return [];
-        }
-
-        return $this->createQueryBuilder('p')
-            ->innerJoin('p.tema', 't')
-            ->addSelect('t')
-            ->innerJoin('p.ley', 'l')
-            ->addSelect('l')
-            ->leftJoin('p.articulo', 'a')
-            ->addSelect('a')
-            ->where('p.activo = :activo')
-            ->andWhere('t.id IN (:temaIds)')
-            ->andWhere('p.texto IS NOT NULL')
-            ->andWhere('p.texto != :vacio')
-            ->setParameter('activo', true)
-            ->setParameter('temaIds', $temaIds)
-            ->setParameter('vacio', '')
-            ->getQuery()
-            ->getResult();
-    }
 }
 

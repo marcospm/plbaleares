@@ -330,39 +330,6 @@
             Visualiza y gestiona todos los exámenes realizados por los alumnos. Puedes filtrar por grupo, alumno, dificultad y tema.
         </p>
 
-        {% if is_granted('ROLE_ADMIN') %}
-            <div class="card" style="margin-bottom: 2rem; border: 1px solid #f5c2c7; background-color: #fff5f5;">
-                <div class="card-body">
-                    <h3 style="margin-top: 0; font-size: 1.1rem; color: #842029;">Reiniciar rankings</h3>
-                    <p style="margin: 0 0 1rem; color: #555; font-size: 0.95rem;">
-                        Define una fecha de corte: a partir de ese día (incluido) vuelven a contar los exámenes y las partidas de juego para los rankings.
-                        No se borran exámenes del historial.
-                        {% if fechaCorteRanking %}
-                            <br><strong>Corte activo:</strong> {{ fechaCorteRanking|date('d/m/Y') }}
-                        {% else %}
-                            <br><strong>Sin corte:</strong> se usa el historial completo.
-                        {% endif %}
-                    </p>
-                    <form method="post" action="{{ path('app_examen_profesor_reset_ranking') }}" style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end;" onsubmit="return confirm('¿Reiniciar los rankings desde la fecha indicada? Los exámenes anteriores dejarán de contar en el ranking (no se eliminan).');">
-                        <input type="hidden" name="_token" value="{{ csrf_token('reset_ranking') }}">
-                        <input type="hidden" name="accion" value="establecer">
-                        <div>
-                            <label for="fecha_corte" class="form-label">Fecha de corte</label>
-                            <input type="date" name="fecha_corte" id="fecha_corte" class="form-control" required value="{{ fechaCorteRanking ? fechaCorteRanking|date('Y-m-d') : '' }}" style="min-height: 44px;">
-                        </div>
-                        <button type="submit" class="btn btn-danger" style="min-height: 44px;">Aplicar corte</button>
-                    </form>
-                    {% if fechaCorteRanking %}
-                        <form method="post" action="{{ path('app_examen_profesor_reset_ranking') }}" style="margin-top: 0.75rem;" onsubmit="return confirm('¿Quitar la fecha de corte y restaurar el ranking histórico completo?');">
-                            <input type="hidden" name="_token" value="{{ csrf_token('reset_ranking') }}">
-                            <input type="hidden" name="accion" value="quitar">
-                            <button type="submit" class="btn btn-secondary" style="min-height: 44px;">Quitar corte / restaurar histórico</button>
-                        </form>
-                    {% endif %}
-                </div>
-            </div>
-        {% endif %}
-
         {# Filtros #}
         <div class="card" style="margin-bottom: 2rem; background-color: #f8f9fa;">
             <div class="card-body">
@@ -855,9 +822,6 @@
                 {% if rankings %}
                     <div style="margin-bottom: 1rem; padding: 0.75rem; background-color: #e3f2fd; border-radius: 4px; border-left: 4px solid #4CAF50;">
                         <strong>ℹ️ Nota:</strong> El ranking muestra la nota media de los últimos 10 exámenes{% if tipoRanking == 'convocatoria' and convocatoriaRankingSeleccionada %} de la convocatoria seleccionada{% elseif tipoRanking == 'general' and temaSeleccionado %} del tema {{ temaSeleccionado.nombre }}{% endif %}.
-                        {% if fechaCorteRanking %}
-                            Solo se tienen en cuenta exámenes desde el <strong>{{ fechaCorteRanking|date('d/m/Y') }}</strong>.
-                        {% endif %}
                     </div>
                     
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">

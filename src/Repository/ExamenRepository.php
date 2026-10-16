@@ -17,50 +17,11 @@ use Psr\Cache\CacheItemPoolInterface;
 class ExamenRepository extends ServiceEntityRepository
 {
     private ?CacheItemPoolInterface $cache = null;
-    private ?ConfiguracionRankingRepository $configuracionRankingRepository = null;
 
-    public function __construct(
-        ManagerRegistry $registry,
-        ?CacheItemPoolInterface $cache = null,
-        ?ConfiguracionRankingRepository $configuracionRankingRepository = null
-    ) {
+    public function __construct(ManagerRegistry $registry, CacheItemPoolInterface $cache = null)
+    {
         parent::__construct($registry, Examen::class);
         $this->cache = $cache;
-        $this->configuracionRankingRepository = $configuracionRankingRepository;
-    }
-
-    /**
-     * Fecha a partir de la cual cuentan los exámenes para ranking (null = sin corte).
-     */
-    public function getFechaCorteRanking(): ?\DateTimeInterface
-    {
-        if ($this->configuracionRankingRepository === null) {
-            return null;
-        }
-
-        return $this->configuracionRankingRepository->getFechaCorte();
-    }
-
-    private function getRankingCacheSuffix(): string
-    {
-        $fechaCorte = $this->getFechaCorteRanking();
-
-        return $fechaCorte ? 'corte_' . $fechaCorte->format('Ymd') : 'sin_corte';
-    }
-
-    /**
-     * @param \Doctrine\ORM\QueryBuilder $qb
-     */
-    private function aplicarFechaCorteRanking($qb, string $alias = 'e'): void
-    {
-        $fechaCorte = $this->getFechaCorteRanking();
-        if ($fechaCorte === null) {
-            return;
-        }
-
-        $inicio = \DateTime::createFromInterface($fechaCorte)->setTime(0, 0, 0);
-        $qb->andWhere($alias . '.fecha >= :fechaCorteRanking')
-            ->setParameter('fechaCorteRanking', $inicio);
     }
 
     /**
@@ -191,8 +152,6 @@ class ExamenRepository extends ServiceEntityRepository
             ->setParameter('usuario', $usuario)
             ->setParameter('dificultad', $dificultad);
 
-        $this->aplicarFechaCorteRanking($qb);
-
         // Si hay tema, filtrar por tema
         if ($tema !== null) {
             $qb->innerJoin('e.temas', 't')
@@ -237,7 +196,7 @@ class ExamenRepository extends ServiceEntityRepository
         // Guardar en caché
         if ($this->cache) {
             $temaId = $tema ? $tema->getId() : 'all';
-            $cacheKey = 'nota_media_' . $usuario->getId() . '_' . $dificultad . '_' . $cantidadExamenes . '_' . $temaId . '_' . $this->getRankingCacheSuffix();
+            $cacheKey = 'nota_media_' . $usuario->getId() . '_' . $dificultad . '_' . $cantidadExamenes . '_' . $temaId;
             $item = $this->cache->getItem($cacheKey);
             $item->set($notaMedia);
             $item->expiresAfter(1800); // 30 minutos
@@ -257,7 +216,7 @@ class ExamenRepository extends ServiceEntityRepository
     {
         // Cache key único para este ranking
         $temaId = $tema ? $tema->getId() : 'all';
-        $cacheKey = sprintf('ranking_dificultad_%s_%d_%s_%s', $dificultad, $cantidadExamenes, $temaId, $this->getRankingCacheSuffix());
+        $cacheKey = sprintf('ranking_dificultad_%s_%d_%s', $dificultad, $cantidadExamenes, $temaId);
         
         if ($this->cache) {
             $cacheItem = $this->cache->getItem($cacheKey);
@@ -278,8 +237,6 @@ class ExamenRepository extends ServiceEntityRepository
             ->setParameter('activo', true)
             ->orderBy('e.usuario', 'ASC')
             ->addOrderBy('e.fecha', 'DESC');
-
-        $this->aplicarFechaCorteRanking($qb);
 
         if ($tema !== null) {
             $qb->andWhere('t.id = :temaId')
@@ -365,7 +322,7 @@ class ExamenRepository extends ServiceEntityRepository
     {
         // Generar clave de caché única
         $temaId = $tema ? $tema->getId() : 'all';
-        $cacheKey = 'posicion_' . $usuario->getId() . '_' . $dificultad . '_' . $cantidadExamenes . '_' . $temaId . '_' . $this->getRankingCacheSuffix();
+        $cacheKey = 'posicion_' . $usuario->getId() . '_' . $dificultad . '_' . $cantidadExamenes . '_' . $temaId;
         
         if ($this->cache) {
             $item = $this->cache->getItem($cacheKey);
@@ -409,8 +366,6 @@ class ExamenRepository extends ServiceEntityRepository
             ->setParameter('usuario', $usuario)
             ->setParameter('municipio', $municipio)
             ->setParameter('dificultad', $dificultad);
-
-        $this->aplicarFechaCorteRanking($qb);
 
         // Si hay un tema municipal específico, filtrar solo exámenes íntegramente de ese tema
         if ($temaMunicipal !== null) {
@@ -462,7 +417,7 @@ class ExamenRepository extends ServiceEntityRepository
     {
         // Cache key único para este ranking
         $temaMunicipalId = $temaMunicipal ? $temaMunicipal->getId() : 'all';
-        $cacheKey = sprintf('ranking_municipio_%d_%s_%d_%s_%s', $municipio->getId(), $dificultad, $cantidadExamenes, $temaMunicipalId, $this->getRankingCacheSuffix());
+        $cacheKey = sprintf('ranking_municipio_%d_%s_%d_%s', $municipio->getId(), $dificultad, $cantidadExamenes, $temaMunicipalId);
         
         $cacheItem = null;
         if ($this->cache) {
@@ -493,8 +448,6 @@ class ExamenRepository extends ServiceEntityRepository
             ->setParameter('municipioId', $municipio->getId())
             ->orderBy('e.usuario', 'ASC')
             ->addOrderBy('e.fecha', 'DESC');
-
-        $this->aplicarFechaCorteRanking($qb);
 
         if ($temaMunicipal !== null) {
             $qb->andWhere('tm.id = :temaMunicipalId')
@@ -622,8 +575,6 @@ class ExamenRepository extends ServiceEntityRepository
             ->setParameter('usuario', $usuario)
             ->setParameter('convocatoria', $convocatoria)
             ->setParameter('dificultad', $dificultad);
-
-        $this->aplicarFechaCorteRanking($qb);
         
         if ($municipio) {
             $qb->andWhere('e.municipio = :municipio')
@@ -663,7 +614,7 @@ class ExamenRepository extends ServiceEntityRepository
     {
         // Cache key único para este ranking
         $municipioId = $municipio ? $municipio->getId() : 'all';
-        $cacheKey = sprintf('ranking_convocatoria_%d_%s_%d_%s_%s', $convocatoria->getId(), $dificultad, $cantidadExamenes, $municipioId, $this->getRankingCacheSuffix());
+        $cacheKey = sprintf('ranking_convocatoria_%d_%s_%d_%s', $convocatoria->getId(), $dificultad, $cantidadExamenes, $municipioId);
         
         if ($this->cache) {
             $cacheItem = $this->cache->getItem($cacheKey);
@@ -686,8 +637,6 @@ class ExamenRepository extends ServiceEntityRepository
             ->setParameter('convocatoriaId', $convocatoria->getId())
             ->orderBy('e.usuario', 'ASC')
             ->addOrderBy('e.fecha', 'DESC');
-
-        $this->aplicarFechaCorteRanking($qb);
         
         if ($municipio) {
             $qb->andWhere('e.municipio = :municipio')
