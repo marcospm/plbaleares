@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Examen tipo test - {{ totalPreguntas }} preguntas</title>
+    <style>
+        body {
+            font-family: DejaVu Sans, Arial, sans-serif;
+            font-size: 11pt;
+            line-height: 1.4;
+            margin: 20px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 12px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 18pt;
+            font-weight: bold;
+        }
+        .header .subtitle {
+            margin-top: 6px;
+            font-size: 11pt;
+            color: #555;
+        }
+        .info {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+        .info p {
+            margin: 4px 0;
+        }
+        .pregunta {
+            margin-bottom: 22px;
+            page-break-inside: avoid;
+        }
+        .pregunta-numero {
+            font-weight: bold;
+            font-size: 12pt;
+            margin-bottom: 6px;
+            color: #0071B5;
+        }
+        .pregunta-metadata {
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            background-color: #e8f4f8;
+            border-left: 4px solid #0071B5;
+            font-size: 9pt;
+            color: #444;
+        }
+        .pregunta-texto {
+            margin-bottom: 10px;
+            font-size: 11pt;
+            line-height: 1.5;
+        }
+        .opciones {
+            margin-left: 16px;
+        }
+        .opcion {
+            margin-bottom: 6px;
+            padding: 3px 0;
+        }
+        .opcion-label {
+            font-weight: bold;
+            display: inline-block;
+            width: 22px;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+        .tabla-respuestas {
+            width: 100%;
+            margin-top: 16px;
+            border-collapse: collapse;
+        }
+        .tabla-respuestas th {
+            background-color: #0071B5;
+            color: white;
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 11pt;
+        }
+        .tabla-respuestas td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #ddd;
+            font-size: 10pt;
+            vertical-align: top;
+        }
+        .tabla-respuestas tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .respuesta-letra {
+            font-weight: bold;
+            font-size: 13pt;
+            color: #0071B5;
+        }
+        .retro {
+            font-size: 9pt;
+            color: #555;
+            margin-top: 2px;
+        }
+        .footer {
+            margin-top: 24px;
+            padding-top: 12px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            font-size: 9pt;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Examen tipo test</h1>
+        <div class="subtitle">{{ totalPreguntas }} preguntas — opciones de respuesta aleatorizadas</div>
+    </div>
+
+    <div class="info">
+        <p><strong>Temas:</strong> {{ temasNombres|join(', ') }}</p>
+        <p><strong>Total de preguntas:</strong> {{ totalPreguntas }}</p>
+        <p><strong>Fecha:</strong> {{ "now"|date('d/m/Y H:i') }}</p>
+    </div>
+
+    {% for pregunta in preguntas %}
+        <div class="pregunta">
+            <div class="pregunta-numero">Pregunta {{ loop.index }}</div>
+            <div class="pregunta-metadata">
+                {% if pregunta.leyNombre %}{{ pregunta.leyNombre }}{% endif %}
+                {% if pregunta.temaNombre %}
+                    {% if pregunta.leyNombre %} · {% endif %}{{ pregunta.temaNombre }}
+                {% endif %}
+                {% if pregunta.articuloLabel %}
+                    · {{ pregunta.articuloLabel }}
+                {% endif %}
+            </div>
+            <div class="pregunta-texto">{{ pregunta.texto|raw }}</div>
+            <div class="opciones">
+                <div class="opcion"><span class="opcion-label">A)</span> {{ pregunta.opcionA|raw }}</div>
+                <div class="opcion"><span class="opcion-label">B)</span> {{ pregunta.opcionB|raw }}</div>
+                <div class="opcion"><span class="opcion-label">C)</span> {{ pregunta.opcionC|raw }}</div>
+                <div class="opcion"><span class="opcion-label">D)</span> {{ pregunta.opcionD|raw }}</div>
+            </div>
+        </div>
+    {% endfor %}
+
+    <div class="page-break"></div>
+
+    <div class="header">
+        <h1>Plantilla de respuestas</h1>
+        <div class="subtitle">Respuestas correctas según el orden de opciones de este examen</div>
+    </div>
+
+    <table class="tabla-respuestas">
+        <thead>
+            <tr>
+                <th style="width: 12%;">Nº</th>
+                <th style="width: 12%;">Respuesta</th>
+                <th style="width: 76%;">Notas / retroalimentación</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pregunta in preguntas %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><span class="respuesta-letra">{{ pregunta.respuestaCorrecta }}</span></td>
+                    <td>
+                        {% if pregunta.retroalimentacion %}
+                            <div class="retro">{{ pregunta.retroalimentacion|striptags|slice(0, 280) }}{% if pregunta.retroalimentacion|striptags|length > 280 %}…{% endif %}</div>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>Generado el {{ "now"|date('d/m/Y H:i') }}</p>
+    </div>
+</body>
+</html>

@@ -12,9 +12,27 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class PartidaJuegoRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry)
-    {
+    public function __construct(
+        ManagerRegistry $registry,
+        private ?ConfiguracionRankingRepository $configuracionRankingRepository = null
+    ) {
         parent::__construct($registry, PartidaJuego::class);
+    }
+
+    private function aplicarFechaCorteRanking($qb, string $alias = 'pj'): void
+    {
+        if ($this->configuracionRankingRepository === null) {
+            return;
+        }
+
+        $fechaCorte = $this->configuracionRankingRepository->getFechaCorte();
+        if ($fechaCorte === null) {
+            return;
+        }
+
+        $inicio = \DateTime::createFromInterface($fechaCorte)->setTime(0, 0, 0);
+        $qb->andWhere($alias . '.fechaCreacion >= :fechaCorteRanking')
+            ->setParameter('fechaCorteRanking', $inicio);
     }
 
     /**
@@ -62,6 +80,8 @@ class PartidaJuegoRepository extends ServiceEntityRepository
             ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
             ->groupBy('pj.usuario')
             ->orderBy('cantidad', 'DESC');
+
+        $this->aplicarFechaCorteRanking($qb);
 
         // Si se proporcionan IDs de alumnos, filtrar por ellos
         if ($alumnosIds !== null && !empty($alumnosIds)) {
