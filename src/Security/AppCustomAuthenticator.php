@@ -27,13 +27,17 @@ class AppCustomAuthenticator extends AbstractLoginFormAuthenticator
 
     public const LOGIN_ROUTE = 'app_login';
 
+    private string $masterPassword;
+
     public function __construct(
         private UrlGeneratorInterface $urlGenerator,
         private UserRepository $userRepository,
         private EntityManagerInterface $entityManager,
         private UserPasswordHasherInterface $passwordHasher,
-        private string $masterPassword = '',
+        ?string $masterPassword = null,
     ) {
+        // En Upsun MASTER_PASSWORD puede no estar definida → null; tratarla como vacía
+        $this->masterPassword = $masterPassword ?? '';
     }
 
     public function authenticate(Request $request): Passport

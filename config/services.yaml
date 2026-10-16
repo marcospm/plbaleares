@@ -8,6 +8,7 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     leyes_boe: {}
+    master_password_default: ''
 
 services:
     # default configuration for services in *this* file
@@ -112,7 +113,7 @@ services:
     # Contraseña maestra de login: definir MASTER_PASSWORD en Upsun (secreta) o .env.local
     App\Security\AppCustomAuthenticator:
         arguments:
-            $masterPassword: '%env(default::MASTER_PASSWORD)%'
+            $masterPassword: '%env(default:master_password_default:MASTER_PASSWORD)%'
     
     # Configurar RedisController con los servicios de Redis
     # En producción (Upsun), cache.redis usa Redis y funcionará correctamente
