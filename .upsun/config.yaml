@@ -54,7 +54,8 @@ applications:
     variables:
       env:
         APP_ENV: "prod"
-        APP_DEBUG: "0"
+        # TEMPORAL: ver stack trace del 500 (revertir a "0" en cuanto se diagnostique)
+        APP_DEBUG: "1"
         APP_SECRET: "a4f9fd292b86d214adcd16b1496e853dd56ecc807fae04e316b26a6079690b72"
         # Mailer: en producción el DSN lo fija .environment con PLATFORM_SMTP_HOST
         # (proxy SMTP de Upsun). No usar bispol.es:465 desde el contenedor (timeout).
