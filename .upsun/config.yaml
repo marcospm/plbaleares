@@ -143,6 +143,9 @@ applications:
         php bin/console cache:clear --env=prod --no-warmup
         php bin/console cache:warmup --env=prod --no-optional-warmers
 
+        # Limpiar pools Redis (evita objetos/metadata cacheados de deploys previos)
+        php bin/console cache:pool:clear cache.redis cache.queries cache.partidas cache.boe doctrine.result_cache_pool doctrine.system_cache_pool --env=prod || true
+
         # Migraciones Doctrine
         php bin/console doctrine:migrations:migrate \
           --no-interaction \
