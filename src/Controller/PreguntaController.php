@@ -1238,24 +1238,36 @@ class PreguntaController extends AbstractController
             default => $dificultad,
         };
 
+        $logoPath = $this->getParameter('kernel.project_dir') . '/public/images/logo-bispol.png';
+        $logoSrc = null;
+        if (is_readable($logoPath)) {
+            $logoSrc = 'data:image/png;base64,' . base64_encode((string) file_get_contents($logoPath));
+        }
+
         $html = $this->renderView('pregunta/pdf_examen.html.twig', [
             'preguntas' => $preguntasParaPdf,
             'temasNombres' => $nombresTemas,
             'totalPreguntas' => self::EXAMEN_PDF_NUM_PREGUNTAS,
             'dificultadLabel' => $dificultadLabel,
+            'logoSrc' => $logoSrc,
         ]);
 
         $options = new Options();
         $options->set('isHtml5ParserEnabled', true);
         $options->set('isRemoteEnabled', true);
         $options->set('defaultFont', 'DejaVu Sans');
+        $options->setChroot($this->getParameter('kernel.project_dir') . '/public');
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        $nombreArchivo = 'examen_50_preguntas_' . date('Y-m-d_His') . '.pdf';
+        $nombreArchivo = sprintf(
+            'examen_50_preguntas_%s_%s.pdf',
+            $dificultad,
+            date('Y-m-d_His')
+        );
 
         return new Response(
             $dompdf->output(),

@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Examen tipo test - {{ totalPreguntas }} preguntas</title>
+    <title>Examen tipo test{% if dificultadLabel is defined and dificultadLabel %} — {{ dificultadLabel }}{% endif %} - {{ totalPreguntas }} preguntas</title>
     <style>
         body {
             font-family: DejaVu Sans, Arial, sans-serif;
@@ -16,6 +16,13 @@
             margin-bottom: 24px;
             border-bottom: 2px solid #333;
             padding-bottom: 12px;
+        }
+        .header-logo {
+            margin-bottom: 10px;
+        }
+        .header-logo img {
+            height: 64px;
+            width: auto;
         }
         .header h1 {
             margin: 0;
@@ -139,7 +146,12 @@
 </head>
 <body>
     <div class="header">
-        <h1>Examen tipo test</h1>
+        {% if logoSrc is defined and logoSrc %}
+            <div class="header-logo">
+                <img src="{{ logoSrc }}" alt="BISPOL">
+            </div>
+        {% endif %}
+        <h1>Examen tipo test{% if dificultadLabel is defined and dificultadLabel %} — {{ dificultadLabel }}{% endif %}</h1>
         <div class="subtitle">{{ totalPreguntas }} preguntas — opciones de respuesta aleatorizadas</div>
     </div>
 
@@ -182,6 +194,11 @@
     <div class="page-break"></div>
 
     <div class="header">
+        {% if logoSrc is defined and logoSrc %}
+            <div class="header-logo">
+                <img src="{{ logoSrc }}" alt="BISPOL">
+            </div>
+        {% endif %}
         <h1>Plantilla de respuestas</h1>
         <div class="subtitle">Respuestas correctas según el orden de opciones de este examen</div>
     </div>
