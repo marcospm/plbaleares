@@ -97,8 +97,8 @@ class AppExtension extends AbstractExtension
         $text = preg_replace('/\*\*(.+?)\*\*/s', '<strong>$1</strong>', $text);
         
         // Convertir *texto* a <em>texto</em> (cursiva con asterisco simple)
-        // Solo si no está precedido o seguido de otro asterisco
-        $text = preg_replace('/(?<!\*)\*([^*\n]+?)\*(?!\*)/', '<em>$1</em>', $text);
+        // Permite saltos de línea dentro del énfasis (ej. pistas multilínea)
+        $text = preg_replace('/(?<!\*)\*([^*]+?)\*(?!\*)/s', '<em>$1</em>', $text);
         
         // Convertir saltos de línea dobles a párrafos
         $parrafos = preg_split('/\n\n+/', $text);

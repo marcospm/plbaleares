@@ -1187,18 +1187,32 @@ class PreguntaController extends AbstractController
             return $this->redirectToRoute('app_pregunta_index');
         }
 
+        $dificultad = trim((string) $request->request->get('dificultad', ''));
+        $dificultadesValidas = ['facil', 'moderada', 'dificil'];
+        if (!in_array($dificultad, $dificultadesValidas, true)) {
+            $this->addFlash('error', 'Debes seleccionar una dificultad válida (Fácil, Moderada o Difícil).');
+            return $this->redirectToRoute('app_pregunta_index');
+        }
+
         $temas = $temaRepository->findBy(['id' => $temaIds], ['nombre' => 'ASC']);
         if (count($temas) !== count($temaIds)) {
             $this->addFlash('error', 'Uno o más temas seleccionados no existen.');
             return $this->redirectToRoute('app_pregunta_index');
         }
 
-        $preguntasDisponibles = $preguntaRepository->findActivasByTemaIds($temaIds);
+        $preguntasDisponibles = $preguntaRepository->findActivasByTemaIds($temaIds, $dificultad);
         if (count($preguntasDisponibles) < self::EXAMEN_PDF_NUM_PREGUNTAS) {
+            $dificultadLabel = match ($dificultad) {
+                'facil' => 'fácil',
+                'moderada' => 'moderada',
+                'dificil' => 'difícil',
+                default => $dificultad,
+            };
             $this->addFlash(
                 'error',
                 sprintf(
-                    'No hay suficientes preguntas activas en los temas seleccionados (%d disponibles; se necesitan %d).',
+                    'No hay suficientes preguntas activas de dificultad %s en los temas seleccionados (%d disponibles; se necesitan %d).',
+                    $dificultadLabel,
                     count($preguntasDisponibles),
                     self::EXAMEN_PDF_NUM_PREGUNTAS
                 )
@@ -1217,11 +1231,18 @@ class PreguntaController extends AbstractController
         }
 
         $nombresTemas = array_map(static fn ($tema) => $tema->getNombre(), $temas);
+        $dificultadLabel = match ($dificultad) {
+            'facil' => 'Fácil',
+            'moderada' => 'Moderada',
+            'dificil' => 'Difícil',
+            default => $dificultad,
+        };
 
         $html = $this->renderView('pregunta/pdf_examen.html.twig', [
             'preguntas' => $preguntasParaPdf,
             'temasNombres' => $nombresTemas,
             'totalPreguntas' => self::EXAMEN_PDF_NUM_PREGUNTAS,
+            'dificultadLabel' => $dificultadLabel,
         ]);
 
         $options = new Options();

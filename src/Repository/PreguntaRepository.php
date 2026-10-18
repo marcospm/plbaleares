@@ -249,15 +249,16 @@ class PreguntaRepository extends ServiceEntityRepository
      * Preguntas activas de uno o varios temas, con relaciones para PDF/examen.
      *
      * @param int[] $temaIds
+     * @param string|null $dificultad Si se indica, filtra por esa dificultad e incluye "indeterminado"
      * @return Pregunta[]
      */
-    public function findActivasByTemaIds(array $temaIds): array
+    public function findActivasByTemaIds(array $temaIds, ?string $dificultad = null): array
     {
         if ($temaIds === []) {
             return [];
         }
 
-        return $this->createQueryBuilder('p')
+        $qb = $this->createQueryBuilder('p')
             ->innerJoin('p.tema', 't')
             ->addSelect('t')
             ->innerJoin('p.ley', 'l')
@@ -270,9 +271,15 @@ class PreguntaRepository extends ServiceEntityRepository
             ->andWhere('p.texto != :vacio')
             ->setParameter('activo', true)
             ->setParameter('temaIds', $temaIds)
-            ->setParameter('vacio', '')
-            ->getQuery()
-            ->getResult();
+            ->setParameter('vacio', '');
+
+        if ($dificultad !== null && $dificultad !== '') {
+            $qb->andWhere('(p.dificultad = :dificultad OR p.dificultad = :indeterminado)')
+                ->setParameter('dificultad', $dificultad)
+                ->setParameter('indeterminado', 'indeterminado');
+        }
+
+        return $qb->getQuery()->getResult();
     }
 }
 

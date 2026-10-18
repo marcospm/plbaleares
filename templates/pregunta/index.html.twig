@@ -409,10 +409,20 @@
         </div>
         <div class="card-body">
             <p style="margin-top: 0; color: #555; font-size: 0.95rem;">
-                Selecciona uno o varios temas. Se generará un examen de exactamente 50 preguntas activas,
+                Selecciona la dificultad y uno o varios temas. Se generará un examen de exactamente 50 preguntas activas
+                de esa dificultad (también se incluyen las de dificultad indeterminada),
                 con las opciones de respuesta mezcladas (la correcta no siempre es la misma letra)
                 y una plantilla de respuestas al final del PDF.
             </p>
+            <div style="margin-bottom: 1rem; max-width: 280px;">
+                <label for="examen-pdf-dificultad" style="display: block; font-weight: 600; margin-bottom: 0.35rem; font-size: 0.95rem;">Dificultad</label>
+                <select name="dificultad" id="examen-pdf-dificultad" class="form-control" required>
+                    <option value="">Selecciona dificultad</option>
+                    <option value="facil">Fácil</option>
+                    <option value="moderada">Moderada</option>
+                    <option value="dificil">Difícil</option>
+                </select>
+            </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.5rem 1rem; margin-bottom: 1rem; max-height: 220px; overflow-y: auto; padding: 0.5rem; border: 1px solid #dee2e6; border-radius: 6px; background: #fafafa;">
                 {% for tema in temas %}
                     <label style="display: flex; align-items: flex-start; gap: 0.4rem; cursor: pointer; font-size: 0.9rem; margin: 0;">
@@ -463,6 +473,12 @@ document.getElementById('filtro-form').addEventListener('submit', function(e) {
     });
 
     form.addEventListener('submit', function (e) {
+        const dificultad = form.querySelector('#examen-pdf-dificultad');
+        if (!dificultad || !dificultad.value) {
+            e.preventDefault();
+            alert('Selecciona una dificultad para generar el examen.');
+            return;
+        }
         const selected = Array.from(checkboxes()).filter(function (cb) { return cb.checked; });
         if (selected.length === 0) {
             e.preventDefault();
