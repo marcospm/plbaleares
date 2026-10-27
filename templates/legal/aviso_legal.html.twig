@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Aviso legal - BISPOL{% endblock %}
+
+{% block body %}
+<div class="container" style="max-width: 900px; margin: 2rem auto; padding: 0 1rem;">
+    <div class="card">
+        <div class="card-header" style="background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color: white;">
+            <h1 style="margin: 0; font-size: 2rem;">Aviso legal</h1>
+            <p style="margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 0.95rem;">Última actualización: 27/10/2026</p>
+        </div>
+        <div class="card-body" style="padding: 2rem;">
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Titular</h2>
+                <p style="line-height: 1.8; color: var(--color-text);">
+                    En cumplimiento del artículo 10 de la Ley 34/2002, de servicios de la sociedad de la información y de comercio electrónico, se informa de que el titular de esta aula virtual es:
+                </p>
+                <ul style="line-height: 1.8; color: var(--color-text); padding-left: 1.25rem;">
+                    <li><strong>Titular:</strong> Maria Magdalena Márquez Coll</li>
+                    <li><strong>Nombre comercial:</strong> BISPOL - Centre de Formació</li>
+                    <li><strong>NIF:</strong> 43013583H</li>
+                    <li><strong>Domicilio:</strong> Calle del Ter, número 14, 1C, 07009 Palma, Illes Balears, España</li>
+                    <li><strong>Correo:</strong> <a href="mailto:info@bispol.es">info@bispol.es</a></li>
+                    <li><strong>Teléfono:</strong> +34 620 17 62 59</li>
+                    <li><strong>Actividad:</strong> formación para la preparación de oposiciones</li>
+                </ul>
+            </section>
+
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Uso del aula</h2>
+                <p style="line-height: 1.8; color: var(--color-text);">
+                    El acceso al aula virtual requiere una cuenta activada por el centro. La persona usuaria se compromete a facilitar datos veraces y a custodiar su contraseña.
+                    Los materiales, preguntas y textos del aula se destinan a la preparación del alumnado y no pueden redistribuirse sin autorización del titular.
+                </p>
+            </section>
+
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Propiedad intelectual</h2>
+                <p style="line-height: 1.8; color: var(--color-text);">
+                    Los contenidos propios del aula (temario elaborado, diseño, marca y software de la plataforma) pertenecen al titular o se usan con licencia.
+                    Las normas oficiales que se consultan siguen siendo de sus autores y editores públicos.
+                </p>
+            </section>
+
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Protección de datos</h2>
+                <p style="line-height: 1.8; color: var(--color-text);">
+                    El tratamiento de los datos personales del aula se explica en la
+                    <a href="{{ path('app_privacidad') }}">política de privacidad</a>.
+                    Las cookies técnicas se explican en la
+                    <a href="{{ path('app_cookie_politica') }}">política de cookies</a>.
+                </p>
+            </section>
+
+            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--color-border); text-align: center;">
+                <a href="{{ path('app_home') }}" class="btn" style="background: var(--color-primary); color: white; padding: 0.75rem 2rem; text-decoration: none; border-radius: 6px; display: inline-block;">
+                    Volver al inicio
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

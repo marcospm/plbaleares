@@ -26,7 +26,6 @@
                     {{ form_row(form.username) }}
                     {{ form_row(form.email) }}
                     {{ form_row(form.telefono) }}
-                    {{ form_row(form.dni) }}
                     {{ form_row(form.fechaNacimiento) }}
                     {{ form_row(form.sexo) }}
                 </div>
@@ -52,15 +51,6 @@
                     {{ form_row(form.codigoPostal) }}
                     {{ form_row(form.ciudad) }}
                     {{ form_row(form.provincia) }}
-                </div>
-
-                {# Datos Bancarios #}
-                <div>
-                    <h4 style="color: var(--color-primary); margin-bottom: 1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">
-                        💳 Datos Bancarios
-                    </h4>
-                    {{ form_row(form.iban) }}
-                    {{ form_row(form.banco) }}
                 </div>
             </div>
 

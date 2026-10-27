@@ -6,6 +6,7 @@ use App\Entity\User;
 use App\Form\UserType;
 use App\Repository\ConvocatoriaRepository;
 use App\Repository\UserRepository;
+use App\Service\SupresionDatosService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -131,6 +132,11 @@ class UserController extends AbstractController
     public function toggleActivo(User $user, EntityManagerInterface $entityManager, Request $request): Response
     {
         if ($this->isCsrfTokenValid('toggle'.$user->getId(), $request->getPayload()->getString('_token'))) {
+            if ($user->isSuprimido()) {
+                $this->addFlash('error', 'Los datos de este usuario ya se suprimieron y la cuenta no se puede activar.');
+                return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
+            }
+
             $user->setActivo(!$user->isActivo());
             $entityManager->flush();
 
@@ -217,6 +223,12 @@ class UserController extends AbstractController
     #[IsGranted('ROLE_ADMIN')]
     public function edit(Request $request, User $user, EntityManagerInterface $entityManager, UserPasswordHasherInterface $passwordHasher): Response
     {
+        if ($user->isSuprimido()) {
+            $this->addFlash('error', 'Los datos de este usuario ya se suprimieron y no se pueden editar.');
+
+            return $this->redirectToRoute('app_user_show', ['id' => $user->getId()], Response::HTTP_SEE_OTHER);
+        }
+
         $form = $this->createForm(UserType::class, $user);
         $form->handleRequest($request);
 
@@ -260,8 +272,13 @@ class UserController extends AbstractController
     public function restaurar(User $user, EntityManagerInterface $entityManager, Request $request): Response
     {
         if ($this->isCsrfTokenValid('restaurar'.$user->getId(), $request->getPayload()->getString('_token'))) {
+            if ($user->isSuprimido()) {
+                $this->addFlash('error', 'Los datos de este usuario se suprimieron y la cuenta no se puede restaurar.');
+                return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
+            }
+
             if (!$user->isEliminado()) {
-                $this->addFlash('error', 'Este usuario no está eliminado.');
+                $this->addFlash('error', 'Este usuario no está oculto.');
                 return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
             }
 
@@ -289,8 +306,35 @@ class UserController extends AbstractController
             $user->setEliminado(true);
             $entityManager->flush();
 
-            $this->addFlash('success', "El usuario '{$user->getUsername()}' ha sido eliminado correctamente.");
+            $this->addFlash('success', "El usuario '{$user->getUsername()}' ha quedado oculto. Sus datos se conservan y se puede restaurar.");
         }
+
+        return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/{id}/suprimir', name: 'app_user_suprimir', methods: ['POST'], requirements: ['id' => '\d+'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function suprimir(User $user, Request $request, SupresionDatosService $supresionDatosService): Response
+    {
+        if (!$this->isCsrfTokenValid('suprimir'.$user->getId(), $request->getPayload()->getString('_token'))) {
+            return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        $esElMismo = $this->getUser() instanceof User && $this->getUser()->getId() === $user->getId();
+
+        try {
+            $username = $supresionDatosService->suprimir($user);
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
+
+            return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
+        }
+
+        if ($esElMismo) {
+            return $this->redirectToRoute('app_logout');
+        }
+
+        $this->addFlash('success', "Se han suprimido los datos identificativos y los mensajes de «{$username}». La cuenta no se puede restaurar.");
 
         return $this->redirectToRoute('app_user_index', [], Response::HTTP_SEE_OTHER);
     }
@@ -298,7 +342,8 @@ class UserController extends AbstractController
     private function formatExistingUserError(string $fieldLabel, User $existing): string
     {
         $estado = match (true) {
-            $existing->isEliminado() => 'eliminado',
+            $existing->isSuprimido() => 'con datos suprimidos',
+            $existing->isEliminado() => 'oculto',
             !$existing->isActivo() => 'inactivo',
             default => 'activo',
         };
@@ -316,8 +361,10 @@ class UserController extends AbstractController
 
         $message .= sprintf('. Estado: %s.', $estado);
 
-        if ($existing->isEliminado()) {
-            $message .= ' No aparece en el listado porque fue eliminado. Activa «Mostrar eliminados» en la gestión de usuarios para encontrarlo y restaurarlo.';
+        if ($existing->isSuprimido()) {
+            $message .= ' Los datos personales ya se suprimieron y la cuenta no se puede restaurar.';
+        } elseif ($existing->isEliminado()) {
+            $message .= ' No aparece en el listado porque está oculto. Activa «Mostrar ocultos y suprimidos» en la gestión de usuarios para encontrarlo y restaurarlo.';
         } elseif (!$existing->isActivo()) {
             $message .= ' No aparece en el listado por defecto. Activa «Mostrar todos (incluyendo desactivados)» para encontrarlo.';
         }

@@ -101,11 +101,6 @@ class UserType extends AbstractType
                 'required' => false,
                 'attr' => ['class' => 'form-control', 'placeholder' => '600 000 000']
             ])
-            ->add('dni', TextType::class, [
-                'label' => 'DNI/NIE',
-                'required' => false,
-                'attr' => ['class' => 'form-control', 'placeholder' => '12345678A']
-            ])
             ->add('fechaNacimiento', DateType::class, [
                 'label' => 'Fecha de Nacimiento',
                 'required' => false,
@@ -142,16 +137,6 @@ class UserType extends AbstractType
                 'label' => 'Provincia',
                 'required' => false,
                 'attr' => ['class' => 'form-control', 'placeholder' => 'Islas Baleares']
-            ])
-            ->add('iban', TextType::class, [
-                'label' => 'IBAN',
-                'required' => false,
-                'attr' => ['class' => 'form-control', 'placeholder' => 'ES91 2100 0418 4502 0005 1332', 'maxlength' => 34]
-            ])
-            ->add('banco', TextType::class, [
-                'label' => 'Banco',
-                'required' => false,
-                'attr' => ['class' => 'form-control', 'placeholder' => 'Nombre del banco']
             ])
             ->add('notas', TextareaType::class, [
                 'label' => 'Notas',

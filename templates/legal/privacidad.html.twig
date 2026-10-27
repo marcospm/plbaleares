@@ -1,0 +1,107 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Política de privacidad - BISPOL{% endblock %}
+
+{% block body %}
+<div class="container" style="max-width: 900px; margin: 2rem auto; padding: 0 1rem;">
+    <div class="card">
+        <div class="card-header" style="background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color: white;">
+            <h1 style="margin: 0; font-size: 2rem;">Política de privacidad</h1>
+            <p style="margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 0.95rem;">Aula virtual BISPOL. Última actualización: 27/10/2026</p>
+        </div>
+        <div class="card-body" style="padding: 2rem;">
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Responsable</h2>
+                <p style="line-height: 1.8; color: var(--color-text);">
+                    El responsable del tratamiento de esta aula virtual es <strong>Maria Magdalena Márquez Coll</strong>
+                    (BISPOL - Centre de Formació), con domicilio en Calle del Ter, número 14, 1C, 07009 Palma, Illes Balears, España.
+                    NIF: 43013583H. Correo: <a href="mailto:info@bispol.es">info@bispol.es</a>. Teléfono: +34 620 17 62 59.
+                </p>
+                <p style="line-height: 1.8; color: var(--color-text);">
+                    Esta política se aplica al aula virtual. El sitio público bispol.es tiene su propia información.
+                </p>
+            </section>
+
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Qué datos se tratan</h2>
+                <ul style="line-height: 1.8; color: var(--color-text); padding-left: 1.25rem;">
+                    <li>Cuenta: usuario, nombre, correo, teléfono y contraseña. La contraseña se guarda con un hash; no se puede leer en claro.</li>
+                    <li>Ficha del alumno, cuando el centro la completa: dirección, código postal, ciudad, provincia, fecha de nacimiento, sexo y notas.</li>
+                    <li>Actividad del aula: exámenes, partidas, tareas, planificaciones, borradores y fecha del último acceso.</li>
+                    <li>Mensajes privados del chat y comentarios en preguntas o artículos.</li>
+                    <li>Solicitudes de cuenta y mensajes del formulario de contacto: nombre, correo, teléfono y el texto que escribas.</li>
+                    <li>Datos técnicos de la sesión, necesarios para entrar y mantener la seguridad.</li>
+                </ul>
+            </section>
+
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Para qué y con qué base</h2>
+                <ul style="line-height: 1.8; color: var(--color-text); padding-left: 1.25rem;">
+                    <li>Atender una solicitud de información o de cuenta, y responder el formulario de contacto: medidas previas a contratar la formación.</li>
+                    <li>Dar acceso al aula, preparar oposiciones y hacer el seguimiento del alumno: ejecución del contrato de formación.</li>
+                    <li>Proteger las cuentas, impedir accesos indebidos y recuperar la contraseña: interés legítimo en la seguridad del servicio.</li>
+                    <li>Mostrar rankings con el nombre de usuario ofuscado: interés legítimo, limitado a ese dato enmascarado.</li>
+                </ul>
+                <p style="line-height: 1.8; color: var(--color-text);">
+                    Los datos necesarios para la cuenta y el curso no dependen de una casilla de consentimiento. Si más adelante se pide el correo para una comunicación opcional, podrás negarte o retirarla.
+                </p>
+            </section>
+
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Cuánto tiempo se conservan</h2>
+                <ul style="line-height: 1.8; color: var(--color-text); padding-left: 1.25rem;">
+                    <li>La ficha y la actividad se conservan mientras la cuenta está en uso y existe la relación de formación.</li>
+                    <li>Al suprimir la cuenta se borran en el acto el nombre, el correo, el teléfono, la dirección, la contraseña, los tokens de recuperación, los mensajes privados, los borradores y la planificación personal. Los comentarios quedan sustituidos por un aviso de supresión.</li>
+                    <li>Los resultados de exámenes, las partidas y las tareas asignadas se conservan {{ retencionAnios }} años asociados solo a un identificador anónimo, y después se eliminan.</li>
+                    <li>Los mensajes del formulario de contacto se conservan el tiempo necesario para atenderlos y, como máximo, {{ retencionContactoAnios }} años.</li>
+                    <li>Ocultar o desactivar una cuenta no borra los datos. La supresión sí, y no se puede deshacer.</li>
+                </ul>
+            </section>
+
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Quién puede verlos</h2>
+                <p style="line-height: 1.8; color: var(--color-text);">
+                    El personal de BISPOL que gestiona el aula (administración y profesorado asignado) accede a los datos para impartir y seguir la formación.
+                    El alojamiento de la aplicación y el correo de la academia tratan los datos por cuenta del responsable, solo para prestar ese servicio.
+                    Esta aula no usa analítica ni publicidad de terceros. No se venden los datos.
+                    Si una autoridad competente lo exige, se facilitará solo lo que pida la ley.
+                </p>
+            </section>
+
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Seguridad</h2>
+                <p style="line-height: 1.8; color: var(--color-text);">
+                    Las contraseñas se almacenan hasheadas. El texto de los mensajes privados se guarda cifrado en la base de datos.
+                    El acceso al aula exige iniciar sesión y los permisos dependen del rol. El cifrado lo aplica el servidor: no es un cifrado de extremo a extremo.
+                </p>
+            </section>
+
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Tus derechos</h2>
+                <ul style="line-height: 1.8; color: var(--color-text); padding-left: 1.25rem;">
+                    <li>Acceso y portabilidad: en Mi perfil, «Descargar mis datos».</li>
+                    <li>Rectificación del correo y de la contraseña: en Mi perfil.</li>
+                    <li>Supresión: en Mi perfil, «Suprimir mis datos», o pidiéndolo a info@bispol.es.</li>
+                    <li>Limitación y oposición: escribiendo a info@bispol.es o por correo postal a la dirección del responsable. Indica tu nombre y un medio para confirmar que la petición es tuya.</li>
+                </ul>
+                <p style="line-height: 1.8; color: var(--color-text);">
+                    Si consideras que el tratamiento no se ajusta a la norma, puedes reclamar ante la Agencia Española de Protección de Datos (www.aepd.es).
+                </p>
+            </section>
+
+            <section style="margin-bottom: 2rem;">
+                <h2 style="color: var(--color-primary); margin-bottom: 1rem;">Edad</h2>
+                <p style="line-height: 1.8; color: var(--color-text);">
+                    El aula está dirigida a personas que preparan oposiciones y que tienen capacidad legal para contratar la formación.
+                </p>
+            </section>
+
+            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--color-border); text-align: center;">
+                <a href="{{ path('app_aviso_legal') }}" class="btn" style="background: transparent; color: var(--color-primary); padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 6px; display: inline-block; border: 1px solid var(--color-primary); margin-right: 0.5rem;">Aviso legal</a>
+                <a href="{{ path('app_cookie_politica') }}" class="btn" style="background: transparent; color: var(--color-primary); padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 6px; display: inline-block; border: 1px solid var(--color-primary); margin-right: 0.5rem;">Cookies</a>
+                <a href="{{ path('app_home') }}" class="btn" style="background: var(--color-primary); color: white; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 6px; display: inline-block;">Volver al inicio</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

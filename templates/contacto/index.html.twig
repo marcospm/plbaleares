@@ -16,8 +16,8 @@
                     <p><strong>📞 Teléfono:</strong> <a href="tel:+34620176259">+34 620 17 62 59</a></p>
                     <p><strong>📍 Dirección:</strong><br>
                     BISPOL - Centre de Formació<br>
-                    info@bispol.es<br>
-                    +34 620 17 62 59</p>
+                    Calle del Ter, 14, 1C<br>
+                    07009 Palma, Illes Balears</p>
                     <p><strong>🕐 Horario de Atención:</strong><br>
                     Lunes a Jueves: 16:00 - 20:00</p>
                 </div>
@@ -36,6 +36,7 @@
                         <button type="submit" class="btn btn-primary">Enviar Mensaje</button>
                         <a href="{% if app.user %}{{ path('app_dashboard') }}{% else %}{{ path('app_home') }}{% endif %}" class="btn btn-secondary">Cancelar</a>
                     </div>
+                    {% include 'partials/_informacion_datos.html.twig' with {finalidad: 'responder tu mensaje'} %}
                 {{ form_end(form) }}
             </div>
         </div>

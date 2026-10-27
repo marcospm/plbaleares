@@ -6,13 +6,21 @@
 <div class="d-flex justify-content-between mb-4">
     <h1>Usuario: {{ user.nombreDisplay }}</h1>
     <div class="d-flex gap-2">
-        {% if is_granted('ROLE_ADMIN') and user.isEliminado %}
-            <form method="post" action="{{ path('app_user_restaurar', {'id': user.id}) }}" style="display: inline;" onsubmit="return confirm('¿Restaurar este usuario? Volverá a aparecer en el listado y podrá ser activado de nuevo.');">
+        {% if user.isSuprimido %}
+            <span class="badge" style="background-color: #842029; align-self: center;">Datos suprimidos{% if user.suprimidoAt %} el {{ user.suprimidoAt|date('d/m/Y') }}{% endif %}</span>
+        {% elseif is_granted('ROLE_ADMIN') and user.isEliminado %}
+            <form method="post" action="{{ path('app_user_restaurar', {'id': user.id}) }}" style="display: inline;" onsubmit="return confirm('¿Restaurar este usuario? Volverá a aparecer en el listado y podrá ser activado de nuevo. Sus datos no se han borrado.');">
                 <input type="hidden" name="_token" value="{{ csrf_token('restaurar' ~ user.id) }}">
                 <button type="submit" class="btn btn-success">Restaurar</button>
             </form>
         {% else %}
             <a href="{{ path('app_user_edit', {'id': user.id}) }}" class="btn btn-primary">Editar</a>
+        {% endif %}
+        {% if is_granted('ROLE_ADMIN') and not user.isSuprimido %}
+            <form method="post" action="{{ path('app_user_suprimir', {'id': user.id}) }}" style="display: inline;" onsubmit="return confirm('Se borrarán el nombre, el correo, el teléfono, la dirección y los mensajes. Los resultados quedan 2 años sin datos identificativos y después se eliminan. No se puede deshacer.');">
+                <input type="hidden" name="_token" value="{{ csrf_token('suprimir' ~ user.id) }}">
+                <button type="submit" class="btn btn-danger">Suprimir datos</button>
+            </form>
         {% endif %}
         <a href="{{ path('app_user_index') }}" class="btn btn-secondary">Volver</a>
     </div>
@@ -54,10 +62,6 @@
                     <p>{{ user.telefono ?? '<span style="color: #999;">No especificado</span>'|raw }}</p>
                 </div>
                 <div class="form-group">
-                    <label class="form-label"><strong>DNI/NIE:</strong></label>
-                    <p>{{ user.dni ?? '<span style="color: #999;">No especificado</span>'|raw }}</p>
-                </div>
-                <div class="form-group">
                     <label class="form-label"><strong>Fecha de Nacimiento:</strong></label>
                     <p>
                         {% if user.fechaNacimiento %}
@@ -96,21 +100,6 @@
                 <div class="form-group">
                     <label class="form-label"><strong>Provincia:</strong></label>
                     <p>{{ user.provincia ?? '<span style="color: #999;">No especificado</span>'|raw }}</p>
-                </div>
-            </div>
-
-            {# Datos Bancarios #}
-            <div>
-                <h4 style="color: var(--color-primary); margin-bottom: 1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">
-                    💳 Datos Bancarios
-                </h4>
-                <div class="form-group">
-                    <label class="form-label"><strong>IBAN:</strong></label>
-                    <p>{{ user.iban ?? '<span style="color: #999;">No especificado</span>'|raw }}</p>
-                </div>
-                <div class="form-group">
-                    <label class="form-label"><strong>Banco:</strong></label>
-                    <p>{{ user.banco ?? '<span style="color: #999;">No especificado</span>'|raw }}</p>
                 </div>
             </div>
         </div>

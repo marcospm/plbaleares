@@ -26,7 +26,6 @@
                     {{ form_row(form.username) }}
                     {{ form_row(form.email) }}
                     {{ form_row(form.telefono) }}
-                    {{ form_row(form.dni) }}
                     {{ form_row(form.fechaNacimiento) }}
                     {{ form_row(form.sexo) }}
                 </div>
@@ -67,22 +66,11 @@
                 </div>
             </div>
 
-            {# Datos Bancarios y Notas #}
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
-                <div>
-                    <h4 style="color: var(--color-primary); margin-bottom: 1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">
-                        💳 Datos Bancarios
-                    </h4>
-                    {{ form_row(form.iban) }}
-                    {{ form_row(form.banco) }}
-                </div>
-
-                <div>
-                    <h4 style="color: var(--color-primary); margin-bottom: 1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">
-                        📝 Notas
-                    </h4>
-                    {{ form_row(form.notas) }}
-                </div>
+            <div style="margin-top: 1.5rem;">
+                <h4 style="color: var(--color-primary); margin-bottom: 1rem; border-bottom: 2px solid var(--color-primary); padding-bottom: 0.5rem;">
+                    📝 Notas
+                </h4>
+                {{ form_row(form.notas) }}
             </div>
             
             <div class="d-flex gap-2 mt-4">

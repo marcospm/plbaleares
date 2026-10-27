@@ -65,6 +65,7 @@
                     <div style="margin-top: 1rem; text-align: center;">
                         <a href="{{ path('app_forgot_password') }}">¿Olvidaste tu contraseña?</a>
                     </div>
+                    {% include 'partials/_informacion_datos.html.twig' with {finalidad: 'identificar tu cuenta y mantener la sesión'} %}
                 </form>
 
                 <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--color-border); text-align: center;">

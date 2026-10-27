@@ -43,6 +43,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $eliminado = false;
 
+    /**
+     * Supresión de datos personales. Una cuenta suprimida no se puede restaurar.
+     */
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $suprimido = false;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTimeInterface $suprimidoAt = null;
+
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $email = null;
 
@@ -66,15 +75,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 1, nullable: true)]
     private ?string $sexo = null; // M, F, O (Masculino, Femenino, Otro)
-
-    #[ORM\Column(length: 20, nullable: true)]
-    private ?string $dni = null;
-
-    #[ORM\Column(length: 34, nullable: true)]
-    private ?string $iban = null;
-
-    #[ORM\Column(length: 100, nullable: true)]
-    private ?string $banco = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $notas = null;
@@ -229,6 +229,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function isSuprimido(): bool
+    {
+        return $this->suprimido;
+    }
+
+    public function setSuprimido(bool $suprimido): static
+    {
+        $this->suprimido = $suprimido;
+
+        return $this;
+    }
+
+    public function getSuprimidoAt(): ?\DateTimeInterface
+    {
+        return $this->suprimidoAt;
+    }
+
+    public function setSuprimidoAt(?\DateTimeInterface $suprimidoAt): static
+    {
+        $this->suprimidoAt = $suprimidoAt;
+
+        return $this;
+    }
+
     public function getEmail(): ?string
     {
         return $this->email;
@@ -344,42 +368,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             'O' => 'Otro',
             default => 'No especificado'
         };
-    }
-
-    public function getDni(): ?string
-    {
-        return $this->dni;
-    }
-
-    public function setDni(?string $dni): static
-    {
-        $this->dni = $dni;
-
-        return $this;
-    }
-
-    public function getIban(): ?string
-    {
-        return $this->iban;
-    }
-
-    public function setIban(?string $iban): static
-    {
-        $this->iban = $iban;
-
-        return $this;
-    }
-
-    public function getBanco(): ?string
-    {
-        return $this->banco;
-    }
-
-    public function setBanco(?string $banco): static
-    {
-        $this->banco = $banco;
-
-        return $this;
     }
 
     public function getNotas(): ?string

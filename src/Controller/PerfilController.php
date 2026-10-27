@@ -5,6 +5,8 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Form\PerfilType;
 use App\Repository\UserRepository;
+use App\Service\ExportacionDatosService;
+use App\Service\SupresionDatosService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -53,6 +55,7 @@ class PerfilController extends AbstractController
                     return $this->render('perfil/index.html.twig', [
                         'form' => $form,
                         'user' => $user,
+                        'retencionAnios' => SupresionDatosService::RETENCION_RESULTADOS_ANIOS,
                     ]);
                 }
             }
@@ -73,6 +76,72 @@ class PerfilController extends AbstractController
         return $this->render('perfil/index.html.twig', [
             'form' => $form,
             'user' => $user,
+            'retencionAnios' => SupresionDatosService::RETENCION_RESULTADOS_ANIOS,
         ]);
+    }
+
+    #[Route('/exportar', name: 'app_perfil_exportar', methods: ['GET'])]
+    public function exportar(ExportacionDatosService $exportacionDatosService): Response
+    {
+        $user = $this->usuarioActual();
+        if (!$user instanceof User) {
+            return $this->redirectToRoute('app_home');
+        }
+
+        $json = $exportacionDatosService->exportarJson($user);
+        $response = new Response($json);
+        $response->headers->set('Content-Type', 'application/json; charset=UTF-8');
+        $response->headers->set('Content-Disposition', 'attachment; filename="mis-datos-bispol.json"');
+
+        return $response;
+    }
+
+    #[Route('/suprimir', name: 'app_perfil_suprimir', methods: ['POST'])]
+    public function suprimir(Request $request, SupresionDatosService $supresionDatosService): Response
+    {
+        $user = $this->usuarioActual();
+        if (!$user instanceof User) {
+            return $this->redirectToRoute('app_home');
+        }
+
+        $token = $request->request->getString('_token');
+        if ($token === '') {
+            $token = $request->getPayload()->getString('_token');
+        }
+        if (!$this->isCsrfTokenValid('suprimir-cuenta', $token)) {
+            $this->addFlash('error', 'La solicitud no es válida. Vuelve a intentarlo.');
+
+            return $this->redirectToRoute('app_perfil_index');
+        }
+
+        $confirmar = $request->request->getString('confirmar');
+        if ($confirmar === '') {
+            $confirmar = $request->getPayload()->getString('confirmar');
+        }
+        if ($confirmar !== '1') {
+            $this->addFlash('error', 'Marca la casilla de confirmación para suprimir tus datos.');
+
+            return $this->redirectToRoute('app_perfil_index');
+        }
+
+        try {
+            $supresionDatosService->suprimir($user);
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
+
+            return $this->redirectToRoute('app_perfil_index');
+        }
+
+        return $this->redirectToRoute('app_logout');
+    }
+
+    private function usuarioActual(): ?User
+    {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            return null;
+        }
+
+        return $this->userRepository->find($user->getId());
     }
 }

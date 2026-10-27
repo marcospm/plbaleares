@@ -260,6 +260,33 @@
             <button type="submit" class="btn-primary">Guardar Cambios</button>
         {{ form_end(form) }}
 
+        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e0e0e0;">
+            <h2 style="font-size: 1.15rem; margin-bottom: 0.5rem;">Tus datos</h2>
+            <p style="color: #666; line-height: 1.6;">Descarga una copia de tu ficha, tus mensajes, tus exámenes, tus partidas y tus tareas.</p>
+            <a href="{{ path('app_perfil_exportar') }}" class="btn-secondary" style="margin-top: 0.75rem;">Descargar mis datos</a>
+            <p style="margin-top: 0.75rem; font-size: 0.9rem; line-height: 1.6; color: #666;">
+                Más detalle en la <a href="{{ path('app_privacidad') }}">política de privacidad</a>.
+            </p>
+        </div>
+
+        <div style="margin-top: 1.5rem; padding: 1rem; border: 1px solid #f5c2c7; border-radius: 8px; background: #fff5f5;">
+            <h2 style="font-size: 1.15rem; margin-bottom: 0.5rem; color: #842029;">Suprimir mis datos</h2>
+            <p style="color: #666; line-height: 1.6;">
+                Se borran tu nombre, correo, teléfono, dirección y mensajes. La cuenta deja de existir y no se puede recuperar.
+                Los resultados de exámenes, partidas y tareas se conservan {{ retencionAnios }} años sin datos que te identifiquen y después se eliminan.
+            </p>
+            <form method="post" action="{{ path('app_perfil_suprimir') }}" onsubmit="return confirm('Se suprimirán tus datos de forma definitiva y se cerrará la sesión. ¿Continuar?');">
+                <input type="hidden" name="_token" value="{{ csrf_token('suprimir-cuenta') }}">
+                <label style="display: flex; align-items: flex-start; gap: 0.5rem; margin: 1rem 0; cursor: pointer;">
+                    <input type="checkbox" name="confirmar" value="1" required style="margin-top: 0.2rem;">
+                    <span>Entiendo que la supresión es definitiva.</span>
+                </label>
+                <button type="submit" style="background: #dc3545; color: white; border: none; border-radius: 8px; padding: 0.75rem 1.25rem; font-weight: 600; cursor: pointer; width: 100%;">
+                    Suprimir mis datos
+                </button>
+            </form>
+        </div>
+
         <a href="{{ path('app_dashboard') }}" class="btn-secondary">Volver al Dashboard</a>
     </div>
 </div>
