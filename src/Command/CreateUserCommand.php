@@ -3,7 +3,7 @@
 namespace App\Command;
 
 use App\Entity\User;
-use App\Repository\ConvocatoriaRepository;
+use App\Service\AsignacionConvocatoriaService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -21,7 +21,7 @@ class CreateUserCommand extends Command
     public function __construct(
         private EntityManagerInterface $em,
         private UserPasswordHasherInterface $passwordHasher,
-        private ConvocatoriaRepository $convocatoriaRepository
+        private AsignacionConvocatoriaService $asignacionConvocatoriaService
     ) {
         parent::__construct();
     }
@@ -50,11 +50,7 @@ class CreateUserCommand extends Command
         // El usuario se crea inactivo por defecto
         $user->setActivo(false);
 
-        // Asignar todas las convocatorias activas al usuario nuevo
-        $convocatoriasActivas = $this->convocatoriaRepository->findActivas();
-        foreach ($convocatoriasActivas as $convocatoria) {
-            $user->addConvocatoria($convocatoria);
-        }
+        $this->asignacionConvocatoriaService->asignarConvocatoriasActivas($user);
 
         $this->em->persist($user);
         $this->em->flush();

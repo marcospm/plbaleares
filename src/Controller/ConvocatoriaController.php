@@ -6,6 +6,7 @@ use App\Entity\Convocatoria;
 use App\Form\ConvocatoriaType;
 use App\Repository\ConvocatoriaRepository;
 use App\Repository\UserRepository;
+use App\Service\AsignacionConvocatoriaService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -41,7 +42,7 @@ class ConvocatoriaController extends AbstractController
     }
 
     #[Route('/new', name: 'app_convocatoria_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request, EntityManagerInterface $entityManager, AsignacionConvocatoriaService $asignacionConvocatoriaService): Response
     {
         $convocatoria = new Convocatoria();
         $form = $this->createForm(ConvocatoriaType::class, $convocatoria);
@@ -50,6 +51,7 @@ class ConvocatoriaController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $convocatoria->setFechaActualizacion(new \DateTime());
             $entityManager->persist($convocatoria);
+            $asignacionConvocatoriaService->asignarAUsuariosSinAsignar($convocatoria);
             $entityManager->flush();
 
             $this->addFlash('success', 'Convocatoria creada correctamente.');

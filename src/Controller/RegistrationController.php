@@ -6,7 +6,7 @@ use App\Dto\SolicitudCuentaDto;
 use App\Entity\User;
 use App\Form\RegistrationFormType;
 use App\Form\SolicitudCuentaFormType;
-use App\Repository\ConvocatoriaRepository;
+use App\Service\AsignacionConvocatoriaService;
 use App\Service\NotificacionService;
 use App\Service\SolicitudCuentaMailService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -62,7 +62,7 @@ class RegistrationController extends AbstractController
         UserPasswordHasherInterface $passwordHasher,
         EntityManagerInterface $entityManager,
         NotificacionService $notificacionService,
-        ConvocatoriaRepository $convocatoriaRepository,
+        AsignacionConvocatoriaService $asignacionConvocatoriaService,
     ): void {
         $existingUser = $entityManager->getRepository(User::class)
             ->findOneByIncludingDeleted(['username' => $user->getUsername()]);
@@ -84,9 +84,7 @@ class RegistrationController extends AbstractController
         $user->setActivo(false);
         $user->setRoles(['ROLE_USER']);
 
-        foreach ($convocatoriaRepository->findActivas() as $convocatoria) {
-            $user->addConvocatoria($convocatoria);
-        }
+        $asignacionConvocatoriaService->asignarConvocatoriasActivas($user);
 
         $entityManager->persist($user);
         $entityManager->flush();
