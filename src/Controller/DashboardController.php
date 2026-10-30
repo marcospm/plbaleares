@@ -29,7 +29,6 @@ class DashboardController extends AbstractController
 
     #[Route('/dashboard', name: 'app_dashboard')]
     public function index(
-        Request $request,
         ExamenRepository $examenRepository,
         PlanificacionPersonalizadaRepository $planificacionRepository,
         TareaAsignadaRepository $tareaAsignadaRepository,
@@ -434,120 +433,6 @@ class DashboardController extends AbstractController
             return $convocatoria->isActivo();
         })->toArray() : [];
 
-        // Obtener cantidad de exámenes para el ranking (por defecto 3)
-        $cantidadRanking = $request->query->getInt('cantidad', 3);
-        if ($cantidadRanking < 2) {
-            $cantidadRanking = 2;
-        }
-        
-        // Cachear toda la estructura de rankings para el usuario (15 minutos)
-        $cacheKeyRankings = 'dashboard_rankings_user_' . $user->getId() . '_cantidad_' . $cantidadRanking;
-        $rankingsData = null;
-        
-        if ($this->cache) {
-            $item = $this->cache->getItem($cacheKeyRankings);
-            if ($item->isHit()) {
-                $rankingsData = $item->get();
-            }
-        }
-        
-        if ($rankingsData === null) {
-            $rankings = [];
-            $posicionesUsuario = [];
-            $dificultades = ['facil', 'moderada', 'dificil'];
-            
-            // Rankings del temario general
-            foreach ($dificultades as $dificultad) {
-                $ranking = $examenRepository->getRankingPorDificultad($dificultad, $cantidadRanking);
-                $rankings[$dificultad] = $ranking;
-                $posicion = $examenRepository->getPosicionUsuario($user, $dificultad, $cantidadRanking);
-                $notaMedia = $examenRepository->getNotaMediaUsuario($user, $dificultad, $cantidadRanking);
-                $posicionesUsuario[$dificultad] = [
-                    'posicion' => $posicion,
-                    'notaMedia' => $notaMedia,
-                    'totalUsuarios' => count($ranking),
-                ];
-            }
-
-            // Rankings por convocatoria
-            $rankingsPorConvocatoria = [];
-            
-            foreach ($convocatorias as $convocatoria) {
-                $rankingsConvocatoria = [];
-                $posicionesConvocatoria = [];
-                
-                // Rankings generales de la convocatoria
-                foreach ($dificultades as $dificultad) {
-                    $ranking = $examenRepository->getRankingPorConvocatoriaYDificultad($convocatoria, $dificultad, $cantidadRanking);
-                    $rankingsConvocatoria[$dificultad] = $ranking;
-                    $posicion = $examenRepository->getPosicionUsuarioPorConvocatoria($user, $convocatoria, $dificultad, $cantidadRanking);
-                    $notaMedia = $examenRepository->getNotaMediaUsuarioPorConvocatoria($user, $convocatoria, $dificultad, $cantidadRanking);
-                    $posicionesConvocatoria[$dificultad] = [
-                        'posicion' => $posicion,
-                        'notaMedia' => $notaMedia,
-                        'totalUsuarios' => count($ranking),
-                    ];
-                }
-                
-                // Rankings por municipio dentro de la convocatoria (solo si tiene más de un municipio)
-                $rankingsPorMunicipioConvocatoria = [];
-                $municipiosConvocatoria = $convocatoria->getMunicipios();
-                
-                if ($municipiosConvocatoria->count() > 1) {
-                    foreach ($municipiosConvocatoria as $municipio) {
-                        if (!$municipio->isActivo()) {
-                            continue;
-                        }
-                        
-                        $rankingsMunicipio = [];
-                        $posicionesMunicipio = [];
-                        
-                        foreach ($dificultades as $dificultad) {
-                            $ranking = $examenRepository->getRankingPorMunicipioYDificultad($municipio, $dificultad, $cantidadRanking);
-                            $rankingsMunicipio[$dificultad] = $ranking;
-                            $posicion = $examenRepository->getPosicionUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidadRanking);
-                            $notaMedia = $examenRepository->getNotaMediaUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidadRanking);
-                            $posicionesMunicipio[$dificultad] = [
-                                'posicion' => $posicion,
-                                'notaMedia' => $notaMedia,
-                                'totalUsuarios' => count($ranking),
-                            ];
-                        }
-                        
-                        $rankingsPorMunicipioConvocatoria[$municipio->getId()] = [
-                            'municipio' => $municipio,
-                            'rankings' => $rankingsMunicipio,
-                            'posiciones' => $posicionesMunicipio,
-                        ];
-                    }
-                }
-                
-                $rankingsPorConvocatoria[$convocatoria->getId()] = [
-                    'convocatoria' => $convocatoria,
-                    'rankings' => $rankingsConvocatoria,
-                    'posiciones' => $posicionesConvocatoria,
-                    'rankingsPorMunicipio' => $rankingsPorMunicipioConvocatoria,
-                ];
-            }
-            
-            $rankingsData = [
-                'rankings' => $rankings,
-                'posicionesUsuario' => $posicionesUsuario,
-                'rankingsPorConvocatoria' => $rankingsPorConvocatoria,
-            ];
-            
-            // Guardar en caché (15 minutos)
-            if ($this->cache) {
-                $item->set($rankingsData);
-                $item->expiresAfter(900); // 15 minutos
-                $this->cache->save($item);
-            }
-        }
-        
-        $rankings = $rankingsData['rankings'];
-        $posicionesUsuario = $rankingsData['posicionesUsuario'];
-        $rankingsPorConvocatoria = $rankingsData['rankingsPorConvocatoria'];
-
         return $this->render('dashboard/index.html.twig', [
             'isProfesor' => false,
             'ultimosExamenes' => $ultimosExamenes,
@@ -557,13 +442,135 @@ class DashboardController extends AbstractController
             'resumenTareas' => $resumenTareas,
             'proximasTareas' => $proximasTareas,
             'convocatorias' => $convocatorias,
-            'posicionesUsuario' => $posicionesUsuario,
-            'rankingsPorConvocatoria' => $rankingsPorConvocatoria,
-            'cantidadRanking' => $cantidadRanking,
             'franjasHoy' => $franjasHoy,
             'franjasManana' => $franjasManana,
             'hoy' => $hoy,
             'manana' => $manana,
+        ]);
+    }
+
+    #[Route('/dashboard/rankings', name: 'app_dashboard_rankings', methods: ['GET'])]
+    public function rankings(
+        Request $request,
+        ExamenRepository $examenRepository,
+        UserRepository $userRepository,
+    ): Response {
+        $user = $this->getUser();
+        if (!$user) {
+            return $this->redirectToRoute('app_login');
+        }
+
+        if ($this->isGranted('ROLE_PROFESOR')) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $cantidadesPermitidas = [2, 3, 4, 5, 10];
+        $cantidadRanking = $request->query->getInt('cantidad', 3);
+        if (!in_array($cantidadRanking, $cantidadesPermitidas, true)) {
+            $cantidadRanking = 3;
+        }
+
+        $userWithConvocatorias = $userRepository->createQueryBuilder('u')
+            ->leftJoin('u.convocatorias', 'c')
+            ->addSelect('c')
+            ->leftJoin('c.municipios', 'm')
+            ->addSelect('m')
+            ->where('u.id = :userId')
+            ->setParameter('userId', $user->getId())
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        $convocatorias = $userWithConvocatorias ? $userWithConvocatorias->getConvocatorias()->filter(function ($convocatoria) {
+            return $convocatoria->isActivo();
+        })->toArray() : [];
+
+        $cacheKeyRankings = 'dashboard_rankings_user_' . $user->getId() . '_cantidad_' . $cantidadRanking;
+        $rankingsData = null;
+
+        if ($this->cache) {
+            $item = $this->cache->getItem($cacheKeyRankings);
+            if ($item->isHit()) {
+                $rankingsData = $item->get();
+            }
+        }
+
+        if ($rankingsData === null) {
+            $posicionesUsuario = [];
+            $dificultades = ['facil', 'moderada', 'dificil'];
+
+            foreach ($dificultades as $dificultad) {
+                $ranking = $examenRepository->getRankingPorDificultad($dificultad, $cantidadRanking);
+                $posicionesUsuario[$dificultad] = [
+                    'posicion' => $examenRepository->getPosicionUsuario($user, $dificultad, $cantidadRanking),
+                    'notaMedia' => $examenRepository->getNotaMediaUsuario($user, $dificultad, $cantidadRanking),
+                    'totalUsuarios' => count($ranking),
+                ];
+            }
+
+            $rankingsPorConvocatoria = [];
+
+            foreach ($convocatorias as $convocatoria) {
+                $posicionesConvocatoria = [];
+
+                foreach ($dificultades as $dificultad) {
+                    $ranking = $examenRepository->getRankingPorConvocatoriaYDificultad($convocatoria, $dificultad, $cantidadRanking);
+                    $posicionesConvocatoria[$dificultad] = [
+                        'posicion' => $examenRepository->getPosicionUsuarioPorConvocatoria($user, $convocatoria, $dificultad, $cantidadRanking),
+                        'notaMedia' => $examenRepository->getNotaMediaUsuarioPorConvocatoria($user, $convocatoria, $dificultad, $cantidadRanking),
+                        'totalUsuarios' => count($ranking),
+                    ];
+                }
+
+                $rankingsPorMunicipioConvocatoria = [];
+                $municipiosConvocatoria = $convocatoria->getMunicipios();
+
+                if ($municipiosConvocatoria->count() > 1) {
+                    foreach ($municipiosConvocatoria as $municipio) {
+                        if (!$municipio->isActivo()) {
+                            continue;
+                        }
+
+                        $posicionesMunicipio = [];
+
+                        foreach ($dificultades as $dificultad) {
+                            $ranking = $examenRepository->getRankingPorMunicipioYDificultad($municipio, $dificultad, $cantidadRanking);
+                            $posicionesMunicipio[$dificultad] = [
+                                'posicion' => $examenRepository->getPosicionUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidadRanking),
+                                'notaMedia' => $examenRepository->getNotaMediaUsuarioPorMunicipio($user, $municipio, $dificultad, $cantidadRanking),
+                                'totalUsuarios' => count($ranking),
+                            ];
+                        }
+
+                        $rankingsPorMunicipioConvocatoria[$municipio->getId()] = [
+                            'municipio' => $municipio,
+                            'posiciones' => $posicionesMunicipio,
+                        ];
+                    }
+                }
+
+                $rankingsPorConvocatoria[$convocatoria->getId()] = [
+                    'convocatoria' => $convocatoria,
+                    'posiciones' => $posicionesConvocatoria,
+                    'rankingsPorMunicipio' => $rankingsPorMunicipioConvocatoria,
+                ];
+            }
+
+            $rankingsData = [
+                'posicionesUsuario' => $posicionesUsuario,
+                'rankingsPorConvocatoria' => $rankingsPorConvocatoria,
+            ];
+
+            if ($this->cache) {
+                $item->set($rankingsData);
+                $item->expiresAfter(900);
+                $this->cache->save($item);
+            }
+        }
+
+        return $this->render('dashboard/_rankings.html.twig', [
+            'posicionesUsuario' => $rankingsData['posicionesUsuario'],
+            'rankingsPorConvocatoria' => $rankingsData['rankingsPorConvocatoria'],
+            'cantidadRanking' => $cantidadRanking,
         ]);
     }
 }

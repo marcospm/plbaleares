@@ -22,6 +22,18 @@ class DashboardControllerTest extends TestCase
         
         $this->assertResponseIsSuccessful();
         $this->assertSelectorExists('h1');
+        $this->assertSelectorTextContains('#ver-rankings-btn', 'Ver Rankings');
+    }
+
+    public function testRankingsLoadOnlyWhenRequested(): void
+    {
+        $user = $this->createTestUser();
+        $this->loginAsUser($user);
+
+        $this->client->request('GET', '/dashboard/rankings');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('h3', 'Mi Ranking (Temario General)');
     }
     
     public function testDashboardAccessibleForProfesor(): void
