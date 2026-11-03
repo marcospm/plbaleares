@@ -347,6 +347,15 @@ class ExamenController extends AbstractController
                     return $this->redirectToRoute('app_examen_iniciar');
                 }
 
+                $soloFalladas = (bool) ($data['soloFalladas'] ?? false);
+                if ($soloFalladas) {
+                    $preguntas = $this->filtrarPreguntasFalladas($preguntas, $user, $esMunicipal);
+                    if (count($preguntas) === 0) {
+                        $this->addFlash('error', 'No tienes preguntas falladas en los temas y la dificultad elegidos. Cuando falles alguna en un examen, podrás practicarla aquí. Si después la aciertas, dejará de salir.');
+                        return $this->redirectToRoute('app_examen_iniciar');
+                    }
+                }
+
                 // Si hay menos preguntas de las solicitadas, usar todas las disponibles
                 $preguntasDisponibles = count($preguntas);
                 $preguntasAUsar = $numeroPreguntas; // Intentar obtener el número solicitado (puede que se complete con repetición)
@@ -417,6 +426,7 @@ class ExamenController extends AbstractController
                     'es_municipal' => $esMunicipal,
                     'tiempo_limite' => $tiempoLimite, // Tiempo en minutos
                     'modo_estudio' => $modoEstudio, // Modo estudio activado
+                    'solo_falladas' => $soloFalladas,
                 ];
                 
                 if ($esMunicipal) {
@@ -475,6 +485,9 @@ class ExamenController extends AbstractController
                             $temasMunicipalesEntidades,
                             $dificultad
                         );
+                        if (!empty($submittedData['soloFalladas'])) {
+                            $preguntas = $this->filtrarPreguntasFalladas($preguntas, $user, true);
+                        }
                         $preguntasDisponibles = count($preguntas);
                     }
                 }
@@ -497,6 +510,9 @@ class ExamenController extends AbstractController
                             ->setParameter('activo', true)
                             ->getQuery()
                             ->getResult();
+                        if (!empty($submittedData['soloFalladas'])) {
+                            $preguntas = $this->filtrarPreguntasFalladas($preguntas, $user, false);
+                        }
                         $preguntasDisponibles = count($preguntas);
                     }
                 }
@@ -530,6 +546,9 @@ class ExamenController extends AbstractController
                     ->setParameter('activo', true)
                     ->getQuery()
                     ->getResult();
+                if (!empty($data['soloFalladas'])) {
+                    $preguntas = $this->filtrarPreguntasFalladas($preguntas, $user, false);
+                }
                 $preguntasDisponibles = count($preguntas);
             }
         }
@@ -779,7 +798,7 @@ class ExamenController extends AbstractController
             }
             
             // En modo estudio, si se respondió sin acción específica y es AJAX, devolver JSON
-            if ($modoEstudio && $preguntaBloqueada && empty($accion) && $numeroDestino <= 0 && $request->isXmlHttpRequest()) {
+            if ($modoEstudio && $preguntaBloqueada && empty($accion) && $numeroDestino <= 0 && $isAjax) {
                 // Devolver información para actualizar la UI sin recargar
                 $respuestaCorrecta = $pregunta->getRespuestaCorrecta();
                 $retroalimentacion = $pregunta->getRetroalimentacion();
@@ -818,26 +837,28 @@ class ExamenController extends AbstractController
                 
                 // Obtener estado de todas las preguntas para actualizar la guía
                 $estadoPreguntas = [];
-                foreach ($preguntasIds as $idx => $preguntaId) {
+                foreach ($preguntasIds as $idx => $preguntaIdEstado) {
                     $numPregunta = $idx + 1;
-                    $tieneRespuesta = isset($respuestas[$preguntaId]);
+                    $tieneRespuesta = isset($respuestas[$preguntaIdEstado]);
                     $esActual = ($numPregunta === $numero);
-                    
-                    // Si es la pregunta actual y está bloqueada, determinar si es correcta
-                    $esCorrectaPregunta = false;
-                    if ($esActual && $tieneRespuesta) {
-                        if ($esMunicipal) {
-                            $preguntaTemp = $this->preguntaMunicipalRepository->find($preguntaId);
-                        } else {
-                            $preguntaTemp = $this->preguntaRepository->find($preguntaId);
+                    $esCorrectaPregunta = null;
+
+                    if ($tieneRespuesta) {
+                        $preguntaTemp = (is_array($preguntasMap) && isset($preguntasMap[$preguntaIdEstado]))
+                            ? $preguntasMap[$preguntaIdEstado]
+                            : null;
+                        if (!$preguntaTemp) {
+                            $preguntaTemp = $esMunicipal
+                                ? $this->preguntaMunicipalRepository->find($preguntaIdEstado)
+                                : $this->preguntaRepository->find($preguntaIdEstado);
                         }
                         if ($preguntaTemp) {
                             $respCorrectaTemp = strtoupper(trim($preguntaTemp->getRespuestaCorrecta() ?? ''));
-                            $respAlumnoTemp = strtoupper(trim($respuestas[$preguntaId] ?? ''));
-                            $esCorrectaPregunta = ($respCorrectaTemp === $respAlumnoTemp);
+                            $respAlumnoTemp = strtoupper(trim((string) $respuestas[$preguntaIdEstado]));
+                            $esCorrectaPregunta = ($respCorrectaTemp !== '' && $respCorrectaTemp === $respAlumnoTemp);
                         }
                     }
-                    
+
                     $estadoPreguntas[$numPregunta] = [
                         'tieneRespuesta' => $tieneRespuesta,
                         'esActual' => $esActual,
@@ -850,8 +871,8 @@ class ExamenController extends AbstractController
                     'respuestaCorrecta' => $respuestaCorrecta,
                     'respuestaAlumno' => $respuestaActual,
                     'esCorrecta' => $esCorrecta,
-                    'retroalimentacion' => $retroalimentacion,
-                    'explicacion' => $explicacion,
+                    'retroalimentacion' => $this->markdownAHtml($retroalimentacion),
+                    'explicacion' => $this->markdownAHtml($explicacion),
                     'textoLegal' => $textoLegal,
                     'leyActualizada' => $leyActualizada,
                     'infoActualizacionLey' => $infoActualizacionLey,
@@ -3334,6 +3355,37 @@ class ExamenController extends AbstractController
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="' . $filename . '"',
         ]);
+    }
+
+    private function markdownAHtml(?string $texto): ?string
+    {
+        if ($texto === null || trim($texto) === '') {
+            return $texto;
+        }
+
+        return $this->container->get('twig')
+            ->createTemplate('{{ texto|markdown }}')
+            ->render(['texto' => $texto]);
+    }
+
+    /**
+     * Deja solo las preguntas cuyo último intento contestado del alumno fue incorrecto.
+     *
+     * @param array<int, object> $preguntas
+     * @return array<int, object>
+     */
+    private function filtrarPreguntasFalladas(array $preguntas, User $user, bool $esMunicipal): array
+    {
+        if ($preguntas === []) {
+            return [];
+        }
+
+        $idsFalladas = array_flip($this->examenRepository->findIdsPreguntasFalladas($user, $esMunicipal));
+
+        return array_values(array_filter(
+            $preguntas,
+            static fn ($pregunta) => isset($idsFalladas[$pregunta->getId()])
+        ));
     }
 }
 

@@ -3,6 +3,8 @@
 namespace App\Repository;
 
 use App\Entity\Examen;
+use App\Entity\Pregunta;
+use App\Entity\PreguntaMunicipal;
 use App\Entity\User;
 use App\Entity\Municipio;
 use App\Entity\Tema;
@@ -772,6 +774,79 @@ class ExamenRepository extends ServiceEntityRepository
         }
 
         return null; // Usuario no está en el ranking
+    }
+
+    /**
+     * Preguntas cuyo último intento contestado (A-D) fue incorrecto.
+     * Un acierto posterior las saca de la lista. Una respuesta en blanco no cambia el estado.
+     *
+     * @return int[]
+     */
+    public function findIdsPreguntasFalladas(User $usuario, bool $esMunicipal): array
+    {
+        $qb = $this->createQueryBuilder('e')
+            ->select('e.id', 'e.respuestas')
+            ->leftJoin('e.municipio', 'm')
+            ->leftJoin('e.convocatoria', 'c')
+            ->andWhere('e.usuario = :usuario')
+            ->setParameter('usuario', $usuario)
+            ->orderBy('e.fecha', 'ASC')
+            ->addOrderBy('e.id', 'ASC');
+
+        if ($esMunicipal) {
+            $qb->andWhere('(m.id IS NOT NULL OR c.id IS NOT NULL)');
+        } else {
+            $qb->andWhere('m.id IS NULL AND c.id IS NULL');
+        }
+
+        $examenes = $qb->getQuery()->getArrayResult();
+        $ultimaRespuesta = [];
+
+        foreach ($examenes as $examen) {
+            $respuestas = $examen['respuestas'] ?? [];
+            if (!is_array($respuestas)) {
+                continue;
+            }
+            foreach ($respuestas as $preguntaId => $respuesta) {
+                $respuesta = strtoupper(trim((string) $respuesta));
+                if (!in_array($respuesta, ['A', 'B', 'C', 'D'], true)) {
+                    continue;
+                }
+                $id = (int) $preguntaId;
+                if ($id > 0) {
+                    $ultimaRespuesta[$id] = $respuesta;
+                }
+            }
+        }
+
+        if ($ultimaRespuesta === []) {
+            return [];
+        }
+
+        $clase = $esMunicipal ? PreguntaMunicipal::class : Pregunta::class;
+        $correctas = [];
+        foreach (array_chunk(array_keys($ultimaRespuesta), 1000) as $lote) {
+            $filas = $this->getEntityManager()->createQueryBuilder()
+                ->select('p.id AS id', 'p.respuestaCorrecta AS respuestaCorrecta')
+                ->from($clase, 'p')
+                ->where('p.id IN (:ids)')
+                ->setParameter('ids', $lote)
+                ->getQuery()
+                ->getArrayResult();
+            foreach ($filas as $fila) {
+                $correctas[(int) $fila['id']] = strtoupper(trim((string) ($fila['respuestaCorrecta'] ?? '')));
+            }
+        }
+
+        $falladas = [];
+        foreach ($ultimaRespuesta as $id => $respuesta) {
+            $correcta = $correctas[$id] ?? '';
+            if ($correcta !== '' && $respuesta !== $correcta) {
+                $falladas[] = $id;
+            }
+        }
+
+        return $falladas;
     }
 }
 

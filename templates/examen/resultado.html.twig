@@ -266,6 +266,18 @@
                         </details>
                         {% endif %}
                     {% endif %}
+
+                    {% if not esMunicipal and is_granted('ROLE_USER') and not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
+                        <details style="margin-top: 1rem;">
+                            <summary style="cursor: pointer; font-weight: 600; color: #856404;">⚠️ No estoy de acuerdo, reportar esta pregunta</summary>
+                            <form class="form-reporte-resultado" data-pregunta-id="{{ item.pregunta.id }}" data-turbo="false" style="margin-top: 0.75rem; max-width: 520px;">
+                                <input type="hidden" name="_token" value="{{ csrf_token('reportar_error_pregunta_' ~ item.pregunta.id) }}">
+                                <textarea name="mensaje" class="form-control" rows="3" required placeholder="Describe el error o por qué no estás de acuerdo con esta pregunta..." style="width: 100%; font-size: 0.9rem;"></textarea>
+                                <small style="display: block; color: #666; margin: 0.35rem 0 0.6rem;">Los profesores y administradores serán notificados.</small>
+                                <button type="submit" class="btn btn-warning btn-sm">Enviar reporte</button>
+                            </form>
+                        </details>
+                    {% endif %}
                 </div>
             </div>
         {% endfor %}
@@ -472,5 +484,47 @@
     }
 }
 </style>
+<script>
+document.addEventListener('submit', function(event) {
+    const form = event.target;
+    if (!form || !form.classList || !form.classList.contains('form-reporte-resultado')) {
+        return;
+    }
+    event.preventDefault();
+
+    const preguntaId = form.getAttribute('data-pregunta-id');
+    const boton = form.querySelector('button[type="submit"]');
+    const textoOriginal = boton ? boton.textContent : 'Enviar reporte';
+    if (boton) {
+        boton.disabled = true;
+        boton.textContent = 'Enviando...';
+    }
+
+    fetch('/pregunta/' + preguntaId + '/reportar-error', {
+        method: 'POST',
+        body: new FormData(form),
+        credentials: 'same-origin'
+    })
+    .then(function(response) {
+        return response.json().then(function(data) {
+            return { ok: response.ok, data: data };
+        });
+    })
+    .then(function(resultado) {
+        if (resultado.ok && resultado.data && resultado.data.success) {
+            form.innerHTML = '<p style="margin: 0; color: #1e7e34; font-weight: 600;">✓ Reporte enviado. Los profesores han sido notificados.</p>';
+            return;
+        }
+        throw new Error((resultado.data && resultado.data.error) || 'No se pudo enviar el reporte.');
+    })
+    .catch(function(error) {
+        if (boton) {
+            boton.disabled = false;
+            boton.textContent = textoOriginal;
+        }
+        alert(error.message || 'Error al enviar el reporte. Inténtalo de nuevo.');
+    });
+});
+</script>
 {% endblock %}
 

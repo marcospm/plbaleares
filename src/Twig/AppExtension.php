@@ -79,6 +79,8 @@ class AppExtension extends AbstractExtension
             return '';
         }
 
+        $text = str_replace(["\r\n", "\r"], "\n", $text);
+
         // Primero, proteger el HTML existente para no procesarlo como markdown
         $htmlTags = [];
         $placeholder = '___HTML_PLACEHOLDER_';

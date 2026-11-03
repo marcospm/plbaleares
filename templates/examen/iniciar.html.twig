@@ -209,6 +209,17 @@
                 {{ form_errors(form.modoEstudio) }}
             </div>
 
+            <div class="form-group mb-3">
+                <div class="form-check">
+                    {{ form_widget(form.soloFalladas, {'attr': {'class': 'form-check-input'}}) }}
+                    {{ form_label(form.soloFalladas, null, {'label_attr': {'class': 'form-check-label'}}) }}
+                    {% if form.soloFalladas.vars.help is defined %}
+                        <small class="form-text text-muted d-block">{{ form.soloFalladas.vars.help }}</small>
+                    {% endif %}
+                </div>
+                {{ form_errors(form.soloFalladas) }}
+            </div>
+
             {% if preguntasDisponibles is defined and preguntasDisponibles is not null %}
                 {% if preguntasDisponibles > 0 %}
                     <div class="alert alert-info">

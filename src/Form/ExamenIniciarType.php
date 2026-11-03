@@ -213,6 +213,13 @@ class ExamenIniciarType extends AbstractType
                 'attr' => ['class' => 'form-check-input'],
                 'help' => 'En modo estudio, al seleccionar una respuesta se mostrará inmediatamente la respuesta correcta y retroalimentación. La pregunta quedará bloqueada después de responder.',
             ])
+            ->add('soloFalladas', CheckboxType::class, [
+                'label' => 'Solo preguntas que he fallado',
+                'required' => false,
+                'data' => false,
+                'attr' => ['class' => 'form-check-input'],
+                'help' => 'Solo saldrán preguntas de los temas y la dificultad elegidos que hayas fallado en exámenes anteriores. Si en este examen la aciertas, dejará de salir la próxima vez. Si la vuelves a fallar, seguirá apareciendo. Dejarla en blanco no cambia su estado.',
+            ])
         ;
 
         // Agregar validación condicional para municipio y temas municipales

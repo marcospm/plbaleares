@@ -63,10 +63,13 @@ class PreguntaErrorController extends AbstractController
             
             $entityManager->persist($mensaje);
             $entityManager->flush();
-            
-            // Crear notificación para todos los profesores y administradores
-            $notificacionService->crearNotificacionErrorPregunta($pregunta, $alumno, trim($mensajeTexto));
-            
+
+            try {
+                $notificacionService->crearNotificacionErrorPregunta($pregunta, $alumno, trim($mensajeTexto));
+            } catch (\Throwable $e) {
+                error_log('Error al notificar el reporte de pregunta: ' . $e->getMessage());
+            }
+
             return new JsonResponse([
                 'success' => true,
                 'message' => 'Error reportado correctamente. Los profesores y administradores han sido notificados.'

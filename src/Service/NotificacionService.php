@@ -679,23 +679,36 @@ class NotificacionService
 
     private function enviarNotificacionPorEmail(User $destinatario, Notificacion $notificacion): void
     {
-        $emailDestino = $destinatario->getEmail();
-        if (!$emailDestino) {
+        $emailDestino = trim((string) $destinatario->getEmail());
+        if (!$this->esEmailValido($emailDestino)) {
+            $this->logger->warning('Notificacion sin email: destinatario con correo no valido', [
+                'usuario_id' => $destinatario->getId(),
+                'destinatario' => $emailDestino,
+                'tipo' => $notificacion->getTipo(),
+            ]);
             return;
         }
 
-        $email = (new TemplatedEmail())
-            ->from($this->mailerFrom)
-            ->to($emailDestino)
-            ->subject(sprintf('[Notificacion] %s', $notificacion->getTitulo()))
-            ->htmlTemplate('emails/notificacion.html.twig')
-            ->textTemplate('emails/notificacion.txt.twig')
-            ->context([
-                'notificacion' => $notificacion,
-                'destinatario' => $destinatario,
+        if (!$this->esEmailValido($this->mailerFrom)) {
+            $this->logger->error('No se pudo enviar email de notificacion: remitente no valido', [
+                'remitente' => $this->mailerFrom,
+                'tipo' => $notificacion->getTipo(),
             ]);
+            return;
+        }
 
         try {
+            $email = (new TemplatedEmail())
+                ->from($this->mailerFrom)
+                ->to($emailDestino)
+                ->subject(sprintf('[Notificacion] %s', $notificacion->getTitulo()))
+                ->htmlTemplate('emails/notificacion.html.twig')
+                ->textTemplate('emails/notificacion.txt.twig')
+                ->context([
+                    'notificacion' => $notificacion,
+                    'destinatario' => $destinatario,
+                ]);
+
             $this->mailer->send($email);
         } catch (\Throwable $e) {
             $this->logger->error('No se pudo enviar email de notificacion', [
@@ -704,6 +717,11 @@ class NotificacionService
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    private function esEmailValido(string $email): bool
+    {
+        return $email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
     }
 }
 

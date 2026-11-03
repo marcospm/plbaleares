@@ -6,7 +6,7 @@
 <div class="card">
     <div class="card-header">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-            <h2 style="margin: 0; color: white;">Pregunta {{ numero }} de {{ total }}</h2>
+            <h2 id="examen-pregunta-titulo" style="margin: 0; color: white;">Pregunta {{ numero }} de {{ total }}</h2>
             <div id="examen-timer-container" style="display: flex; align-items: center; gap: 0.75rem;">
                 <div id="examen-timer" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; font-weight: bold; font-size: 1.1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
                     <span style="font-size: 1.3rem;">⏱️</span>
@@ -23,6 +23,7 @@
             </div>
         </div>
     </div>
+    <turbo-frame id="examen-pregunta">
     <div class="card-body">
         {# Listado de preguntas - Navegación rápida #}
         <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 0.75rem; margin-bottom: 1.5rem;">
@@ -123,6 +124,11 @@
                         </button>
                     {% endif %}
                 </div>
+            </div>
+        {% endif %}
+        {% if config.solo_falladas is defined and config.solo_falladas %}
+            <div class="mb-3" style="padding: 0.75rem 1rem; background: #fff5f5; border-left: 4px solid #dc3545; border-radius: 4px; color: #842029; font-size: 0.9rem;">
+                Estás practicando solo preguntas que habías fallado. Si aciertas una, no volverá a salir en el próximo test de este tipo.
             </div>
         {% endif %}
 
@@ -277,7 +283,7 @@
             <h3 style="color: var(--color-primary); margin-bottom: 1rem;"><span style="font-weight: 600;">Pregunta {{ numero }}:</span> {{ pregunta.texto }}</h3>
         </div>
 
-        <form method="post" action="{{ path('app_examen_pregunta', {'numero': numero}) }}" id="formPregunta">
+        <form method="post" action="{{ path('app_examen_pregunta', {'numero': numero}) }}" id="formPregunta" data-turbo="false" data-modo-estudio="{{ modoEstudio is defined and modoEstudio ? '1' : '0' }}">
             {# Input hidden para sincronizar el checkbox "Me la juego" que está fuera del formulario #}
             <input type="hidden" name="me_la_juego" id="me_la_juego_hidden" value="{% if preguntaMarcadaComoRiesgo is defined and preguntaMarcadaComoRiesgo %}1{% else %}0{% endif %}">
             <div class="form-group">
@@ -359,7 +365,7 @@
                             </div>
                             <span id="retroalimentacion-arrow" style="font-size: 1.2rem; transition: transform 0.3s; color: #1565C0;">▼</span>
                         </div>
-                        <div id="retroalimentacion-content" class="collapsible-content" style="display: none; padding: 0 1rem 1rem 1rem; color: #333; line-height: 1.6;">{{ retroalimentacion|markdown|raw }}</div>
+                        <div id="retroalimentacion-content" class="collapsible-content markdown-content" style="display: none; padding: 0 1rem 1rem 1rem; color: #333; line-height: 1.6;">{{ retroalimentacion|markdown|raw }}</div>
                     </div>
                     {% endif %}
                     
@@ -376,7 +382,7 @@
                                     </div>
                                     <span id="explicacion-arrow" style="font-size: 1.2rem; transition: transform 0.3s; color: #1565C0;">▼</span>
                                 </div>
-                                <div id="explicacion-content" class="collapsible-content" style="display: none; padding: 0 1rem 1rem 1rem; color: #333; line-height: 1.6;">{{ pregunta.articulo.explicacion|markdown|raw }}</div>
+                                <div id="explicacion-content" class="collapsible-content markdown-content" style="display: none; padding: 0 1rem 1rem 1rem; color: #333; line-height: 1.6;">{{ pregunta.articulo.explicacion|markdown|raw }}</div>
                             </div>
                             {% endif %}
                             
@@ -406,8 +412,8 @@
                     <button type="submit" name="accion" value="siguiente" class="btn btn-primary">Siguiente</button>
                 {% endif %}
                 {# Botón Finalizar Examen siempre visible #}
-                <button type="submit" name="accion" value="finalizar" class="btn btn-success" onclick="return confirm('¿Estás seguro de que deseas finalizar el examen?');">Finalizar Examen</button>
-                <button type="submit" name="accion" value="guardar_borrador" class="btn btn-secondary" id="btnGuardarBorrador" style="margin-left: auto;">💾 Guardar y continuar más tarde</button>
+                <button type="submit" name="accion" value="finalizar" data-turbo-frame="_top" class="btn btn-success" onclick="return confirm('¿Estás seguro de que deseas finalizar el examen?');">Finalizar Examen</button>
+                <button type="submit" name="accion" value="guardar_borrador" data-turbo-frame="_top" class="btn btn-secondary" id="btnGuardarBorrador" style="margin-left: auto;">💾 Guardar y continuar más tarde</button>
             </div>
         </form>
 
@@ -579,15 +585,18 @@
             }
         }
 
-        // Cerrar modal al hacer clic fuera de él
-        window.addEventListener('click', function(event) {
-            const modal = document.getElementById('modalMensajesPregunta');
-            if (modal && event.target == modal) {
-                cerrarModalMensajesPregunta();
-            }
-        });
+        if (!window.__examenMensajesClick) {
+            window.__examenMensajesClick = true;
+            // Cerrar modal al hacer clic fuera de él
+            window.addEventListener('click', function(event) {
+                const modal = document.getElementById('modalMensajesPregunta');
+                if (modal && event.target == modal) {
+                    cerrarModalMensajesPregunta();
+                }
+            });
+        }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        function iniciarMensajesPregunta() {
             const btnVerMensajes = document.getElementById('btnVerMensajes');
             contadorMensajesPregunta = document.getElementById('contadorMensajes');
             contenidoMensajesPregunta = document.getElementById('contenidoMensajesPregunta');
@@ -690,7 +699,13 @@
             }
 
             cargarContador();
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', iniciarMensajesPregunta);
+        } else {
+            iniciarMensajesPregunta();
+        }
         
         // Exponer funciones necesarias globalmente
         window.abrirModalMensajesPregunta = abrirModalMensajesPregunta;
@@ -747,23 +762,26 @@
             }
         }
 
-        // Cerrar modal al hacer clic fuera de él
-        document.addEventListener('click', function(event) {
-            const modal = document.getElementById('modalPorcentajes');
-            if (modal && event.target === modal) {
-                cerrarModalPorcentajes();
-            }
-        });
-
-        // Cerrar modal con ESC
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
+        if (!window.__examenModalDocs) {
+            window.__examenModalDocs = true;
+            // Cerrar modal al hacer clic fuera de él
+            document.addEventListener('click', function(event) {
                 const modal = document.getElementById('modalPorcentajes');
-                if (modal && modal.style.display === 'block') {
+                if (modal && event.target === modal) {
                     cerrarModalPorcentajes();
                 }
-            }
-        });
+            });
+
+            // Cerrar modal con ESC
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    const modal = document.getElementById('modalPorcentajes');
+                    if (modal && modal.style.display === 'block') {
+                        cerrarModalPorcentajes();
+                    }
+                }
+            });
+        }
 
         // Función para inicializar el botón (se ejecuta tanto en carga inicial como en navegaciones Turbo)
         function inicializarBotonPorcentajes() {
@@ -796,14 +814,59 @@
             inicializarBotonPorcentajes();
         }
 
-        // Ejecutar también en navegaciones de Turbo
-        document.addEventListener('turbo:load', inicializarBotonPorcentajes);
-        document.addEventListener('turbo:frame-load', inicializarBotonPorcentajes);
+        window.__examenInitPorcentajes = inicializarBotonPorcentajes;
+        if (!window.__examenPorcentajesHook) {
+            window.__examenPorcentajesHook = true;
+            const lanzarPorcentajes = function() {
+                if (window.__examenInitPorcentajes) {
+                    window.__examenInitPorcentajes();
+                }
+            };
+            document.addEventListener('turbo:load', lanzarPorcentajes);
+            document.addEventListener('turbo:frame-load', lanzarPorcentajes);
+        }
         </script>
         {% endif %}
 
         {# Script para modo estudio y temporizador #}
         <script>
+        window.formatearMarkdownExamen = function(texto) {
+            if (!texto) {
+                return '';
+            }
+            if (/<(p|strong|em|br|ul|ol|li|h[1-3])\b/i.test(texto)) {
+                return texto;
+            }
+
+            let procesado = String(texto).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            const htmlTags = [];
+            procesado = procesado.replace(/<[^>]+>/g, function(tag) {
+                const clave = '___HTML_PLACEHOLDER_' + htmlTags.length + '___';
+                htmlTags.push(tag);
+                return clave;
+            });
+            procesado = procesado.replace(/\*\*(.+?)\*\*/gs, '<strong>$1</strong>');
+            procesado = procesado.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/gs, '<em>$1</em>');
+
+            const parrafos = procesado.split(/\n\n+/).map(function(parrafo) {
+                return parrafo.trim();
+            }).filter(Boolean);
+
+            let resultado = parrafos.map(function(parrafo) {
+                return '<p>' + parrafo.replace(/\n/g, '<br>') + '</p>';
+            }).join('');
+
+            if (!resultado) {
+                resultado = procesado.replace(/\n/g, '<br>');
+            }
+
+            htmlTags.forEach(function(tag, indice) {
+                resultado = resultado.split('___HTML_PLACEHOLDER_' + indice + '___').join(tag);
+            });
+
+            return resultado;
+        };
+
         // Función global para actualizar checkbox de riesgo usando AJAX
         window.actualizarCheckboxRiesgo = function(checkbox) {
             const form = document.getElementById('formPregunta');
@@ -934,12 +997,18 @@
                     radio.addEventListener('change', function() {
                         if (this.checked && !preguntaBloqueada && !enviandoRespuesta) {
                             enviandoRespuesta = true;
-                            // Deshabilitar todos los radio buttons mientras se envía
                             radioButtons.forEach(function(rb) {
                                 rb.disabled = true;
                             });
-                            
-                            // Enviar respuesta inmediatamente
+                            const labelElegido = this.closest('label');
+                            if (labelElegido) {
+                                labelElegido.style.background = '#e3f2fd';
+                                labelElegido.style.border = '2px solid var(--color-primary)';
+                            }
+                            const scrollAlElegir = window.scrollY;
+                            requestAnimationFrame(function() {
+                                window.scrollTo(0, scrollAlElegir);
+                            });
                             enviarRespuestaModoEstudio(this.value);
                         }
                     });
@@ -952,46 +1021,73 @@
                     enviandoRespuesta = false;
                     return;
                 }
-                
-                // Crear FormData con todos los campos del formulario
+
+                const posicionScroll = window.scrollY;
                 const formData = new FormData(form);
                 formData.set('respuesta', respuesta);
-                
-                // Enviar formulario con AJAX
+                formData.delete('accion');
+                formData.delete('numero_destino');
+
                 fetch(form.action, {
                     method: 'POST',
                     body: formData,
+                    credentials: 'same-origin',
+                    redirect: 'follow',
                     headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
                     }
                 })
-                .then(response => {
-                    if (response.redirected) {
-                        // Si hay redirección, seguirla para mostrar la respuesta correcta
-                        window.location.href = response.url;
-                    } else if (response.ok) {
-                        // Intentar parsear como JSON primero (modo estudio con AJAX)
-                        return response.json().then(data => {
-                            if (data.success) {
-                                // Actualizar UI dinámicamente sin recargar
+                .then(function(response) {
+                    const tipo = response.headers.get('content-type') || '';
+                    if (response.ok && tipo.indexOf('application/json') !== -1) {
+                        return response.json().then(function(data) {
+                            if (data && data.success) {
                                 actualizarUIModoEstudio(data, respuesta);
-                            } else {
-                                // Si no es JSON válido o no tiene success, recargar
-                                window.location.reload();
+                                window.scrollTo(0, posicionScroll);
+                                return;
                             }
-                        }).catch(() => {
-                            // Si no es JSON, recargar la página
-                            window.location.reload();
+                            throw new Error('Respuesta de estudio no válida');
                         });
-                    } else {
-                        throw new Error('Error en la respuesta del servidor');
                     }
+                    return response.text().then(function(html) {
+                        if (!aplicarCorreccionEstudioDesdeHtml(html)) {
+                            throw new Error('No se pudo mostrar la corrección');
+                        }
+                        window.scrollTo(0, posicionScroll);
+                    });
                 })
-                .catch(error => {
+                .catch(function(error) {
                     console.error('Error:', error);
-                    // En caso de error, recargar la página
-                    window.location.reload();
+                    enviandoRespuesta = false;
+                    preguntaBloqueada = false;
+                    document.querySelectorAll('input[name="respuesta"]').forEach(function(rb) {
+                        rb.disabled = false;
+                    });
                 });
+            }
+
+            function aplicarCorreccionEstudioDesdeHtml(html) {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const nuevoForm = doc.getElementById('formPregunta');
+                const actualForm = document.getElementById('formPregunta');
+                if (!nuevoForm || !actualForm) {
+                    return false;
+                }
+                actualForm.innerHTML = nuevoForm.innerHTML;
+                doc.querySelectorAll('.pregunta-link').forEach(function(nuevoLink) {
+                    const num = nuevoLink.getAttribute('data-pregunta-num');
+                    const actualLink = document.querySelector('.pregunta-link[data-pregunta-num="' + num + '"]');
+                    if (!actualLink) {
+                        return;
+                    }
+                    actualLink.style.background = nuevoLink.style.background;
+                    actualLink.style.color = nuevoLink.style.color;
+                    actualLink.style.border = nuevoLink.style.border;
+                });
+                preguntaBloqueada = true;
+                enviandoRespuesta = false;
+                return true;
             }
             
             // Función para actualizar la UI en modo estudio sin recargar
@@ -1074,11 +1170,11 @@
                                 preguntaLink.style.background = 'var(--color-primary)';
                                 preguntaLink.style.color = 'white';
                                 preguntaLink.style.border = '2px solid var(--color-primary)';
-                            } else if (estado.esCorrecta !== undefined && estado.esCorrecta) {
+                            } else if (estado.esCorrecta === true) {
                                 preguntaLink.style.background = '#28a745';
                                 preguntaLink.style.color = 'white';
                                 preguntaLink.style.border = '2px solid #28a745';
-                            } else if (estado.tieneRespuesta && estado.esCorrecta !== undefined && !estado.esCorrecta) {
+                            } else if (estado.esCorrecta === false) {
                                 preguntaLink.style.background = '#dc3545';
                                 preguntaLink.style.color = 'white';
                                 preguntaLink.style.border = '2px solid #dc3545';
@@ -1154,15 +1250,8 @@
                     container.appendChild(content);
                 }
                 
-                // Convertir markdown básico a HTML (simplificado)
-                // Reemplazar saltos de línea por <br> y preservar formato básico
-                let htmlRetro = retroalimentacion
-                    .replace(/\n\n/g, '</p><p>')
-                    .replace(/\n/g, '<br>');
-                if (!htmlRetro.startsWith('<p>')) {
-                    htmlRetro = '<p>' + htmlRetro + '</p>';
-                }
-                content.innerHTML = htmlRetro;
+                content.classList.add('markdown-content');
+                content.innerHTML = window.formatearMarkdownExamen(retroalimentacion);
             }
             
             // Función para mostrar explicación y texto legal
@@ -1191,7 +1280,7 @@
                             </div>
                             <span id="explicacion-arrow" style="font-size: 1.2rem; transition: transform 0.3s; color: #1565C0;">▼</span>
                         </div>
-                        <div id="explicacion-content" class="collapsible-content" style="display: none; padding: 0 1rem 1rem 1rem; color: #333; line-height: 1.6;">${explicacion ? explicacion.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>') : ''}</div>
+                        <div id="explicacion-content" class="collapsible-content markdown-content" style="display: none; padding: 0 1rem 1rem 1rem; color: #333; line-height: 1.6;">${explicacion ? window.formatearMarkdownExamen(explicacion) : ''}</div>
                     `;
                     container.appendChild(explicacionDiv);
                 }
@@ -1358,7 +1447,13 @@
                     inputFinalizar.name = 'accion';
                     inputFinalizar.value = 'finalizar';
                     formPregunta.appendChild(inputFinalizar);
-                    formPregunta.submit();
+                    formPregunta.setAttribute('data-turbo-frame', '_top');
+                    limpiarTemporizador();
+                    if (typeof formPregunta.requestSubmit === 'function') {
+                        formPregunta.requestSubmit();
+                    } else {
+                        formPregunta.submit();
+                    }
                 }
             }
             
@@ -1420,7 +1515,11 @@
                     return;
                 }
                 
-                // Limpiar intervalo anterior si existe
+                // Limpiar intervalo anterior si existe (también el de la pregunta previa)
+                if (window.__examenTimerInterval) {
+                    clearInterval(window.__examenTimerInterval);
+                    window.__examenTimerInterval = null;
+                }
                 if (intervalo) {
                     clearInterval(intervalo);
                     intervalo = null;
@@ -1668,6 +1767,7 @@
                         }
                     }
                 }, 1000);
+                window.__examenTimerInterval = intervalo;
                 
                 actualizarTemporizador(); // Llamar inmediatamente
             }
@@ -1678,6 +1778,10 @@
                 if (intervalo) {
                     clearInterval(intervalo);
                     intervalo = null;
+                }
+                if (window.__examenTimerInterval) {
+                    clearInterval(window.__examenTimerInterval);
+                    window.__examenTimerInterval = null;
                 }
                 localStorage.removeItem('examen_id');
                 localStorage.removeItem('examen_tiempo_inicio');
@@ -1692,12 +1796,29 @@
             let todoInicializado = false;
             
             function inicializarTodo() {
+                const formMarcador = document.getElementById('formPregunta');
+                if (formMarcador && formMarcador.dataset.examenUi === '1') {
+                    todoInicializado = true;
+                    return;
+                }
                 // Prevenir múltiples inicializaciones completas
                 if (todoInicializado) {
                     console.log('⚠️ inicializarTodo ya ejecutado, omitiendo...');
                     return;
                 }
                 todoInicializado = true;
+                if (formMarcador) {
+                    formMarcador.dataset.examenUi = '1';
+                }
+                document.title = 'Pregunta {{ numero }} de {{ total }}';
+                const tituloExamen = document.getElementById('examen-pregunta-titulo');
+                if (tituloExamen) {
+                    tituloExamen.textContent = 'Pregunta {{ numero }} de {{ total }}';
+                }
+                const barraProgreso = document.getElementById('progress-bar');
+                if (barraProgreso) {
+                    barraProgreso.style.width = '{{ (numero / total * 100) }}%';
+                }
                 
                 // Inicializar temporizador solo una vez
                 if (!temporizadorInicializado) {
@@ -1724,14 +1845,13 @@
                 const formPregunta = document.getElementById('formPregunta');
                 if (formPregunta) {
                     formPregunta.addEventListener('submit', function(e) {
-                        const accion = document.querySelector('button[name="accion"][value="finalizar"]');
-                        if (accion && accion.form === formPregunta) {
+                        const accion = e.submitter && e.submitter.name === 'accion' ? e.submitter.value : null;
+                        if (accion === 'finalizar') {
                             limpiarTemporizador();
                         }
                         
                         // Si es guardar borrador, añadir tiempo restante
-                        const btnGuardar = document.getElementById('btnGuardarBorrador');
-                        if (btnGuardar && btnGuardar.form === formPregunta && document.querySelector('button[name="accion"][value="guardar_borrador"]:focus')) {
+                        if (accion === 'guardar_borrador') {
                             // Calcular tiempo restante
                             const tiempoRestante = tiempoLimite - (Date.now() - tiempoInicio) / 1000 + tiempoPausado;
                             const inputTiempo = document.createElement('input');
@@ -1775,13 +1895,16 @@
                             inputDestino.value = numeroDestino;
                             formPregunta.appendChild(inputDestino);
                             
-                            // Enviar el formulario directamente
+                            // Enviar el formulario sin recargar toda la página
                             try {
-                                formPregunta.submit();
+                                if (typeof formPregunta.requestSubmit === 'function') {
+                                    formPregunta.requestSubmit();
+                                } else {
+                                    formPregunta.submit();
+                                }
                             } catch (error) {
                                 console.error('Error al enviar el formulario:', error);
-                                // Si falla el submit, redirigir directamente
-                        window.location.href = '{{ path('app_examen_pregunta', {'numero': '__NUM__'}) }}'.replace('__NUM__', numeroDestino);
+                                window.location.href = '{{ path('app_examen_pregunta', {'numero': '__NUM__'}) }}'.replace('__NUM__', numeroDestino);
                             }
                             
                             return false;
@@ -1955,20 +2078,33 @@
                 sincronizarCheckboxRiesgo();
             }
             
-            // También inicializar en eventos de Turbo, pero permitir reiniciar cuando Turbo navega
-            document.addEventListener('turbo:load', function() {
-                // Permitir reinicializar cuando Turbo navega a nueva página
+            // Un solo listener para toda la sesión: cada pregunta sustituye la función,
+            // así no se acumulan temporizadores ni listeners al avanzar.
+            window.__examenReinit = function() {
+                const form = document.getElementById('formPregunta');
+                if (form && form.dataset.examenUi === '1') {
+                    return;
+                }
                 todoInicializado = false;
                 temporizadorInicializado = false;
                 inicializarTodo();
-            });
-            document.addEventListener('turbo:frame-load', function() {
-                if (document.getElementById('formPregunta')) {
-                    todoInicializado = false;
-                    temporizadorInicializado = false;
-                    inicializarTodo();
-                }
-            });
+                sincronizarCheckboxRiesgo();
+            };
+            if (!window.__examenNavHook) {
+                window.__examenNavHook = true;
+                document.addEventListener('turbo:load', function() {
+                    if (window.__examenReinit) {
+                        window.__examenReinit();
+                    }
+                });
+                document.addEventListener('turbo:frame-load', function(event) {
+                    if (!event.target || event.target.id === 'examen-pregunta') {
+                        if (window.__examenReinit) {
+                            window.__examenReinit();
+                        }
+                    }
+                });
+            }
         })();
         </script>
         
@@ -2266,19 +2402,194 @@
         }
         </style>
     </div>
-</div>
 
+<style>
+    turbo-frame#examen-pregunta {
+        display: block;
+    }
+    turbo-frame#examen-pregunta[busy] {
+        opacity: 0.55;
+        pointer-events: none;
+        transition: opacity 0.15s ease;
+    }
+    .markdown-content p {
+        margin: 0.75rem 0;
+    }
+    .markdown-content p:first-child {
+        margin-top: 0;
+    }
+    .markdown-content p:last-child {
+        margin-bottom: 0;
+    }
+    .markdown-content strong {
+        font-weight: 700;
+    }
+    .markdown-content em {
+        font-style: italic;
+    }
+</style>
 <script>
-    // Scroll automático a la sección de información de la pregunta al cargar
-    document.addEventListener('DOMContentLoaded', function() {
-        const informacionPregunta = document.getElementById('informacion-pregunta');
+    function scrollInformacionPregunta() {
+        const informacionPregunta = document.getElementById('informacion-pregunta') || document.getElementById('pregunta-texto');
         if (informacionPregunta) {
             informacionPregunta.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            // También hacer focus para mejor accesibilidad
             informacionPregunta.setAttribute('tabindex', '-1');
-            informacionPregunta.focus();
+            informacionPregunta.focus({ preventScroll: true });
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', scrollInformacionPregunta);
+    } else {
+        scrollInformacionPregunta();
+    }
+</script>
+</turbo-frame>
+</div>
+<script>
+(function() {
+    if (window.__examenNavegacionSinRecarga) {
+        return;
+    }
+    window.__examenNavegacionSinRecarga = true;
+
+    function activarScripts(contenedor) {
+        contenedor.querySelectorAll('script').forEach(function(viejo) {
+            const nuevo = document.createElement('script');
+            Array.from(viejo.attributes).forEach(function(attr) {
+                nuevo.setAttribute(attr.name, attr.value);
+            });
+            nuevo.textContent = viejo.textContent;
+            viejo.replaceWith(nuevo);
+        });
+    }
+
+    function aplicarPregunta(html, url) {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const nuevo = doc.querySelector('#examen-pregunta');
+        const actual = document.querySelector('#examen-pregunta');
+        if (!nuevo || !actual) {
+            window.location.href = url;
+            return;
+        }
+
+        const hijos = Array.from(nuevo.childNodes);
+        actual.replaceChildren();
+        hijos.forEach(function(hijo) {
+            actual.appendChild(document.importNode(hijo, true));
+        });
+        activarScripts(actual);
+
+        const tituloNuevo = doc.querySelector('#examen-pregunta-titulo');
+        const titulo = document.getElementById('examen-pregunta-titulo');
+        if (titulo && tituloNuevo) {
+            titulo.textContent = tituloNuevo.textContent;
+        }
+        const barraNueva = doc.querySelector('#progress-bar');
+        const barra = document.getElementById('progress-bar');
+        if (barra && barraNueva) {
+            barra.style.width = barraNueva.style.width;
+        }
+        if (doc.title) {
+            document.title = doc.title;
+        }
+        if (url && url !== window.location.href) {
+            history.pushState({ examenPregunta: true }, '', url);
+        }
+    }
+
+    async function cargarPregunta(url) {
+        const frame = document.querySelector('#examen-pregunta');
+        if (!frame) {
+            window.location.href = url;
+            return;
+        }
+        frame.setAttribute('busy', '');
+        try {
+            const respuesta = await fetch(url, {
+                headers: { 'Accept': 'text/html' },
+                credentials: 'same-origin'
+            });
+            if (!respuesta.ok) {
+                window.location.href = respuesta.url || url;
+                return;
+            }
+            aplicarPregunta(await respuesta.text(), respuesta.url || url);
+        } catch (error) {
+            window.location.href = url;
+        } finally {
+            const frameActual = document.querySelector('#examen-pregunta');
+            if (frameActual) {
+                frameActual.removeAttribute('busy');
+            }
+        }
+    }
+
+    document.addEventListener('submit', function(event) {
+        const form = event.target;
+        if (!form || form.id !== 'formPregunta') {
+            return;
+        }
+        const accion = event.submitter && event.submitter.name === 'accion' ? event.submitter.value : '';
+        if (accion === 'finalizar' || accion === 'guardar_borrador') {
+            return;
+        }
+        const destino = form.querySelector('input[name="numero_destino"]');
+        if (form.dataset.modoEstudio === '1' && !accion && !(destino && destino.value)) {
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+
+        const frame = document.querySelector('#examen-pregunta');
+        if (frame) {
+            frame.setAttribute('busy', '');
+        }
+        const datos = new FormData(form);
+        if (event.submitter && event.submitter.name) {
+            datos.set(event.submitter.name, event.submitter.value);
+        }
+
+        fetch(form.action, {
+            method: 'POST',
+            body: datos,
+            credentials: 'same-origin',
+            redirect: 'follow',
+            headers: { 'Accept': 'text/html' }
+        }).then(function(respuesta) {
+            if (!respuesta.ok) {
+                window.location.href = respuesta.url || form.action;
+                return null;
+            }
+            return respuesta.text().then(function(html) {
+                return { html: html, url: respuesta.url };
+            });
+        }).then(function(resultado) {
+            if (!resultado) {
+                return;
+            }
+            if (!resultado.html.includes('id="examen-pregunta"')) {
+                window.location.href = resultado.url || form.action;
+                return;
+            }
+            aplicarPregunta(resultado.html, resultado.url);
+        }).catch(function() {
+            form.submit();
+        }).finally(function() {
+            const frameActual = document.querySelector('#examen-pregunta');
+            if (frameActual) {
+                frameActual.removeAttribute('busy');
+            }
+        });
+    }, true);
+
+    window.addEventListener('popstate', function() {
+        if (document.querySelector('#examen-pregunta')) {
+            cargarPregunta(window.location.href);
         }
     });
+})();
 </script>
 {% endblock %}
 
