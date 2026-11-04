@@ -6,6 +6,7 @@ use App\Entity\Convocatoria;
 use App\Entity\ConvocatoriaBase;
 use App\Form\ConvocatoriaType;
 use App\Repository\ConvocatoriaRepository;
+use App\Repository\MunicipioRepository;
 use App\Repository\UserRepository;
 use App\Service\AsignacionConvocatoriaService;
 use App\Service\PdfTitleService;
@@ -32,25 +33,48 @@ class ConvocatoriaController extends AbstractController
     }
 
     #[Route('/', name: 'app_convocatoria_index', methods: ['GET'])]
-    public function index(ConvocatoriaRepository $convocatoriaRepository, Request $request): Response
+    public function index(ConvocatoriaRepository $convocatoriaRepository, MunicipioRepository $municipioRepository, Request $request): Response
     {
-        $search = trim($request->query->get('search', ''));
-        
-        // Filtrar convocatorias por búsqueda si existe
-        if (!empty($search)) {
-            $convocatorias = $convocatoriaRepository->createQueryBuilder('c')
-                ->where('c.nombre LIKE :search')
-                ->setParameter('search', '%' . $search . '%')
-                ->orderBy('c.fechaCreacion', 'DESC')
-                ->getQuery()
-                ->getResult();
-        } else {
-            $convocatorias = $convocatoriaRepository->findAll();
+        $search = trim((string) $request->query->get('search', ''));
+        $estado = (string) $request->query->get('estado', 'activas');
+        if (!in_array($estado, ['activas', 'inactivas', 'todas'], true)) {
+            $estado = 'activas';
         }
-        
+        $municipioRaw = $request->query->get('municipio');
+        $municipioId = is_numeric($municipioRaw) ? (int) $municipioRaw : 0;
+
+        $qb = $convocatoriaRepository->createQueryBuilder('c')
+            ->orderBy('c.fechaCreacion', 'DESC');
+
+        if ($search !== '') {
+            $qb->andWhere('c.nombre LIKE :search')
+                ->setParameter('search', '%' . $search . '%');
+        }
+
+        if ($estado === 'activas') {
+            $qb->andWhere('c.activo = :activo')->setParameter('activo', true);
+        } elseif ($estado === 'inactivas') {
+            $qb->andWhere('c.activo = :activo')->setParameter('activo', false);
+        }
+
+        if ($municipioId > 0) {
+            $qb->innerJoin('c.municipios', 'm')
+                ->andWhere('m.id = :municipioId')
+                ->setParameter('municipioId', $municipioId);
+        }
+
+        $convocatorias = $qb->getQuery()->getResult();
+        $municipios = $municipioRepository->createQueryBuilder('mun')
+            ->orderBy('mun.nombre', 'ASC')
+            ->getQuery()
+            ->getResult();
+
         return $this->render('convocatoria/index.html.twig', [
             'convocatorias' => $convocatorias,
             'search' => $search,
+            'estado' => $estado,
+            'municipioId' => $municipioId,
+            'municipios' => $municipios,
         ]);
     }
 
@@ -126,14 +150,29 @@ class ConvocatoriaController extends AbstractController
     }
 
     #[Route('/{id}/toggle-activo', name: 'app_convocatoria_toggle_activo', methods: ['POST'])]
-    public function toggleActivo(Convocatoria $convocatoria, EntityManagerInterface $entityManager): Response
+    public function toggleActivo(Request $request, Convocatoria $convocatoria, EntityManagerInterface $entityManager): Response
     {
         $convocatoria->setActivo(!$convocatoria->isActivo());
         $convocatoria->setFechaActualizacion(new \DateTime());
         $entityManager->flush();
 
         $this->addFlash('success', 'Estado de la convocatoria actualizado.');
-        return $this->redirectToRoute('app_convocatoria_index');
+
+        $filtros = [];
+        $search = trim((string) $request->request->get('search', ''));
+        $estado = (string) $request->request->get('estado', '');
+        $municipio = (string) $request->request->get('municipio', '');
+        if ($search !== '') {
+            $filtros['search'] = $search;
+        }
+        if (in_array($estado, ['activas', 'inactivas', 'todas'], true)) {
+            $filtros['estado'] = $estado;
+        }
+        if ($municipio !== '' && $municipio !== '0') {
+            $filtros['municipio'] = $municipio;
+        }
+
+        return $this->redirectToRoute('app_convocatoria_index', $filtros);
     }
 
     #[Route('/{id}/asignar-alumnos', name: 'app_convocatoria_asignar_alumnos', methods: ['GET', 'POST'])]
