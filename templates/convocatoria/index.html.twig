@@ -261,7 +261,15 @@
                         <td>
                             <div style="font-size: 0.85rem;">
                                 <div>
-                                    <strong>Teórico:</strong> 
+                                    <strong>Inscripción:</strong>
+                                    {% if convocatoria.fechaInscripcion %}
+                                        {{ convocatoria.fechaInscripcion|date('d/m/Y') }}
+                                    {% else %}
+                                        <span style="color: #999; font-style: italic;">Pendiente</span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <strong>Teórico:</strong>
                                     {% if convocatoria.fechaTeorico %}
                                         {{ convocatoria.fechaTeorico|date('d/m/Y') }}
                                     {% else %}
@@ -269,7 +277,7 @@
                                     {% endif %}
                                 </div>
                                 <div>
-                                    <strong>Físicas:</strong> 
+                                    <strong>Físicas:</strong>
                                     {% if convocatoria.fechaFisicas %}
                                         {{ convocatoria.fechaFisicas|date('d/m/Y') }}
                                     {% else %}
@@ -277,7 +285,7 @@
                                     {% endif %}
                                 </div>
                                 <div>
-                                    <strong>Psicotécnico:</strong> 
+                                    <strong>Psicotécnico:</strong>
                                     {% if convocatoria.fechaPsicotecnico %}
                                         {{ convocatoria.fechaPsicotecnico|date('d/m/Y') }}
                                     {% else %}

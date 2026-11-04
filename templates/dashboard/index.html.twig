@@ -1068,9 +1068,29 @@
                                 </div>
                             </div>
                             
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem;">
-                                <div style="text-align: center; padding: 0.75rem; background-color: #f8f9fa; border-radius: 4px;">
-                                    <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">Teórico</div>
+                            <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem;">
+                                <div style="text-align: center; padding: 0.6rem 0.35rem; background-color: #f8f9fa; border-radius: 4px;">
+                                    <div style="font-size: 0.8rem; color: #666; margin-bottom: 0.25rem;">Inscripción</div>
+                                    {% if convocatoria.fechaInscripcion %}
+                                        {% set diasInscripcion = (convocatoria.fechaInscripcion|date('U') - 'now'|date('U')) / 86400 %}
+                                        <div style="font-size: 0.75rem; color: #666; margin-bottom: 0.5rem;">{{ convocatoria.fechaInscripcion|date('d/m/Y') }}</div>
+                                        <div style="font-size: 1.2rem; font-weight: bold; color: {% if diasInscripcion < 0 %}#dc3545{% elseif diasInscripcion <= 30 %}#ff9800{% else %}#28a745{% endif %};">
+                                            {% if diasInscripcion < 0 %}
+                                                {{ (diasInscripcion * -1)|round }}<br><small style="font-size: 0.7rem;">días</small>
+                                            {% else %}
+                                                {{ diasInscripcion|round }}<br><small style="font-size: 0.7rem;">días</small>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <div style="font-size: 0.85rem; color: #999; margin-bottom: 0.5rem; font-style: italic;">Pendiente</div>
+                                        <div style="font-size: 1rem; font-weight: bold; color: #999;">
+                                            —<br><small style="font-size: 0.7rem;">por definir</small>
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div style="text-align: center; padding: 0.6rem 0.35rem; background-color: #f8f9fa; border-radius: 4px;">
+                                    <div style="font-size: 0.8rem; color: #666; margin-bottom: 0.25rem;">Teórico</div>
                                     {% if convocatoria.fechaTeorico %}
                                         {% set diasTeorico = (convocatoria.fechaTeorico|date('U') - 'now'|date('U')) / 86400 %}
                                         <div style="font-size: 0.8rem; color: #666; margin-bottom: 0.5rem;">{{ convocatoria.fechaTeorico|date('d/m/Y') }}</div>
@@ -1089,8 +1109,8 @@
                                     {% endif %}
                                 </div>
                                 
-                                <div style="text-align: center; padding: 0.75rem; background-color: #f8f9fa; border-radius: 4px;">
-                                    <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">Físicas</div>
+                                <div style="text-align: center; padding: 0.6rem 0.35rem; background-color: #f8f9fa; border-radius: 4px;">
+                                    <div style="font-size: 0.8rem; color: #666; margin-bottom: 0.25rem;">Físicas</div>
                                     {% if convocatoria.fechaFisicas %}
                                         {% set diasFisicas = (convocatoria.fechaFisicas|date('U') - 'now'|date('U')) / 86400 %}
                                         <div style="font-size: 0.8rem; color: #666; margin-bottom: 0.5rem;">{{ convocatoria.fechaFisicas|date('d/m/Y') }}</div>
@@ -1109,8 +1129,8 @@
                                     {% endif %}
                                 </div>
                                 
-                                <div style="text-align: center; padding: 0.75rem; background-color: #f8f9fa; border-radius: 4px;">
-                                    <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">Psicotécnico</div>
+                                <div style="text-align: center; padding: 0.6rem 0.35rem; background-color: #f8f9fa; border-radius: 4px;">
+                                    <div style="font-size: 0.8rem; color: #666; margin-bottom: 0.25rem;">Psicotécnico</div>
                                     {% if convocatoria.fechaPsicotecnico %}
                                         {% set diasPsicotecnico = (convocatoria.fechaPsicotecnico|date('U') - 'now'|date('U')) / 86400 %}
                                         <div style="font-size: 0.8rem; color: #666; margin-bottom: 0.5rem;">{{ convocatoria.fechaPsicotecnico|date('d/m/Y') }}</div>

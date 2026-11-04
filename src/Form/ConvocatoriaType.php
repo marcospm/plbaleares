@@ -47,20 +47,26 @@ class ConvocatoriaType extends AbstractType
                     ),
                 ],
             ])
+            ->add('fechaInscripcion', DateType::class, [
+                'label' => 'Inscripción',
+                'widget' => 'single_text',
+                'required' => false,
+                'attr' => ['class' => 'form-control'],
+            ])
             ->add('fechaTeorico', DateType::class, [
-                'label' => 'Fecha Examen Teórico',
+                'label' => 'Teórico',
                 'widget' => 'single_text',
                 'required' => false,
                 'attr' => ['class' => 'form-control'],
             ])
             ->add('fechaFisicas', DateType::class, [
-                'label' => 'Fecha Pruebas Físicas',
+                'label' => 'Físicas',
                 'widget' => 'single_text',
                 'required' => false,
                 'attr' => ['class' => 'form-control'],
             ])
             ->add('fechaPsicotecnico', DateType::class, [
-                'label' => 'Fecha Psicotécnico',
+                'label' => 'Psicotécnico',
                 'widget' => 'single_text',
                 'required' => false,
                 'attr' => ['class' => 'form-control'],

@@ -30,25 +30,33 @@
 
         <div class="form-group">
             <label class="form-label"><strong>Fechas:</strong></label>
-            <div>
-                <p>
-                    <strong>Examen Teórico:</strong> 
+            <div style="display: flex; flex-wrap: wrap; gap: 1rem 1.5rem;">
+                <p style="margin: 0;">
+                    <strong>Inscripción:</strong>
+                    {% if convocatoria.fechaInscripcion %}
+                        {{ convocatoria.fechaInscripcion|date('d/m/Y') }}
+                    {% else %}
+                        <span style="color: #999; font-style: italic;">Pendiente</span>
+                    {% endif %}
+                </p>
+                <p style="margin: 0;">
+                    <strong>Teórico:</strong>
                     {% if convocatoria.fechaTeorico %}
                         {{ convocatoria.fechaTeorico|date('d/m/Y') }}
                     {% else %}
                         <span style="color: #999; font-style: italic;">Pendiente</span>
                     {% endif %}
                 </p>
-                <p>
-                    <strong>Pruebas Físicas:</strong> 
+                <p style="margin: 0;">
+                    <strong>Físicas:</strong>
                     {% if convocatoria.fechaFisicas %}
                         {{ convocatoria.fechaFisicas|date('d/m/Y') }}
                     {% else %}
                         <span style="color: #999; font-style: italic;">Pendiente</span>
                     {% endif %}
                 </p>
-                <p>
-                    <strong>Psicotécnico:</strong> 
+                <p style="margin: 0;">
+                    <strong>Psicotécnico:</strong>
                     {% if convocatoria.fechaPsicotecnico %}
                         {{ convocatoria.fechaPsicotecnico|date('d/m/Y') }}
                     {% else %}

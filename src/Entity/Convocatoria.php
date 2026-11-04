@@ -20,6 +20,9 @@ class Convocatoria
     private ?string $nombre = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $fechaInscripcion = null;
+
+    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $fechaTeorico = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
@@ -71,6 +74,18 @@ class Convocatoria
     public function setNombre(string $nombre): static
     {
         $this->nombre = $nombre;
+
+        return $this;
+    }
+
+    public function getFechaInscripcion(): ?\DateTimeInterface
+    {
+        return $this->fechaInscripcion;
+    }
+
+    public function setFechaInscripcion(?\DateTimeInterface $fechaInscripcion): static
+    {
+        $this->fechaInscripcion = $fechaInscripcion;
 
         return $this;
     }
