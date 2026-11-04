@@ -8,12 +8,13 @@
         <h1>Nueva Convocatoria</h1>
     </div>
     <div class="card-body">
-        {{ form_start(form) }}
+        {{ form_start(form, {'attr': {'enctype': 'multipart/form-data'}}) }}
             {{ form_row(form.nombre) }}
             {{ form_row(form.municipios) }}
             {{ form_row(form.fechaTeorico) }}
             {{ form_row(form.fechaFisicas) }}
             {{ form_row(form.fechaPsicotecnico) }}
+            {{ form_row(form.basesPdf) }}
             {{ form_row(form.activo) }}
             
             <div class="d-flex gap-2 mt-4">

@@ -8,12 +8,29 @@
         <h1>Editar Convocatoria: {{ convocatoria.nombre }}</h1>
     </div>
     <div class="card-body">
-        {{ form_start(form) }}
+        {{ form_start(form, {'attr': {'enctype': 'multipart/form-data'}}) }}
             {{ form_row(form.nombre) }}
             {{ form_row(form.municipios) }}
             {{ form_row(form.fechaTeorico) }}
             {{ form_row(form.fechaFisicas) }}
             {{ form_row(form.fechaPsicotecnico) }}
+            {{ form_row(form.basesPdf) }}
+            {% if convocatoria.bases|length > 0 %}
+                <div class="form-group mt-2">
+                    <label class="form-label"><strong>Bases actuales</strong></label>
+                    <ul style="list-style: none; padding-left: 0; margin-bottom: 0.5rem;">
+                        {% for base in convocatoria.bases %}
+                            <li style="margin-bottom: 0.5rem;">
+                                <a href="{{ path('app_convocatoria_bases', {id: convocatoria.id, base: base.id}) }}" target="_blank" rel="noopener">{{ base.nombreOriginal }}</a>
+                                <label style="margin-left: 1rem; font-weight: normal;">
+                                    <input type="checkbox" name="eliminar_bases[]" value="{{ base.id }}"> Quitar
+                                </label>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <small>Los PDF nuevos se añaden a los que ya hay. Marca «Quitar» y guarda para eliminar uno.</small>
+                </div>
+            {% endif %}
             {{ form_row(form.activo) }}
             
             <div class="d-flex gap-2 mt-4">

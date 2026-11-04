@@ -7,9 +7,10 @@ use App\Entity\Municipio;
 use App\Repository\MunicipioRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\DateType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Count;
@@ -63,6 +64,17 @@ class ConvocatoriaType extends AbstractType
                 'widget' => 'single_text',
                 'required' => false,
                 'attr' => ['class' => 'form-control'],
+            ])
+            ->add('basesPdf', FileType::class, [
+                'label' => 'Bases (PDF)',
+                'required' => false,
+                'mapped' => false,
+                'multiple' => true,
+                'attr' => [
+                    'class' => 'form-control',
+                    'accept' => 'application/pdf,.pdf',
+                ],
+                'help' => 'Opcional. Puedes seleccionar uno o varios PDF. Cada archivo, máximo 30 MB. Si no subes nada, se mantienen los que ya hubiera.',
             ])
             ->add('activo', CheckboxType::class, [
                 'label' => 'Activa',

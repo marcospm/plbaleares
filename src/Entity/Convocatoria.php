@@ -36,6 +36,10 @@ class Convocatoria
     #[ORM\JoinTable(name: 'convocatoria_municipio')]
     private Collection $municipios;
 
+    #[ORM\OneToMany(targetEntity: ConvocatoriaBase::class, mappedBy: 'convocatoria', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['id' => 'ASC'])]
+    private Collection $bases;
+
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
     private bool $activo = true;
 
@@ -49,6 +53,7 @@ class Convocatoria
     {
         $this->usuarios = new ArrayCollection();
         $this->municipios = new ArrayCollection();
+        $this->bases = new ArrayCollection();
         $this->fechaCreacion = new \DateTime();
         $this->fechaActualizacion = new \DateTime();
     }
@@ -150,6 +155,31 @@ class Convocatoria
     public function removeMunicipio(Municipio $municipio): static
     {
         $this->municipios->removeElement($municipio);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ConvocatoriaBase>
+     */
+    public function getBases(): Collection
+    {
+        return $this->bases;
+    }
+
+    public function addBase(ConvocatoriaBase $base): static
+    {
+        if (!$this->bases->contains($base)) {
+            $this->bases->add($base);
+            $base->setConvocatoria($this);
+        }
+
+        return $this;
+    }
+
+    public function removeBase(ConvocatoriaBase $base): static
+    {
+        $this->bases->removeElement($base);
 
         return $this;
     }

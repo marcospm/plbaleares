@@ -424,6 +424,8 @@ class DashboardController extends AbstractController
         $userWithConvocatorias = $userRepository->createQueryBuilder('u')
             ->leftJoin('u.convocatorias', 'c')
             ->addSelect('c')
+            ->leftJoin('c.bases', 'bases')
+            ->addSelect('bases')
             ->where('u.id = :userId')
             ->setParameter('userId', $user->getId())
             ->getQuery()
