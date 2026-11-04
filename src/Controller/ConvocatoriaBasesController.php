@@ -26,17 +26,17 @@ class ConvocatoriaBasesController extends AbstractController
         $this->comprobarAcceso($convocatoria);
 
         if ($base->getConvocatoria()?->getId() !== $convocatoria->getId()) {
-            throw $this->createNotFoundException('No se encontró el PDF de bases.');
+            throw $this->createNotFoundException('No se encontró el documento.');
         }
 
         $ruta = $base->getRutaArchivo();
         if (!$ruta || !str_starts_with($ruta, '/pdfs/bases/') || str_contains($ruta, '..')) {
-            throw $this->createNotFoundException('No se encontró el PDF de bases.');
+            throw $this->createNotFoundException('No se encontró el documento.');
         }
 
         $rutaAbsoluta = $this->kernel->getProjectDir() . '/public' . $ruta;
         if (!is_file($rutaAbsoluta) || !is_readable($rutaAbsoluta)) {
-            throw $this->createNotFoundException('No se encontró el PDF de bases.');
+            throw $this->createNotFoundException('No se encontró el documento.');
         }
 
         $nombre = basename(str_replace('\\', '/', (string) $base->getNombreOriginal()));
@@ -70,6 +70,6 @@ class ConvocatoriaBasesController extends AbstractController
             }
         }
 
-        throw $this->createAccessDeniedException('No tienes acceso a las bases de esta convocatoria.');
+        throw $this->createAccessDeniedException('No tienes acceso a los documentos de esta convocatoria.');
     }
 }

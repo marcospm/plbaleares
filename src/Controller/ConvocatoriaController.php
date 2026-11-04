@@ -247,17 +247,17 @@ class ConvocatoriaController extends AbstractController
 
             $extension = strtolower($archivo->getClientOriginalExtension());
             if ($extension !== 'pdf') {
-                return 'Las bases deben ser archivos PDF.';
+                return 'Los documentos deben ser archivos PDF.';
             }
 
             if ($archivo->getSize() > 30 * 1024 * 1024) {
-                return 'Cada PDF de bases puede tener como máximo 30 MB.';
+                return 'Cada PDF puede tener como máximo 30 MB.';
             }
         }
 
         $directorio = $this->kernel->getProjectDir() . '/public/pdfs/bases';
         if ($archivos !== [] && !is_dir($directorio) && !@mkdir($directorio, 0755, true) && !is_dir($directorio)) {
-            return 'No se pudo crear el directorio para guardar las bases.';
+            return 'No se pudo crear la carpeta para guardar los documentos.';
         }
 
         $creadas = [];
@@ -280,7 +280,7 @@ class ConvocatoriaController extends AbstractController
             } catch (FileException $e) {
                 $this->descartarBasesNuevas($convocatoria, $creadas);
 
-                return 'Error al subir el PDF de bases: ' . $e->getMessage();
+                return 'Error al subir un documento: ' . $e->getMessage();
             }
 
             $base = new ConvocatoriaBase();
@@ -289,7 +289,7 @@ class ConvocatoriaController extends AbstractController
             $convocatoria->addBase($base);
             $creadas[] = $base;
 
-            $titulo = 'Bases - ' . ($convocatoria->getNombre() ?? 'Convocatoria') . ' - ' . $originalFilename;
+            $titulo = $originalFilename;
             if (mb_strlen($titulo) > 200) {
                 $titulo = mb_substr($titulo, 0, 200);
             }

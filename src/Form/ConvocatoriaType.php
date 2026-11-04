@@ -66,7 +66,7 @@ class ConvocatoriaType extends AbstractType
                 'attr' => ['class' => 'form-control'],
             ])
             ->add('basesPdf', FileType::class, [
-                'label' => 'Bases (PDF)',
+                'label' => 'Documentos (PDF)',
                 'required' => false,
                 'mapped' => false,
                 'multiple' => true,
@@ -74,7 +74,7 @@ class ConvocatoriaType extends AbstractType
                     'class' => 'form-control',
                     'accept' => 'application/pdf,.pdf',
                 ],
-                'help' => 'Opcional. Puedes seleccionar uno o varios PDF. Cada archivo, máximo 30 MB. Si no subes nada, se mantienen los que ya hubiera.',
+                'help' => 'Opcional. Puedes subir uno o varios PDF: bases, admitidos, excluidos u otros. Cada archivo, máximo 30 MB. Si no subes nada, se mantienen los que ya hubiera.',
             ])
             ->add('activo', CheckboxType::class, [
                 'label' => 'Activa',

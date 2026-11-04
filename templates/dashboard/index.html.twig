@@ -1032,12 +1032,16 @@
                                     {% endif %}
                                 </div>
                                 {% if convocatoria.bases|length > 0 %}
-                                    <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.35rem;">
-                                        <span style="font-weight: 600;">Bases:</span>
-                                        {% for base in convocatoria.bases %}
-                                            <a href="{{ path('app_convocatoria_bases', {id: convocatoria.id, base: base.id}) }}" target="_blank" rel="noopener" style="color: #1976D2; text-decoration: none;">{{ base.nombreOriginal }}</a>{% if not loop.last %}<span style="color: #999;"> · </span>{% endif %}
-                                        {% endfor %}
-                                    </div>
+                                    <details style="margin: 0.15rem 0 0.35rem;">
+                                        <summary style="cursor: pointer; font-size: 0.85rem; color: #666; font-weight: 600;">Documentos ({{ convocatoria.bases|length }})</summary>
+                                        <ul style="margin: 0.4rem 0 0; padding-left: 1.1rem; font-size: 0.85rem;">
+                                            {% for base in convocatoria.bases %}
+                                                <li style="margin-bottom: 0.25rem;">
+                                                    <a href="{{ path('app_convocatoria_bases', {id: convocatoria.id, base: base.id}) }}" target="_blank" rel="noopener" style="color: #1976D2; text-decoration: none;">{{ base.nombreOriginal }}</a>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </details>
                                 {% endif %}
                                 <div style="margin-top: 0.75rem;">
                                     <div style="font-size: 0.85rem; color: #666; font-weight: 600; margin-bottom: 0.5rem;">📍 Municipios:</div>

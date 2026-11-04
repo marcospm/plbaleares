@@ -242,7 +242,8 @@
                         <td>
                             <strong>{{ convocatoria.nombre }}</strong>
                             {% if convocatoria.bases|length > 0 %}
-                                <div>
+                                <div style="font-size: 0.85rem; margin-top: 0.25rem;">
+                                    <span style="color: #666;">Documentos:</span>
                                     {% for base in convocatoria.bases %}
                                         <a href="{{ path('app_convocatoria_bases', {id: convocatoria.id, base: base.id}) }}" target="_blank" rel="noopener">{{ base.nombreOriginal }}</a>{% if not loop.last %}<br>{% endif %}
                                     {% endfor %}
