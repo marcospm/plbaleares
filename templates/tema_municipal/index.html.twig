@@ -124,7 +124,7 @@
     <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
         <div class="card-body" style="padding: 1.5rem;">
             <h3 style="color: white; margin-bottom: 1rem; font-size: 1.2rem;">🔍 Filtros de Búsqueda</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
                 <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label" style="color: white; font-weight: 500; margin-bottom: 0.5rem;">Filtrar por Convocatoria:</label>
                     <select name="convocatoria" class="form-control" style="min-height: 48px; font-size: 1rem; border-radius: 6px;">
@@ -147,6 +147,14 @@
                         {% endfor %}
                     </select>
                 </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" for="estado" style="color: white; font-weight: 500; margin-bottom: 0.5rem;">Estado:</label>
+                    <select name="estado" id="estado" class="form-control" style="min-height: 48px; font-size: 1rem; border-radius: 6px;">
+                        <option value="activas" {% if estado == 'activas' %}selected{% endif %}>Activos</option>
+                        <option value="inactivas" {% if estado == 'inactivas' %}selected{% endif %}>Inactivos</option>
+                        <option value="todas" {% if estado == 'todas' %}selected{% endif %}>Todos</option>
+                    </select>
+                </div>
                 <div style="display: flex; gap: 0.5rem; flex-direction: column;">
                     <button type="submit" class="btn" style="background: white; color: #667eea; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; min-height: 48px; font-size: 1rem; transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         Filtrar
@@ -154,7 +162,7 @@
                     
                     {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_PROFESOR') %}
                         <a
-                            href="{{ path('app_tema_municipal_descargar_pdfs', {'convocatoria': convocatoriaSeleccionada, 'municipio': municipioSeleccionado}) }}"
+                            href="{{ path('app_tema_municipal_descargar_pdfs', {'convocatoria': convocatoriaSeleccionada, 'municipio': municipioSeleccionado, 'estado': estado}) }}"
                             class="btn"
                             style="background: #16a34a; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; min-height: 48px; font-size: 1rem; text-decoration: none; text-align: center;"
                         >
@@ -166,9 +174,12 @@
                     </a>
                 </div>
             </div>
-            {% if municipioSeleccionado > 0 or convocatoriaSeleccionada > 0 %}
-                <div style="margin-top: 1rem; color: white; font-size: 0.95rem;">
-                    <strong>{{ temas|length }}</strong> tema(s) encontrado(s)
+            <div style="margin-top: 1rem; color: white; font-size: 0.95rem;">
+                    <strong>{{ temas|length }}</strong>
+                    {% if estado == 'inactivas' %}tema(s) inactivo(s)
+                    {% elseif estado == 'todas' %}tema(s)
+                    {% else %}tema(s) activo(s)
+                    {% endif %}
                     {% if convocatoriaSeleccionada > 0 %}
                         {% set convocatoria = convocatorias|filter(c => c.id == convocatoriaSeleccionada)|first %}
                         {% if convocatoria %}
@@ -181,8 +192,7 @@
                             del municipio "<strong>{{ municipio.nombre }}</strong>"
                         {% endif %}
                     {% endif %}
-                </div>
-            {% endif %}
+            </div>
         </div>
     </div>
 </form>
@@ -226,6 +236,9 @@
                                 <a href="{{ path('app_tema_municipal_edit', {'id': tema.id}) }}" class="btn btn-primary btn-sm">Editar</a>
                                 <form method="post" action="{{ path('app_tema_municipal_toggle_activo', {'id': tema.id}) }}" style="display: inline;">
                                     <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ tema.id) }}">
+                                    <input type="hidden" name="municipio" value="{{ municipioSeleccionado ?: '' }}">
+                                    <input type="hidden" name="convocatoria" value="{{ convocatoriaSeleccionada ?: '' }}">
+                                    <input type="hidden" name="estado" value="{{ estado }}">
                                     <button type="submit" class="btn btn-sm {% if tema.isActivo %}btn-warning{% else %}btn-success{% endif %}">
                                         {% if tema.isActivo %}Desactivar{% else %}Activar{% endif %}
                                     </button>
@@ -241,8 +254,16 @@
 {% else %}
     <div class="card">
         <div class="card-body text-center">
-            <p>No hay temas municipales registrados aún.</p>
-            <a href="{{ path('app_tema_municipal_new') }}" class="btn btn-primary">Crear Primer Tema Municipal</a>
+            {% if estado == 'todas' and municipioSeleccionado == 0 and convocatoriaSeleccionada == 0 %}
+                <p>No hay temas municipales registrados aún.</p>
+                <a href="{{ path('app_tema_municipal_new') }}" class="btn btn-primary">Crear Primer Tema Municipal</a>
+            {% elseif estado == 'activas' and municipioSeleccionado == 0 and convocatoriaSeleccionada == 0 %}
+                <p>No hay temas municipales activos.</p>
+                <a href="{{ path('app_tema_municipal_index', {estado: 'todas'}) }}" class="btn btn-secondary">Ver todos</a>
+            {% else %}
+                <p>No se encontraron temas municipales con estos filtros.</p>
+                <a href="{{ path('app_tema_municipal_index') }}" class="btn btn-secondary">Limpiar filtros</a>
+            {% endif %}
         </div>
     </div>
 {% endif %}

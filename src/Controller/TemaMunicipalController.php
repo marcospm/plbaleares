@@ -35,8 +35,18 @@ class TemaMunicipalController extends AbstractController
     {
         $municipioId = $request->query->getInt('municipio');
         $convocatoriaId = $request->query->getInt('convocatoria');
-        
+        $estado = (string) $request->query->get('estado', 'activas');
+        if (!in_array($estado, ['activas', 'inactivas', 'todas'], true)) {
+            $estado = 'activas';
+        }
+
         $qb = $temaMunicipalRepository->createQueryBuilder('t');
+
+        if ($estado === 'activas') {
+            $qb->andWhere('t.activo = :activo')->setParameter('activo', true);
+        } elseif ($estado === 'inactivas') {
+            $qb->andWhere('t.activo = :activo')->setParameter('activo', false);
+        }
         
         // Filtrar por municipio si está seleccionado
         if ($municipioId > 0) {
@@ -67,6 +77,7 @@ class TemaMunicipalController extends AbstractController
             'convocatorias' => $convocatoriaRepository->findBy([], ['nombre' => 'ASC']),
             'municipioSeleccionado' => $municipioId,
             'convocatoriaSeleccionada' => $convocatoriaId,
+            'estado' => $estado,
         ]);
     }
 
@@ -98,10 +109,7 @@ class TemaMunicipalController extends AbstractController
                     ->setParameter('municipiosIds', $municipiosIds);
             } else {
                 $this->addFlash('warning', 'La convocatoria seleccionada no tiene municipios asociados.');
-                return $this->redirectToRoute('app_tema_municipal_index', [
-                    'municipio' => $municipioId,
-                    'convocatoria' => $convocatoriaId,
-                ]);
+                return $this->redirectToRoute('app_tema_municipal_index', $this->filtrosTemaMunicipal($request));
             }
         }
 
@@ -111,10 +119,7 @@ class TemaMunicipalController extends AbstractController
 
         if (empty($temas)) {
             $this->addFlash('warning', 'No hay PDFs activos para descargar con el filtro actual.');
-            return $this->redirectToRoute('app_tema_municipal_index', [
-                'municipio' => $municipioId,
-                'convocatoria' => $convocatoriaId,
-            ]);
+            return $this->redirectToRoute('app_tema_municipal_index', $this->filtrosTemaMunicipal($request));
         }
 
         $projectDir = $this->kernel->getProjectDir();
@@ -139,10 +144,7 @@ class TemaMunicipalController extends AbstractController
 
         if (empty($pdfFiles)) {
             $this->addFlash('warning', 'No se encontraron archivos PDF válidos para descargar.');
-            return $this->redirectToRoute('app_tema_municipal_index', [
-                'municipio' => $municipioId,
-                'convocatoria' => $convocatoriaId,
-            ]);
+            return $this->redirectToRoute('app_tema_municipal_index', $this->filtrosTemaMunicipal($request));
         }
 
         $baseNombre = 'temas_municipales';
@@ -321,7 +323,28 @@ class TemaMunicipalController extends AbstractController
             $this->addFlash('success', "El tema municipal '{$temaMunicipal->getNombre()}' ha sido {$estado} correctamente.");
         }
 
-        return $this->redirectToRoute('app_tema_municipal_index', [], Response::HTTP_SEE_OTHER);
+        return $this->redirectToRoute('app_tema_municipal_index', $this->filtrosTemaMunicipal($request), Response::HTTP_SEE_OTHER);
+    }
+
+    private function filtrosTemaMunicipal(Request $request): array
+    {
+        $filtros = [];
+        $origen = $request->isMethod('POST') ? $request->request : $request->query;
+        $municipio = (string) $origen->get('municipio', '');
+        $convocatoria = (string) $origen->get('convocatoria', '');
+        $estado = (string) $origen->get('estado', '');
+
+        if ($municipio !== '' && $municipio !== '0') {
+            $filtros['municipio'] = $municipio;
+        }
+        if ($convocatoria !== '' && $convocatoria !== '0') {
+            $filtros['convocatoria'] = $convocatoria;
+        }
+        if (in_array($estado, ['activas', 'inactivas', 'todas'], true)) {
+            $filtros['estado'] = $estado;
+        }
+
+        return $filtros;
     }
 
     private function aplicarTituloPdf(string $rutaAbsoluta, ?string $titulo): void
