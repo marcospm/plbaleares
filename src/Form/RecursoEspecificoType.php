@@ -15,6 +15,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\All;
 use Symfony\Component\Validator\Constraints\File;
 
 class RecursoEspecificoType extends AbstractType
@@ -88,17 +89,29 @@ class RecursoEspecificoType extends AbstractType
                 'label' => 'Archivo',
                 'required' => false,
                 'mapped' => false,
+                'multiple' => $options['multiple_archivos'],
                 'attr' => [
                     'class' => 'form-control',
                     'id' => 'recurso-archivo-input',
                 ],
                 'constraints' => [
-                    new File(
-                        maxSize: '100M',
-                        maxSizeMessage: 'El archivo es demasiado grande. Tamaño máximo: 100 MB.'
-                    ),
+                    $options['multiple_archivos']
+                        ? new All(
+                            constraints: [
+                                new File(
+                                    maxSize: '100M',
+                                    maxSizeMessage: 'Hay un archivo demasiado grande. Tamaño máximo: 100 MB por archivo.'
+                                ),
+                            ]
+                        )
+                        : new File(
+                            maxSize: '100M',
+                            maxSizeMessage: 'El archivo es demasiado grande. Tamaño máximo: 100 MB.'
+                        ),
                 ],
-                'help' => 'Tamaño máximo: 100 MB. PDF u otro tipo de archivo.',
+                'help' => $options['multiple_archivos']
+                    ? 'Puedes elegir varios archivos. Cada uno se guarda como un recurso, con el mismo nombre, descripción y alumnos. Máximo 100 MB por archivo.'
+                    : 'Tamaño máximo: 100 MB. PDF u otro tipo de archivo.',
             ])
         ;
 
@@ -119,6 +132,7 @@ class RecursoEspecificoType extends AbstractType
             'data_class' => RecursoEspecifico::class,
             'alumnos_query_builder' => null,
             'grupos_query_builder' => null,
+            'multiple_archivos' => false,
         ]);
     }
 }

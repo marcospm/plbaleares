@@ -121,6 +121,7 @@ class RecursoEspecificoController extends AbstractController
         $form = $this->createForm(RecursoEspecificoType::class, $recursoEspecifico, [
             'alumnos_query_builder' => $alumnosQueryBuilder,
             'grupos_query_builder' => $gruposQueryBuilder,
+            'multiple_archivos' => true,
         ]);
         $form->handleRequest($request);
 
@@ -151,29 +152,26 @@ class RecursoEspecificoController extends AbstractController
                 ]);
             }
             
-            /** @var UploadedFile|null $archivo */
-            $archivo = $form->get('archivo')->getData();
+            $archivos = $this->normalizarArchivosSubidos($form->get('archivo')->getData());
             $tipoRecurso = (string) $form->get('tipoRecurso')->getData();
+            $recursos = $this->crearRecursosConArchivos($recursoEspecifico, $archivos, $tipoRecurso, $slugger);
 
-            $errorContenido = $this->procesarArchivoOEnlace(
-                $recursoEspecifico,
-                $archivo,
-                $tipoRecurso,
-                $slugger,
-                true
-            );
-            if ($errorContenido !== null) {
-                $this->addFlash('error', $errorContenido);
+            if (is_string($recursos)) {
+                $this->addFlash('error', $recursos);
                 return $this->render('recurso_especifico/new.html.twig', [
                     'recursoEspecifico' => $recursoEspecifico,
                     'form' => $form,
                 ]);
             }
-            
-            $entityManager->persist($recursoEspecifico);
+
+            foreach ($recursos as $recurso) {
+                $entityManager->persist($recurso);
+            }
             $entityManager->flush();
 
-            $this->addFlash('success', 'Recurso específico creado correctamente.');
+            $this->addFlash('success', count($recursos) > 1
+                ? 'Se han creado ' . count($recursos) . ' recursos específicos.'
+                : 'Recurso específico creado correctamente.');
             return $this->redirectToRoute('app_recurso_especifico_index', [], Response::HTTP_SEE_OTHER);
         }
 
@@ -370,14 +368,95 @@ class RecursoEspecificoController extends AbstractController
         }
     }
 
+    /**
+     * @param list<UploadedFile> $archivos
+     * @return list<RecursoEspecifico>|string
+     */
+    private function crearRecursosConArchivos(
+        RecursoEspecifico $recursoEspecifico,
+        array $archivos,
+        string $tipoRecurso,
+        SluggerInterface $slugger,
+    ): array|string {
+        if ($tipoRecurso !== 'archivo' || count($archivos) <= 1) {
+            $error = $this->procesarArchivoOEnlace(
+                $recursoEspecifico,
+                $archivos[0] ?? null,
+                $tipoRecurso,
+                $slugger,
+                true
+            );
+
+            return $error ?? [$recursoEspecifico];
+        }
+
+        $nombreBase = $recursoEspecifico->getNombre() ?? 'Recurso';
+        $recursos = [];
+        foreach ($archivos as $indice => $archivo) {
+            $recurso = $indice === 0 ? $recursoEspecifico : $this->copiarAsignacion($recursoEspecifico);
+            $recurso->setNombre($nombreBase . ' — ' . $archivo->getClientOriginalName());
+            $error = $this->procesarArchivoOEnlace($recurso, $archivo, 'archivo', $slugger, true);
+            if ($error !== null) {
+                foreach ($recursos as $creado) {
+                    $this->eliminarArchivoFisico($creado);
+                }
+                $this->eliminarArchivoFisico($recurso);
+
+                return $error;
+            }
+            $recursos[] = $recurso;
+        }
+
+        return $recursos;
+    }
+
+    private function copiarAsignacion(RecursoEspecifico $origen): RecursoEspecifico
+    {
+        $copia = new RecursoEspecifico();
+        $copia->setNombre($origen->getNombre() ?? 'Recurso');
+        $copia->setDescripcion($origen->getDescripcion());
+        $copia->setProfesor($origen->getProfesor());
+        $copia->setGrupo($origen->getGrupo());
+        foreach ($origen->getAlumnos() as $alumno) {
+            $copia->addAlumno($alumno);
+        }
+
+        return $copia;
+    }
+
+    /**
+     * @return list<UploadedFile>
+     */
+    private function normalizarArchivosSubidos(mixed $data): array
+    {
+        if ($data instanceof UploadedFile) {
+            return [$data];
+        }
+        if (!is_array($data)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            $data,
+            static fn ($archivo) => $archivo instanceof UploadedFile
+        ));
+    }
+
     private function addFlashSiErrorSubidaArchivo(FormInterface $form): void
     {
         if (!$form->has('archivo')) {
             return;
         }
 
-        $archivo = $form->get('archivo')->getData();
-        if (!$archivo instanceof UploadedFile || $archivo->isValid()) {
+        $archivos = $this->normalizarArchivosSubidos($form->get('archivo')->getData());
+        $archivo = null;
+        foreach ($archivos as $subido) {
+            if (!$subido->isValid()) {
+                $archivo = $subido;
+                break;
+            }
+        }
+        if (!$archivo instanceof UploadedFile) {
             return;
         }
 
