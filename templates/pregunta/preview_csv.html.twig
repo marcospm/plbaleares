@@ -5,7 +5,7 @@
 {% block body %}
 <div class="card">
     <div class="card-header">
-        <h1>Previsualizar Preguntas CSV</h1>
+        <h1>{{ titulo|default('Previsualizar Preguntas CSV') }}</h1>
     </div>
     <div class="card-body">
         <div class="alert alert-info mb-4">
@@ -13,7 +13,11 @@
             <ul class="mb-0">
                 <li><strong>Tema:</strong> {{ tema.nombre }}</li>
                 <li><strong>Ley:</strong> {{ ley.nombre }}</li>
-                <li><strong>Artículo:</strong> Art. {{ articulo.getNumeroCompleto() }}{% if articulo.nombre %} - {{ articulo.nombre }}{% endif %}</li>
+                {% if articulo %}
+                    <li><strong>Artículo:</strong> Art. {{ articulo.getNumeroCompleto() }}{% if articulo.nombre %} - {{ articulo.nombre }}{% endif %}</li>
+                {% elseif articuloIndicado|default(false) %}
+                    <li><strong>Artículo:</strong> el que indica cada pregunta</li>
+                {% endif %}
                 <li><strong>Dificultad:</strong> 
                     {% if dificultad == 'facil' %}Fácil
                     {% elseif dificultad == 'moderada' %}Moderada
@@ -52,6 +56,9 @@
                                 </h6>
                                 <small class="text-muted">Línea {{ pregunta.linea }}</small>
                             </div>
+                            {% if pregunta.articuloLabel is defined and pregunta.articuloLabel %}
+                                <p class="mb-2"><strong>Artículo:</strong> {{ pregunta.articuloLabel }}</p>
+                            {% endif %}
                             <p class="mb-2"><strong>Texto:</strong> {{ pregunta.texto }}</p>
                             <div class="row mb-2">
                                 <div class="col-md-6">
@@ -102,7 +109,7 @@
                         ({{ actualizaciones }} actualizaciones)
                     {% endif %}
                 </button>
-                <a href="{{ path('app_pregunta_new_csv') }}" class="btn btn-secondary">Volver</a>
+                <a href="{{ path(volver|default('app_pregunta_new_csv')) }}" class="btn btn-secondary">Volver</a>
             </div>
         </form>
     </div>

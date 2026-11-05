@@ -1,0 +1,334 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Pegar preguntas{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .searchable-select { position: relative; }
+        .search-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+        .select-options {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            display: none;
+            position: absolute;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .select-options.show { display: block; }
+        .select-option {
+            padding: 0.5rem;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .select-option:hover { background-color: #f8f9fa; }
+        .select-option.selected { background-color: #e3f2fd; font-weight: bold; }
+        .select-display {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+        }
+        .select-display:after { content: '▼'; margin-left: auto; color: #666; }
+        #bloque {
+            min-height: 280px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.9rem;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Pegar preguntas</h1>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <strong>Cómo funciona:</strong>
+            <ol class="mb-0">
+                <li>Elige el tema. La ley se limita a las de ese tema. La dificultad se aplica a las 20 preguntas.</li>
+                <li>No hace falta elegir artículo. Claude indica el artículo en cada bloque y la pregunta se guarda con ese artículo.</li>
+                <li>Copia el prompt, pégalo en Claude y, debajo de <strong>CONTENIDO:</strong>, pega el texto. Como máximo, 20 preguntas.</li>
+            </ol>
+        </div>
+
+        <form method="post" action="{{ path('app_pregunta_procesar_pegar') }}" id="pegar-form">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Tema <span class="text-danger">*</span></label>
+                    <div class="searchable-select" id="tema-select-container">
+                        <div class="select-display" id="tema-display">Selecciona un tema</div>
+                        <input type="text" class="search-input" id="tema-search" placeholder="Buscar tema..." style="display: none;">
+                        <div class="select-options" id="tema-options">
+                            {% for tema in temas %}
+                                <div class="select-option" data-value="{{ tema.id }}" data-text="{{ tema.nombre }}">{{ tema.nombre }}</div>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="tema" id="tema-value" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Ley <span class="text-danger">*</span></label>
+                    <div class="searchable-select" id="ley-select-container">
+                        <div class="select-display" id="ley-display">Primero selecciona un tema</div>
+                        <input type="text" class="search-input" id="ley-search" placeholder="Buscar ley..." style="display: none;">
+                        <div class="select-options" id="ley-options">
+                            <div class="select-option" style="color: #999; cursor: default;">Primero selecciona un tema</div>
+                        </div>
+                        <input type="hidden" name="ley" id="ley-value" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Dificultad <span class="text-danger">*</span></label>
+                    <select name="dificultad" id="dificultad" class="form-control" required>
+                        <option value="">Selecciona una dificultad</option>
+                        <option value="facil">Fácil</option>
+                        <option value="moderada">Moderada</option>
+                        <option value="dificil">Difícil</option>
+                        <option value="indeterminado">Indeterminado</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mb-3 flex-wrap">
+                <button type="button" class="btn btn-secondary" id="copiar-prompt">Copiar prompt</button>
+                <span id="prompt-copiado" style="display: none; align-self: center; color: #198754;">Prompt copiado. Pégalo en Claude y añade el contenido debajo.</span>
+            </div>
+
+            <div class="mb-3">
+                <label for="bloque" class="form-label">Respuesta de Claude <span class="text-danger">*</span></label>
+                <textarea name="bloque" id="bloque" class="form-control" required placeholder="Pega aquí los bloques que devuelva Claude"></textarea>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Previsualizar</button>
+                <a href="{{ path('app_pregunta_index') }}" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function elegirLey(id, nombre) {
+        document.getElementById('ley-value').value = id;
+        document.getElementById('ley-display').textContent = nombre;
+        document.getElementById('ley-options').querySelectorAll('.select-option').forEach(opt => {
+            opt.classList.toggle('selected', opt.getAttribute('data-value') === String(id));
+        });
+    }
+
+    function loadLeyes(temaId) {
+        const leyDisplay = document.getElementById('ley-display');
+        const leyValue = document.getElementById('ley-value');
+        const leyOptions = document.getElementById('ley-options');
+
+        leyValue.value = '';
+        if (!temaId) {
+            leyDisplay.textContent = 'Primero selecciona un tema';
+            leyOptions.innerHTML = '<div class="select-option" style="color: #999; cursor: default;">Primero selecciona un tema</div>';
+            return;
+        }
+
+        leyDisplay.textContent = 'Cargando...';
+        fetch('/pregunta/api/leyes-por-tema/' + temaId)
+            .then(response => response.json())
+            .then(data => {
+                const leyes = data.filter(ley => ley.activo !== false);
+                leyOptions.innerHTML = '';
+                if (leyes.length === 0) {
+                    leyDisplay.textContent = 'Este tema no tiene leyes';
+                    return;
+                }
+                leyes.forEach(ley => {
+                    const option = document.createElement('div');
+                    option.className = 'select-option';
+                    option.setAttribute('data-value', ley.id);
+                    option.setAttribute('data-text', ley.nombre);
+                    option.textContent = ley.nombre;
+                    option.addEventListener('click', function() {
+                        elegirLey(ley.id, ley.nombre);
+                        leyOptions.classList.remove('show');
+                        document.getElementById('ley-search').style.display = 'none';
+                    });
+                    leyOptions.appendChild(option);
+                });
+                if (leyes.length === 1) {
+                    elegirLey(leyes[0].id, leyes[0].nombre);
+                } else {
+                    leyDisplay.textContent = 'Selecciona una ley';
+                }
+            })
+            .catch(() => {
+                leyDisplay.textContent = 'Error al cargar las leyes';
+            });
+    }
+
+    function initSearchableSelect(containerId, displayId, searchId, optionsId, valueId) {
+        const container = document.getElementById(containerId);
+        const display = document.getElementById(displayId);
+        const search = document.getElementById(searchId);
+        const options = document.getElementById(optionsId);
+        const valueInput = document.getElementById(valueId);
+
+        function filterOptions(query) {
+            options.querySelectorAll('.select-option').forEach(option => {
+                const text = option.getAttribute('data-text') || '';
+                option.style.display = text.toLowerCase().includes(query.toLowerCase()) ? 'block' : 'none';
+            });
+        }
+
+        function closeSelect() {
+            options.classList.remove('show');
+            search.style.display = 'none';
+            search.value = '';
+            filterOptions('');
+        }
+
+        display.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const abierto = options.classList.contains('show');
+            document.querySelectorAll('.select-options').forEach(lista => lista.classList.remove('show'));
+            document.querySelectorAll('.search-input').forEach(campo => { campo.style.display = 'none'; });
+            if (!abierto) {
+                options.classList.add('show');
+                search.style.display = 'block';
+                search.focus();
+            }
+        });
+
+        search.addEventListener('input', function(e) {
+            filterOptions(e.target.value);
+        });
+
+        options.querySelectorAll('.select-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const selectedValue = option.getAttribute('data-value');
+                if (!selectedValue) {
+                    return;
+                }
+                valueInput.value = selectedValue;
+                display.textContent = option.getAttribute('data-text');
+                options.querySelectorAll('.select-option').forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+                closeSelect();
+                if (containerId === 'tema-select-container') {
+                    loadLeyes(selectedValue);
+                }
+            });
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!container.contains(e.target)) {
+                closeSelect();
+            }
+        });
+    }
+
+    initSearchableSelect('tema-select-container', 'tema-display', 'tema-search', 'tema-options', 'tema-value');
+    initSearchableSelect('ley-select-container', 'ley-display', 'ley-search', 'ley-options', 'ley-value');
+
+    function seleccionValida() {
+        const tema = document.getElementById('tema-value').value;
+        const ley = document.getElementById('ley-value').value;
+        const dificultad = document.getElementById('dificultad').value;
+        if (!tema || !ley || !dificultad) {
+            alert('Elige tema, ley y dificultad antes de continuar.');
+            return null;
+        }
+        const dificultadSelect = document.getElementById('dificultad');
+        return {
+            tema: document.getElementById('tema-display').textContent.trim(),
+            ley: document.getElementById('ley-display').textContent.trim(),
+            dificultad: dificultadSelect.options[dificultadSelect.selectedIndex].text
+        };
+    }
+
+    function construirPrompt(datos) {
+        return [
+            'Eres un preparador de oposiciones de policía local en Baleares. Genera exactamente 20 preguntas tipo test, en español, solo con el contenido que pegue debajo de CONTENIDO. No inventes datos que no estén en ese texto.',
+            '',
+            'Tema: ' + datos.tema,
+            'Ley: ' + datos.ley,
+            'Dificultad: ' + datos.dificultad,
+            '',
+            'Reglas:',
+            '- Una sola respuesta correcta. La letra de la opción correcta tiene que variar de una pregunta a otra: no puede ser siempre la misma. A lo largo del bloque deben aparecer A, B, C y D. Las otras tres opciones tienen que ser plausibles.',
+            '- Cada enunciado es una pregunta tipo test y cita siempre la norma y el artículo. Nombra la norma exactamente como aparece arriba y el número del artículo.',
+            '- La línea ARTICULO lleva el número del artículo tal como está en el texto (14 o 14 bis). Es el mismo artículo que cita el enunciado. No inventes artículos que no estén en el contenido.',
+            '- La explicación cita el fragmento del que sale la respuesta.',
+            '- Responde solo con los bloques, sin introducción ni markdown.',
+            '- Si el contenido no da para 20, devuelve las que salgan y dilo en una línea al final, fuera de los bloques.',
+            '- Si después escribo «continúa», genera otras 20 distintas, del mismo contenido, en el mismo formato.',
+            '',
+            'Formato de cada pregunta:',
+            '',
+            '---',
+            'ARTICULO: 14',
+            'PREGUNTA: Según ' + datos.ley + ', el artículo 14, ¿qué establece?',
+            'A: opcion',
+            'B: opcion',
+            'C: opcion',
+            'D: opcion',
+            'CORRECTA: B',
+            'EXPLICACION: por qué, citando el texto',
+            '---',
+            '',
+            'La B de CORRECTA en el ejemplo es solo el formato. En las preguntas reales cambia la letra.',
+            '',
+            'CONTENIDO:'
+        ].join('\n');
+    }
+
+    document.getElementById('copiar-prompt').addEventListener('click', function() {
+        const datos = seleccionValida();
+        if (!datos) {
+            return;
+        }
+        const prompt = construirPrompt(datos);
+        const aviso = document.getElementById('prompt-copiado');
+        const mostrar = function() {
+            aviso.style.display = 'inline';
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(prompt).then(mostrar).catch(function() {
+                window.prompt('Copia este prompt:', prompt);
+                mostrar();
+            });
+        } else {
+            window.prompt('Copia este prompt:', prompt);
+            mostrar();
+        }
+    });
+
+    document.getElementById('pegar-form').addEventListener('submit', function(e) {
+        if (!seleccionValida()) {
+            e.preventDefault();
+            return;
+        }
+        if (!document.getElementById('bloque').value.trim()) {
+            e.preventDefault();
+            alert('Pega la respuesta de Claude.');
+        }
+    });
+});
+</script>
+{% endblock %}

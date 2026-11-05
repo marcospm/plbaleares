@@ -9,6 +9,7 @@ use App\Repository\MensajePreguntaRepository;
 use App\Repository\TemaRepository;
 use App\Repository\LeyRepository;
 use App\Repository\ArticuloRepository;
+use App\Service\BloquePreguntasParser;
 use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -314,11 +315,13 @@ class PreguntaController extends AbstractController
 
         // Obtener todas las leyes relacionadas con este tema
         $leyes = $tema->getLeyes()->toArray();
-        
+        usort($leyes, static fn ($a, $b) => strcasecmp((string) $a->getNombre(), (string) $b->getNombre()));
+
         $leyesData = array_map(function($ley) {
             return [
                 'id' => $ley->getId(),
                 'nombre' => $ley->getNombre(),
+                'activo' => $ley->isActivo(),
             ];
         }, $leyes);
 
@@ -374,6 +377,120 @@ class PreguntaController extends AbstractController
         return $this->render('pregunta/new_csv.html.twig', [
             'temas' => $temas,
             'leyes' => $leyes,
+        ]);
+    }
+
+    #[Route('/pegar', name: 'app_pregunta_pegar', methods: ['GET'])]
+    public function pegar(TemaRepository $temaRepository): Response
+    {
+        $temas = $temaRepository->createQueryBuilder('t')
+            ->orderBy('t.nombre', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $this->render('pregunta/pegar.html.twig', [
+            'temas' => $temas,
+        ]);
+    }
+
+    #[Route('/procesar-pegar', name: 'app_pregunta_procesar_pegar', methods: ['POST'])]
+    public function procesarPegar(
+        Request $request,
+        TemaRepository $temaRepository,
+        LeyRepository $leyRepository,
+        ArticuloRepository $articuloRepository,
+        BloquePreguntasParser $parser
+    ): Response {
+        $temaId = $request->request->getInt('tema', 0);
+        $leyId = $request->request->getInt('ley', 0);
+        $dificultad = (string) $request->request->get('dificultad', '');
+        $bloque = (string) $request->request->get('bloque', '');
+
+        if ($temaId <= 0 || $leyId <= 0 || !in_array($dificultad, ['facil', 'moderada', 'dificil', 'indeterminado'], true)) {
+            $this->addFlash('error', 'Debes completar todos los campos: Tema, Ley y Dificultad.');
+
+            return $this->redirectToRoute('app_pregunta_pegar');
+        }
+
+        $tema = $temaRepository->find($temaId);
+        $ley = $leyRepository->find($leyId);
+        $leyDelTema = $tema && $tema->getLeyes()->exists(static fn ($i, $leyTema) => $leyTema->getId() === $leyId);
+
+        if (!$tema || !$ley || !$leyDelTema) {
+            $this->addFlash('error', 'El tema o la ley seleccionados no son válidos.');
+
+            return $this->redirectToRoute('app_pregunta_pegar');
+        }
+
+        $articulos = $articuloRepository->findActivosByLey($leyId);
+        if ($articulos === []) {
+            $this->addFlash('error', 'Esa ley no tiene artículos activos a los que asignar las preguntas.');
+
+            return $this->redirectToRoute('app_pregunta_pegar');
+        }
+
+        $resultado = $parser->parsear($bloque);
+        if ($resultado['errores'] !== []) {
+            $mensajeErrores = implode("\n", array_slice($resultado['errores'], 0, 10));
+            if (count($resultado['errores']) > 10) {
+                $mensajeErrores .= "\n... y " . (count($resultado['errores']) - 10) . ' errores más.';
+            }
+            $this->addFlash('error', "No se pudo leer el bloque:\n" . $mensajeErrores);
+
+            return $this->redirectToRoute('app_pregunta_pegar');
+        }
+
+        $preguntas = $resultado['preguntas'];
+        $erroresArticulo = [];
+        foreach ($preguntas as $indice => $pregunta) {
+            $articulo = $this->buscarArticuloIndicado((string) $pregunta['articulo'], $articulos);
+            if (!$articulo) {
+                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': no existe el artículo «' . $pregunta['articulo'] . '» en esta ley.';
+                continue;
+            }
+            if (!$this->enunciadoCitaArticulo($pregunta['texto'], $articulo)) {
+                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el artículo ' . $articulo->getNumeroCompleto() . '.';
+                continue;
+            }
+            if (!$this->enunciadoCitaNorma($pregunta['texto'], (string) $ley->getNombre())) {
+                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar la norma «' . $ley->getNombre() . '».';
+                continue;
+            }
+            $pregunta['articuloId'] = $articulo->getId();
+            $pregunta['articuloLabel'] = 'Art. ' . $articulo->getNumeroCompleto();
+            if ($articulo->getNombre()) {
+                $pregunta['articuloLabel'] .= ' - ' . $articulo->getNombre();
+            }
+            $preguntas[$indice] = $pregunta;
+        }
+        if ($erroresArticulo !== []) {
+            $mensajeErrores = implode("\n", array_slice($erroresArticulo, 0, 10));
+            if (count($erroresArticulo) > 10) {
+                $mensajeErrores .= "\n... y " . (count($erroresArticulo) - 10) . ' errores más.';
+            }
+            $this->addFlash('error', "No se pudo asignar el artículo:\n" . $mensajeErrores);
+
+            return $this->redirectToRoute('app_pregunta_pegar');
+        }
+
+        $session = $request->getSession();
+        $session->set('preguntas_csv', $preguntas);
+        $session->set('preguntas_csv_tema', $temaId);
+        $session->set('preguntas_csv_ley', $leyId);
+        $session->set('preguntas_csv_articulo', $preguntas[0]['articuloId']);
+        $session->set('preguntas_csv_dificultad', $dificultad);
+        $session->set('preguntas_csv_origen', 'pegar');
+
+        return $this->render('pregunta/preview_csv.html.twig', [
+            'preguntas' => $preguntas,
+            'tema' => $tema,
+            'ley' => $ley,
+            'articulo' => null,
+            'articuloIndicado' => true,
+            'dificultad' => $dificultad,
+            'total' => count($preguntas),
+            'volver' => 'app_pregunta_pegar',
+            'titulo' => 'Previsualizar preguntas pegadas',
         ]);
     }
 
@@ -576,6 +693,7 @@ class PreguntaController extends AbstractController
         $request->getSession()->set('preguntas_csv_ley', $leyId);
         $request->getSession()->set('preguntas_csv_articulo', $articuloId);
         $request->getSession()->set('preguntas_csv_dificultad', $dificultad);
+        $request->getSession()->set('preguntas_csv_origen', 'csv');
 
         return $this->render('pregunta/preview_csv.html.twig', [
             'preguntas' => $preguntas,
@@ -598,7 +716,7 @@ class PreguntaController extends AbstractController
         // Validar token CSRF
         if (!$this->isCsrfTokenValid('confirmar_csv', $request->request->get('_token'))) {
             $this->addFlash('error', 'Token de seguridad inválido. Por favor, intenta de nuevo.');
-            return $this->redirectToRoute('app_pregunta_new_csv');
+            return $this->redirectToRoute($this->rutaOrigenPreguntas($request));
         }
 
         $session = $request->getSession();
@@ -610,8 +728,10 @@ class PreguntaController extends AbstractController
         $dificultad = $session->get('preguntas_csv_dificultad', '');
 
         if (empty($preguntas) || $temaId <= 0 || $leyId <= 0 || $articuloId <= 0 || empty($dificultad)) {
-            $this->addFlash('error', 'Sesión expirada. Por favor, vuelve a cargar el CSV.');
-            return $this->redirectToRoute('app_pregunta_new_csv');
+            $this->addFlash('error', $session->get('preguntas_csv_origen') === 'pegar'
+                ? 'Sesión expirada. Por favor, vuelve a pegar el bloque.'
+                : 'Sesión expirada. Por favor, vuelve a cargar el CSV.');
+            return $this->redirectToRoute($this->rutaOrigenPreguntas($request));
         }
 
         $tema = $temaRepository->find($temaId);
@@ -620,7 +740,7 @@ class PreguntaController extends AbstractController
 
         if (!$tema || !$ley || !$articulo) {
             $this->addFlash('error', 'Uno o más campos seleccionados no son válidos.');
-            return $this->redirectToRoute('app_pregunta_new_csv');
+            return $this->redirectToRoute($this->rutaOrigenPreguntas($request));
         }
 
         $creadas = 0;
@@ -665,7 +785,14 @@ class PreguntaController extends AbstractController
                     $pregunta->setDificultad($dificultad);
                     $pregunta->setTema($tema);
                     $pregunta->setLey($ley);
-                    $pregunta->setArticulo($articulo);
+                    $articuloPregunta = $articulo;
+                    if (!empty($preguntaData['articuloId'])) {
+                        $articuloAsignado = $articuloRepository->find((int) $preguntaData['articuloId']);
+                        if ($articuloAsignado && $articuloAsignado->getLey()?->getId() === $ley->getId()) {
+                            $articuloPregunta = $articuloAsignado;
+                        }
+                    }
+                    $pregunta->setArticulo($articuloPregunta);
                     
                     // Solo establecer activo si es nueva pregunta
                     if (!$esActualizacion) {
@@ -695,7 +822,7 @@ class PreguntaController extends AbstractController
         } catch (\Exception $e) {
             $connection->rollBack();
             $this->addFlash('error', 'Error al guardar las preguntas: ' . $e->getMessage());
-            return $this->redirectToRoute('app_pregunta_new_csv');
+            return $this->redirectToRoute($this->rutaOrigenPreguntas($request));
         }
 
         // Limpiar sesión
@@ -704,6 +831,7 @@ class PreguntaController extends AbstractController
         $session->remove('preguntas_csv_ley');
         $session->remove('preguntas_csv_articulo');
         $session->remove('preguntas_csv_dificultad');
+        $session->remove('preguntas_csv_origen');
 
         if (!empty($errores)) {
             $mensajeErrores = implode("\n", array_slice($errores, 0, 5));
@@ -1409,6 +1537,80 @@ class PreguntaController extends AbstractController
             'articuloLabel' => $articuloLabel,
             'retroalimentacion' => $pregunta->getRetroalimentacion(),
         ];
+    }
+
+    /**
+     * @param list<\App\Entity\Articulo> $articulos
+     */
+    private function buscarArticuloIndicado(string $indicado, array $articulos): ?\App\Entity\Articulo
+    {
+        $clave = $this->normalizarArticulo($indicado);
+        if ($clave === '') {
+            return null;
+        }
+
+        $exactos = [];
+        $compactos = [];
+        foreach ($articulos as $articulo) {
+            $numero = $this->normalizarArticulo($articulo->getNumeroCompleto());
+            if ($numero === $clave) {
+                $exactos[] = $articulo;
+            }
+            if (str_replace(' ', '', $numero) === str_replace(' ', '', $clave)) {
+                $compactos[] = $articulo;
+            }
+        }
+        if (count($exactos) === 1) {
+            return $exactos[0];
+        }
+        if (count($compactos) === 1) {
+            return $compactos[0];
+        }
+
+        return null;
+    }
+
+    private function enunciadoCitaArticulo(string $texto, \App\Entity\Articulo $articulo): bool
+    {
+        $numero = (string) $articulo->getNumero();
+        if (!preg_match('/(?<!\d)' . preg_quote($numero, '/') . '(?!\d)/u', $texto)) {
+            return false;
+        }
+
+        $sufijo = trim((string) $articulo->getSufijo());
+        if ($sufijo !== '' && !str_contains(mb_strtolower($texto), mb_strtolower($sufijo))) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function enunciadoCitaNorma(string $texto, string $nombreLey): bool
+    {
+        $ley = $this->normalizarArticulo($nombreLey);
+        if ($ley === '') {
+            return false;
+        }
+
+        return str_contains($this->normalizarArticulo($texto), $ley);
+    }
+
+    private function normalizarArticulo(string $valor): string
+    {
+        $valor = mb_strtolower(trim($valor));
+        $valor = str_replace(['á', 'é', 'í', 'ó', 'ú'], ['a', 'e', 'i', 'o', 'u'], $valor);
+        $valor = preg_replace('/^(articulo|art\.?)\s*/u', '', $valor) ?? $valor;
+        $valor = str_replace(['.', ',', 'º', '°'], ' ', $valor);
+        $valor = preg_replace('/\s+/u', ' ', $valor) ?? $valor;
+
+        return trim($valor);
+    }
+
+    private function rutaOrigenPreguntas(Request $request): string
+    {
+        return $request->getSession()->get('preguntas_csv_origen') === 'pegar'
+            ? 'app_pregunta_pegar'
+            : 'app_pregunta_new_csv';
     }
 }
 
