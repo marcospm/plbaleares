@@ -21,19 +21,43 @@ class MunicipioController extends AbstractController
     #[Route('/', name: 'app_municipio_index', methods: ['GET'])]
     public function index(MunicipioRepository $municipioRepository, ConvocatoriaRepository $convocatoriaRepository, Request $request): Response
     {
-        $search = trim($request->query->get('search', ''));
-        
-        // Filtrar municipios por búsqueda si existe
-        if (!empty($search)) {
-            $municipios = $municipioRepository->createQueryBuilder('m')
-                ->where('m.nombre LIKE :search')
-                ->setParameter('search', '%' . $search . '%')
-                ->orderBy('m.nombre', 'ASC')
-                ->getQuery()
-                ->getResult();
-        } else {
-            $municipios = $municipioRepository->findBy([], ['nombre' => 'ASC']);
+        $search = trim((string) $request->query->get('search', ''));
+        $estado = (string) $request->query->get('estado', 'activas');
+        if (!in_array($estado, ['activas', 'inactivas', 'todas'], true)) {
+            $estado = 'activas';
         }
+        $convocatoriaRaw = $request->query->get('convocatoria');
+        $convocatoriaId = is_numeric($convocatoriaRaw) ? (int) $convocatoriaRaw : 0;
+
+        $qb = $municipioRepository->createQueryBuilder('m')
+            ->orderBy('m.nombre', 'ASC');
+
+        if ($search !== '') {
+            $qb->andWhere('m.nombre LIKE :search')
+                ->setParameter('search', '%' . $search . '%');
+        }
+
+        if ($estado === 'activas') {
+            $qb->andWhere('m.activo = :activo')->setParameter('activo', true);
+        } elseif ($estado === 'inactivas') {
+            $qb->andWhere('m.activo = :activo')->setParameter('activo', false);
+        }
+
+        if ($convocatoriaId > 0) {
+            $sub = $convocatoriaRepository->createQueryBuilder('c')
+                ->select('c.id')
+                ->innerJoin('c.municipios', 'cm')
+                ->where('cm = m')
+                ->andWhere('c.id = :convocatoriaId');
+            $qb->andWhere($qb->expr()->exists($sub->getDQL()))
+                ->setParameter('convocatoriaId', $convocatoriaId);
+        }
+
+        $municipios = $qb->getQuery()->getResult();
+        $convocatoriasFiltro = $convocatoriaRepository->createQueryBuilder('cf')
+            ->orderBy('cf.nombre', 'ASC')
+            ->getQuery()
+            ->getResult();
         
         // Obtener convocatorias para cada municipio
         $convocatoriasPorMunicipio = [];
@@ -50,7 +74,10 @@ class MunicipioController extends AbstractController
         return $this->render('municipio/index.html.twig', [
             'municipios' => $municipios,
             'convocatoriasPorMunicipio' => $convocatoriasPorMunicipio,
+            'convocatoriasFiltro' => $convocatoriasFiltro,
             'search' => $search,
+            'estado' => $estado,
+            'convocatoriaId' => $convocatoriaId,
         ]);
     }
 
@@ -129,7 +156,21 @@ class MunicipioController extends AbstractController
             $this->addFlash('success', "El municipio '{$municipio->getNombre()}' ha sido {$estado} correctamente.");
         }
 
-        return $this->redirectToRoute('app_municipio_index', [], Response::HTTP_SEE_OTHER);
+        $filtros = [];
+        $search = trim((string) $request->request->get('search', ''));
+        $estadoFiltro = (string) $request->request->get('estado', '');
+        $convocatoria = (string) $request->request->get('convocatoria', '');
+        if ($search !== '') {
+            $filtros['search'] = $search;
+        }
+        if (in_array($estadoFiltro, ['activas', 'inactivas', 'todas'], true)) {
+            $filtros['estado'] = $estadoFiltro;
+        }
+        if ($convocatoria !== '' && $convocatoria !== '0') {
+            $filtros['convocatoria'] = $convocatoria;
+        }
+
+        return $this->redirectToRoute('app_municipio_index', $filtros, Response::HTTP_SEE_OTHER);
     }
 
     #[Route('/{id}/asignar-alumnos', name: 'app_municipio_asignar_alumnos', methods: ['GET', 'POST'])]

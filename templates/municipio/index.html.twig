@@ -6,11 +6,20 @@
     {{ parent() }}
     <style>
         /* Estilos del buscador */
-        #searchForm input:focus {
+        #searchForm input:focus,
+        #searchForm select:focus {
             outline: none;
             border-color: white !important;
             background: white !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        #searchForm select {
+            min-height: 48px;
+            border-radius: 8px;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.95);
+            font-size: 1rem;
         }
         
         #searchForm button:hover {
@@ -51,7 +60,8 @@
                 min-width: 100%;
             }
             
-            #searchForm input {
+            #searchForm input,
+            #searchForm select {
                 width: 100% !important;
             }
             
@@ -124,37 +134,61 @@
 {# Buscador #}
 <div class="card mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
     <div class="card-body" style="padding: 1.5rem;">
-        <form method="get" action="{{ path('app_municipio_index') }}" id="searchForm" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 200px;">
+        <form method="get" action="{{ path('app_municipio_index') }}" id="searchForm" style="display: flex; gap: 0.75rem; align-items: end; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 220px;">
+                <label for="searchInput" style="display: block; color: white; font-weight: 600; margin-bottom: 0.35rem;">Nombre</label>
                 <div style="position: relative;">
                     <input 
                         type="text" 
                         name="search" 
                         id="searchInput"
                         value="{{ search }}"
-                        placeholder="🔍 Buscar municipio por nombre..."
+                        placeholder="Buscar por nombre..."
                         class="form-control"
-                        style="padding: 0.75rem 1rem 0.75rem 3rem; font-size: 1rem; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.95); transition: all 0.3s; min-height: 48px;"
+                        style="padding: 0.75rem 1rem 0.75rem 2.75rem; font-size: 1rem; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.95); transition: all 0.3s; min-height: 48px;"
                         autocomplete="off">
-                    <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-size: 1.2rem; color: #667eea; pointer-events: none;">🔍</span>
+                    <span style="position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%); font-size: 1.1rem; color: #667eea; pointer-events: none;">🔍</span>
                 </div>
+            </div>
+            <div style="min-width: 160px; flex: 0 1 180px;">
+                <label for="estado" style="display: block; color: white; font-weight: 600; margin-bottom: 0.35rem;">Estado</label>
+                <select name="estado" id="estado" class="form-control">
+                    <option value="activas" {% if estado == 'activas' %}selected{% endif %}>Activos</option>
+                    <option value="inactivas" {% if estado == 'inactivas' %}selected{% endif %}>Inactivos</option>
+                    <option value="todas" {% if estado == 'todas' %}selected{% endif %}>Todos</option>
+                </select>
+            </div>
+            <div style="min-width: 180px; flex: 0 1 220px;">
+                <label for="convocatoria" style="display: block; color: white; font-weight: 600; margin-bottom: 0.35rem;">Convocatoria</label>
+                <select name="convocatoria" id="convocatoria" class="form-control">
+                    <option value="">Todas</option>
+                    {% for convocatoria in convocatoriasFiltro %}
+                        <option value="{{ convocatoria.id }}" {% if convocatoriaId == convocatoria.id %}selected{% endif %}>{{ convocatoria.nombre }}</option>
+                    {% endfor %}
+                </select>
             </div>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                 <button type="submit" class="btn" style="background: white; color: #667eea; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; min-height: 48px; font-size: 1rem; transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    Buscar
+                    Filtrar
                 </button>
-                {% if search %}
+                {% if search or estado != 'activas' or convocatoriaId > 0 %}
                     <a href="{{ path('app_municipio_index') }}" class="btn" style="background: rgba(255,255,255,0.2); color: white; border: 2px solid white; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; min-height: 48px; font-size: 1rem; transition: all 0.3s; text-decoration: none;">
                         Limpiar
                     </a>
                 {% endif %}
             </div>
         </form>
-        {% if search %}
-            <div style="margin-top: 1rem; color: white; font-size: 0.95rem;">
-                <strong>{{ municipios|length }}</strong> municipio(s) encontrado(s) para "<strong>{{ search }}</strong>"
-            </div>
-        {% endif %}
+        <div style="margin-top: 1rem; color: white; font-size: 0.95rem;">
+            <strong>{{ municipios|length }}</strong>
+            {% if estado == 'inactivas' %}
+                municipio(s) inactivo(s)
+            {% elseif estado == 'todas' %}
+                municipio(s)
+            {% else %}
+                municipio(s) activo(s)
+            {% endif %}
+            {% if search %} para "<strong>{{ search }}</strong>"{% endif %}
+        </div>
     </div>
 </div>
 
@@ -207,6 +241,9 @@
                                 <a href="{{ path('app_municipio_edit', {'id': municipio.id}) }}" class="btn btn-primary btn-sm">Editar</a>
                                 <form method="post" action="{{ path('app_municipio_toggle_activo', {'id': municipio.id}) }}" style="display: inline;">
                                     <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ municipio.id) }}">
+                                    <input type="hidden" name="search" value="{{ search }}">
+                                    <input type="hidden" name="estado" value="{{ estado }}">
+                                    <input type="hidden" name="convocatoria" value="{{ convocatoriaId ?: '' }}">
                                     <button type="submit" class="btn btn-sm {% if municipio.isActivo %}btn-warning{% else %}btn-success{% endif %}">
                                         {% if municipio.isActivo %}Desactivar{% else %}Activar{% endif %}
                                     </button>
@@ -222,8 +259,16 @@
 {% else %}
     <div class="card">
         <div class="card-body text-center">
-            <p>No hay municipios registrados aún.</p>
-            <a href="{{ path('app_municipio_new') }}" class="btn btn-primary">Crear Primer Municipio</a>
+            {% if estado == 'todas' and not search and convocatoriaId == 0 %}
+                <p>No hay municipios registrados aún.</p>
+                <a href="{{ path('app_municipio_new') }}" class="btn btn-primary">Crear Primer Municipio</a>
+            {% elseif estado == 'activas' and not search and convocatoriaId == 0 %}
+                <p>No hay municipios activos.</p>
+                <a href="{{ path('app_municipio_index', {estado: 'todas'}) }}" class="btn btn-secondary">Ver todos</a>
+            {% else %}
+                <p>No se encontraron municipios con estos filtros.</p>
+                <a href="{{ path('app_municipio_index') }}" class="btn btn-secondary">Limpiar filtros</a>
+            {% endif %}
         </div>
     </div>
 {% endif %}
