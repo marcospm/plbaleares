@@ -7,6 +7,7 @@ use App\Form\PreguntaMunicipalType;
 use App\Repository\PreguntaMunicipalRepository;
 use App\Repository\MunicipioRepository;
 use App\Repository\TemaMunicipalRepository;
+use App\Service\BloquePreguntasParser;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -337,6 +338,109 @@ class PreguntaMunicipalController extends AbstractController
         ]);
     }
 
+    #[Route('/pegar', name: 'app_pregunta_municipal_pegar', methods: ['GET'])]
+    public function pegar(MunicipioRepository $municipioRepository): Response
+    {
+        $municipios = $municipioRepository->createQueryBuilder('m')
+            ->orderBy('m.nombre', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $this->render('pregunta_municipal/pegar.html.twig', [
+            'municipios' => $municipios,
+        ]);
+    }
+
+    #[Route('/procesar-pegar', name: 'app_pregunta_municipal_procesar_pegar', methods: ['POST'])]
+    public function procesarPegar(
+        Request $request,
+        MunicipioRepository $municipioRepository,
+        TemaMunicipalRepository $temaMunicipalRepository,
+        BloquePreguntasParser $parser
+    ): Response {
+        $municipioId = $request->request->getInt('municipio', 0);
+        $temaMunicipalId = $request->request->getInt('tema_municipal', 0);
+        $dificultad = (string) $request->request->get('dificultad', '');
+        $bloque = (string) $request->request->get('bloque', '');
+
+        if ($municipioId <= 0 || $temaMunicipalId <= 0 || !in_array($dificultad, ['facil', 'moderada', 'dificil', 'indeterminado'], true)) {
+            $this->addFlash('error', 'Debes completar todos los campos: Municipio, Tema municipal y Dificultad.');
+
+            return $this->redirectToRoute('app_pregunta_municipal_pegar');
+        }
+
+        $municipio = $municipioRepository->find($municipioId);
+        $temaMunicipal = $temaMunicipalRepository->find($temaMunicipalId);
+        $temaDelMunicipio = $temaMunicipal && $temaMunicipal->getMunicipio()?->getId() === $municipioId;
+
+        if (!$municipio || !$temaMunicipal || !$temaDelMunicipio) {
+            $this->addFlash('error', 'El municipio o el tema municipal seleccionados no son válidos.');
+
+            return $this->redirectToRoute('app_pregunta_municipal_pegar');
+        }
+
+        $resultado = $parser->parsear($bloque);
+        if ($resultado['errores'] !== []) {
+            $mensajeErrores = implode("\n", array_slice($resultado['errores'], 0, 10));
+            if (count($resultado['errores']) > 10) {
+                $mensajeErrores .= "\n... y " . (count($resultado['errores']) - 10) . ' errores más.';
+            }
+            $this->addFlash('error', "No se pudo leer el bloque:\n" . $mensajeErrores);
+
+            return $this->redirectToRoute('app_pregunta_municipal_pegar');
+        }
+
+        $preguntas = $resultado['preguntas'];
+        $erroresCita = [];
+        foreach ($preguntas as $indice => $pregunta) {
+            $articulo = $this->numeroYSufijo((string) $pregunta['articulo']);
+            if ($articulo === null) {
+                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el artículo «' . $pregunta['articulo'] . '» no tiene un número válido.';
+                continue;
+            }
+            if (!$this->enunciadoCitaArticulo($pregunta['texto'], $articulo['numero'], $articulo['sufijo'])) {
+                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el artículo ' . trim($articulo['numero'] . ' ' . $articulo['sufijo']) . '.';
+                continue;
+            }
+            if (!$this->enunciadoCitaTexto($pregunta['texto'], (string) $municipio->getNombre())) {
+                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el municipio «' . $municipio->getNombre() . '».';
+                continue;
+            }
+            if (!$this->enunciadoCitaTexto($pregunta['texto'], (string) $temaMunicipal->getNombre())) {
+                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el tema «' . $temaMunicipal->getNombre() . '».';
+                continue;
+            }
+            $preguntas[$indice] = $pregunta;
+        }
+
+        if ($erroresCita !== []) {
+            $mensajeErrores = implode("\n", array_slice($erroresCita, 0, 10));
+            if (count($erroresCita) > 10) {
+                $mensajeErrores .= "\n... y " . (count($erroresCita) - 10) . ' errores más.';
+            }
+            $this->addFlash('error', "No se pudo aceptar el bloque:\n" . $mensajeErrores);
+
+            return $this->redirectToRoute('app_pregunta_municipal_pegar');
+        }
+
+        $session = $request->getSession();
+        $session->set('preguntas_municipal_csv', $preguntas);
+        $session->set('preguntas_municipal_csv_municipio', $municipioId);
+        $session->set('preguntas_municipal_csv_tema', $temaMunicipalId);
+        $session->set('preguntas_municipal_csv_dificultad', $dificultad);
+        $session->set('preguntas_municipal_csv_origen', 'pegar');
+
+        return $this->render('pregunta_municipal/preview_csv.html.twig', [
+            'preguntas' => $preguntas,
+            'municipio' => $municipio,
+            'temaMunicipal' => $temaMunicipal,
+            'dificultad' => $dificultad,
+            'total' => count($preguntas),
+            'volver' => 'app_pregunta_municipal_pegar',
+            'titulo' => 'Previsualizar preguntas pegadas',
+        ]);
+    }
+
     #[Route('/descargar-csv-ejemplo', name: 'app_pregunta_municipal_descargar_csv_ejemplo', methods: ['GET'])]
     public function descargarCsvEjemplo(): Response
     {
@@ -532,6 +636,7 @@ class PreguntaMunicipalController extends AbstractController
         $request->getSession()->set('preguntas_municipal_csv_municipio', $municipioId);
         $request->getSession()->set('preguntas_municipal_csv_tema', $temaMunicipalId);
         $request->getSession()->set('preguntas_municipal_csv_dificultad', $dificultad);
+        $request->getSession()->set('preguntas_municipal_csv_origen', 'csv');
 
         return $this->render('pregunta_municipal/preview_csv.html.twig', [
             'preguntas' => $preguntas,
@@ -553,7 +658,7 @@ class PreguntaMunicipalController extends AbstractController
         // Validar token CSRF
         if (!$this->isCsrfTokenValid('confirmar_csv_municipal', $request->request->get('_token'))) {
             $this->addFlash('error', 'Token de seguridad inválido. Por favor, intenta de nuevo.');
-            return $this->redirectToRoute('app_pregunta_municipal_new_csv');
+            return $this->redirectToRoute($this->rutaOrigenPreguntasMunicipales($request));
         }
 
         $session = $request->getSession();
@@ -564,8 +669,10 @@ class PreguntaMunicipalController extends AbstractController
         $dificultad = $session->get('preguntas_municipal_csv_dificultad', '');
 
         if (empty($preguntas) || $municipioId <= 0 || $temaMunicipalId <= 0 || empty($dificultad)) {
-            $this->addFlash('error', 'Sesión expirada. Por favor, vuelve a cargar el CSV.');
-            return $this->redirectToRoute('app_pregunta_municipal_new_csv');
+            $this->addFlash('error', $session->get('preguntas_municipal_csv_origen') === 'pegar'
+                ? 'Sesión expirada. Por favor, vuelve a pegar las preguntas.'
+                : 'Sesión expirada. Por favor, vuelve a cargar el CSV.');
+            return $this->redirectToRoute($this->rutaOrigenPreguntasMunicipales($request));
         }
 
         $municipio = $municipioRepository->find($municipioId);
@@ -573,7 +680,7 @@ class PreguntaMunicipalController extends AbstractController
 
         if (!$municipio || !$temaMunicipal) {
             $this->addFlash('error', 'Uno o más campos seleccionados no son válidos.');
-            return $this->redirectToRoute('app_pregunta_municipal_new_csv');
+            return $this->redirectToRoute($this->rutaOrigenPreguntasMunicipales($request));
         }
 
         $creadas = 0;
@@ -644,7 +751,7 @@ class PreguntaMunicipalController extends AbstractController
         } catch (\Exception $e) {
             $connection->rollBack();
             $this->addFlash('error', 'Error al guardar las preguntas: ' . $e->getMessage());
-            return $this->redirectToRoute('app_pregunta_municipal_new_csv');
+            return $this->redirectToRoute($this->rutaOrigenPreguntasMunicipales($request));
         }
 
         // Limpiar sesión
@@ -652,6 +759,7 @@ class PreguntaMunicipalController extends AbstractController
         $session->remove('preguntas_municipal_csv_municipio');
         $session->remove('preguntas_municipal_csv_tema');
         $session->remove('preguntas_municipal_csv_dificultad');
+        $session->remove('preguntas_municipal_csv_origen');
 
         if (!empty($errores)) {
             $mensajeErrores = implode("\n", array_slice($errores, 0, 5));
@@ -1011,6 +1119,65 @@ class PreguntaMunicipalController extends AbstractController
         }
 
         return $this->redirectToRoute('app_pregunta_municipal_index');
+    }
+
+    /**
+     * @return array{numero: string, sufijo: string}|null
+     */
+    private function numeroYSufijo(string $indicado): ?array
+    {
+        $clave = $this->normalizarTexto($indicado);
+        if (!preg_match('/^(\d+)(?:\s+(.+))?$/u', $clave, $coincidencias)) {
+            return null;
+        }
+
+        return [
+            'numero' => $coincidencias[1],
+            'sufijo' => $coincidencias[2] ?? '',
+        ];
+    }
+
+    private function enunciadoCitaArticulo(string $texto, string $numero, string $sufijo): bool
+    {
+        if (!preg_match('/(?<!\d)' . preg_quote($numero, '/') . '(?!\d)/u', $texto)) {
+            return false;
+        }
+
+        $sufijo = trim($sufijo);
+
+        return $sufijo === '' || str_contains(mb_strtolower($texto), mb_strtolower($sufijo));
+    }
+
+    private function enunciadoCitaTexto(string $texto, string $esperado): bool
+    {
+        $esperado = $this->normalizarTexto($esperado);
+        if ($esperado === '') {
+            return false;
+        }
+
+        return str_contains($this->normalizarTexto($texto), $esperado);
+    }
+
+    private function normalizarTexto(string $valor): string
+    {
+        $valor = mb_strtolower(trim($valor));
+        $valor = str_replace(
+            ['á', 'à', 'é', 'è', 'í', 'ï', 'ó', 'ò', 'ú', 'ü', 'ñ', 'ç'],
+            ['a', 'a', 'e', 'e', 'i', 'i', 'o', 'o', 'u', 'u', 'n', 'c'],
+            $valor
+        );
+        $valor = preg_replace('/^(articulo|art\.?)\s*/u', '', $valor) ?? $valor;
+        $valor = str_replace(['.', ',', 'º', '°'], ' ', $valor);
+        $valor = preg_replace('/\s+/u', ' ', $valor) ?? $valor;
+
+        return trim($valor);
+    }
+
+    private function rutaOrigenPreguntasMunicipales(Request $request): string
+    {
+        return $request->getSession()->get('preguntas_municipal_csv_origen') === 'pegar'
+            ? 'app_pregunta_municipal_pegar'
+            : 'app_pregunta_municipal_new_csv';
     }
 }
 

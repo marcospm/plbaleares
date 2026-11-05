@@ -1,11 +1,11 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Previsualizar Preguntas CSV{% endblock %}
+{% block title %}{{ titulo|default('Previsualizar Preguntas CSV') }}{% endblock %}
 
 {% block body %}
 <div class="card">
     <div class="card-header">
-        <h1>Previsualizar Preguntas CSV</h1>
+        <h1>{{ titulo|default('Previsualizar Preguntas CSV') }}</h1>
     </div>
     <div class="card-body">
         <div class="alert alert-info mb-4">
@@ -52,6 +52,9 @@
                                 <small class="text-muted">Línea {{ pregunta.linea }}</small>
                             </div>
                             <p class="mb-2"><strong>Texto:</strong> {{ pregunta.texto }}</p>
+                            {% if pregunta.articulo is defined and pregunta.articulo %}
+                                <p class="mb-2"><strong>Artículo:</strong> {{ pregunta.articulo }}</p>
+                            {% endif %}
                             <div class="row mb-2">
                                 <div class="col-md-6">
                                     <small><strong>A)</strong> {{ pregunta.opcionA }}</small>
@@ -101,7 +104,7 @@
                         ({{ actualizaciones }} actualizaciones)
                     {% endif %}
                 </button>
-                <a href="{{ path('app_pregunta_municipal_new_csv') }}" class="btn btn-secondary">Volver</a>
+                <a href="{{ path(volver|default('app_pregunta_municipal_new_csv')) }}" class="btn btn-secondary">Volver</a>
             </div>
         </form>
     </div>

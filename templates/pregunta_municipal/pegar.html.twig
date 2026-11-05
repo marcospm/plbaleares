@@ -1,0 +1,321 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Pegar preguntas municipales{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .searchable-select { position: relative; }
+        .search-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+        .select-options {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            display: none;
+            position: absolute;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .select-options.show { display: block; }
+        .select-option {
+            padding: 0.5rem;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .select-option:hover { background-color: #f8f9fa; }
+        .select-option.selected { background-color: #e3f2fd; font-weight: bold; }
+        .select-display {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+        }
+        .select-display:after { content: '▼'; margin-left: auto; color: #666; }
+        #bloque {
+            min-height: 280px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.9rem;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>Pegar preguntas municipales</h1>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <strong>Cómo funciona:</strong>
+            <ol class="mb-0">
+                <li>Elige el municipio. El tema se limita a los de ese municipio. La dificultad se aplica a las 20 preguntas.</li>
+                <li>No hace falta elegir artículo. La respuesta indica el artículo en cada bloque y el enunciado cita el municipio, el tema y ese artículo.</li>
+                <li>Copia el prompt, pégalo en el chat y, debajo de <strong>CONTENIDO:</strong>, pega el texto. Como máximo, 20 preguntas.</li>
+            </ol>
+        </div>
+
+        <form method="post" action="{{ path('app_pregunta_municipal_procesar_pegar') }}" id="pegar-form">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Municipio <span class="text-danger">*</span></label>
+                    <div class="searchable-select" id="municipio-select-container">
+                        <div class="select-display" id="municipio-display">Selecciona un municipio</div>
+                        <input type="text" class="search-input" id="municipio-search" placeholder="Buscar municipio..." style="display: none;">
+                        <div class="select-options" id="municipio-options">
+                            {% for municipio in municipios %}
+                                <div class="select-option" data-value="{{ municipio.id }}" data-text="{{ municipio.nombre }}">{{ municipio.nombre }}</div>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="municipio" id="municipio-value" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Tema municipal <span class="text-danger">*</span></label>
+                    <div class="searchable-select" id="tema-select-container">
+                        <div class="select-display" id="tema-display">Primero selecciona un municipio</div>
+                        <input type="text" class="search-input" id="tema-search" placeholder="Buscar tema..." style="display: none;">
+                        <div class="select-options" id="tema-options">
+                            <div class="select-option" style="color: #999; cursor: default;">Primero selecciona un municipio</div>
+                        </div>
+                        <input type="hidden" name="tema_municipal" id="tema-value" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Dificultad <span class="text-danger">*</span></label>
+                    <select name="dificultad" id="dificultad" class="form-control" required>
+                        <option value="">Selecciona una dificultad</option>
+                        <option value="facil">Fácil</option>
+                        <option value="moderada">Moderada</option>
+                        <option value="dificil">Difícil</option>
+                        <option value="indeterminado">Indeterminado</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mb-3 flex-wrap">
+                <button type="button" class="btn btn-secondary" id="copiar-prompt">Copiar prompt</button>
+                <span id="prompt-copiado" style="display: none; align-self: center; color: #198754;">Prompt copiado. Pégalo en el chat y añade el contenido debajo.</span>
+            </div>
+
+            <div class="mb-3">
+                <label for="bloque" class="form-label">Respuesta <span class="text-danger">*</span></label>
+                <textarea name="bloque" id="bloque" class="form-control" required placeholder="Pega aquí los bloques que devuelva el chat"></textarea>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Previsualizar</button>
+                <a href="{{ path('app_pregunta_municipal_index') }}" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    function elegirTema(id, nombre) {
+        document.getElementById('tema-value').value = id;
+        document.getElementById('tema-display').textContent = nombre;
+        document.getElementById('tema-options').querySelectorAll('.select-option').forEach(opt => {
+            opt.classList.toggle('selected', opt.getAttribute('data-value') === String(id));
+        });
+    }
+
+    function loadTemas(municipioId) {
+        const temaDisplay = document.getElementById('tema-display');
+        const temaValue = document.getElementById('tema-value');
+        const temaOptions = document.getElementById('tema-options');
+
+        temaValue.value = '';
+        if (!municipioId) {
+            temaDisplay.textContent = 'Primero selecciona un municipio';
+            temaOptions.innerHTML = '<div class="select-option" style="color: #999; cursor: default;">Primero selecciona un municipio</div>';
+            return;
+        }
+
+        temaDisplay.textContent = 'Cargando...';
+        fetch('/pregunta-municipal/api/temas-por-municipio/' + municipioId)
+            .then(response => response.json())
+            .then(data => {
+                const temas = data.temas || [];
+                temaOptions.innerHTML = '';
+                if (temas.length === 0) {
+                    temaDisplay.textContent = 'Este municipio no tiene temas';
+                    return;
+                }
+                temas.forEach(tema => {
+                    const option = document.createElement('div');
+                    option.className = 'select-option';
+                    option.setAttribute('data-value', tema.id);
+                    option.setAttribute('data-text', tema.nombre);
+                    option.textContent = tema.nombre;
+                    option.addEventListener('click', function() {
+                        elegirTema(tema.id, tema.nombre);
+                        temaOptions.classList.remove('show');
+                        document.getElementById('tema-search').style.display = 'none';
+                    });
+                    temaOptions.appendChild(option);
+                });
+                if (temas.length === 1) {
+                    elegirTema(temas[0].id, temas[0].nombre);
+                } else {
+                    temaDisplay.textContent = 'Selecciona un tema';
+                }
+            })
+            .catch(() => {
+                temaDisplay.textContent = 'Error al cargar los temas';
+            });
+    }
+
+    function initSearchableSelect(containerId, displayId, searchId, optionsId, valueId) {
+        const container = document.getElementById(containerId);
+        const display = document.getElementById(displayId);
+        const search = document.getElementById(searchId);
+        const options = document.getElementById(optionsId);
+        const valueInput = document.getElementById(valueId);
+
+        function filterOptions(query) {
+            options.querySelectorAll('.select-option').forEach(option => {
+                const text = option.getAttribute('data-text') || '';
+                option.style.display = text.toLowerCase().includes(query.toLowerCase()) ? 'block' : 'none';
+            });
+        }
+
+        function closeSelect() {
+            options.classList.remove('show');
+            search.style.display = 'none';
+            search.value = '';
+            filterOptions('');
+        }
+
+        display.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const abierto = options.classList.contains('show');
+            document.querySelectorAll('.select-options').forEach(lista => lista.classList.remove('show'));
+            document.querySelectorAll('.search-input').forEach(campo => { campo.style.display = 'none'; });
+            if (!abierto) {
+                options.classList.add('show');
+                search.style.display = 'block';
+                search.focus();
+            }
+        });
+
+        search.addEventListener('input', function(e) {
+            filterOptions(e.target.value);
+        });
+
+        options.querySelectorAll('.select-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const selectedValue = option.getAttribute('data-value');
+                if (!selectedValue) {
+                    return;
+                }
+                valueInput.value = selectedValue;
+                display.textContent = option.getAttribute('data-text');
+                options.querySelectorAll('.select-option').forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+                closeSelect();
+                if (containerId === 'municipio-select-container') {
+                    loadTemas(selectedValue);
+                }
+            });
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!container.contains(e.target)) {
+                closeSelect();
+            }
+        });
+    }
+
+    initSearchableSelect('municipio-select-container', 'municipio-display', 'municipio-search', 'municipio-options', 'municipio-value');
+    initSearchableSelect('tema-select-container', 'tema-display', 'tema-search', 'tema-options', 'tema-value');
+
+    function seleccionValida() {
+        const municipio = document.getElementById('municipio-value').value;
+        const tema = document.getElementById('tema-value').value;
+        const dificultad = document.getElementById('dificultad').value;
+        if (!municipio || !tema || !dificultad) {
+            alert('Elige municipio, tema municipal y dificultad antes de continuar.');
+            return null;
+        }
+        const dificultadSelect = document.getElementById('dificultad');
+        return {
+            municipio: document.getElementById('municipio-display').textContent.trim(),
+            tema: document.getElementById('tema-display').textContent.trim(),
+            dificultad: dificultadSelect.options[dificultadSelect.selectedIndex].text
+        };
+    }
+
+    function construirPrompt(datos) {
+        return [
+            'Eres un preparador de oposiciones de policía local en Baleares. Genera exactamente 20 preguntas tipo test, en español, solo con el contenido municipal que pegue debajo de CONTENIDO. No inventes datos que no estén en ese texto.',
+            '',
+            'Municipio: ' + datos.municipio,
+            'Tema: ' + datos.tema,
+            'Dificultad: ' + datos.dificultad,
+            '',
+            'Reglas:',
+            '- Una sola respuesta correcta. La letra de la opción correcta tiene que variar de una pregunta a otra: no puede ser siempre la misma. A lo largo del bloque deben aparecer A, B, C y D. Las otras tres opciones tienen que ser plausibles.',
+            '- Cada enunciado es una pregunta tipo test y cita siempre el municipio, el tema y el artículo. Nombra el municipio y el tema exactamente como aparecen arriba, y el número del artículo.',
+            '- La línea ARTICULO lleva el número del artículo tal como está en el texto (14 o 14 bis). Es el mismo artículo que cita el enunciado. No inventes artículos que no estén en el contenido.',
+            '- La explicación cita el fragmento del que sale la respuesta.',
+            '- Responde solo con los bloques, sin introducción ni markdown.',
+            '- Si el contenido no da para 20, devuelve las que salgan y dilo en una línea al final, fuera de los bloques.',
+            '- Si después escribo «continúa», genera otras 20 distintas, del mismo contenido, en el mismo formato.',
+            '',
+            'Formato de cada pregunta:',
+            '',
+            '---',
+            'ARTICULO: 14',
+            'PREGUNTA: Según ' + datos.tema + ', del municipio de ' + datos.municipio + ', el artículo 14, ¿qué establece?',
+            'A: opcion',
+            'B: opcion',
+            'C: opcion',
+            'D: opcion',
+            'CORRECTA: B',
+            'EXPLICACION: por qué, citando el texto',
+            '---',
+            '',
+            'La B de CORRECTA en el ejemplo es solo el formato. En las preguntas reales cambia la letra.',
+            '',
+            'CONTENIDO:'
+        ].join('\n');
+    }
+
+    document.getElementById('copiar-prompt').addEventListener('click', function() {
+        const datos = seleccionValida();
+        if (!datos) {
+            return;
+        }
+        const prompt = construirPrompt(datos);
+        const aviso = document.getElementById('prompt-copiado');
+        const mostrar = function() {
+            aviso.style.display = 'inline';
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(prompt).then(mostrar).catch(function() {
+                window.prompt('Copia este prompt:', prompt);
+            });
+            return;
+        }
+        window.prompt('Copia este prompt:', prompt);
+    });
+});
+</script>
+{% endblock %}
