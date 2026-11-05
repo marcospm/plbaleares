@@ -2,9 +2,11 @@
 
 namespace App\Form;
 
+use App\Entity\Convocatoria;
 use App\Entity\RecursoEspecifico;
 use App\Entity\User;
 use App\Entity\Grupo;
+use App\Repository\ConvocatoriaRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -47,6 +49,28 @@ class RecursoEspecificoType extends AbstractType
                     'id' => 'grupo-select'
                 ],
                 'help' => 'Si seleccionas un grupo, el recurso se asignará automáticamente a todos los alumnos de ese grupo y solo será visible para ellos.'
+            ])
+            ->add('convocatorias', EntityType::class, [
+                'class' => Convocatoria::class,
+                'choice_label' => function (Convocatoria $convocatoria) {
+                    $nombre = $convocatoria->getNombre() ?? '';
+
+                    return $convocatoria->isActivo() ? $nombre : $nombre . ' (inactiva)';
+                },
+                'label' => 'Asignar a convocatorias',
+                'multiple' => true,
+                'expanded' => false,
+                'required' => false,
+                'query_builder' => function (ConvocatoriaRepository $repositorio) {
+                    return $repositorio->createQueryBuilder('c')
+                        ->orderBy('c.activo', 'DESC')
+                        ->addOrderBy('c.nombre', 'ASC');
+                },
+                'attr' => [
+                    'class' => 'form-control',
+                    'size' => 6,
+                ],
+                'help' => 'Otra forma de elegir alumnos: el recurso se asigna a los alumnos de las convocatorias seleccionadas. Mantén pulsada la tecla Ctrl para elegir varias.',
             ])
             ->add('alumnos', EntityType::class, [
                 'class' => User::class,

@@ -387,44 +387,75 @@
                             <p style="margin-bottom: 1rem; color: var(--color-text-light); font-size: 0.9rem;">
                                 Recursos compartidos específicamente contigo por tu profesor. Se muestran ordenados por fecha de creación.
                             </p>
+                            <div style="margin-bottom: 1rem;">
+                                <label for="selector-recurso-especifico" style="display: block; margin-bottom: 0.35rem; font-weight: 600;">Buscar recurso</label>
+                                <select id="selector-recurso-especifico" class="form-control">
+                                    <option value="">Todos los recursos</option>
+                                    {% for grupo in recursosEspecificos %}
+                                        <option value="{{ loop.index0 }}">{{ grupo.nombre }}{% if grupo.fecha %} ({{ grupo.fecha|date('d/m/Y') }}){% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                             <div style="max-height: 300px; overflow-y: auto;">
                                 <div style="display: grid; gap: 1rem;">
-                                    {% for recurso in recursosEspecificos %}
-                                        <div style="padding: 1rem; border: 1px solid #FF9800; border-radius: 4px; background-color: #fff3e0;">
+                                    {% for grupo in recursosEspecificos %}
+                                        <div class="recurso-especifico-item" data-recurso="{{ loop.index0 }}" style="padding: 1rem; border: 1px solid #FF9800; border-radius: 4px; background-color: #fff3e0;">
                                             <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
                                                 <div style="flex: 1;">
                                                     <h3 style="color: #FF9800; margin-bottom: 0.5rem; font-size: 1rem;">
-                                                        {{ recurso.nombre }}
+                                                        {{ grupo.nombre }}
                                                     </h3>
-                                                    {% if recurso.descripcion %}
+                                                    {% if grupo.descripcion %}
                                                         <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.85rem;">
-                                                            {{ recurso.descripcion|slice(0, 80) }}{% if recurso.descripcion|length > 80 %}...{% endif %}
+                                                            {{ grupo.descripcion|slice(0, 80) }}{% if grupo.descripcion|length > 80 %}...{% endif %}
                                                         </p>
                                                     {% endif %}
-                                                    {% if recurso.tieneEnlace %}
+                                                    {% if grupo.recursos|length > 1 %}
+                                                        <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+                                                            {% for recurso in grupo.recursos %}
+                                                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; background: white; border-radius: 4px;">
+                                                                    <span style="color: var(--color-text-light); font-size: 0.85rem;">
+                                                                        {{ recurso.nombreArchivoOriginal|default(recurso.nombre) }}
+                                                                    </span>
+                                                                    {% if recurso.tieneArchivo %}
+                                                                        <a href="{{ recurso.rutaArchivo }}" target="_blank" class="btn btn-sm" style="background-color: #FF9800; color: white; border: none;" rel="noopener noreferrer">
+                                                                            Descargar
+                                                                        </a>
+                                                                    {% elseif recurso.tieneEnlace %}
+                                                                        <a href="{{ recurso.enlace }}" target="_blank" class="btn btn-sm" style="background-color: #FF9800; color: white; border: none;" rel="noopener noreferrer">
+                                                                            Abrir enlace
+                                                                        </a>
+                                                                    {% endif %}
+                                                                </div>
+                                                            {% endfor %}
+                                                        </div>
+                                                    {% elseif grupo.recursos|first.tieneEnlace %}
                                                         <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.8rem;">
                                                             <strong>Enlace externo</strong>
                                                         </p>
-                                                    {% elseif recurso.nombreArchivoOriginal %}
+                                                    {% elseif grupo.recursos|first.nombreArchivoOriginal %}
                                                         <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.8rem;">
-                                                            <strong>Archivo:</strong> {{ recurso.nombreArchivoOriginal }}
+                                                            <strong>Archivo:</strong> {{ grupo.recursos|first.nombreArchivoOriginal }}
                                                         </p>
                                                     {% endif %}
                                                     <p style="margin: 0.25rem 0; color: var(--color-text-light); font-size: 0.8rem;">
-                                                        <strong>Profesor:</strong> {{ recurso.profesor.nombreDisplay }} | <strong>Fecha:</strong> {{ recurso.fechaCreacion|date('d/m/Y') }}
+                                                        <strong>Profesor:</strong> {{ grupo.profesor.nombreDisplay }} | <strong>Fecha:</strong> {{ grupo.fecha|date('d/m/Y') }}
                                                     </p>
                                                 </div>
-                                                <div>
-                                                    {% if recurso.tieneEnlace %}
-                                                        <a href="{{ recurso.enlace }}" target="_blank" class="btn btn-sm" style="background-color: #FF9800; color: white; border: none;" rel="noopener noreferrer">
-                                                            Abrir enlace
-                                                        </a>
-                                                    {% elseif recurso.tieneArchivo %}
-                                                        <a href="{{ recurso.rutaArchivo }}" target="_blank" class="btn btn-sm" style="background-color: #FF9800; color: white; border: none;" rel="noopener noreferrer">
-                                                            Descargar
-                                                        </a>
-                                                    {% endif %}
-                                                </div>
+                                                {% if grupo.recursos|length == 1 %}
+                                                    {% set recurso = grupo.recursos|first %}
+                                                    <div>
+                                                        {% if recurso.tieneEnlace %}
+                                                            <a href="{{ recurso.enlace }}" target="_blank" class="btn btn-sm" style="background-color: #FF9800; color: white; border: none;" rel="noopener noreferrer">
+                                                                Abrir enlace
+                                                            </a>
+                                                        {% elseif recurso.tieneArchivo %}
+                                                            <a href="{{ recurso.rutaArchivo }}" target="_blank" class="btn btn-sm" style="background-color: #FF9800; color: white; border: none;" rel="noopener noreferrer">
+                                                                Descargar
+                                                            </a>
+                                                        {% endif %}
+                                                    </div>
+                                                {% endif %}
                                             </div>
                                         </div>
                                     {% endfor %}
@@ -508,6 +539,16 @@ function ajustarModales() {
 
 window.addEventListener('resize', ajustarModales);
 window.addEventListener('DOMContentLoaded', ajustarModales);
+
+const selectorRecursoEspecifico = document.getElementById('selector-recurso-especifico');
+if (selectorRecursoEspecifico) {
+    selectorRecursoEspecifico.addEventListener('change', function () {
+        const valor = this.value;
+        document.querySelectorAll('.recurso-especifico-item').forEach(function (item) {
+            item.style.display = valor === '' || item.getAttribute('data-recurso') === valor ? '' : 'none';
+        });
+    });
+}
 </script>
 
 {% endblock %}

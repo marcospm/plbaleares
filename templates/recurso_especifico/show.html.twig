@@ -41,6 +41,13 @@
             <h3>Información</h3>
             <p>
                 <strong>Profesor:</strong> {{ recursoEspecifico.profesor.nombreDisplay }}<br>
+                {% if recursoEspecifico.convocatorias|length > 0 %}
+                    <strong>Convocatorias:</strong>
+                    {% for convocatoria in recursoEspecifico.convocatorias %}
+                        {{ convocatoria.nombre }}{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                    <br>
+                {% endif %}
                 <strong>Fecha de creación:</strong> {{ recursoEspecifico.fechaCreacion|date('d/m/Y H:i') }}
             </p>
         </div>

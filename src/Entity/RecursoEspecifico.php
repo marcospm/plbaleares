@@ -31,6 +31,9 @@ class RecursoEspecifico
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $nombreArchivoOriginal = null;
 
+    #[ORM\Column(length: 36, nullable: true)]
+    private ?string $lote = null;
+
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $fechaCreacion = null;
 
@@ -46,9 +49,14 @@ class RecursoEspecifico
     #[ORM\JoinColumn(nullable: true)]
     private ?\App\Entity\Grupo $grupo = null;
 
+    #[ORM\ManyToMany(targetEntity: Convocatoria::class)]
+    #[ORM\JoinTable(name: 'recurso_especifico_convocatoria')]
+    private Collection $convocatorias;
+
     public function __construct()
     {
         $this->alumnos = new ArrayCollection();
+        $this->convocatorias = new ArrayCollection();
         $this->fechaCreacion = new \DateTime();
     }
 
@@ -127,6 +135,18 @@ class RecursoEspecifico
         return $this;
     }
 
+    public function getLote(): ?string
+    {
+        return $this->lote;
+    }
+
+    public function setLote(?string $lote): static
+    {
+        $this->lote = $lote;
+
+        return $this;
+    }
+
     public function getFechaCreacion(): ?\DateTimeInterface
     {
         return $this->fechaCreacion;
@@ -183,6 +203,30 @@ class RecursoEspecifico
     public function setGrupo(?\App\Entity\Grupo $grupo): static
     {
         $this->grupo = $grupo;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Convocatoria>
+     */
+    public function getConvocatorias(): Collection
+    {
+        return $this->convocatorias;
+    }
+
+    public function addConvocatoria(Convocatoria $convocatoria): static
+    {
+        if (!$this->convocatorias->contains($convocatoria)) {
+            $this->convocatorias->add($convocatoria);
+        }
+
+        return $this;
+    }
+
+    public function removeConvocatoria(Convocatoria $convocatoria): static
+    {
+        $this->convocatorias->removeElement($convocatoria);
 
         return $this;
     }

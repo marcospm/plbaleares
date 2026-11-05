@@ -142,10 +142,11 @@ class RecursoEspecificoController extends AbstractController
                     }
                 }
             }
+            $this->asignarAlumnosDeConvocatorias($recursoEspecifico);
             
-            // Validar que hay al menos un alumno asignado o un grupo
-            if ($recursoEspecifico->getAlumnos()->isEmpty() && $grupo === null) {
-                $this->addFlash('error', 'Debes asignar el recurso a al menos un alumno o seleccionar un grupo.');
+            // Validar que hay al menos un alumno asignado, un grupo o una convocatoria
+            if ($recursoEspecifico->getAlumnos()->isEmpty() && $grupo === null && $recursoEspecifico->getConvocatorias()->isEmpty()) {
+                $this->addFlash('error', 'Debes asignar el recurso a al menos un alumno, un grupo o una convocatoria.');
                 return $this->render('recurso_especifico/new.html.twig', [
                     'recursoEspecifico' => $recursoEspecifico,
                     'form' => $form,
@@ -283,10 +284,11 @@ class RecursoEspecificoController extends AbstractController
                     }
                 }
             }
+            $this->asignarAlumnosDeConvocatorias($recursoEspecifico);
             
-            // Validar que hay al menos un alumno asignado o un grupo
-            if ($recursoEspecifico->getAlumnos()->isEmpty() && $grupo === null) {
-                $this->addFlash('error', 'Debes asignar el recurso a al menos un alumno o seleccionar un grupo.');
+            // Validar que hay al menos un alumno asignado, un grupo o una convocatoria
+            if ($recursoEspecifico->getAlumnos()->isEmpty() && $grupo === null && $recursoEspecifico->getConvocatorias()->isEmpty()) {
+                $this->addFlash('error', 'Debes asignar el recurso a al menos un alumno, un grupo o una convocatoria.');
                 return $this->render('recurso_especifico/edit.html.twig', [
                     'recursoEspecifico' => $recursoEspecifico,
                     'form' => $form,
@@ -352,6 +354,15 @@ class RecursoEspecificoController extends AbstractController
         return $this->redirectToRoute('app_recurso_especifico_index', [], Response::HTTP_SEE_OTHER);
     }
 
+    private function asignarAlumnosDeConvocatorias(RecursoEspecifico $recursoEspecifico): void
+    {
+        foreach ($recursoEspecifico->getConvocatorias() as $convocatoria) {
+            foreach ($convocatoria->getUsuarios() as $alumno) {
+                $recursoEspecifico->addAlumno($alumno);
+            }
+        }
+    }
+
     private function asignarTodosLosAlumnosSiSolicitado(
         Request $request,
         RecursoEspecifico $recursoEspecifico,
@@ -391,6 +402,7 @@ class RecursoEspecificoController extends AbstractController
         }
 
         $nombreBase = $recursoEspecifico->getNombre() ?? 'Recurso';
+        $recursoEspecifico->setLote(bin2hex(random_bytes(16)));
         $recursos = [];
         foreach ($archivos as $indice => $archivo) {
             $recurso = $indice === 0 ? $recursoEspecifico : $this->copiarAsignacion($recursoEspecifico);
@@ -415,8 +427,12 @@ class RecursoEspecificoController extends AbstractController
         $copia = new RecursoEspecifico();
         $copia->setNombre($origen->getNombre() ?? 'Recurso');
         $copia->setDescripcion($origen->getDescripcion());
+        $copia->setLote($origen->getLote());
         $copia->setProfesor($origen->getProfesor());
         $copia->setGrupo($origen->getGrupo());
+        foreach ($origen->getConvocatorias() as $convocatoria) {
+            $copia->addConvocatoria($convocatoria);
+        }
         foreach ($origen->getAlumnos() as $alumno) {
             $copia->addAlumno($alumno);
         }

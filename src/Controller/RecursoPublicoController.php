@@ -8,6 +8,7 @@ use App\Repository\ExamenConvocatoriaRepository;
 use App\Repository\TemaRepository;
 use App\Repository\TemaMunicipalRepository;
 use App\Repository\MunicipioRepository;
+use App\Entity\RecursoEspecifico;
 use App\Repository\RecursoEspecificoRepository;
 use App\Repository\ConvocatoriaRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -41,7 +42,9 @@ class RecursoPublicoController extends AbstractController
         // Obtener recursos específicos asignados al usuario
         $recursosEspecificos = [];
         if ($user) {
-            $recursosEspecificos = $recursoEspecificoRepository->findByAlumno($user);
+            $recursosEspecificos = $this->agruparRecursosEspecificos(
+                $recursoEspecificoRepository->findByAlumno($user)
+            );
         }
         
         // Obtener todos los temas activos, ordenados por ID
@@ -102,6 +105,54 @@ class RecursoPublicoController extends AbstractController
             'temasPorMunicipio' => $temasPorMunicipio,
             'temasPorConvocatoria' => $temasPorConvocatoria,
         ]);
+    }
+
+    /**
+     * @param list<RecursoEspecifico> $recursos
+     * @return list<array{nombre: string, descripcion: ?string, profesor: mixed, fecha: ?\DateTimeInterface, recursos: list<RecursoEspecifico>}>
+     */
+    private function agruparRecursosEspecificos(array $recursos): array
+    {
+        $grupos = [];
+        foreach ($recursos as $recurso) {
+            $lote = $recurso->getLote();
+            $clave = ($lote !== null && $lote !== '') ? 'lote-' . $lote : 'recurso-' . $recurso->getId();
+            $grupos[$clave][] = $recurso;
+        }
+
+        $resultado = [];
+        foreach ($grupos as $items) {
+            usort($items, static fn (RecursoEspecifico $a, RecursoEspecifico $b): int => ($a->getId() ?? 0) <=> ($b->getId() ?? 0));
+            $primero = $items[0];
+            $resultado[] = [
+                'nombre' => $this->nombreVisibleDelGrupo($items),
+                'descripcion' => $primero->getDescripcion(),
+                'profesor' => $primero->getProfesor(),
+                'fecha' => $primero->getFechaCreacion(),
+                'recursos' => $items,
+            ];
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * @param list<RecursoEspecifico> $recursos
+     */
+    private function nombreVisibleDelGrupo(array $recursos): string
+    {
+        $nombre = $recursos[0]->getNombre() ?? '';
+        if (count($recursos) < 2) {
+            return $nombre;
+        }
+
+        $separador = ' — ';
+        $posicion = strpos($nombre, $separador);
+        if ($posicion === false) {
+            return $nombre;
+        }
+
+        return substr($nombre, 0, $posicion);
     }
 }
 
