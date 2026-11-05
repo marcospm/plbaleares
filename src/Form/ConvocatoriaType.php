@@ -49,24 +49,28 @@ class ConvocatoriaType extends AbstractType
             ])
             ->add('fechaInscripcion', DateType::class, [
                 'label' => 'Inscripción',
+                'help' => 'Último día para inscribirse',
                 'widget' => 'single_text',
                 'required' => false,
                 'attr' => ['class' => 'form-control'],
             ])
             ->add('fechaTeorico', DateType::class, [
                 'label' => 'Teórico',
+                'help' => 'Día de la prueba',
                 'widget' => 'single_text',
                 'required' => false,
                 'attr' => ['class' => 'form-control'],
             ])
             ->add('fechaFisicas', DateType::class, [
                 'label' => 'Físicas',
+                'help' => 'Día de la prueba',
                 'widget' => 'single_text',
                 'required' => false,
                 'attr' => ['class' => 'form-control'],
             ])
             ->add('fechaPsicotecnico', DateType::class, [
                 'label' => 'Psicotécnico',
+                'help' => 'Día de la prueba',
                 'widget' => 'single_text',
                 'required' => false,
                 'attr' => ['class' => 'form-control'],
