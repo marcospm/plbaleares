@@ -266,6 +266,7 @@ class PreguntaRepository extends ServiceEntityRepository
             ->leftJoin('p.articulo', 'a')
             ->addSelect('a')
             ->where('p.activo = :activo')
+            ->andWhere('t.activo = :activo')
             ->andWhere('t.id IN (:temaIds)')
             ->andWhere('p.texto IS NOT NULL')
             ->andWhere('p.texto != :vacio')

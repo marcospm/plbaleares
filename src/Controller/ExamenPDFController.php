@@ -48,7 +48,7 @@ class ExamenPDFController extends AbstractController
             return $b->getFechaSubida() <=> $a->getFechaSubida();
         });
         
-        $temas = $temaRepository->findAll();
+        $temas = $temaRepository->findBy(['activo' => true], ['id' => 'ASC']);
         
         return $this->render('examen_pdf/index.html.twig', [
             'examenes' => $examenes,

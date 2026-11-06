@@ -301,10 +301,11 @@
         {% endif %}
     {% endif %}
 
-    {% if ley.temas|length > 0 %}
+    {% set temasActivos = ley.temas|filter(tema => tema.activo) %}
+    {% if temasActivos|length > 0 %}
         <h2 class="section-title">📚 Temas Relacionados</h2>
         <div class="row">
-            {% for tema in ley.temas %}
+            {% for tema in temasActivos %}
                 <div class="col-md-6 mb-3">
                     <div class="card">
                         <div class="card-body">

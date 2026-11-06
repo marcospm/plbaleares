@@ -49,6 +49,14 @@
             font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
             font-size: 0.9rem;
         }
+        .temas-aleatorios-lista {
+            max-height: 280px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0.75rem 1rem;
+            background: #fff;
+        }
     </style>
 {% endblock %}
 
@@ -61,8 +69,8 @@
         <div class="alert alert-info">
             <strong>Cómo funciona:</strong>
             <ol class="mb-0">
-                <li>Elige el municipio. El tema se limita a los de ese municipio. La dificultad se aplica a las 20 preguntas.</li>
-                <li>No hace falta elegir artículo. La respuesta indica el artículo en cada bloque y el enunciado cita el municipio, el tema y ese artículo.</li>
+                <li>Elige el municipio. Luego un tema, o varios de ese municipio para repartir las preguntas al azar. La dificultad se aplica a las 20 preguntas.</li>
+                <li>No hace falta elegir artículo. La respuesta indica el artículo en cada bloque. Si el prompt es de varios temas, también indica el tema de cada pregunta, y cada una se guarda en el suyo.</li>
                 <li>Copia el prompt, pégalo en el chat y, debajo de <strong>CONTENIDO:</strong>, pega el texto. Como máximo, 20 preguntas.</li>
             </ol>
         </div>
@@ -82,6 +90,24 @@
                         <input type="hidden" name="municipio" id="municipio-value" required>
                     </div>
                 </div>
+            </div>
+
+            <div class="mb-3">
+                <span class="form-label d-block">Temas</span>
+                <div class="d-flex gap-4 flex-wrap">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="modo" id="modo-unico" value="unico" checked>
+                        <label class="form-check-label" for="modo-unico">Un tema</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="modo" id="modo-aleatorio" value="aleatorio">
+                        <label class="form-check-label" for="modo-aleatorio">Varios temas, al azar</label>
+                    </div>
+                </div>
+                <small class="text-muted" id="modo-ayuda">El prompt se centra en el tema que elijas de este municipio.</small>
+            </div>
+
+            <div class="row mb-3" id="fila-tema-unico">
                 <div class="col-md-6">
                     <label class="form-label">Tema municipal <span class="text-danger">*</span></label>
                     <div class="searchable-select" id="tema-select-container">
@@ -92,6 +118,19 @@
                         </div>
                         <input type="hidden" name="tema_municipal" id="tema-value" required>
                     </div>
+                </div>
+            </div>
+
+            <div class="mb-3" id="fila-temas-aleatorios" style="display: none;">
+                <label class="form-label">Temas del sorteo <span class="text-danger">*</span></label>
+                <p class="text-muted mb-2">Marca los temas de este municipio entre los que se repartirán las preguntas. Cada pregunta saldrá de uno de ellos, al azar.</p>
+                <div class="d-flex gap-2 mb-2 flex-wrap">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="temas-aleatorio-todos">Marcar todos</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="temas-aleatorio-ninguno">Quitar todos</button>
+                </div>
+                <input type="search" class="form-control mb-2" id="temas-aleatorio-buscar" placeholder="Buscar tema...">
+                <div class="temas-aleatorios-lista" id="temas-aleatorio-lista">
+                    <p class="text-muted mb-0" id="temas-aleatorio-vacio">Primero selecciona un municipio.</p>
                 </div>
             </div>
 
@@ -136,24 +175,71 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    let temasActuales = [];
+
+    function ordenarTemas(temas) {
+        return temas.slice().sort(function(a, b) {
+            return String(a.nombre).localeCompare(String(b.nombre), 'es', { numeric: true, sensitivity: 'base' });
+        });
+    }
+
+    function modoAleatorio() {
+        return document.getElementById('modo-aleatorio').checked;
+    }
+
+    function pintarTemasAleatorios(temas) {
+        const lista = document.getElementById('temas-aleatorio-lista');
+        lista.innerHTML = '';
+        if (!temas.length) {
+            lista.innerHTML = '<p class="text-muted mb-0">Este municipio no tiene temas.</p>';
+            return;
+        }
+        const aleatorio = modoAleatorio();
+        temas.forEach(function(tema) {
+            const item = document.createElement('div');
+            item.className = 'form-check mb-2 tema-aleatorio-item';
+            item.setAttribute('data-text', tema.nombre);
+            const casilla = document.createElement('input');
+            casilla.className = 'form-check-input tema-aleatorio-check';
+            casilla.type = 'checkbox';
+            casilla.name = 'temas[]';
+            casilla.value = String(tema.id);
+            casilla.id = 'tema-aleatorio-' + tema.id;
+            casilla.disabled = !aleatorio;
+            const etiqueta = document.createElement('label');
+            etiqueta.className = 'form-check-label';
+            etiqueta.htmlFor = casilla.id;
+            etiqueta.textContent = tema.nombre;
+            item.appendChild(casilla);
+            item.appendChild(etiqueta);
+            lista.appendChild(item);
+        });
+    }
+
     function loadTemas(municipioId) {
         const temaDisplay = document.getElementById('tema-display');
         const temaValue = document.getElementById('tema-value');
         const temaOptions = document.getElementById('tema-options');
 
         temaValue.value = '';
+        temasActuales = [];
+        document.getElementById('temas-aleatorio-buscar').value = '';
         if (!municipioId) {
             temaDisplay.textContent = 'Primero selecciona un municipio';
             temaOptions.innerHTML = '<div class="select-option" style="color: #999; cursor: default;">Primero selecciona un municipio</div>';
+            document.getElementById('temas-aleatorio-lista').innerHTML = '<p class="text-muted mb-0">Primero selecciona un municipio.</p>';
             return;
         }
 
         temaDisplay.textContent = 'Cargando...';
+        document.getElementById('temas-aleatorio-lista').innerHTML = '<p class="text-muted mb-0">Cargando...</p>';
         fetch('/pregunta-municipal/api/temas-por-municipio/' + municipioId)
             .then(response => response.json())
             .then(data => {
-                const temas = data.temas || [];
+                const temas = ordenarTemas(data.temas || []);
+                temasActuales = temas;
                 temaOptions.innerHTML = '';
+                pintarTemasAleatorios(temas);
                 if (temas.length === 0) {
                     temaDisplay.textContent = 'Este municipio no tiene temas';
                     return;
@@ -179,6 +265,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(() => {
                 temaDisplay.textContent = 'Error al cargar los temas';
+                document.getElementById('temas-aleatorio-lista').innerHTML = '<p class="text-muted mb-0">Error al cargar los temas.</p>';
             });
     }
 
@@ -246,20 +333,97 @@ document.addEventListener('DOMContentLoaded', function() {
     initSearchableSelect('municipio-select-container', 'municipio-display', 'municipio-search', 'municipio-options', 'municipio-value');
     initSearchableSelect('tema-select-container', 'tema-display', 'tema-search', 'tema-options', 'tema-value');
 
+    function aplicarModo() {
+        const aleatorio = modoAleatorio();
+        document.getElementById('fila-tema-unico').style.display = aleatorio ? 'none' : '';
+        document.getElementById('fila-temas-aleatorios').style.display = aleatorio ? 'block' : 'none';
+        document.getElementById('tema-value').required = !aleatorio;
+        document.querySelectorAll('.tema-aleatorio-check').forEach(function(casilla) {
+            casilla.disabled = !aleatorio;
+        });
+        document.getElementById('modo-ayuda').textContent = aleatorio
+            ? 'Marca los temas de este municipio. Cada pregunta saldrá de uno de ellos, al azar.'
+            : 'El prompt se centra en el tema que elijas de este municipio.';
+    }
+
+    document.querySelectorAll('input[name="modo"]').forEach(function(radio) {
+        radio.addEventListener('change', aplicarModo);
+    });
+
+    const buscarTemas = document.getElementById('temas-aleatorio-buscar');
+    buscarTemas.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+        }
+    });
+    buscarTemas.addEventListener('input', function() {
+        const consulta = buscarTemas.value.trim().toLowerCase();
+        document.querySelectorAll('.tema-aleatorio-item').forEach(function(item) {
+            const texto = (item.getAttribute('data-text') || '').toLowerCase();
+            item.style.display = texto.includes(consulta) ? '' : 'none';
+        });
+    });
+    document.getElementById('temas-aleatorio-todos').addEventListener('click', function() {
+        document.querySelectorAll('.tema-aleatorio-check').forEach(function(casilla) {
+            casilla.checked = true;
+        });
+    });
+    document.getElementById('temas-aleatorio-ninguno').addEventListener('click', function() {
+        document.querySelectorAll('.tema-aleatorio-check').forEach(function(casilla) {
+            casilla.checked = false;
+        });
+    });
+
+    function textoDificultad() {
+        const dificultadSelect = document.getElementById('dificultad');
+        if (!dificultadSelect.value) {
+            return '';
+        }
+        return dificultadSelect.options[dificultadSelect.selectedIndex].text;
+    }
+
+    function temasMarcados() {
+        const porId = {};
+        temasActuales.forEach(function(tema) {
+            porId[String(tema.id)] = tema;
+        });
+        return ordenarTemas(Array.from(document.querySelectorAll('.tema-aleatorio-check:checked')).map(function(casilla) {
+            return porId[casilla.value];
+        }).filter(Boolean));
+    }
+
     function seleccionValida() {
         const municipio = document.getElementById('municipio-value').value;
-        const tema = document.getElementById('tema-value').value;
-        const dificultad = document.getElementById('dificultad').value;
-        if (!municipio || !tema || !dificultad) {
-            alert('Elige municipio, tema municipal y dificultad antes de continuar.');
+        const dificultad = textoDificultad();
+        if (!municipio) {
+            alert('Elige el municipio antes de continuar.');
             return null;
         }
-        const dificultadSelect = document.getElementById('dificultad');
-        return {
+        if (!dificultad) {
+            alert('Elige la dificultad antes de continuar.');
+            return null;
+        }
+        const datos = {
             municipio: document.getElementById('municipio-display').textContent.trim(),
-            tema: document.getElementById('tema-display').textContent.trim(),
-            dificultad: dificultadSelect.options[dificultadSelect.selectedIndex].text
+            dificultad: dificultad
         };
+        if (modoAleatorio()) {
+            const temas = temasMarcados();
+            if (temas.length < 2) {
+                alert('Marca al menos dos temas. Las preguntas se repartirán al azar entre ellos.');
+                return null;
+            }
+            datos.aleatorio = true;
+            datos.temas = temas;
+            return datos;
+        }
+        if (!document.getElementById('tema-value').value) {
+            alert('Elige el tema municipal antes de continuar.');
+            return null;
+        }
+        datos.aleatorio = false;
+        datos.tema = document.getElementById('tema-display').textContent.trim();
+        return datos;
     }
 
     function construirPrompt(datos) {
@@ -298,12 +462,60 @@ document.addEventListener('DOMContentLoaded', function() {
         ].join('\n');
     }
 
+    function construirPromptAleatorio(datos) {
+        const lineasTemas = datos.temas.map(function(tema) {
+            return '- ' + tema.nombre;
+        });
+        const ejemplo = datos.temas[0].nombre;
+        return [
+            'Eres un preparador de oposiciones de policía local en Baleares. Genera exactamente 20 preguntas tipo test, en español, solo con el contenido municipal que pegue debajo de CONTENIDO. No inventes datos que no estén en ese texto.',
+            '',
+            'Municipio: ' + datos.municipio,
+            '',
+            'No hagas las 20 preguntas de un solo tema. Cada pregunta es de uno de estos temas del municipio, elegido al azar. Reparte el bloque entre ellos: tienen que salir temas distintos.',
+            '',
+            'Temas (usa el nombre exacto):',
+            ...lineasTemas,
+            '',
+            'Dificultad: ' + datos.dificultad,
+            '',
+            'Reglas:',
+            '- Una sola respuesta correcta. La letra de la opción correcta tiene que variar de una pregunta a otra: no puede ser siempre la misma. A lo largo del bloque deben aparecer A, B, C y D. Las otras tres opciones tienen que ser plausibles.',
+            '- Cada pregunta lleva la línea TEMA con el nombre exacto de uno de los temas de la lista.',
+            '- Reparte las preguntas al azar entre los temas de la lista. No concentres el bloque en un único tema.',
+            '- Cada enunciado es una pregunta tipo test y cita siempre el municipio, el tema y el artículo. Nombra el municipio y el tema exactamente como aparecen arriba, y el número del artículo.',
+            '- La línea ARTICULO lleva el número del artículo tal como está en el texto (14 o 14 bis). Es el mismo artículo que cita el enunciado. No inventes artículos que no estén en el contenido.',
+            '- La explicación cita el fragmento del que sale la respuesta.',
+            '- Responde solo con los bloques, sin introducción ni markdown.',
+            '- Si el contenido no da para 20, devuelve las que salgan y dilo en una línea al final, fuera de los bloques.',
+            '- Si después escribo «continúa», genera otras 20 distintas, del mismo contenido, repartidas otra vez al azar entre esos temas, en el mismo formato.',
+            '',
+            'Formato de cada pregunta:',
+            '',
+            '---',
+            'TEMA: ' + ejemplo,
+            'ARTICULO: 14',
+            'PREGUNTA: Según ' + ejemplo + ', del municipio de ' + datos.municipio + ', el artículo 14, ¿qué establece?',
+            'A: opcion',
+            'B: opcion',
+            'C: opcion',
+            'D: opcion',
+            'CORRECTA: B',
+            'EXPLICACION: por qué, citando el texto',
+            '---',
+            '',
+            'La B de CORRECTA en el ejemplo es solo el formato. En las preguntas reales cambia la letra. El TEMA de cada pregunta tiene que ir cambiando entre los de la lista.',
+            '',
+            'CONTENIDO:'
+        ].join('\n');
+    }
+
     document.getElementById('copiar-prompt').addEventListener('click', function() {
         const datos = seleccionValida();
         if (!datos) {
             return;
         }
-        const prompt = construirPrompt(datos);
+        const prompt = datos.aleatorio ? construirPromptAleatorio(datos) : construirPrompt(datos);
         const aviso = document.getElementById('prompt-copiado');
         const mostrar = function() {
             aviso.style.display = 'inline';
@@ -315,6 +527,19 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         window.prompt('Copia este prompt:', prompt);
+    });
+
+    aplicarModo();
+
+    document.getElementById('pegar-form').addEventListener('submit', function(e) {
+        if (!seleccionValida()) {
+            e.preventDefault();
+            return;
+        }
+        if (!document.getElementById('bloque').value.trim()) {
+            e.preventDefault();
+            alert('Pega la respuesta.');
+        }
     });
 });
 </script>

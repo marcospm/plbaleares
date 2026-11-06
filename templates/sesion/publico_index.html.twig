@@ -508,12 +508,14 @@
                         </div>
                         
                         <div class="sesion-badges">
-                            {% if sesion.temas|length > 0 %}
-                                {% for tema in sesion.temas %}
+                            {% set temasActivos = sesion.temas|filter(tema => tema.activo) %}
+                            {% set temasMunicipalesActivos = sesion.temasMunicipales|filter(tema => tema.activo) %}
+                            {% if temasActivos|length > 0 %}
+                                {% for tema in temasActivos %}
                                     <span class="badge bg-success sesion-badge">{{ tema.nombre }}</span>
                                 {% endfor %}
-                            {% elseif sesion.temasMunicipales|length > 0 %}
-                                {% for temaMunicipal in sesion.temasMunicipales %}
+                            {% elseif temasMunicipalesActivos|length > 0 %}
+                                {% for temaMunicipal in temasMunicipalesActivos %}
                                     <span class="badge bg-warning sesion-badge">{{ temaMunicipal.nombre }}</span>
                                 {% endfor %}
                             {% endif %}

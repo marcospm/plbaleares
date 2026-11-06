@@ -96,7 +96,7 @@ class PreguntaMunicipalController extends AbstractController
                 $temasMunicipales = $temaMunicipalRepository->findByMunicipio($municipio);
             }
         } else {
-            $temasMunicipales = $temaMunicipalRepository->findAll();
+            $temasMunicipales = $temaMunicipalRepository->findBy(['activo' => true], ['nombre' => 'ASC']);
         }
 
         return $this->render('pregunta_municipal/index.html.twig', [
@@ -358,6 +358,10 @@ class PreguntaMunicipalController extends AbstractController
         TemaMunicipalRepository $temaMunicipalRepository,
         BloquePreguntasParser $parser
     ): Response {
+        if ((string) $request->request->get('modo', 'unico') === 'aleatorio') {
+            return $this->procesarPegarAleatorio($request, $municipioRepository, $temaMunicipalRepository, $parser);
+        }
+
         $municipioId = $request->request->getInt('municipio', 0);
         $temaMunicipalId = $request->request->getInt('tema_municipal', 0);
         $dificultad = (string) $request->request->get('dificultad', '');
@@ -719,9 +723,19 @@ class PreguntaMunicipalController extends AbstractController
                     $pregunta->setOpcionD($preguntaData['opcionD']);
                     $pregunta->setRespuestaCorrecta($preguntaData['respuestaCorrecta']);
                     $pregunta->setRetroalimentacion($preguntaData['retroalimentacion'] ?: null);
+                    $temaPregunta = $temaMunicipal;
+                    if (!empty($preguntaData['temaMunicipalId'])) {
+                        $temaAsignado = $temaMunicipalRepository->find((int) $preguntaData['temaMunicipalId']);
+                        if (!$temaAsignado || $temaAsignado->getMunicipio()?->getId() !== $municipio->getId()) {
+                            $errores[] = 'Línea ' . ($preguntaData['linea'] ?? '?') . ': el tema municipal de la pregunta no es válido.';
+                            continue;
+                        }
+                        $temaPregunta = $temaAsignado;
+                    }
+
                     $pregunta->setDificultad($dificultad);
                     $pregunta->setMunicipio($municipio);
-                    $pregunta->setTemaMunicipal($temaMunicipal);
+                    $pregunta->setTemaMunicipal($temaPregunta);
                     
                     // Solo establecer activo si es nueva pregunta
                     if (!$esActualizacion) {
@@ -1119,6 +1133,150 @@ class PreguntaMunicipalController extends AbstractController
         }
 
         return $this->redirectToRoute('app_pregunta_municipal_index');
+    }
+
+    private function procesarPegarAleatorio(
+        Request $request,
+        MunicipioRepository $municipioRepository,
+        TemaMunicipalRepository $temaMunicipalRepository,
+        BloquePreguntasParser $parser
+    ): Response {
+        $municipioId = $request->request->getInt('municipio', 0);
+        $dificultad = (string) $request->request->get('dificultad', '');
+        $bloque = (string) $request->request->get('bloque', '');
+        $crudo = $request->request->all()['temas'] ?? [];
+        $ids = [];
+        if (is_array($crudo)) {
+            foreach ($crudo as $id) {
+                $id = (int) $id;
+                if ($id > 0) {
+                    $ids[$id] = $id;
+                }
+            }
+        }
+        $ids = array_values($ids);
+
+        if ($municipioId <= 0 || count($ids) < 2 || !in_array($dificultad, ['facil', 'moderada', 'dificil', 'indeterminado'], true)) {
+            $this->addFlash('error', 'Elige el municipio, al menos dos temas y la dificultad.');
+
+            return $this->redirectToRoute('app_pregunta_municipal_pegar');
+        }
+
+        $municipio = $municipioRepository->find($municipioId);
+        if (!$municipio) {
+            $this->addFlash('error', 'El municipio seleccionado no es válido.');
+
+            return $this->redirectToRoute('app_pregunta_municipal_pegar');
+        }
+
+        $temas = $temaMunicipalRepository->createQueryBuilder('t')
+            ->where('t.id IN (:ids)')
+            ->andWhere('t.municipio = :municipio')
+            ->andWhere('t.activo = :activo')
+            ->setParameter('ids', $ids)
+            ->setParameter('municipio', $municipio)
+            ->setParameter('activo', true)
+            ->getQuery()
+            ->getResult();
+
+        $temasPorId = [];
+        foreach ($temas as $tema) {
+            $temasPorId[$tema->getId()] = $tema;
+        }
+        if (count($temasPorId) !== count($ids)) {
+            $this->addFlash('error', 'Alguno de los temas no pertenece a ese municipio.');
+
+            return $this->redirectToRoute('app_pregunta_municipal_pegar');
+        }
+
+        $porNombre = [];
+        foreach ($ids as $id) {
+            $tema = $temasPorId[$id];
+            $clave = $this->normalizarTexto((string) $tema->getNombre());
+            if ($clave === '' || isset($porNombre[$clave])) {
+                $this->addFlash('error', 'Hay temas con el mismo nombre y no se puede saber a cuál pertenece cada pregunta.');
+
+                return $this->redirectToRoute('app_pregunta_municipal_pegar');
+            }
+            $porNombre[$clave] = $tema;
+        }
+
+        $resultado = $parser->parsear($bloque);
+        if ($resultado['errores'] !== []) {
+            $mensajeErrores = implode("\n", array_slice($resultado['errores'], 0, 10));
+            if (count($resultado['errores']) > 10) {
+                $mensajeErrores .= "\n... y " . (count($resultado['errores']) - 10) . ' errores más.';
+            }
+            $this->addFlash('error', "No se pudo leer el bloque:\n" . $mensajeErrores);
+
+            return $this->redirectToRoute('app_pregunta_municipal_pegar');
+        }
+
+        $preguntas = $resultado['preguntas'];
+        $erroresCita = [];
+        foreach ($preguntas as $indice => $pregunta) {
+            $tema = $porNombre[$this->normalizarTexto((string) ($pregunta['tema'] ?? ''))] ?? null;
+            if (!$tema) {
+                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el tema «' . trim((string) ($pregunta['tema'] ?? '')) . '» no está entre los elegidos.';
+                continue;
+            }
+            $articulo = $this->numeroYSufijo((string) $pregunta['articulo']);
+            if ($articulo === null) {
+                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el artículo «' . $pregunta['articulo'] . '» no tiene un número válido.';
+                continue;
+            }
+            if (!$this->enunciadoCitaArticulo($pregunta['texto'], $articulo['numero'], $articulo['sufijo'])) {
+                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el artículo ' . trim($articulo['numero'] . ' ' . $articulo['sufijo']) . '.';
+                continue;
+            }
+            if (!$this->enunciadoCitaTexto($pregunta['texto'], (string) $municipio->getNombre())) {
+                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el municipio «' . $municipio->getNombre() . '».';
+                continue;
+            }
+            if (!$this->enunciadoCitaTexto($pregunta['texto'], (string) $tema->getNombre())) {
+                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el tema «' . $tema->getNombre() . '».';
+                continue;
+            }
+            $pregunta['temaMunicipalId'] = $tema->getId();
+            $pregunta['temaNombre'] = (string) $tema->getNombre();
+            $preguntas[$indice] = $pregunta;
+        }
+
+        if ($erroresCita !== []) {
+            $mensajeErrores = implode("\n", array_slice($erroresCita, 0, 10));
+            if (count($erroresCita) > 10) {
+                $mensajeErrores .= "\n... y " . (count($erroresCita) - 10) . ' errores más.';
+            }
+            $this->addFlash('error', "No se pudo asignar el tema:\n" . $mensajeErrores);
+
+            return $this->redirectToRoute('app_pregunta_municipal_pegar');
+        }
+
+        $nombresTemas = [];
+        foreach ($temasPorId as $tema) {
+            $nombresTemas[] = (string) $tema->getNombre();
+        }
+        usort($nombresTemas, static fn (string $a, string $b): int => strnatcasecmp($a, $b));
+
+        $primera = $preguntas[0];
+        $session = $request->getSession();
+        $session->set('preguntas_municipal_csv', $preguntas);
+        $session->set('preguntas_municipal_csv_municipio', $municipioId);
+        $session->set('preguntas_municipal_csv_tema', $primera['temaMunicipalId']);
+        $session->set('preguntas_municipal_csv_dificultad', $dificultad);
+        $session->set('preguntas_municipal_csv_origen', 'pegar');
+
+        return $this->render('pregunta_municipal/preview_csv.html.twig', [
+            'preguntas' => $preguntas,
+            'municipio' => $municipio,
+            'temaMunicipal' => $temasPorId[$primera['temaMunicipalId']],
+            'temasAleatorios' => true,
+            'nombresTemas' => $nombresTemas,
+            'dificultad' => $dificultad,
+            'total' => count($preguntas),
+            'volver' => 'app_pregunta_municipal_pegar',
+            'titulo' => 'Previsualizar preguntas pegadas',
+        ]);
     }
 
     /**

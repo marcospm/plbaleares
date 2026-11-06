@@ -29,19 +29,39 @@ class TemaController extends AbstractController
     #[Route('/', name: 'app_tema_index', methods: ['GET'])]
     public function index(TemaRepository $temaRepository, Request $request): Response
     {
-        $search = $request->query->get('search', '');
-        $temas = $temaRepository->findAll();
+        $search = trim((string) $request->query->get('search', ''));
+        $estado = (string) $request->query->get('estado', 'activas');
+        if (!in_array($estado, ['activas', 'inactivas', 'todas'], true)) {
+            $estado = 'activas';
+        }
 
-        if (!empty($search)) {
-            $temas = array_filter($temas, function($tema) use ($search) {
-                return stripos($tema->getNombre(), $search) !== false ||
-                       stripos($tema->getDescripcion() ?? '', $search) !== false;
-            });
+        $qb = $temaRepository->createQueryBuilder('t')
+            ->orderBy('t.id', 'ASC');
+
+        if ($search !== '') {
+            $qb->andWhere('(t.nombre LIKE :search OR t.descripcion LIKE :search)')
+                ->setParameter('search', '%' . $search . '%');
+        }
+
+        if ($estado === 'activas') {
+            $qb->andWhere('t.activo = :activo')->setParameter('activo', true);
+        } elseif ($estado === 'inactivas') {
+            $qb->andWhere('t.activo = :activo')->setParameter('activo', false);
+        }
+
+        $temas = $qb->getQuery()->getResult();
+        $pdfIds = [];
+        foreach ($temas as $tema) {
+            if ($this->pdfDisponible($tema->getRutaPdf())) {
+                $pdfIds[] = $tema->getId();
+            }
         }
 
         return $this->render('tema/index.html.twig', [
             'temas' => $temas,
             'search' => $search,
+            'estado' => $estado,
+            'pdfIds' => $pdfIds,
         ]);
     }
 
@@ -208,11 +228,21 @@ class TemaController extends AbstractController
             $tema->setActivo(!$tema->isActivo());
             $entityManager->flush();
 
-            $estado = $tema->isActivo() ? 'activado' : 'desactivado';
-            $this->addFlash('success', "El tema '{$tema->getNombre()}' ha sido {$estado} correctamente.");
+            $estadoTema = $tema->isActivo() ? 'activado' : 'desactivado';
+            $this->addFlash('success', "El tema '{$tema->getNombre()}' ha sido {$estadoTema} correctamente.");
         }
 
-        return $this->redirectToRoute('app_tema_index', [], Response::HTTP_SEE_OTHER);
+        $estado = (string) $request->request->get('estado', 'activas');
+        if (!in_array($estado, ['activas', 'inactivas', 'todas'], true)) {
+            $estado = 'activas';
+        }
+        $search = trim((string) $request->request->get('search', ''));
+        $filtros = ['estado' => $estado];
+        if ($search !== '') {
+            $filtros['search'] = $search;
+        }
+
+        return $this->redirectToRoute('app_tema_index', $filtros, Response::HTTP_SEE_OTHER);
     }
 
     #[Route('/{id}', name: 'app_tema_delete', methods: ['POST'])]
@@ -225,6 +255,28 @@ class TemaController extends AbstractController
         }
 
         return $this->redirectToRoute('app_tema_index', [], Response::HTTP_SEE_OTHER);
+    }
+
+    private function pdfDisponible(?string $rutaPdf): bool
+    {
+        if (!$rutaPdf) {
+            return false;
+        }
+
+        $publicDir = realpath($this->kernel->getProjectDir() . '/public');
+        if (!$publicDir) {
+            return false;
+        }
+
+        $real = realpath($publicDir . DIRECTORY_SEPARATOR . ltrim(str_replace('\\', '/', $rutaPdf), '/'));
+        if (!$real) {
+            return false;
+        }
+
+        $publicNorm = strtolower(str_replace('\\', '/', $publicDir));
+        $realNorm = strtolower(str_replace('\\', '/', $real));
+
+        return str_starts_with($realNorm, $publicNorm . '/') && is_file($real) && is_readable($real);
     }
 
     private function aplicarTituloPdf(string $rutaAbsoluta, ?string $titulo): void

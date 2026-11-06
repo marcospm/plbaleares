@@ -66,7 +66,7 @@
             </div>
             <div class="mb-3">
                 <strong>Temas Municipales:</strong>
-                {% for temaMunicipal in examenSemanal.temasMunicipales %}
+                {% for temaMunicipal in examenSemanal.temasMunicipales|filter(tema => tema.activo) %}
                     <span class="badge badge-facil">{{ temaMunicipal.nombre }}</span>
                 {% endfor %}
             </div>
@@ -75,7 +75,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     <div>
                         <strong>Temas:</strong>
-                        {% for tema in examenSemanal.temas %}
+                        {% for tema in examenSemanal.temas|filter(tema => tema.activo) %}
                             <span class="badge badge-facil">{{ tema.nombre }}</span>
                         {% endfor %}
                     </div>

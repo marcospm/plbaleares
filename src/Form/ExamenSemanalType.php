@@ -120,6 +120,12 @@ class ExamenSemanalType extends AbstractType
                     'expanded' => false,
                     'required' => false,
                     'label' => 'Temas del Temario General',
+                    'query_builder' => function ($er) {
+                        return $er->createQueryBuilder('t')
+                            ->andWhere('t.activo = :activo')
+                            ->setParameter('activo', true)
+                            ->orderBy('t.id', 'ASC');
+                    },
                     'attr' => ['class' => 'form-control'],
                     'help' => 'Selecciona los temas para crear un examen del temario general (obligatorio si creas examen de 30 temas)'
                 ])

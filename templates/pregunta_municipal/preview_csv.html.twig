@@ -12,7 +12,11 @@
             <h5>Información de las preguntas:</h5>
             <ul class="mb-0">
                 <li><strong>Municipio:</strong> {{ municipio.nombre }}</li>
-                <li><strong>Tema Municipal:</strong> {{ temaMunicipal.nombre }}</li>
+                {% if temasAleatorios|default(false) %}
+                    <li><strong>Temas municipales:</strong> {{ nombresTemas|join(', ') }}. Cada pregunta indica el suyo.</li>
+                {% else %}
+                    <li><strong>Tema Municipal:</strong> {{ temaMunicipal.nombre }}</li>
+                {% endif %}
                 <li><strong>Dificultad:</strong> 
                     {% if dificultad == 'facil' %}Fácil
                     {% elseif dificultad == 'moderada' %}Moderada
@@ -51,6 +55,9 @@
                                 </h6>
                                 <small class="text-muted">Línea {{ pregunta.linea }}</small>
                             </div>
+                            {% if pregunta.temaNombre is defined and pregunta.temaNombre %}
+                                <p class="mb-2"><strong>Tema:</strong> {{ pregunta.temaNombre }}</p>
+                            {% endif %}
                             <p class="mb-2"><strong>Texto:</strong> {{ pregunta.texto }}</p>
                             {% if pregunta.articulo is defined and pregunta.articulo %}
                                 <p class="mb-2"><strong>Artículo:</strong> {{ pregunta.articulo }}</p>

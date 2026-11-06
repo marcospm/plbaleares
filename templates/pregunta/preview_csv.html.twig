@@ -11,8 +11,13 @@
         <div class="alert alert-info mb-4">
             <h5>Información de las preguntas:</h5>
             <ul class="mb-0">
-                <li><strong>Tema:</strong> {{ tema.nombre }}</li>
-                <li><strong>Ley:</strong> {{ ley.nombre }}</li>
+                {% if temasAleatorios|default(false) %}
+                    <li><strong>Temas:</strong> {{ nombresTemas|join(', ') }}. Cada pregunta indica el suyo.</li>
+                    <li><strong>Ley:</strong> la que indica cada pregunta</li>
+                {% else %}
+                    <li><strong>Tema:</strong> {{ tema.nombre }}</li>
+                    <li><strong>Ley:</strong> {{ ley.nombre }}</li>
+                {% endif %}
                 {% if articulo %}
                     <li><strong>Artículo:</strong> Art. {{ articulo.getNumeroCompleto() }}{% if articulo.nombre %} - {{ articulo.nombre }}{% endif %}</li>
                 {% elseif articuloIndicado|default(false) %}
@@ -56,6 +61,12 @@
                                 </h6>
                                 <small class="text-muted">Línea {{ pregunta.linea }}</small>
                             </div>
+                            {% if pregunta.temaNombre is defined and pregunta.temaNombre %}
+                                <p class="mb-2"><strong>Tema:</strong> {{ pregunta.temaNombre }}</p>
+                            {% endif %}
+                            {% if pregunta.leyNombre is defined and pregunta.leyNombre %}
+                                <p class="mb-2"><strong>Ley:</strong> {{ pregunta.leyNombre }}</p>
+                            {% endif %}
                             {% if pregunta.articuloLabel is defined and pregunta.articuloLabel %}
                                 <p class="mb-2"><strong>Artículo:</strong> {{ pregunta.articuloLabel }}</p>
                             {% endif %}

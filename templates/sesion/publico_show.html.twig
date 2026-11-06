@@ -77,9 +77,9 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                 <div>
                     <strong>Tipo de Tema:</strong>
-                    {% if sesion.temas|length > 0 %}
+                    {% if sesion.temas|filter(tema => tema.activo)|length > 0 %}
                         <span class="badge bg-success">Tema General</span>
-                    {% elseif sesion.temasMunicipales|length > 0 %}
+                    {% elseif sesion.temasMunicipales|filter(tema => tema.activo)|length > 0 %}
                         <span class="badge bg-warning">Tema Municipal</span>
                     {% endif %}
                 </div>
@@ -87,12 +87,14 @@
                 <div style="grid-column: 1 / -1;">
                     <strong>Temas:</strong>
                     <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
-                        {% if sesion.temas|length > 0 %}
-                            {% for tema in sesion.temas %}
+                        {% set temasActivos = sesion.temas|filter(tema => tema.activo) %}
+                        {% set temasMunicipalesActivos = sesion.temasMunicipales|filter(tema => tema.activo) %}
+                        {% if temasActivos|length > 0 %}
+                            {% for tema in temasActivos %}
                                 <span class="badge bg-primary">{{ tema.nombre }}</span>
                             {% endfor %}
-                        {% elseif sesion.temasMunicipales|length > 0 %}
-                            {% for temaMunicipal in sesion.temasMunicipales %}
+                        {% elseif temasMunicipalesActivos|length > 0 %}
+                            {% for temaMunicipal in temasMunicipalesActivos %}
                                 <span class="badge bg-info">{{ temaMunicipal.nombre }}</span>
                             {% endfor %}
                         {% endif %}

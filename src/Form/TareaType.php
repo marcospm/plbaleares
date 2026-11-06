@@ -13,12 +13,21 @@ use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class TareaType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event): void {
+            $tarea = $event->getData();
+            if ($tarea instanceof Tarea && $tarea->getTema() && !$tarea->getTema()->isActivo()) {
+                $tarea->setTema(null);
+            }
+        });
+
         $builder
             ->add('nombre', TextType::class, [
                 'label' => 'Nombre de la Tarea',
@@ -71,7 +80,13 @@ class TareaType extends AbstractType
                 'choice_label' => 'nombre',
                 'required' => false,
                 'label' => 'Tema relacionado (opcional)',
-                'attr' => ['class' => 'form-control']
+                'attr' => ['class' => 'form-control'],
+                'query_builder' => function ($er) {
+                    return $er->createQueryBuilder('t')
+                        ->andWhere('t.activo = :activo')
+                        ->setParameter('activo', true)
+                        ->orderBy('t.id', 'ASC');
+                },
             ])
             ->add('ley', EntityType::class, [
                 'class' => Ley::class,

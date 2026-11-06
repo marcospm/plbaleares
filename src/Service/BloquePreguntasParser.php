@@ -65,6 +65,8 @@ class BloquePreguntasParser
                 'respuestaCorrecta' => $correcta,
                 'retroalimentacion' => $campos['EXPLICACION'] ?? '',
                 'articulo' => $campos['ARTICULO'],
+                'tema' => $campos['TEMA'] ?? '',
+                'ley' => $campos['LEY'] ?? '',
                 'linea' => $numero,
             ];
         }
@@ -94,7 +96,7 @@ class BloquePreguntasParser
         $tieneEtiqueta = false;
 
         foreach (preg_split('/\n/', $trozo) ?: [] as $linea) {
-            if (preg_match('/^(ARTICULO|PREGUNTA|A|B|C|D|CORRECTA|EXPLICACION)\s*:\s*(.*)$/iu', $linea, $coincidencias)) {
+            if (preg_match('/^(ARTICULO|PREGUNTA|A|B|C|D|CORRECTA|EXPLICACION|TEMA|LEY)\s*:\s*(.*)$/iu', $linea, $coincidencias)) {
                 $tieneEtiqueta = true;
                 $actual = strtoupper($coincidencias[1]);
                 if ($actual === 'PREGUNTA' && isset($campos['PREGUNTA'])) {

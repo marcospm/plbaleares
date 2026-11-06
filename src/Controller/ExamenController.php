@@ -189,6 +189,10 @@ class ExamenController extends AbstractController
                     } else {
                         $temasMunicipalesArray = [$temasMunicipales];
                     }
+                    $temasMunicipalesArray = array_values(array_filter(
+                        $temasMunicipalesArray,
+                        static fn ($tema) => $tema->isActivo()
+                    ));
 
                     if (empty($temasMunicipalesArray)) {
                         $this->addFlash('error', 'Debes seleccionar al menos un tema municipal.');
@@ -252,6 +256,10 @@ class ExamenController extends AbstractController
                     } else {
                         $temasMunicipalesArray = [$temasMunicipales];
                     }
+                    $temasMunicipalesArray = array_values(array_filter(
+                        $temasMunicipalesArray,
+                        static fn ($tema) => $tema->isActivo()
+                    ));
 
                     if (empty($temasMunicipalesArray)) {
                         $this->addFlash('error', 'Debes seleccionar al menos un tema municipal.');
@@ -317,6 +325,10 @@ class ExamenController extends AbstractController
                     } else {
                         $temasArray = [$temas];
                     }
+                    $temasArray = array_values(array_filter(
+                        $temasArray,
+                        static fn ($tema) => $tema->isActivo()
+                    ));
 
                     if (empty($temasArray)) {
                         $this->addFlash('error', 'Debes seleccionar al menos un tema.');
@@ -479,7 +491,7 @@ class ExamenController extends AbstractController
                 
                 $temaMunicipalIds = array_filter(array_map('intval', $submittedData['temasMunicipales']));
                 if (!empty($temaMunicipalIds)) {
-                    $temasMunicipalesEntidades = $this->temaMunicipalRepository->findBy(['id' => $temaMunicipalIds]);
+                    $temasMunicipalesEntidades = $this->temaMunicipalRepository->findBy(['id' => $temaMunicipalIds, 'activo' => true]);
                     if (!empty($temasMunicipalesEntidades)) {
                         $preguntas = $this->preguntaMunicipalRepository->findByTemasMunicipales(
                             $temasMunicipalesEntidades,
@@ -497,7 +509,7 @@ class ExamenController extends AbstractController
                 $temaIds = array_filter(array_map('intval', $submittedData['temas']));
                 if (!empty($temaIds)) {
                     // Cargar las entidades Tema desde los IDs
-                    $temasEntidades = $this->temaRepository->findBy(['id' => $temaIds]);
+                    $temasEntidades = $this->temaRepository->findBy(['id' => $temaIds, 'activo' => true]);
                     if (!empty($temasEntidades)) {
                         // Incluir también preguntas con dificultad "indeterminado"
                         $preguntas = $this->preguntaRepository->createQueryBuilder('p')

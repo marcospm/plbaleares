@@ -6,6 +6,7 @@ use App\Entity\Tema;
 use App\Entity\Ley;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -45,6 +46,10 @@ class TemaType extends AbstractType
                 'required' => false,
                 'label' => 'Leyes relacionadas',
                 'attr' => ['class' => 'form-control']
+            ])
+            ->add('activo', CheckboxType::class, [
+                'label' => 'Activo',
+                'required' => false,
             ])
         ;
     }

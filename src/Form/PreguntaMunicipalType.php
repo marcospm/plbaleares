@@ -11,6 +11,8 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class PreguntaMunicipalType extends AbstractType
@@ -19,6 +21,13 @@ class PreguntaMunicipalType extends AbstractType
     {
         $municipio = $options['municipio'] ?? null;
         $isNew = $options['is_new'] ?? false;
+
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event): void {
+            $pregunta = $event->getData();
+            if ($pregunta instanceof PreguntaMunicipal && $pregunta->getTemaMunicipal() && !$pregunta->getTemaMunicipal()->isActivo()) {
+                $pregunta->setTemaMunicipal(null);
+            }
+        });
 
         $builder
             ->add('texto', TextareaType::class, [

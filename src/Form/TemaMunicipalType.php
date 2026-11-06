@@ -6,6 +6,7 @@ use App\Entity\TemaMunicipal;
 use App\Entity\Municipio;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -38,6 +39,10 @@ class TemaMunicipalType extends AbstractType
                     'accept' => '.pdf'
                 ],
                 'help' => 'Tamaño máximo: 10MB. Solo archivos PDF (extensión .pdf).'
+            ])
+            ->add('activo', CheckboxType::class, [
+                'label' => 'Activo',
+                'required' => false,
             ])
         ;
     }

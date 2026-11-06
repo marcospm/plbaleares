@@ -381,6 +381,15 @@
                     }
                 }
 
+                function textoNotificacion(valor) {
+                    return String(valor ?? '')
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/`/g, '&#96;')
+                        .replace(/\$\{/g, '&#36;{');
+                }
+
                 function cargarNotificacionesDropdown(tipo) {
                     const suffix = tipo === 'alumno' ? '-alumno' : '-profesor';
                     const url = tipo === 'alumno' ? '{{ path('app_notificacion_alumno_no_leidas') }}' : '{{ path('app_notificacion_no_leidas') }}';
@@ -455,14 +464,20 @@
                                     }
                                 }
                                 
+                                let enlace = '';
+                                if (notif.preguntaId) {
+                                    const urlPregunta = '{{ path('app_pregunta_show', {id: 999999}) }}'.replace('999999', notif.preguntaId);
+                                    enlace = `<div style="margin-top: 0.35rem;"><a href="${urlPregunta}" style="font-size: 0.8rem; color: var(--color-primary);">Ver pregunta</a></div>`;
+                                }
                                 html += `
                                     <div style="padding: 0.75rem; border: 1px solid #ddd; border-left: 3px solid ${color}; border-radius: 4px; background-color: #fff;">
                                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
                                             <span style="font-size: 1rem;">${icono}</span>
-                                            <strong style="color: ${color}; font-size: 0.9rem;">${notif.titulo}</strong>
+                                            <strong style="color: ${color}; font-size: 0.9rem;">${textoNotificacion(notif.titulo)}</strong>
                                         </div>
-                                        <p style="margin: 0.25rem 0; color: #666; font-size: 0.85rem; line-height: 1.3;">${notif.mensaje}</p>
-                                        <small style="color: #999; font-size: 0.75rem;">${notif.fechaCreacion}</small>
+                                        <p style="margin: 0.25rem 0; color: #666; font-size: 0.85rem; line-height: 1.3;">${textoNotificacion(notif.mensaje)}</p>
+                                        <small style="color: #999; font-size: 0.75rem;">${textoNotificacion(notif.fechaCreacion)}</small>
+                                        ${enlace}
                                     </div>
                                 `;
                             });

@@ -22,7 +22,7 @@ final class RecursoController extends AbstractController
     {
         $search = $request->query->get('search', '');
         // Obtener todos los temas ordenados por ID (los 30 temas del temario general)
-        $temas = $temaRepository->findBy([], ['id' => 'ASC']);
+        $temas = $temaRepository->findBy(['activo' => true], ['id' => 'ASC']);
 
         if (!empty($search)) {
             $temas = array_filter($temas, function($tema) use ($search) {

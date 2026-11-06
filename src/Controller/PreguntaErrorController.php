@@ -12,6 +12,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -24,7 +25,8 @@ class PreguntaErrorController extends AbstractController
         Pregunta $pregunta,
         Request $request,
         NotificacionService $notificacionService,
-        EntityManagerInterface $entityManager
+        EntityManagerInterface $entityManager,
+        LoggerInterface $logger
     ): JsonResponse {
         // Validar token CSRF
         $token = $request->request->get('_token');
@@ -67,7 +69,10 @@ class PreguntaErrorController extends AbstractController
             try {
                 $notificacionService->crearNotificacionErrorPregunta($pregunta, $alumno, trim($mensajeTexto));
             } catch (\Throwable $e) {
-                error_log('Error al notificar el reporte de pregunta: ' . $e->getMessage());
+                $logger->error('Error al notificar el reporte de pregunta', [
+                    'pregunta_id' => $pregunta->getId(),
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             return new JsonResponse([

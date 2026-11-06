@@ -79,15 +79,17 @@
                 <tr>
                     <th>Temas</th>
                     <td>
-                        {% if sesion.temas|length > 0 %}
+                        {% set temasActivos = sesion.temas|filter(tema => tema.activo) %}
+                        {% set temasMunicipalesActivos = sesion.temasMunicipales|filter(tema => tema.activo) %}
+                        {% if temasActivos|length > 0 %}
                             <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                                {% for tema in sesion.temas %}
+                                {% for tema in temasActivos %}
                                     <span class="badge bg-primary">{{ tema.nombre }}</span>
                                 {% endfor %}
                             </div>
-                        {% elseif sesion.temasMunicipales|length > 0 %}
+                        {% elseif temasMunicipalesActivos|length > 0 %}
                             <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                                {% for temaMunicipal in sesion.temasMunicipales %}
+                                {% for temaMunicipal in temasMunicipalesActivos %}
                                     <span class="badge bg-info">{{ temaMunicipal.nombre }}</span>
                                 {% endfor %}
                             </div>

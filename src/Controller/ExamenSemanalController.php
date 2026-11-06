@@ -1692,7 +1692,10 @@ class ExamenSemanalController extends AbstractController
 
         if ($esMunicipal) {
             // Obtener preguntas municipales
-            $temasMunicipales = $examenSemanal->getTemasMunicipales()->toArray();
+            $temasMunicipales = array_values(array_filter(
+                $examenSemanal->getTemasMunicipales()->toArray(),
+                static fn ($tema) => $tema->isActivo()
+            ));
             if (!empty($temasMunicipales)) {
                 $preguntas = $this->preguntaMunicipalRepository->findByTemasMunicipales(
                     $temasMunicipales,
@@ -1701,7 +1704,10 @@ class ExamenSemanalController extends AbstractController
             }
         } else {
             // Obtener preguntas generales
-            $temas = $examenSemanal->getTemas()->toArray();
+            $temas = array_values(array_filter(
+                $examenSemanal->getTemas()->toArray(),
+                static fn ($tema) => $tema->isActivo()
+            ));
             if (!empty($temas)) {
                 // Incluir también preguntas con dificultad "indeterminado"
                 $preguntas = $this->preguntaRepository->createQueryBuilder('p')

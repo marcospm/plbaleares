@@ -164,8 +164,7 @@ class ExamenPlantillaController extends AbstractController
             if ($temaId > 0) {
                 // Buscar el tema primero para asegurar que existe
                 $tema = $this->temaRepository->find($temaId);
-                if (!$tema) {
-                    // Si el tema no existe, devolver array vacío
+                if (!$tema || !$tema->isActivo()) {
                     return new JsonResponse(['plantillas' => []]);
                 }
                 // Usar el método del repositorio que ya existe
@@ -173,8 +172,10 @@ class ExamenPlantillaController extends AbstractController
             } else {
                 // Si no hay filtro de tema, obtener todas las plantillas
                 $qb = $this->plantillaRepository->createQueryBuilder('p')
-                    ->leftJoin('p.tema', 't')
+                    ->innerJoin('p.tema', 't')
                     ->addSelect('t')
+                    ->andWhere('t.activo = :activo')
+                    ->setParameter('activo', true)
                     ->orderBy('t.nombre', 'ASC')
                     ->addOrderBy('p.dificultad', 'ASC')
                     ->addOrderBy('p.nombre', 'ASC');
@@ -224,7 +225,9 @@ class ExamenPlantillaController extends AbstractController
                     ->leftJoin('t.municipio', 'm')
                     ->addSelect('m')
                     ->where('t.municipio = :municipioId')
+                    ->andWhere('t.activo = :activo')
                     ->setParameter('municipioId', $municipioId)
+                    ->setParameter('activo', true)
                     ->orderBy('t.nombre', 'ASC')
                     ->addOrderBy('p.nombre', 'ASC');
 
@@ -281,7 +284,9 @@ class ExamenPlantillaController extends AbstractController
                         ->leftJoin('t.municipio', 'm')
                         ->addSelect('m')
                         ->where('t.municipio IN (:municipiosIds)')
+                        ->andWhere('t.activo = :activo')
                         ->setParameter('municipiosIds', $municipiosIds)
+                        ->setParameter('activo', true)
                         ->orderBy('t.municipio', 'ASC')
                         ->addOrderBy('t.nombre', 'ASC')
                         ->addOrderBy('p.nombre', 'ASC');
@@ -386,7 +391,7 @@ class ExamenPlantillaController extends AbstractController
                 ->getQuery()
                 ->getOneOrNullResult();
             
-            if (!$plantilla) {
+            if (!$plantilla || !$plantilla->getTemaMunicipal() || !$plantilla->getTemaMunicipal()->isActivo()) {
                 $this->addFlash('error', 'Plantilla no encontrada.');
                 return $this->redirectToRoute('app_examen_plantilla_iniciar');
             }
@@ -412,7 +417,7 @@ class ExamenPlantillaController extends AbstractController
                 ->getQuery()
                 ->getOneOrNullResult();
             
-            if (!$plantilla) {
+            if (!$plantilla || !$plantilla->getTema() || !$plantilla->getTema()->isActivo()) {
                 $this->addFlash('error', 'Plantilla no encontrada.');
                 return $this->redirectToRoute('app_examen_plantilla_iniciar');
             }

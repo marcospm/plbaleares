@@ -49,6 +49,14 @@
             font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
             font-size: 0.9rem;
         }
+        .temas-aleatorios-lista {
+            max-height: 280px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0.75rem 1rem;
+            background: #fff;
+        }
     </style>
 {% endblock %}
 
@@ -61,14 +69,29 @@
         <div class="alert alert-info">
             <strong>Cómo funciona:</strong>
             <ol class="mb-0">
-                <li>Elige el tema. La ley se limita a las de ese tema. La dificultad se aplica a las 20 preguntas.</li>
-                <li>No hace falta elegir artículo. Claude indica el artículo en cada bloque y la pregunta se guarda con ese artículo.</li>
+                <li>Elige un tema y su ley, o marca varios temas para que las preguntas se repartan al azar entre ellos. La dificultad se aplica a las 20 preguntas.</li>
+                <li>No hace falta elegir artículo. Claude indica el artículo en cada bloque. Si el prompt es de varios temas, también indica el tema y la ley de cada pregunta, y cada una se guarda en el suyo.</li>
                 <li>Copia el prompt, pégalo en Claude y, debajo de <strong>CONTENIDO:</strong>, pega el texto. Como máximo, 20 preguntas.</li>
             </ol>
         </div>
 
         <form method="post" action="{{ path('app_pregunta_procesar_pegar') }}" id="pegar-form">
-            <div class="row mb-3">
+            <div class="mb-3">
+                <span class="form-label d-block">Origen de las preguntas</span>
+                <div class="d-flex gap-4 flex-wrap">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="modo" id="modo-unico" value="unico" checked>
+                        <label class="form-check-label" for="modo-unico">Un tema</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="modo" id="modo-aleatorio" value="aleatorio">
+                        <label class="form-check-label" for="modo-aleatorio">Varios temas, al azar</label>
+                    </div>
+                </div>
+                <small class="text-muted" id="modo-ayuda">El prompt se centra en el tema y la ley que elijas.</small>
+            </div>
+
+            <div class="row mb-3" id="fila-tema-unico">
                 <div class="col-md-6">
                     <label class="form-label">Tema <span class="text-danger">*</span></label>
                     <div class="searchable-select" id="tema-select-container">
@@ -92,6 +115,35 @@
                         </div>
                         <input type="hidden" name="ley" id="ley-value" required>
                     </div>
+                </div>
+            </div>
+
+            <div class="mb-3" id="fila-temas-aleatorios" style="display: none;">
+                <label class="form-label">Temas del sorteo <span class="text-danger">*</span></label>
+                <p class="text-muted mb-2">Marca los temas entre los que se repartirán las preguntas. Cada pregunta saldrá de uno de ellos, al azar.</p>
+                <div class="d-flex gap-2 mb-2 flex-wrap">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="temas-aleatorio-todos">Marcar todos</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="temas-aleatorio-ninguno">Quitar todos</button>
+                </div>
+                <input type="search" class="form-control mb-2" id="temas-aleatorio-buscar" placeholder="Buscar tema...">
+                <div class="temas-aleatorios-lista" id="temas-aleatorio-lista">
+                    {% for tema in temasDatos %}
+                        <div class="form-check mb-2 tema-aleatorio-item" data-text="{{ tema.nombre|e('html_attr') }}">
+                            <input class="form-check-input tema-aleatorio-check" type="checkbox" name="temas[]" value="{{ tema.id }}" id="tema-aleatorio-{{ tema.id }}" disabled>
+                            <label class="form-check-label" for="tema-aleatorio-{{ tema.id }}">
+                                {{ tema.nombre }}
+                                {% if tema.leyes is empty %}
+                                    <span class="text-muted"> — sin leyes activas</span>
+                                {% else %}
+                                    <span class="text-muted"> —
+                                        {% for ley in tema.leyes %}{{ ley.nombre }}{% if not loop.last %}; {% endif %}{% endfor %}
+                                    </span>
+                                {% endif %}
+                            </label>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">No hay temas.</p>
+                    {% endfor %}
                 </div>
             </div>
 
@@ -126,8 +178,14 @@
     </div>
 </div>
 
+<script type="application/json" id="temas-datos">{{ temasDatos|json_encode|raw }}</script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const temasDatos = JSON.parse(document.getElementById('temas-datos').textContent);
+    const temasPorId = {};
+    temasDatos.forEach(function(tema) {
+        temasPorId[String(tema.id)] = tema;
+    });
     function elegirLey(id, nombre) {
         document.getElementById('ley-value').value = id;
         document.getElementById('ley-display').textContent = nombre;
@@ -246,19 +304,97 @@ document.addEventListener('DOMContentLoaded', function() {
     initSearchableSelect('tema-select-container', 'tema-display', 'tema-search', 'tema-options', 'tema-value');
     initSearchableSelect('ley-select-container', 'ley-display', 'ley-search', 'ley-options', 'ley-value');
 
+    function modoAleatorio() {
+        return document.getElementById('modo-aleatorio').checked;
+    }
+
+    function aplicarModo() {
+        const aleatorio = modoAleatorio();
+        document.getElementById('fila-tema-unico').style.display = aleatorio ? 'none' : '';
+        document.getElementById('fila-temas-aleatorios').style.display = aleatorio ? '' : 'none';
+        document.getElementById('tema-value').required = !aleatorio;
+        document.getElementById('ley-value').required = !aleatorio;
+        document.querySelectorAll('.tema-aleatorio-check').forEach(function(casilla) {
+            casilla.disabled = !aleatorio;
+        });
+        document.getElementById('modo-ayuda').textContent = aleatorio
+            ? 'Marca los temas del sorteo. Cada pregunta saldrá de uno de ellos, al azar.'
+            : 'El prompt se centra en el tema y la ley que elijas.';
+    }
+
+    document.querySelectorAll('input[name="modo"]').forEach(function(radio) {
+        radio.addEventListener('change', aplicarModo);
+    });
+
+    const buscarTemas = document.getElementById('temas-aleatorio-buscar');
+    buscarTemas.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+        }
+    });
+    buscarTemas.addEventListener('input', function() {
+        const consulta = buscarTemas.value.trim().toLowerCase();
+        document.querySelectorAll('.tema-aleatorio-item').forEach(function(item) {
+            const texto = (item.getAttribute('data-text') || '').toLowerCase();
+            item.style.display = texto.includes(consulta) ? '' : 'none';
+        });
+    });
+    document.getElementById('temas-aleatorio-todos').addEventListener('click', function() {
+        document.querySelectorAll('.tema-aleatorio-check').forEach(function(casilla) {
+            casilla.checked = true;
+        });
+    });
+    document.getElementById('temas-aleatorio-ninguno').addEventListener('click', function() {
+        document.querySelectorAll('.tema-aleatorio-check').forEach(function(casilla) {
+            casilla.checked = false;
+        });
+    });
+
+    function textoDificultad() {
+        const dificultadSelect = document.getElementById('dificultad');
+        if (!dificultadSelect.value) {
+            return '';
+        }
+        return dificultadSelect.options[dificultadSelect.selectedIndex].text;
+    }
+
+    function temasMarcados() {
+        return Array.from(document.querySelectorAll('.tema-aleatorio-check:checked')).map(function(casilla) {
+            return temasPorId[casilla.value];
+        }).filter(Boolean);
+    }
+
     function seleccionValida() {
+        const dificultad = textoDificultad();
+        if (modoAleatorio()) {
+            const temas = temasMarcados();
+            if (!dificultad) {
+                alert('Elige la dificultad antes de continuar.');
+                return null;
+            }
+            if (temas.length < 2) {
+                alert('Marca al menos dos temas. Las preguntas se repartirán al azar entre ellos.');
+                return null;
+            }
+            const sinLeyes = temas.filter(function(tema) { return !tema.leyes.length; });
+            if (sinLeyes.length) {
+                alert('Estos temas no tienen leyes activas: ' + sinLeyes.map(function(tema) { return tema.nombre; }).join(', ') + '.');
+                return null;
+            }
+            return { aleatorio: true, temas: temas, dificultad: dificultad };
+        }
+
         const tema = document.getElementById('tema-value').value;
         const ley = document.getElementById('ley-value').value;
-        const dificultad = document.getElementById('dificultad').value;
         if (!tema || !ley || !dificultad) {
             alert('Elige tema, ley y dificultad antes de continuar.');
             return null;
         }
-        const dificultadSelect = document.getElementById('dificultad');
         return {
+            aleatorio: false,
             tema: document.getElementById('tema-display').textContent.trim(),
             ley: document.getElementById('ley-display').textContent.trim(),
-            dificultad: dificultadSelect.options[dificultadSelect.selectedIndex].text
+            dificultad: dificultad
         };
     }
 
@@ -298,12 +434,64 @@ document.addEventListener('DOMContentLoaded', function() {
         ].join('\n');
     }
 
+    function construirPromptAleatorio(datos) {
+        const temasOrdenados = datos.temas.slice().sort(function(a, b) {
+            return a.nombre.localeCompare(b.nombre, 'es', { numeric: true, sensitivity: 'base' });
+        });
+        const lineasTemas = temasOrdenados.map(function(tema) {
+            const leyes = tema.leyes.map(function(ley) { return ley.nombre; }).join('; ');
+            return '- ' + tema.nombre + ': ' + leyes;
+        });
+        const ejemplo = temasOrdenados[0];
+        const leyEjemplo = ejemplo.leyes[0].nombre;
+        return [
+            'Eres un preparador de oposiciones de policía local en Baleares. Genera exactamente 20 preguntas tipo test, en español, solo con el contenido que pegue debajo de CONTENIDO. No inventes datos que no estén en ese texto.',
+            '',
+            'No hagas las 20 preguntas de un solo tema. Cada pregunta es de uno de estos temas, elegido al azar. Reparte el bloque entre ellos: tienen que salir temas distintos.',
+            '',
+            'Temas y sus normas (usa el nombre exacto):',
+            ...lineasTemas,
+            '',
+            'Dificultad: ' + datos.dificultad,
+            '',
+            'Reglas:',
+            '- Una sola respuesta correcta. La letra de la opción correcta tiene que variar de una pregunta a otra: no puede ser siempre la misma. A lo largo del bloque deben aparecer A, B, C y D. Las otras tres opciones tienen que ser plausibles.',
+            '- Cada pregunta lleva la línea TEMA con el nombre exacto de uno de los temas de la lista, y la línea LEY con el nombre exacto de una norma de ese tema.',
+            '- Reparte las preguntas al azar entre los temas de la lista. No concentres el bloque en un único tema.',
+            '- Cada enunciado es una pregunta tipo test y cita siempre la norma y el artículo. Nombra la norma exactamente como en la línea LEY y el número del artículo.',
+            '- La línea ARTICULO lleva el número del artículo tal como está en el texto (14 o 14 bis). Es el mismo artículo que cita el enunciado. No inventes artículos que no estén en el contenido.',
+            '- La explicación cita el fragmento del que sale la respuesta.',
+            '- Responde solo con los bloques, sin introducción ni markdown.',
+            '- Si el contenido no da para 20, devuelve las que salgan y dilo en una línea al final, fuera de los bloques.',
+            '- Si después escribo «continúa», genera otras 20 distintas, del mismo contenido, repartidas otra vez al azar entre esos temas, en el mismo formato.',
+            '',
+            'Formato de cada pregunta:',
+            '',
+            '---',
+            'TEMA: ' + ejemplo.nombre,
+            'LEY: ' + leyEjemplo,
+            'ARTICULO: 14',
+            'PREGUNTA: Según ' + leyEjemplo + ', el artículo 14, ¿qué establece?',
+            'A: opcion',
+            'B: opcion',
+            'C: opcion',
+            'D: opcion',
+            'CORRECTA: B',
+            'EXPLICACION: por qué, citando el texto',
+            '---',
+            '',
+            'La B de CORRECTA en el ejemplo es solo el formato. En las preguntas reales cambia la letra. El TEMA de cada pregunta tiene que ir cambiando entre los de la lista.',
+            '',
+            'CONTENIDO:'
+        ].join('\n');
+    }
+
     document.getElementById('copiar-prompt').addEventListener('click', function() {
         const datos = seleccionValida();
         if (!datos) {
             return;
         }
-        const prompt = construirPrompt(datos);
+        const prompt = datos.aleatorio ? construirPromptAleatorio(datos) : construirPrompt(datos);
         const aviso = document.getElementById('prompt-copiado');
         const mostrar = function() {
             aviso.style.display = 'inline';
@@ -318,6 +506,8 @@ document.addEventListener('DOMContentLoaded', function() {
             mostrar();
         }
     });
+
+    aplicarModo();
 
     document.getElementById('pegar-form').addEventListener('submit', function(e) {
         if (!seleccionValida()) {

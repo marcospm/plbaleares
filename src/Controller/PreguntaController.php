@@ -101,7 +101,7 @@ class PreguntaController extends AbstractController
         $preguntasPaginated = array_slice($preguntas, $offset, $itemsPerPage);
 
         // Obtener listas para los filtros
-        $temas = $temaRepository->findAll();
+        $temas = $temaRepository->findBy(['activo' => true], ['id' => 'ASC']);
         $leyes = $leyRepository->findAll();
 
         return $this->render('pregunta/index.html.twig', [
@@ -365,6 +365,8 @@ class PreguntaController extends AbstractController
     ): Response {
         // Optimizar consultas con ordenamiento
         $temas = $temaRepository->createQueryBuilder('t')
+            ->andWhere('t.activo = :activo')
+            ->setParameter('activo', true)
             ->orderBy('t.nombre', 'ASC')
             ->getQuery()
             ->getResult();
@@ -384,12 +386,38 @@ class PreguntaController extends AbstractController
     public function pegar(TemaRepository $temaRepository): Response
     {
         $temas = $temaRepository->createQueryBuilder('t')
+            ->leftJoin('t.leyes', 'l')
+            ->addSelect('l')
+            ->andWhere('t.activo = :activo')
+            ->setParameter('activo', true)
             ->orderBy('t.nombre', 'ASC')
             ->getQuery()
             ->getResult();
 
+        $temasDatos = [];
+        foreach ($temas as $tema) {
+            $leyes = [];
+            foreach ($tema->getLeyes() as $ley) {
+                if (!$ley->isActivo()) {
+                    continue;
+                }
+                $leyes[] = [
+                    'id' => $ley->getId(),
+                    'nombre' => (string) $ley->getNombre(),
+                ];
+            }
+            usort($leyes, static fn (array $a, array $b): int => strcasecmp($a['nombre'], $b['nombre']));
+            $temasDatos[] = [
+                'id' => $tema->getId(),
+                'nombre' => (string) $tema->getNombre(),
+                'leyes' => $leyes,
+            ];
+        }
+        usort($temasDatos, static fn (array $a, array $b): int => strnatcasecmp($a['nombre'], $b['nombre']));
+
         return $this->render('pregunta/pegar.html.twig', [
             'temas' => $temas,
+            'temasDatos' => $temasDatos,
         ]);
     }
 
@@ -401,6 +429,10 @@ class PreguntaController extends AbstractController
         ArticuloRepository $articuloRepository,
         BloquePreguntasParser $parser
     ): Response {
+        if ((string) $request->request->get('modo', 'unico') === 'aleatorio') {
+            return $this->procesarPegarAleatorio($request, $temaRepository, $articuloRepository, $parser);
+        }
+
         $temaId = $request->request->getInt('tema', 0);
         $leyId = $request->request->getInt('ley', 0);
         $dificultad = (string) $request->request->get('dificultad', '');
@@ -416,7 +448,7 @@ class PreguntaController extends AbstractController
         $ley = $leyRepository->find($leyId);
         $leyDelTema = $tema && $tema->getLeyes()->exists(static fn ($i, $leyTema) => $leyTema->getId() === $leyId);
 
-        if (!$tema || !$ley || !$leyDelTema) {
+        if (!$tema || !$tema->isActivo() || !$ley || !$leyDelTema) {
             $this->addFlash('error', 'El tema o la ley seleccionados no son válidos.');
 
             return $this->redirectToRoute('app_pregunta_pegar');
@@ -782,15 +814,35 @@ class PreguntaController extends AbstractController
                     $pregunta->setOpcionD($preguntaData['opcionD']);
                     $pregunta->setRespuestaCorrecta($preguntaData['respuestaCorrecta']);
                     $pregunta->setRetroalimentacion($preguntaData['retroalimentacion'] ?: null);
+                    $temaPregunta = $tema;
+                    $leyPregunta = $ley;
+                    if (!empty($preguntaData['temaId']) || !empty($preguntaData['leyId'])) {
+                        $temaAsignado = $temaRepository->find((int) ($preguntaData['temaId'] ?? 0));
+                        $leyAsignada = $leyRepository->find((int) ($preguntaData['leyId'] ?? 0));
+                        $leyDelTema = $temaAsignado && $leyAsignada && $temaAsignado->getLeyes()->exists(
+                            static fn ($i, $leyTema) => $leyTema->getId() === $leyAsignada->getId()
+                        );
+                        if (!$temaAsignado || !$leyAsignada || !$leyDelTema) {
+                            $errores[] = 'Línea ' . ($preguntaData['linea'] ?? '?') . ': el tema o la ley de la pregunta no son válidos.';
+                            continue;
+                        }
+                        $temaPregunta = $temaAsignado;
+                        $leyPregunta = $leyAsignada;
+                    }
+
                     $pregunta->setDificultad($dificultad);
-                    $pregunta->setTema($tema);
-                    $pregunta->setLey($ley);
-                    $articuloPregunta = $articulo;
+                    $pregunta->setTema($temaPregunta);
+                    $pregunta->setLey($leyPregunta);
+                    $articuloPregunta = $articulo->getLey()?->getId() === $leyPregunta->getId() ? $articulo : null;
                     if (!empty($preguntaData['articuloId'])) {
                         $articuloAsignado = $articuloRepository->find((int) $preguntaData['articuloId']);
-                        if ($articuloAsignado && $articuloAsignado->getLey()?->getId() === $ley->getId()) {
+                        if ($articuloAsignado && $articuloAsignado->getLey()?->getId() === $leyPregunta->getId()) {
                             $articuloPregunta = $articuloAsignado;
                         }
+                    }
+                    if (!$articuloPregunta) {
+                        $errores[] = 'Línea ' . ($preguntaData['linea'] ?? '?') . ': no se pudo asignar el artículo.';
+                        continue;
                     }
                     $pregunta->setArticulo($articuloPregunta);
                     
@@ -1322,9 +1374,9 @@ class PreguntaController extends AbstractController
             return $this->redirectToRoute('app_pregunta_index');
         }
 
-        $temas = $temaRepository->findBy(['id' => $temaIds], ['nombre' => 'ASC']);
+        $temas = $temaRepository->findBy(['id' => $temaIds, 'activo' => true], ['nombre' => 'ASC']);
         if (count($temas) !== count($temaIds)) {
-            $this->addFlash('error', 'Uno o más temas seleccionados no existen.');
+            $this->addFlash('error', 'Uno o más temas seleccionados no existen o no están activos.');
             return $this->redirectToRoute('app_pregunta_index');
         }
 
@@ -1537,6 +1589,192 @@ class PreguntaController extends AbstractController
             'articuloLabel' => $articuloLabel,
             'retroalimentacion' => $pregunta->getRetroalimentacion(),
         ];
+    }
+
+    private function procesarPegarAleatorio(
+        Request $request,
+        TemaRepository $temaRepository,
+        ArticuloRepository $articuloRepository,
+        BloquePreguntasParser $parser
+    ): Response {
+        $dificultad = (string) $request->request->get('dificultad', '');
+        $bloque = (string) $request->request->get('bloque', '');
+        $crudo = $request->request->all()['temas'] ?? [];
+        $ids = [];
+        if (is_array($crudo)) {
+            foreach ($crudo as $id) {
+                $id = (int) $id;
+                if ($id > 0) {
+                    $ids[$id] = $id;
+                }
+            }
+        }
+        $ids = array_values($ids);
+
+        if (count($ids) < 2 || !in_array($dificultad, ['facil', 'moderada', 'dificil', 'indeterminado'], true)) {
+            $this->addFlash('error', 'Elige al menos dos temas y la dificultad.');
+
+            return $this->redirectToRoute('app_pregunta_pegar');
+        }
+
+        $temas = $temaRepository->createQueryBuilder('t')
+            ->leftJoin('t.leyes', 'l')
+            ->addSelect('l')
+            ->where('t.id IN (:ids)')
+            ->andWhere('t.activo = :activo')
+            ->setParameter('ids', $ids)
+            ->setParameter('activo', true)
+            ->getQuery()
+            ->getResult();
+
+        $temasPorId = [];
+        foreach ($temas as $tema) {
+            $temasPorId[$tema->getId()] = $tema;
+        }
+        if (count($temasPorId) !== count($ids)) {
+            $this->addFlash('error', 'Alguno de los temas seleccionados no es válido.');
+
+            return $this->redirectToRoute('app_pregunta_pegar');
+        }
+
+        $porNombre = [];
+        foreach ($ids as $id) {
+            $tema = $temasPorId[$id];
+            $clave = $this->normalizarArticulo((string) $tema->getNombre());
+            if ($clave === '' || isset($porNombre[$clave])) {
+                $this->addFlash('error', 'Hay temas con el mismo nombre y no se puede saber a cuál pertenece cada pregunta.');
+
+                return $this->redirectToRoute('app_pregunta_pegar');
+            }
+            $porNombre[$clave] = $tema;
+        }
+
+        $resultado = $parser->parsear($bloque);
+        if ($resultado['errores'] !== []) {
+            $mensajeErrores = implode("\n", array_slice($resultado['errores'], 0, 10));
+            if (count($resultado['errores']) > 10) {
+                $mensajeErrores .= "\n... y " . (count($resultado['errores']) - 10) . ' errores más.';
+            }
+            $this->addFlash('error', "No se pudo leer el bloque:\n" . $mensajeErrores);
+
+            return $this->redirectToRoute('app_pregunta_pegar');
+        }
+
+        $preguntas = $resultado['preguntas'];
+        $articulosPorLey = [];
+        $erroresArticulo = [];
+        foreach ($preguntas as $indice => $pregunta) {
+            $claveTema = $this->normalizarArticulo((string) ($pregunta['tema'] ?? ''));
+            $tema = $porNombre[$claveTema] ?? null;
+            if (!$tema) {
+                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': el tema «' . trim((string) ($pregunta['tema'] ?? '')) . '» no está entre los elegidos.';
+                continue;
+            }
+
+            $leyes = array_values(array_filter(
+                $tema->getLeyes()->toArray(),
+                static fn ($ley) => $ley->isActivo()
+            ));
+            $nombreLey = trim((string) ($pregunta['ley'] ?? ''));
+            $ley = null;
+            if ($nombreLey === '' && count($leyes) === 1) {
+                $ley = $leyes[0];
+            } else {
+                $claveLey = $this->normalizarArticulo($nombreLey);
+                $coincidencias = array_values(array_filter(
+                    $leyes,
+                    fn ($candidata) => $this->normalizarArticulo((string) $candidata->getNombre()) === $claveLey
+                ));
+                if (count($coincidencias) === 1) {
+                    $ley = $coincidencias[0];
+                }
+            }
+            if (!$ley) {
+                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': la ley «' . $nombreLey . '» no pertenece al tema «' . $tema->getNombre() . '».';
+                continue;
+            }
+
+            $leyId = (int) $ley->getId();
+            if (!isset($articulosPorLey[$leyId])) {
+                $articulosPorLey[$leyId] = $articuloRepository->findActivosByLey($leyId);
+            }
+            if ($articulosPorLey[$leyId] === []) {
+                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': la ley «' . $ley->getNombre() . '» no tiene artículos activos.';
+                continue;
+            }
+
+            $articulo = $this->buscarArticuloIndicado((string) $pregunta['articulo'], $articulosPorLey[$leyId]);
+            if (!$articulo) {
+                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': no existe el artículo «' . $pregunta['articulo'] . '» en «' . $ley->getNombre() . '».';
+                continue;
+            }
+            if (!$this->enunciadoCitaArticulo($pregunta['texto'], $articulo)) {
+                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el artículo ' . $articulo->getNumeroCompleto() . '.';
+                continue;
+            }
+            if (!$this->enunciadoCitaNorma($pregunta['texto'], (string) $ley->getNombre())) {
+                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar la norma «' . $ley->getNombre() . '».';
+                continue;
+            }
+
+            $pregunta['temaId'] = $tema->getId();
+            $pregunta['leyId'] = $leyId;
+            $pregunta['temaNombre'] = (string) $tema->getNombre();
+            $pregunta['leyNombre'] = (string) $ley->getNombre();
+            $pregunta['articuloId'] = $articulo->getId();
+            $pregunta['articuloLabel'] = 'Art. ' . $articulo->getNumeroCompleto();
+            if ($articulo->getNombre()) {
+                $pregunta['articuloLabel'] .= ' - ' . $articulo->getNombre();
+            }
+            $preguntas[$indice] = $pregunta;
+        }
+
+        if ($erroresArticulo !== []) {
+            $mensajeErrores = implode("\n", array_slice($erroresArticulo, 0, 10));
+            if (count($erroresArticulo) > 10) {
+                $mensajeErrores .= "\n... y " . (count($erroresArticulo) - 10) . ' errores más.';
+            }
+            $this->addFlash('error', "No se pudo asignar el tema:\n" . $mensajeErrores);
+
+            return $this->redirectToRoute('app_pregunta_pegar');
+        }
+
+        $primera = $preguntas[0];
+        $temaPrimero = $temasPorId[$primera['temaId']];
+        $leyPrimera = null;
+        foreach ($temaPrimero->getLeyes() as $ley) {
+            if ($ley->getId() === $primera['leyId']) {
+                $leyPrimera = $ley;
+                break;
+            }
+        }
+
+        $nombresTemas = [];
+        foreach ($ids as $id) {
+            $nombresTemas[] = (string) $temasPorId[$id]->getNombre();
+        }
+
+        $session = $request->getSession();
+        $session->set('preguntas_csv', $preguntas);
+        $session->set('preguntas_csv_tema', $primera['temaId']);
+        $session->set('preguntas_csv_ley', $primera['leyId']);
+        $session->set('preguntas_csv_articulo', $primera['articuloId']);
+        $session->set('preguntas_csv_dificultad', $dificultad);
+        $session->set('preguntas_csv_origen', 'pegar');
+
+        return $this->render('pregunta/preview_csv.html.twig', [
+            'preguntas' => $preguntas,
+            'tema' => $temaPrimero,
+            'ley' => $leyPrimera,
+            'articulo' => null,
+            'articuloIndicado' => true,
+            'temasAleatorios' => true,
+            'nombresTemas' => $nombresTemas,
+            'dificultad' => $dificultad,
+            'total' => count($preguntas),
+            'volver' => 'app_pregunta_pegar',
+            'titulo' => 'Previsualizar preguntas pegadas',
+        ]);
     }
 
     /**

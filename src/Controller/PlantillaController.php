@@ -46,6 +46,8 @@ class PlantillaController extends AbstractController
                 ->addSelect('m')
                 ->orderBy('p.temaMunicipal', 'ASC')
                 ->addOrderBy('p.dificultad', 'ASC')
+                ->andWhere('t.activo = :activoTema')
+                ->setParameter('activoTema', true)
                 ->addOrderBy('p.nombre', 'ASC');
 
             if ($temaId > 0) {
@@ -87,6 +89,8 @@ class PlantillaController extends AbstractController
                 ->addSelect('t')
                 ->orderBy('p.tema', 'ASC')
                 ->addOrderBy('p.dificultad', 'ASC')
+                ->andWhere('t.activo = :activoTema')
+                ->setParameter('activoTema', true)
                 ->addOrderBy('p.nombre', 'ASC');
 
             if ($temaId > 0) {
@@ -247,7 +251,7 @@ class PlantillaController extends AbstractController
         }
 
         $tema = $this->temaRepository->find($temaId);
-        if (!$tema) {
+        if (!$tema || !$tema->isActivo()) {
             return new JsonResponse(['plantillas' => []]);
         }
 

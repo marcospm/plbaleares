@@ -91,6 +91,12 @@ class ExamenSemanalGeneralType extends AbstractType
                 'expanded' => false,
                 'required' => true,
                 'label' => 'Temas del Temario General',
+                'query_builder' => function ($er) {
+                    return $er->createQueryBuilder('t')
+                        ->andWhere('t.activo = :activo')
+                        ->setParameter('activo', true)
+                        ->orderBy('t.id', 'ASC');
+                },
                 'attr' => ['class' => 'form-control'],
                 'help' => 'Selecciona los temas para el examen (obligatorio)',
                 'constraints' => [

@@ -39,7 +39,8 @@
                 font-size: 0.95rem;
             }
             
-            .card-body input[type="text"] {
+            .card-body input[type="text"],
+            .card-body select {
                 font-size: 16px !important;
                 min-height: 48px;
                 width: 100%;
@@ -103,21 +104,42 @@
 {% block body %}
 <div class="d-flex justify-content-between mb-4" style="flex-wrap: wrap; gap: 1rem;">
     <h1 style="flex: 1; min-width: 0;">Temas</h1>
-    <a href="{{ path('app_tema_new') }}" class="btn btn-primary" style="min-height: 48px; font-size: 16px; white-space: nowrap; align-self: flex-start;">Nuevo Tema</a>
+    <div class="d-flex gap-2" style="flex-wrap: wrap; align-self: flex-start;">
+        <button type="button" class="btn btn-success" id="descargar-pdfs-temas" style="min-height: 48px; font-size: 16px; white-space: nowrap;" {% if pdfIds is empty %}disabled title="No hay PDFs disponibles en el listado"{% endif %}>Descargar PDFs</button>
+        <a href="{{ path('app_tema_new') }}" class="btn btn-primary" style="min-height: 48px; font-size: 16px; white-space: nowrap;">Nuevo Tema</a>
+    </div>
 </div>
 
 <form method="get" action="{{ path('app_tema_index') }}" style="margin-bottom: 2rem;">
     <div class="card">
         <div class="card-body">
-            <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end;">
+            <div style="display: grid; grid-template-columns: 1fr 180px auto; gap: 1rem; align-items: end;">
                 <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">Buscar:</label>
                     <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Buscar por nombre o descripción...">
                 </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" for="estado">Estado:</label>
+                    <select name="estado" id="estado" class="form-control">
+                        <option value="activas" {% if estado == 'activas' %}selected{% endif %}>Activos</option>
+                        <option value="inactivas" {% if estado == 'inactivas' %}selected{% endif %}>Inactivos</option>
+                        <option value="todas" {% if estado == 'todas' %}selected{% endif %}>Todos</option>
+                    </select>
+                </div>
                 <div>
                     <button type="submit" class="btn btn-primary">Filtrar</button>
-                    <a href="{{ path('app_tema_index') }}" class="btn btn-secondary">Limpiar</a>
+                    {% if search or estado != 'activas' %}
+                        <a href="{{ path('app_tema_index') }}" class="btn btn-secondary">Limpiar</a>
+                    {% endif %}
                 </div>
+            </div>
+            <div style="margin-top: 0.75rem; color: var(--color-text-light);">
+                <strong>{{ temas|length }}</strong>
+                {% if estado == 'inactivas' %}tema(s) inactivo(s)
+                {% elseif estado == 'todas' %}tema(s)
+                {% else %}tema(s) activo(s)
+                {% endif %}
+                {% if search %} para "<strong>{{ search }}</strong>"{% endif %}
             </div>
         </div>
     </div>
@@ -157,10 +179,15 @@
                         </td>
                         <td>
                             <div class="d-flex gap-2">
+                                {% if tema.id in pdfIds %}
+                                    <a href="{{ path('app_tema_pdf_descargar', {id: tema.id}) }}" class="btn btn-success btn-sm">PDF</a>
+                                {% endif %}
                                 <a href="{{ path('app_tema_show', {'id': tema.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
                                 <a href="{{ path('app_tema_edit', {'id': tema.id}) }}" class="btn btn-primary btn-sm">Editar</a>
                                 <form method="post" action="{{ path('app_tema_toggle_activo', {'id': tema.id}) }}" style="display: inline;">
                                     <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ tema.id) }}">
+                                    <input type="hidden" name="search" value="{{ search }}">
+                                    <input type="hidden" name="estado" value="{{ estado }}">
                                     <button type="submit" class="btn btn-sm {% if tema.isActivo %}btn-warning{% else %}btn-success{% endif %}">
                                         {% if tema.isActivo %}Desactivar{% else %}Activar{% endif %}
                                     </button>
@@ -176,10 +203,33 @@
 {% else %}
     <div class="card">
         <div class="card-body text-center">
-            <p>No hay temas registrados aún.</p>
-            <a href="{{ path('app_tema_new') }}" class="btn btn-primary">Crear Primer Tema</a>
+            {% if estado == 'activas' and search == '' %}
+                <p>No hay temas activos.</p>
+                <a href="{{ path('app_tema_index', {estado: 'todas'}) }}" class="btn btn-secondary">Ver todos</a>
+            {% elseif search == '' and estado == 'todas' %}
+                <p>No hay temas registrados aún.</p>
+                <a href="{{ path('app_tema_new') }}" class="btn btn-primary">Crear Primer Tema</a>
+            {% else %}
+                <p>No se encontraron temas con estos filtros.</p>
+                <a href="{{ path('app_tema_index') }}" class="btn btn-secondary">Limpiar filtros</a>
+            {% endif %}
         </div>
     </div>
 {% endif %}
+<script>
+    document.getElementById('descargar-pdfs-temas')?.addEventListener('click', function () {
+        const ids = {{ pdfIds|json_encode|raw }};
+        const urlBase = '{{ path('app_tema_pdf_descargar', {id: 999999}) }}';
+        ids.forEach(function (id, indice) {
+            window.setTimeout(function () {
+                const enlace = document.createElement('a');
+                enlace.href = urlBase.replace('999999', id);
+                document.body.appendChild(enlace);
+                enlace.click();
+                enlace.remove();
+            }, indice * 400);
+        });
+    });
+</script>
 {% endblock %}
 

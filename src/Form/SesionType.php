@@ -26,6 +26,23 @@ class SesionType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $tipo = $options['tipo'] ?? null;
+
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event): void {
+            $sesion = $event->getData();
+            if (!$sesion instanceof Sesion) {
+                return;
+            }
+            foreach ($sesion->getTemas()->toArray() as $tema) {
+                if (!$tema->isActivo()) {
+                    $sesion->removeTema($tema);
+                }
+            }
+            foreach ($sesion->getTemasMunicipales()->toArray() as $temaMunicipal) {
+                if (!$temaMunicipal->isActivo()) {
+                    $sesion->removeTemaMunicipal($temaMunicipal);
+                }
+            }
+        });
         
         $builder
             ->add('nombre', TextType::class, [
@@ -148,7 +165,7 @@ class SesionType extends AbstractType
                 $temasValidos = [];
                 foreach ($sesion->getTemasMunicipales() as $temaMunicipal) {
                     // Verificar que el tema pertenece a alguno de los municipios seleccionados
-                    if ($temaMunicipal->getMunicipio() && in_array($temaMunicipal->getMunicipio()->getId(), $municipiosIds)) {
+                    if ($temaMunicipal->isActivo() && $temaMunicipal->getMunicipio() && in_array($temaMunicipal->getMunicipio()->getId(), $municipiosIds)) {
                         $temasValidos[] = $temaMunicipal;
                     }
                 }
@@ -174,20 +191,11 @@ class SesionType extends AbstractType
                 'class' => 'form-control',
                 'size' => 10
             ],
-            'query_builder' => function ($er) use ($options) {
-                $qb = $er->createQueryBuilder('t')
+            'query_builder' => function ($er) {
+                return $er->createQueryBuilder('t')
                     ->where('t.activo = :activo')
-                    ->setParameter('activo', true);
-                
-                // Incluir temas ya seleccionados para que pasen la validación
-                $sesion = $options['data'] ?? null;
-                if ($sesion && $sesion->getTemas()->count() > 0) {
-                    $temasIds = $sesion->getTemas()->map(fn($t) => $t->getId())->toArray();
-                    $qb->orWhere('t.id IN (:temasIds)')
-                       ->setParameter('temasIds', $temasIds);
-                }
-                
-                return $qb->orderBy('t.id', 'ASC');
+                    ->setParameter('activo', true)
+                    ->orderBy('t.id', 'ASC');
             }
         ]);
     }

@@ -12,12 +12,21 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class PreguntaType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event): void {
+            $pregunta = $event->getData();
+            if ($pregunta instanceof Pregunta && $pregunta->getTema() && !$pregunta->getTema()->isActivo()) {
+                $pregunta->setTema(null);
+            }
+        });
+
         $builder
             ->add('texto', TextareaType::class, [
                 'label' => 'Texto de la Pregunta',
@@ -79,7 +88,13 @@ class PreguntaType extends AbstractType
                 'choice_label' => 'nombre',
                 'required' => true,
                 'label' => 'Tema',
-                'attr' => ['class' => 'form-control']
+                'attr' => ['class' => 'form-control'],
+                'query_builder' => function ($er) {
+                    return $er->createQueryBuilder('t')
+                        ->andWhere('t.activo = :activo')
+                        ->setParameter('activo', true)
+                        ->orderBy('t.id', 'ASC');
+                },
             ])
             ->add('ley', EntityType::class, [
                 'class' => Ley::class,

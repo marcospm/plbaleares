@@ -455,37 +455,64 @@ class NotificacionService
         
         // Obtener todos los profesores y administradores
         $profesoresYAdmins = $this->userRepository->createQueryBuilder('u')
-            ->where('u.roles LIKE :roleProfesor OR u.roles LIKE :roleAdmin')
+            ->where('(u.roles LIKE :roleProfesor OR u.roles LIKE :roleAdmin)')
             ->andWhere('u.activo = :activo')
+            ->andWhere('u.eliminado = :no')
+            ->andWhere('u.suprimido = :no')
             ->andWhere('u.id != :alumnoId') // Excluir al alumno que reporta por si acaso es profesor/admin
             ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
             ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
             ->setParameter('activo', true)
+            ->setParameter('no', false)
             ->setParameter('alumnoId', $alumno->getId())
             ->getQuery()
             ->getResult();
 
-        foreach ($profesoresYAdmins as $profesor) {
-            $notificacion = new Notificacion();
-            $notificacion->setTipo(Notificacion::TIPO_ERROR_PREGUNTA);
-            $notificacion->setTitulo('Error Reportado en Pregunta');
-            $notificacion->setMensaje(
-                sprintf(
-                    '%s ha reportado un error o solicita corrección en una pregunta del Artículo %s%s. Mensaje: %s',
-                    $alumno->getUsername(),
-                    $pregunta->getArticulo()->getNumero(),
-                    $pregunta->getArticulo()->getNombre() ? ' - ' . $pregunta->getArticulo()->getNombre() : '',
-                    substr($mensaje, 0, 200) . (strlen($mensaje) > 200 ? '...' : '')
-                )
-            );
-            $notificacion->setProfesor($profesor);
-            $notificacion->setAlumno($alumno);
-            $notificacion->setPregunta($pregunta);
-            
-            $this->registrarNotificacion($notificacion);
+        $articulo = $pregunta->getArticulo();
+        $referencia = 'una pregunta';
+        if ($articulo) {
+            $referencia = 'una pregunta del Artículo ' . ($articulo->getNumero() ?? '');
+            if ($articulo->getNombre()) {
+                $referencia .= ' - ' . $articulo->getNombre();
+            }
         }
-        
+        $texto = trim($mensaje);
+        if (strlen($texto) > 200) {
+            $texto = substr($texto, 0, 200) . '...';
+        }
+        $cuerpo = $alumno->getUsername() . ' ha reportado un error o solicita corrección en ' . $referencia . '. Mensaje: ' . $texto;
+
+        $notificaciones = [];
+        foreach ($profesoresYAdmins as $profesor) {
+            try {
+                $notificacion = new Notificacion();
+                $notificacion->setTipo(Notificacion::TIPO_ERROR_PREGUNTA);
+                $notificacion->setTitulo('Error Reportado en Pregunta');
+                $notificacion->setMensaje($cuerpo);
+                $notificacion->setProfesor($profesor);
+                $notificacion->setAlumno($alumno);
+                $notificacion->setPregunta($pregunta);
+                $this->entityManager->persist($notificacion);
+                $notificaciones[] = $notificacion;
+            } catch (\Throwable $e) {
+                $this->logger->error('No se pudo preparar la notificacion de error de pregunta', [
+                    'profesor_id' => $profesor->getId(),
+                    'pregunta_id' => $pregunta->getId(),
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Guardar antes del email: un fallo de SMTP no puede dejar el panel sin el aviso.
         $this->entityManager->flush();
+
+        foreach ($notificaciones as $notificacion) {
+            $destinatario = $notificacion->getProfesor();
+            if (!$destinatario instanceof User) {
+                continue;
+            }
+            $this->enviarNotificacionPorEmail($destinatario, $notificacion);
+        }
     }
 
     /**

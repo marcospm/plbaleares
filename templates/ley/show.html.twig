@@ -23,9 +23,10 @@
 
         <div class="form-group">
             <label class="form-label"><strong>Temas relacionados:</strong></label>
-            {% if ley.temas|length > 0 %}
+            {% set temasActivos = ley.temas|filter(tema => tema.activo) %}
+            {% if temasActivos|length > 0 %}
                 <ul>
-                    {% for tema in ley.temas %}
+                    {% for tema in temasActivos %}
                         <li><a href="{{ path('app_tema_show', {'id': tema.id}) }}">{{ tema.nombre }}</a></li>
                     {% endfor %}
                 </ul>
