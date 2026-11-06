@@ -72,18 +72,17 @@ class BloquePreguntasParser
         }
 
         if ($numero > self::MAX_PREGUNTAS) {
-            $errores[] = 'Un bloque admite como máximo 20 preguntas. Has pegado ' . $numero . '.';
+            return [
+                'preguntas' => [],
+                'errores' => ['Un bloque admite como máximo 20 preguntas. Has pegado ' . $numero . '.'],
+            ];
         }
 
         if ($numero === 0 && $errores === []) {
             $errores[] = 'No se encontró ninguna pregunta. Cada una debe ir entre --- y usar las etiquetas ARTICULO, PREGUNTA, A, B, C, D, CORRECTA y EXPLICACION.';
         }
 
-        if ($errores !== []) {
-            return ['preguntas' => [], 'errores' => $errores];
-        }
-
-        return ['preguntas' => $preguntas, 'errores' => []];
+        return ['preguntas' => $preguntas, 'errores' => $errores];
     }
 
     /**

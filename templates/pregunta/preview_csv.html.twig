@@ -31,6 +31,9 @@
                     {% endif %}
                 </li>
                 <li><strong>Total de preguntas:</strong> {{ total }}</li>
+                {% if editable|default(false) and omitidas|default([]) is not empty %}
+                    <li><strong>Dejadas fuera:</strong> {{ omitidas|length }}</li>
+                {% endif %}
                 <li>
                     <strong>Nuevas:</strong> 
                     {% set nuevas = preguntas|filter(p => not p.id)|length %}
@@ -44,6 +47,35 @@
             </ul>
         </div>
 
+        {% if editable|default(false) %}
+            {% if omitidas|default([]) is not empty %}
+                <div class="alert alert-warning">
+                    <strong>Estas preguntas no se tendrán en cuenta:</strong>
+                    <ul class="mb-0 mt-2">
+                        {% for aviso in omitidas %}
+                            <li>{{ aviso }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            <form method="post" action="{{ path('app_pregunta_confirmar_crear_csv') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('confirmar_csv') }}">
+                <input type="hidden" name="accion" value="{{ total > 0 ? 'guardar' : 'comprobar' }}">
+                <div class="mb-4">
+                    <label for="bloque-preguntas" class="form-label"><h4 class="mb-2">Texto de las preguntas</h4></label>
+                    <textarea id="bloque-preguntas" name="bloque" class="form-control" rows="22" style="font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre;">{{ bloqueTexto }}</textarea>
+                    <p class="text-muted mt-2 mb-0">{% if omitidas|default([]) is not empty %}Puedes corregir el texto antes de guardar. Las preguntas de la lista siguen en el texto: si las arreglas, se guardan; si no, se dejan fuera.{% else %}Puedes corregir el texto antes de guardar.{% endif %}</p>
+                </div>
+                <div class="d-flex gap-2">
+                    {% if total > 0 %}
+                        <button type="submit" class="btn btn-success">Guardar {{ total }} pregunta{% if total != 1 %}s{% endif %}</button>
+                    {% else %}
+                        <button type="submit" class="btn btn-primary">Comprobar de nuevo</button>
+                    {% endif %}
+                    <a href="{{ path(volver|default('app_pregunta_new_csv')) }}" class="btn btn-secondary">Volver</a>
+                </div>
+            </form>
+        {% else %}
         <div class="mb-4">
             <h4>Preguntas a crear:</h4>
             <div style="max-height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 1rem;">
@@ -123,6 +155,7 @@
                 <a href="{{ path(volver|default('app_pregunta_new_csv')) }}" class="btn btn-secondary">Volver</a>
             </div>
         </form>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

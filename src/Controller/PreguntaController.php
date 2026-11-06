@@ -430,7 +430,7 @@ class PreguntaController extends AbstractController
         BloquePreguntasParser $parser
     ): Response {
         if ((string) $request->request->get('modo', 'unico') === 'aleatorio') {
-            return $this->procesarPegarAleatorio($request, $temaRepository, $articuloRepository, $parser);
+            return $this->procesarPegarAleatorio($request, $temaRepository, $leyRepository, $articuloRepository, $parser);
         }
 
         $temaId = $request->request->getInt('tema', 0);
@@ -461,69 +461,12 @@ class PreguntaController extends AbstractController
             return $this->redirectToRoute('app_pregunta_pegar');
         }
 
-        $resultado = $parser->parsear($bloque);
-        if ($resultado['errores'] !== []) {
-            $mensajeErrores = implode("\n", array_slice($resultado['errores'], 0, 10));
-            if (count($resultado['errores']) > 10) {
-                $mensajeErrores .= "\n... y " . (count($resultado['errores']) - 10) . ' errores más.';
-            }
-            $this->addFlash('error', "No se pudo leer el bloque:\n" . $mensajeErrores);
-
-            return $this->redirectToRoute('app_pregunta_pegar');
-        }
-
-        $preguntas = $resultado['preguntas'];
-        $erroresArticulo = [];
-        foreach ($preguntas as $indice => $pregunta) {
-            $articulo = $this->buscarArticuloIndicado((string) $pregunta['articulo'], $articulos);
-            if (!$articulo) {
-                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': no existe el artículo «' . $pregunta['articulo'] . '» en esta ley.';
-                continue;
-            }
-            if (!$this->enunciadoCitaArticulo($pregunta['texto'], $articulo)) {
-                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el artículo ' . $articulo->getNumeroCompleto() . '.';
-                continue;
-            }
-            if (!$this->enunciadoCitaNorma($pregunta['texto'], (string) $ley->getNombre())) {
-                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar la norma «' . $ley->getNombre() . '».';
-                continue;
-            }
-            $pregunta['articuloId'] = $articulo->getId();
-            $pregunta['articuloLabel'] = 'Art. ' . $articulo->getNumeroCompleto();
-            if ($articulo->getNombre()) {
-                $pregunta['articuloLabel'] .= ' - ' . $articulo->getNombre();
-            }
-            $preguntas[$indice] = $pregunta;
-        }
-        if ($erroresArticulo !== []) {
-            $mensajeErrores = implode("\n", array_slice($erroresArticulo, 0, 10));
-            if (count($erroresArticulo) > 10) {
-                $mensajeErrores .= "\n... y " . (count($erroresArticulo) - 10) . ' errores más.';
-            }
-            $this->addFlash('error', "No se pudo asignar el artículo:\n" . $mensajeErrores);
-
-            return $this->redirectToRoute('app_pregunta_pegar');
-        }
-
-        $session = $request->getSession();
-        $session->set('preguntas_csv', $preguntas);
-        $session->set('preguntas_csv_tema', $temaId);
-        $session->set('preguntas_csv_ley', $leyId);
-        $session->set('preguntas_csv_articulo', $preguntas[0]['articuloId']);
-        $session->set('preguntas_csv_dificultad', $dificultad);
-        $session->set('preguntas_csv_origen', 'pegar');
-
-        return $this->render('pregunta/preview_csv.html.twig', [
-            'preguntas' => $preguntas,
-            'tema' => $tema,
-            'ley' => $ley,
-            'articulo' => null,
-            'articuloIndicado' => true,
-            'dificultad' => $dificultad,
-            'total' => count($preguntas),
-            'volver' => 'app_pregunta_pegar',
-            'titulo' => 'Previsualizar preguntas pegadas',
-        ]);
+        return $this->previsualizarPegado(
+            $request,
+            $this->filtrarPegado($bloque, 'unico', $temaId, $leyId, [], $temaRepository, $leyRepository, $articuloRepository, $parser),
+            $bloque,
+            $dificultad
+        );
     }
 
     #[Route('/descargar-csv-ejemplo', name: 'app_pregunta_descargar_csv_ejemplo', methods: ['GET'])]
@@ -743,7 +686,8 @@ class PreguntaController extends AbstractController
         EntityManagerInterface $entityManager,
         TemaRepository $temaRepository,
         LeyRepository $leyRepository,
-        ArticuloRepository $articuloRepository
+        ArticuloRepository $articuloRepository,
+        BloquePreguntasParser $parser
     ): Response {
         // Validar token CSRF
         if (!$this->isCsrfTokenValid('confirmar_csv', $request->request->get('_token'))) {
@@ -752,7 +696,46 @@ class PreguntaController extends AbstractController
         }
 
         $session = $request->getSession();
-        
+        $omitidasAlGuardar = [];
+
+        if ($session->get('preguntas_csv_origen') === 'pegar' && $request->request->has('bloque')) {
+            $temaIds = $session->get('preguntas_csv_temas', []);
+            if (!is_array($temaIds)) {
+                $temaIds = [];
+            }
+            $filtrado = $this->filtrarPegado(
+                (string) $request->request->get('bloque', ''),
+                (string) $session->get('preguntas_csv_modo', 'unico'),
+                (int) $session->get('preguntas_csv_tema', 0),
+                (int) $session->get('preguntas_csv_ley', 0),
+                array_map(static fn ($id): int => (int) $id, $temaIds),
+                $temaRepository,
+                $leyRepository,
+                $articuloRepository,
+                $parser
+            );
+            if ($filtrado['fatal'] !== null) {
+                $this->addFlash('error', $filtrado['fatal']);
+
+                return $this->redirectToRoute('app_pregunta_pegar');
+            }
+            if ($filtrado['preguntas'] === [] || $request->request->get('accion') !== 'guardar') {
+                return $this->previsualizarPegado(
+                    $request,
+                    $filtrado,
+                    (string) $request->request->get('bloque', ''),
+                    (string) $session->get('preguntas_csv_dificultad', '')
+                );
+            }
+
+            $primera = $filtrado['preguntas'][0];
+            $session->set('preguntas_csv', $filtrado['preguntas']);
+            $session->set('preguntas_csv_tema', (int) ($primera['temaId'] ?? $filtrado['tema']?->getId() ?? 0));
+            $session->set('preguntas_csv_ley', (int) ($primera['leyId'] ?? $filtrado['ley']?->getId() ?? 0));
+            $session->set('preguntas_csv_articulo', (int) $primera['articuloId']);
+            $omitidasAlGuardar = $filtrado['omitidas'];
+        }
+
         $preguntas = $session->get('preguntas_csv', []);
         $temaId = $session->get('preguntas_csv_tema', 0);
         $leyId = $session->get('preguntas_csv_ley', 0);
@@ -884,6 +867,12 @@ class PreguntaController extends AbstractController
         $session->remove('preguntas_csv_articulo');
         $session->remove('preguntas_csv_dificultad');
         $session->remove('preguntas_csv_origen');
+        $session->remove('preguntas_csv_modo');
+        $session->remove('preguntas_csv_temas');
+
+        if ($omitidasAlGuardar !== []) {
+            $this->addFlash('warning', $this->textoOmitidas($omitidasAlGuardar));
+        }
 
         if (!empty($errores)) {
             $mensajeErrores = implode("\n", array_slice($errores, 0, 5));
@@ -1594,6 +1583,7 @@ class PreguntaController extends AbstractController
     private function procesarPegarAleatorio(
         Request $request,
         TemaRepository $temaRepository,
+        LeyRepository $leyRepository,
         ArticuloRepository $articuloRepository,
         BloquePreguntasParser $parser
     ): Response {
@@ -1617,6 +1607,115 @@ class PreguntaController extends AbstractController
             return $this->redirectToRoute('app_pregunta_pegar');
         }
 
+        return $this->previsualizarPegado(
+            $request,
+            $this->filtrarPegado($bloque, 'aleatorio', 0, 0, $ids, $temaRepository, $leyRepository, $articuloRepository, $parser),
+            $bloque,
+            $dificultad
+        );
+    }
+
+    /**
+     * @param list<int> $temaIds
+     * @return array{
+     *     fatal: ?string,
+     *     preguntas: list<array<string, mixed>>,
+     *     omitidas: list<string>,
+     *     tema: ?\App\Entity\Tema,
+     *     ley: ?\App\Entity\Ley,
+     *     temasAleatorios: bool,
+     *     nombresTemas: list<string>,
+     *     temaIds: list<int>
+     * }
+     */
+    private function filtrarPegado(
+        string $bloque,
+        string $modo,
+        int $temaId,
+        int $leyId,
+        array $temaIds,
+        TemaRepository $temaRepository,
+        LeyRepository $leyRepository,
+        ArticuloRepository $articuloRepository,
+        BloquePreguntasParser $parser
+    ): array {
+        if ($modo === 'aleatorio') {
+            return $this->filtrarPegadoAleatorio($bloque, $temaIds, $temaRepository, $articuloRepository, $parser);
+        }
+
+        $tema = $temaRepository->find($temaId);
+        $ley = $leyRepository->find($leyId);
+        $leyDelTema = $tema && $tema->getLeyes()->exists(static fn ($i, $leyTema) => $leyTema->getId() === $leyId);
+        if (!$tema || !$tema->isActivo() || !$ley || !$leyDelTema) {
+            return $this->resultadoPegadoVacio('El tema o la ley seleccionados no son válidos.');
+        }
+
+        $articulos = $articuloRepository->findActivosByLey($leyId);
+        if ($articulos === []) {
+            return $this->resultadoPegadoVacio('Esa ley no tiene artículos activos a los que asignar las preguntas.');
+        }
+
+        $resultado = $parser->parsear($bloque);
+        $omitidas = $resultado['errores'];
+        $validas = [];
+        foreach ($resultado['preguntas'] as $pregunta) {
+            $articulo = $this->buscarArticuloIndicado((string) $pregunta['articulo'], $articulos);
+            if (!$articulo) {
+                $omitidas[] = 'Bloque ' . $pregunta['linea'] . ': no existe el artículo «' . $pregunta['articulo'] . '» en «' . $ley->getNombre() . '».';
+                continue;
+            }
+            if (!$this->enunciadoCitaArticulo($pregunta['texto'], $articulo)) {
+                $omitidas[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el artículo ' . $articulo->getNumeroCompleto() . '.';
+                continue;
+            }
+            if (!$this->enunciadoCitaNorma($pregunta['texto'], (string) $ley->getNombre())) {
+                $omitidas[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar la norma «' . $ley->getNombre() . '».';
+                continue;
+            }
+            $pregunta['articuloId'] = $articulo->getId();
+            $pregunta['articuloLabel'] = 'Art. ' . $articulo->getNumeroCompleto();
+            if ($articulo->getNombre()) {
+                $pregunta['articuloLabel'] .= ' - ' . $articulo->getNombre();
+            }
+            $validas[] = $pregunta;
+        }
+
+        return [
+            'fatal' => null,
+            'preguntas' => $validas,
+            'omitidas' => $omitidas,
+            'tema' => $tema,
+            'ley' => $ley,
+            'temasAleatorios' => false,
+            'nombresTemas' => [],
+            'temaIds' => [],
+        ];
+    }
+
+    /**
+     * @param list<int> $ids
+     * @return array{
+     *     fatal: ?string,
+     *     preguntas: list<array<string, mixed>>,
+     *     omitidas: list<string>,
+     *     tema: ?\App\Entity\Tema,
+     *     ley: ?\App\Entity\Ley,
+     *     temasAleatorios: bool,
+     *     nombresTemas: list<string>,
+     *     temaIds: list<int>
+     * }
+     */
+    private function filtrarPegadoAleatorio(
+        string $bloque,
+        array $ids,
+        TemaRepository $temaRepository,
+        ArticuloRepository $articuloRepository,
+        BloquePreguntasParser $parser
+    ): array {
+        if (count($ids) < 2) {
+            return $this->resultadoPegadoVacio('Elige al menos dos temas y la dificultad.', true, $ids);
+        }
+
         $temas = $temaRepository->createQueryBuilder('t')
             ->leftJoin('t.leyes', 'l')
             ->addSelect('l')
@@ -1632,42 +1731,30 @@ class PreguntaController extends AbstractController
             $temasPorId[$tema->getId()] = $tema;
         }
         if (count($temasPorId) !== count($ids)) {
-            $this->addFlash('error', 'Alguno de los temas seleccionados no es válido.');
-
-            return $this->redirectToRoute('app_pregunta_pegar');
+            return $this->resultadoPegadoVacio('Alguno de los temas seleccionados no es válido.', true, $ids);
         }
 
         $porNombre = [];
+        $nombresTemas = [];
         foreach ($ids as $id) {
             $tema = $temasPorId[$id];
+            $nombresTemas[] = (string) $tema->getNombre();
             $clave = $this->normalizarArticulo((string) $tema->getNombre());
             if ($clave === '' || isset($porNombre[$clave])) {
-                $this->addFlash('error', 'Hay temas con el mismo nombre y no se puede saber a cuál pertenece cada pregunta.');
-
-                return $this->redirectToRoute('app_pregunta_pegar');
+                return $this->resultadoPegadoVacio('Hay temas con el mismo nombre y no se puede saber a cuál pertenece cada pregunta.', true, $ids);
             }
             $porNombre[$clave] = $tema;
         }
 
         $resultado = $parser->parsear($bloque);
-        if ($resultado['errores'] !== []) {
-            $mensajeErrores = implode("\n", array_slice($resultado['errores'], 0, 10));
-            if (count($resultado['errores']) > 10) {
-                $mensajeErrores .= "\n... y " . (count($resultado['errores']) - 10) . ' errores más.';
-            }
-            $this->addFlash('error', "No se pudo leer el bloque:\n" . $mensajeErrores);
-
-            return $this->redirectToRoute('app_pregunta_pegar');
-        }
-
-        $preguntas = $resultado['preguntas'];
+        $omitidas = $resultado['errores'];
+        $validas = [];
         $articulosPorLey = [];
-        $erroresArticulo = [];
-        foreach ($preguntas as $indice => $pregunta) {
+        foreach ($resultado['preguntas'] as $pregunta) {
             $claveTema = $this->normalizarArticulo((string) ($pregunta['tema'] ?? ''));
             $tema = $porNombre[$claveTema] ?? null;
             if (!$tema) {
-                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': el tema «' . trim((string) ($pregunta['tema'] ?? '')) . '» no está entre los elegidos.';
+                $omitidas[] = 'Bloque ' . $pregunta['linea'] . ': el tema «' . trim((string) ($pregunta['tema'] ?? '')) . '» no está entre los elegidos.';
                 continue;
             }
 
@@ -1690,7 +1777,7 @@ class PreguntaController extends AbstractController
                 }
             }
             if (!$ley) {
-                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': la ley «' . $nombreLey . '» no pertenece al tema «' . $tema->getNombre() . '».';
+                $omitidas[] = 'Bloque ' . $pregunta['linea'] . ': la ley «' . $nombreLey . '» no pertenece al tema «' . $tema->getNombre() . '».';
                 continue;
             }
 
@@ -1699,21 +1786,21 @@ class PreguntaController extends AbstractController
                 $articulosPorLey[$leyId] = $articuloRepository->findActivosByLey($leyId);
             }
             if ($articulosPorLey[$leyId] === []) {
-                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': la ley «' . $ley->getNombre() . '» no tiene artículos activos.';
+                $omitidas[] = 'Bloque ' . $pregunta['linea'] . ': la ley «' . $ley->getNombre() . '» no tiene artículos activos.';
                 continue;
             }
 
             $articulo = $this->buscarArticuloIndicado((string) $pregunta['articulo'], $articulosPorLey[$leyId]);
             if (!$articulo) {
-                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': no existe el artículo «' . $pregunta['articulo'] . '» en «' . $ley->getNombre() . '».';
+                $omitidas[] = 'Bloque ' . $pregunta['linea'] . ': no existe el artículo «' . $pregunta['articulo'] . '» en «' . $ley->getNombre() . '».';
                 continue;
             }
             if (!$this->enunciadoCitaArticulo($pregunta['texto'], $articulo)) {
-                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el artículo ' . $articulo->getNumeroCompleto() . '.';
+                $omitidas[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el artículo ' . $articulo->getNumeroCompleto() . '.';
                 continue;
             }
             if (!$this->enunciadoCitaNorma($pregunta['texto'], (string) $ley->getNombre())) {
-                $erroresArticulo[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar la norma «' . $ley->getNombre() . '».';
+                $omitidas[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar la norma «' . $ley->getNombre() . '».';
                 continue;
             }
 
@@ -1726,55 +1813,128 @@ class PreguntaController extends AbstractController
             if ($articulo->getNombre()) {
                 $pregunta['articuloLabel'] .= ' - ' . $articulo->getNombre();
             }
-            $preguntas[$indice] = $pregunta;
+            $validas[] = $pregunta;
         }
 
-        if ($erroresArticulo !== []) {
-            $mensajeErrores = implode("\n", array_slice($erroresArticulo, 0, 10));
-            if (count($erroresArticulo) > 10) {
-                $mensajeErrores .= "\n... y " . (count($erroresArticulo) - 10) . ' errores más.';
+        $temaCabecera = $validas !== []
+            ? $temasPorId[$validas[0]['temaId']]
+            : $temasPorId[$ids[0]];
+        $leyCabecera = null;
+        if ($validas !== []) {
+            foreach ($temaCabecera->getLeyes() as $ley) {
+                if ($ley->getId() === $validas[0]['leyId']) {
+                    $leyCabecera = $ley;
+                    break;
+                }
             }
-            $this->addFlash('error', "No se pudo asignar el tema:\n" . $mensajeErrores);
+        }
+
+        return [
+            'fatal' => null,
+            'preguntas' => $validas,
+            'omitidas' => $omitidas,
+            'tema' => $temaCabecera,
+            'ley' => $leyCabecera,
+            'temasAleatorios' => true,
+            'nombresTemas' => $nombresTemas,
+            'temaIds' => array_values($ids),
+        ];
+    }
+
+    /**
+     * @param list<int> $temaIds
+     * @return array{
+     *     fatal: ?string,
+     *     preguntas: list<array<string, mixed>>,
+     *     omitidas: list<string>,
+     *     tema: null,
+     *     ley: null,
+     *     temasAleatorios: bool,
+     *     nombresTemas: list<string>,
+     *     temaIds: list<int>
+     * }
+     */
+    private function resultadoPegadoVacio(string $fatal, bool $aleatorio = false, array $temaIds = []): array
+    {
+        return [
+            'fatal' => $fatal,
+            'preguntas' => [],
+            'omitidas' => [],
+            'tema' => null,
+            'ley' => null,
+            'temasAleatorios' => $aleatorio,
+            'nombresTemas' => [],
+            'temaIds' => array_values($temaIds),
+        ];
+    }
+
+    /**
+     * @param array{
+     *     fatal: ?string,
+     *     preguntas: list<array<string, mixed>>,
+     *     omitidas: list<string>,
+     *     tema: ?\App\Entity\Tema,
+     *     ley: ?\App\Entity\Ley,
+     *     temasAleatorios: bool,
+     *     nombresTemas: list<string>,
+     *     temaIds: list<int>
+     * } $filtrado
+     */
+    private function previsualizarPegado(Request $request, array $filtrado, string $bloqueOriginal, string $dificultad): Response
+    {
+        if ($filtrado['fatal'] !== null) {
+            $this->addFlash('error', $filtrado['fatal']);
 
             return $this->redirectToRoute('app_pregunta_pegar');
         }
 
-        $primera = $preguntas[0];
-        $temaPrimero = $temasPorId[$primera['temaId']];
-        $leyPrimera = null;
-        foreach ($temaPrimero->getLeyes() as $ley) {
-            if ($ley->getId() === $primera['leyId']) {
-                $leyPrimera = $ley;
-                break;
-            }
-        }
-
-        $nombresTemas = [];
-        foreach ($ids as $id) {
-            $nombresTemas[] = (string) $temasPorId[$id]->getNombre();
-        }
+        $preguntas = $filtrado['preguntas'];
+        $tema = $filtrado['tema'];
+        $ley = $filtrado['ley'];
+        $temaId = (int) ($preguntas[0]['temaId'] ?? $tema?->getId() ?? 0);
+        $leyId = (int) ($preguntas[0]['leyId'] ?? $ley?->getId() ?? 0);
+        $articuloId = (int) ($preguntas[0]['articuloId'] ?? 0);
 
         $session = $request->getSession();
         $session->set('preguntas_csv', $preguntas);
-        $session->set('preguntas_csv_tema', $primera['temaId']);
-        $session->set('preguntas_csv_ley', $primera['leyId']);
-        $session->set('preguntas_csv_articulo', $primera['articuloId']);
+        $session->set('preguntas_csv_tema', $temaId);
+        $session->set('preguntas_csv_ley', $leyId);
+        $session->set('preguntas_csv_articulo', $articuloId);
         $session->set('preguntas_csv_dificultad', $dificultad);
         $session->set('preguntas_csv_origen', 'pegar');
+        $session->set('preguntas_csv_modo', $filtrado['temasAleatorios'] ? 'aleatorio' : 'unico');
+        $session->set('preguntas_csv_temas', $filtrado['temaIds']);
 
         return $this->render('pregunta/preview_csv.html.twig', [
             'preguntas' => $preguntas,
-            'tema' => $temaPrimero,
-            'ley' => $leyPrimera,
+            'tema' => $tema,
+            'ley' => $ley,
             'articulo' => null,
             'articuloIndicado' => true,
-            'temasAleatorios' => true,
-            'nombresTemas' => $nombresTemas,
+            'temasAleatorios' => $filtrado['temasAleatorios'],
+            'nombresTemas' => $filtrado['nombresTemas'],
             'dificultad' => $dificultad,
             'total' => count($preguntas),
             'volver' => 'app_pregunta_pegar',
             'titulo' => 'Previsualizar preguntas pegadas',
+            'editable' => true,
+            'bloqueTexto' => $bloqueOriginal,
+            'omitidas' => $filtrado['omitidas'],
         ]);
+    }
+
+    /**
+     * @param list<string> $omitidas
+     */
+    private function textoOmitidas(array $omitidas): string
+    {
+        $mensaje = 'Se han dejado fuera ' . count($omitidas) . " pregunta(s):\n";
+        $mensaje .= implode("\n", array_slice($omitidas, 0, 10));
+        if (count($omitidas) > 10) {
+            $mensaje .= "\n... y " . (count($omitidas) - 10) . ' más.';
+        }
+
+        return $mensaje;
     }
 
     /**

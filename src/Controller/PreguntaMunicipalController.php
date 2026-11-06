@@ -383,66 +383,12 @@ class PreguntaMunicipalController extends AbstractController
             return $this->redirectToRoute('app_pregunta_municipal_pegar');
         }
 
-        $resultado = $parser->parsear($bloque);
-        if ($resultado['errores'] !== []) {
-            $mensajeErrores = implode("\n", array_slice($resultado['errores'], 0, 10));
-            if (count($resultado['errores']) > 10) {
-                $mensajeErrores .= "\n... y " . (count($resultado['errores']) - 10) . ' errores más.';
-            }
-            $this->addFlash('error', "No se pudo leer el bloque:\n" . $mensajeErrores);
-
-            return $this->redirectToRoute('app_pregunta_municipal_pegar');
-        }
-
-        $preguntas = $resultado['preguntas'];
-        $erroresCita = [];
-        foreach ($preguntas as $indice => $pregunta) {
-            $articulo = $this->numeroYSufijo((string) $pregunta['articulo']);
-            if ($articulo === null) {
-                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el artículo «' . $pregunta['articulo'] . '» no tiene un número válido.';
-                continue;
-            }
-            if (!$this->enunciadoCitaArticulo($pregunta['texto'], $articulo['numero'], $articulo['sufijo'])) {
-                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el artículo ' . trim($articulo['numero'] . ' ' . $articulo['sufijo']) . '.';
-                continue;
-            }
-            if (!$this->enunciadoCitaTexto($pregunta['texto'], (string) $municipio->getNombre())) {
-                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el municipio «' . $municipio->getNombre() . '».';
-                continue;
-            }
-            if (!$this->enunciadoCitaTexto($pregunta['texto'], (string) $temaMunicipal->getNombre())) {
-                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el tema «' . $temaMunicipal->getNombre() . '».';
-                continue;
-            }
-            $preguntas[$indice] = $pregunta;
-        }
-
-        if ($erroresCita !== []) {
-            $mensajeErrores = implode("\n", array_slice($erroresCita, 0, 10));
-            if (count($erroresCita) > 10) {
-                $mensajeErrores .= "\n... y " . (count($erroresCita) - 10) . ' errores más.';
-            }
-            $this->addFlash('error', "No se pudo aceptar el bloque:\n" . $mensajeErrores);
-
-            return $this->redirectToRoute('app_pregunta_municipal_pegar');
-        }
-
-        $session = $request->getSession();
-        $session->set('preguntas_municipal_csv', $preguntas);
-        $session->set('preguntas_municipal_csv_municipio', $municipioId);
-        $session->set('preguntas_municipal_csv_tema', $temaMunicipalId);
-        $session->set('preguntas_municipal_csv_dificultad', $dificultad);
-        $session->set('preguntas_municipal_csv_origen', 'pegar');
-
-        return $this->render('pregunta_municipal/preview_csv.html.twig', [
-            'preguntas' => $preguntas,
-            'municipio' => $municipio,
-            'temaMunicipal' => $temaMunicipal,
-            'dificultad' => $dificultad,
-            'total' => count($preguntas),
-            'volver' => 'app_pregunta_municipal_pegar',
-            'titulo' => 'Previsualizar preguntas pegadas',
-        ]);
+        return $this->previsualizarPegadoMunicipal(
+            $request,
+            $this->filtrarPegadoMunicipal($bloque, 'unico', $municipioId, $temaMunicipalId, [], $municipioRepository, $temaMunicipalRepository, $parser),
+            $bloque,
+            $dificultad
+        );
     }
 
     #[Route('/descargar-csv-ejemplo', name: 'app_pregunta_municipal_descargar_csv_ejemplo', methods: ['GET'])]
@@ -657,7 +603,8 @@ class PreguntaMunicipalController extends AbstractController
         EntityManagerInterface $entityManager,
         MunicipioRepository $municipioRepository,
         TemaMunicipalRepository $temaMunicipalRepository,
-        PreguntaMunicipalRepository $preguntaMunicipalRepository
+        PreguntaMunicipalRepository $preguntaMunicipalRepository,
+        BloquePreguntasParser $parser
     ): Response {
         // Validar token CSRF
         if (!$this->isCsrfTokenValid('confirmar_csv_municipal', $request->request->get('_token'))) {
@@ -666,7 +613,44 @@ class PreguntaMunicipalController extends AbstractController
         }
 
         $session = $request->getSession();
-        
+        $omitidasAlGuardar = [];
+
+        if ($session->get('preguntas_municipal_csv_origen') === 'pegar' && $request->request->has('bloque')) {
+            $temaIds = $session->get('preguntas_municipal_csv_temas', []);
+            if (!is_array($temaIds)) {
+                $temaIds = [];
+            }
+            $filtrado = $this->filtrarPegadoMunicipal(
+                (string) $request->request->get('bloque', ''),
+                (string) $session->get('preguntas_municipal_csv_modo', 'unico'),
+                (int) $session->get('preguntas_municipal_csv_municipio', 0),
+                (int) $session->get('preguntas_municipal_csv_tema', 0),
+                array_map(static fn ($id): int => (int) $id, $temaIds),
+                $municipioRepository,
+                $temaMunicipalRepository,
+                $parser
+            );
+            if ($filtrado['fatal'] !== null) {
+                $this->addFlash('error', $filtrado['fatal']);
+
+                return $this->redirectToRoute('app_pregunta_municipal_pegar');
+            }
+            if ($filtrado['preguntas'] === [] || $request->request->get('accion') !== 'guardar') {
+                return $this->previsualizarPegadoMunicipal(
+                    $request,
+                    $filtrado,
+                    (string) $request->request->get('bloque', ''),
+                    (string) $session->get('preguntas_municipal_csv_dificultad', '')
+                );
+            }
+
+            $primera = $filtrado['preguntas'][0];
+            $session->set('preguntas_municipal_csv', $filtrado['preguntas']);
+            $session->set('preguntas_municipal_csv_municipio', (int) ($filtrado['municipio']?->getId() ?? 0));
+            $session->set('preguntas_municipal_csv_tema', (int) ($primera['temaMunicipalId'] ?? $filtrado['temaMunicipal']?->getId() ?? 0));
+            $omitidasAlGuardar = $filtrado['omitidas'];
+        }
+
         $preguntas = $session->get('preguntas_municipal_csv', []);
         $municipioId = $session->get('preguntas_municipal_csv_municipio', 0);
         $temaMunicipalId = $session->get('preguntas_municipal_csv_tema', 0);
@@ -774,6 +758,12 @@ class PreguntaMunicipalController extends AbstractController
         $session->remove('preguntas_municipal_csv_tema');
         $session->remove('preguntas_municipal_csv_dificultad');
         $session->remove('preguntas_municipal_csv_origen');
+        $session->remove('preguntas_municipal_csv_modo');
+        $session->remove('preguntas_municipal_csv_temas');
+
+        if ($omitidasAlGuardar !== []) {
+            $this->addFlash('warning', $this->textoOmitidasMunicipales($omitidasAlGuardar));
+        }
 
         if (!empty($errores)) {
             $mensajeErrores = implode("\n", array_slice($errores, 0, 5));
@@ -1162,11 +1152,96 @@ class PreguntaMunicipalController extends AbstractController
             return $this->redirectToRoute('app_pregunta_municipal_pegar');
         }
 
-        $municipio = $municipioRepository->find($municipioId);
-        if (!$municipio) {
-            $this->addFlash('error', 'El municipio seleccionado no es válido.');
+        return $this->previsualizarPegadoMunicipal(
+            $request,
+            $this->filtrarPegadoMunicipal($bloque, 'aleatorio', $municipioId, 0, $ids, $municipioRepository, $temaMunicipalRepository, $parser),
+            $bloque,
+            $dificultad
+        );
+    }
 
-            return $this->redirectToRoute('app_pregunta_municipal_pegar');
+    /**
+     * @param list<int> $temaIds
+     * @return array{
+     *     fatal: ?string,
+     *     preguntas: list<array<string, mixed>>,
+     *     omitidas: list<string>,
+     *     municipio: ?\App\Entity\Municipio,
+     *     temaMunicipal: ?\App\Entity\TemaMunicipal,
+     *     temasAleatorios: bool,
+     *     nombresTemas: list<string>,
+     *     temaIds: list<int>
+     * }
+     */
+    private function filtrarPegadoMunicipal(
+        string $bloque,
+        string $modo,
+        int $municipioId,
+        int $temaMunicipalId,
+        array $temaIds,
+        MunicipioRepository $municipioRepository,
+        TemaMunicipalRepository $temaMunicipalRepository,
+        BloquePreguntasParser $parser
+    ): array {
+        if ($modo === 'aleatorio') {
+            return $this->filtrarPegadoMunicipalAleatorio($bloque, $municipioId, $temaIds, $municipioRepository, $temaMunicipalRepository, $parser);
+        }
+
+        $municipio = $municipioRepository->find($municipioId);
+        $temaMunicipal = $temaMunicipalRepository->find($temaMunicipalId);
+        $temaDelMunicipio = $temaMunicipal && $temaMunicipal->getMunicipio()?->getId() === $municipioId;
+        if (!$municipio || !$temaMunicipal || !$temaMunicipal->isActivo() || !$temaDelMunicipio) {
+            return $this->resultadoPegadoMunicipalVacio('El municipio o el tema municipal seleccionados no son válidos.');
+        }
+
+        $resultado = $parser->parsear($bloque);
+        $omitidas = $resultado['errores'];
+        $validas = [];
+        foreach ($resultado['preguntas'] as $pregunta) {
+            $motivo = $this->motivoPreguntaMunicipal($pregunta, (string) $municipio->getNombre(), (string) $temaMunicipal->getNombre());
+            if ($motivo !== null) {
+                $omitidas[] = $motivo;
+                continue;
+            }
+            $validas[] = $pregunta;
+        }
+
+        return [
+            'fatal' => null,
+            'preguntas' => $validas,
+            'omitidas' => $omitidas,
+            'municipio' => $municipio,
+            'temaMunicipal' => $temaMunicipal,
+            'temasAleatorios' => false,
+            'nombresTemas' => [],
+            'temaIds' => [],
+        ];
+    }
+
+    /**
+     * @param list<int> $ids
+     * @return array{
+     *     fatal: ?string,
+     *     preguntas: list<array<string, mixed>>,
+     *     omitidas: list<string>,
+     *     municipio: ?\App\Entity\Municipio,
+     *     temaMunicipal: ?\App\Entity\TemaMunicipal,
+     *     temasAleatorios: bool,
+     *     nombresTemas: list<string>,
+     *     temaIds: list<int>
+     * }
+     */
+    private function filtrarPegadoMunicipalAleatorio(
+        string $bloque,
+        int $municipioId,
+        array $ids,
+        MunicipioRepository $municipioRepository,
+        TemaMunicipalRepository $temaMunicipalRepository,
+        BloquePreguntasParser $parser
+    ): array {
+        $municipio = $municipioRepository->find($municipioId);
+        if (!$municipio || count($ids) < 2) {
+            return $this->resultadoPegadoMunicipalVacio('Elige el municipio, al menos dos temas y la dificultad.', true, $ids);
         }
 
         $temas = $temaMunicipalRepository->createQueryBuilder('t')
@@ -1184,99 +1259,167 @@ class PreguntaMunicipalController extends AbstractController
             $temasPorId[$tema->getId()] = $tema;
         }
         if (count($temasPorId) !== count($ids)) {
-            $this->addFlash('error', 'Alguno de los temas no pertenece a ese municipio.');
-
-            return $this->redirectToRoute('app_pregunta_municipal_pegar');
+            return $this->resultadoPegadoMunicipalVacio('Alguno de los temas no pertenece a ese municipio.', true, $ids);
         }
 
         $porNombre = [];
+        $nombresTemas = [];
         foreach ($ids as $id) {
             $tema = $temasPorId[$id];
+            $nombresTemas[] = (string) $tema->getNombre();
             $clave = $this->normalizarTexto((string) $tema->getNombre());
             if ($clave === '' || isset($porNombre[$clave])) {
-                $this->addFlash('error', 'Hay temas con el mismo nombre y no se puede saber a cuál pertenece cada pregunta.');
-
-                return $this->redirectToRoute('app_pregunta_municipal_pegar');
+                return $this->resultadoPegadoMunicipalVacio('Hay temas con el mismo nombre y no se puede saber a cuál pertenece cada pregunta.', true, $ids);
             }
             $porNombre[$clave] = $tema;
         }
+        usort($nombresTemas, static fn (string $a, string $b): int => strnatcasecmp($a, $b));
 
         $resultado = $parser->parsear($bloque);
-        if ($resultado['errores'] !== []) {
-            $mensajeErrores = implode("\n", array_slice($resultado['errores'], 0, 10));
-            if (count($resultado['errores']) > 10) {
-                $mensajeErrores .= "\n... y " . (count($resultado['errores']) - 10) . ' errores más.';
-            }
-            $this->addFlash('error', "No se pudo leer el bloque:\n" . $mensajeErrores);
-
-            return $this->redirectToRoute('app_pregunta_municipal_pegar');
-        }
-
-        $preguntas = $resultado['preguntas'];
-        $erroresCita = [];
-        foreach ($preguntas as $indice => $pregunta) {
+        $omitidas = $resultado['errores'];
+        $validas = [];
+        foreach ($resultado['preguntas'] as $pregunta) {
             $tema = $porNombre[$this->normalizarTexto((string) ($pregunta['tema'] ?? ''))] ?? null;
             if (!$tema) {
-                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el tema «' . trim((string) ($pregunta['tema'] ?? '')) . '» no está entre los elegidos.';
+                $omitidas[] = 'Bloque ' . $pregunta['linea'] . ': el tema «' . trim((string) ($pregunta['tema'] ?? '')) . '» no está entre los elegidos.';
                 continue;
             }
-            $articulo = $this->numeroYSufijo((string) $pregunta['articulo']);
-            if ($articulo === null) {
-                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el artículo «' . $pregunta['articulo'] . '» no tiene un número válido.';
-                continue;
-            }
-            if (!$this->enunciadoCitaArticulo($pregunta['texto'], $articulo['numero'], $articulo['sufijo'])) {
-                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el artículo ' . trim($articulo['numero'] . ' ' . $articulo['sufijo']) . '.';
-                continue;
-            }
-            if (!$this->enunciadoCitaTexto($pregunta['texto'], (string) $municipio->getNombre())) {
-                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el municipio «' . $municipio->getNombre() . '».';
-                continue;
-            }
-            if (!$this->enunciadoCitaTexto($pregunta['texto'], (string) $tema->getNombre())) {
-                $erroresCita[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el tema «' . $tema->getNombre() . '».';
+            $motivo = $this->motivoPreguntaMunicipal($pregunta, (string) $municipio->getNombre(), (string) $tema->getNombre());
+            if ($motivo !== null) {
+                $omitidas[] = $motivo;
                 continue;
             }
             $pregunta['temaMunicipalId'] = $tema->getId();
             $pregunta['temaNombre'] = (string) $tema->getNombre();
-            $preguntas[$indice] = $pregunta;
+            $validas[] = $pregunta;
         }
 
-        if ($erroresCita !== []) {
-            $mensajeErrores = implode("\n", array_slice($erroresCita, 0, 10));
-            if (count($erroresCita) > 10) {
-                $mensajeErrores .= "\n... y " . (count($erroresCita) - 10) . ' errores más.';
-            }
-            $this->addFlash('error', "No se pudo asignar el tema:\n" . $mensajeErrores);
+        $temaCabecera = $validas !== []
+            ? $temasPorId[$validas[0]['temaMunicipalId']]
+            : $temasPorId[$ids[0]];
+
+        return [
+            'fatal' => null,
+            'preguntas' => $validas,
+            'omitidas' => $omitidas,
+            'municipio' => $municipio,
+            'temaMunicipal' => $temaCabecera,
+            'temasAleatorios' => true,
+            'nombresTemas' => $nombresTemas,
+            'temaIds' => array_values($ids),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $pregunta
+     */
+    private function motivoPreguntaMunicipal(array $pregunta, string $municipio, string $tema): ?string
+    {
+        $articulo = $this->numeroYSufijo((string) $pregunta['articulo']);
+        if ($articulo === null) {
+            return 'Bloque ' . $pregunta['linea'] . ': el artículo «' . $pregunta['articulo'] . '» no tiene un número válido.';
+        }
+        if (!$this->enunciadoCitaArticulo($pregunta['texto'], $articulo['numero'], $articulo['sufijo'])) {
+            return 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el artículo ' . trim($articulo['numero'] . ' ' . $articulo['sufijo']) . '.';
+        }
+        if (!$this->enunciadoCitaTexto($pregunta['texto'], $municipio)) {
+            return 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el municipio «' . $municipio . '».';
+        }
+        if (!$this->enunciadoCitaTexto($pregunta['texto'], $tema)) {
+            return 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el tema «' . $tema . '».';
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<int> $temaIds
+     * @return array{
+     *     fatal: ?string,
+     *     preguntas: list<array<string, mixed>>,
+     *     omitidas: list<string>,
+     *     municipio: null,
+     *     temaMunicipal: null,
+     *     temasAleatorios: bool,
+     *     nombresTemas: list<string>,
+     *     temaIds: list<int>
+     * }
+     */
+    private function resultadoPegadoMunicipalVacio(string $fatal, bool $aleatorio = false, array $temaIds = []): array
+    {
+        return [
+            'fatal' => $fatal,
+            'preguntas' => [],
+            'omitidas' => [],
+            'municipio' => null,
+            'temaMunicipal' => null,
+            'temasAleatorios' => $aleatorio,
+            'nombresTemas' => [],
+            'temaIds' => array_values($temaIds),
+        ];
+    }
+
+    /**
+     * @param array{
+     *     fatal: ?string,
+     *     preguntas: list<array<string, mixed>>,
+     *     omitidas: list<string>,
+     *     municipio: ?\App\Entity\Municipio,
+     *     temaMunicipal: ?\App\Entity\TemaMunicipal,
+     *     temasAleatorios: bool,
+     *     nombresTemas: list<string>,
+     *     temaIds: list<int>
+     * } $filtrado
+     */
+    private function previsualizarPegadoMunicipal(Request $request, array $filtrado, string $bloqueOriginal, string $dificultad): Response
+    {
+        if ($filtrado['fatal'] !== null) {
+            $this->addFlash('error', $filtrado['fatal']);
 
             return $this->redirectToRoute('app_pregunta_municipal_pegar');
         }
 
-        $nombresTemas = [];
-        foreach ($temasPorId as $tema) {
-            $nombresTemas[] = (string) $tema->getNombre();
-        }
-        usort($nombresTemas, static fn (string $a, string $b): int => strnatcasecmp($a, $b));
+        $preguntas = $filtrado['preguntas'];
+        $temaMunicipal = $filtrado['temaMunicipal'];
+        $municipio = $filtrado['municipio'];
 
-        $primera = $preguntas[0];
         $session = $request->getSession();
         $session->set('preguntas_municipal_csv', $preguntas);
-        $session->set('preguntas_municipal_csv_municipio', $municipioId);
-        $session->set('preguntas_municipal_csv_tema', $primera['temaMunicipalId']);
+        $session->set('preguntas_municipal_csv_municipio', (int) ($municipio?->getId() ?? 0));
+        $session->set('preguntas_municipal_csv_tema', (int) ($preguntas[0]['temaMunicipalId'] ?? $temaMunicipal?->getId() ?? 0));
         $session->set('preguntas_municipal_csv_dificultad', $dificultad);
         $session->set('preguntas_municipal_csv_origen', 'pegar');
+        $session->set('preguntas_municipal_csv_modo', $filtrado['temasAleatorios'] ? 'aleatorio' : 'unico');
+        $session->set('preguntas_municipal_csv_temas', $filtrado['temaIds']);
 
         return $this->render('pregunta_municipal/preview_csv.html.twig', [
             'preguntas' => $preguntas,
             'municipio' => $municipio,
-            'temaMunicipal' => $temasPorId[$primera['temaMunicipalId']],
-            'temasAleatorios' => true,
-            'nombresTemas' => $nombresTemas,
+            'temaMunicipal' => $temaMunicipal,
+            'temasAleatorios' => $filtrado['temasAleatorios'],
+            'nombresTemas' => $filtrado['nombresTemas'],
             'dificultad' => $dificultad,
             'total' => count($preguntas),
             'volver' => 'app_pregunta_municipal_pegar',
             'titulo' => 'Previsualizar preguntas pegadas',
+            'editable' => true,
+            'bloqueTexto' => $bloqueOriginal,
+            'omitidas' => $filtrado['omitidas'],
         ]);
+    }
+
+    /**
+     * @param list<string> $omitidas
+     */
+    private function textoOmitidasMunicipales(array $omitidas): string
+    {
+        $mensaje = 'Se han dejado fuera ' . count($omitidas) . " pregunta(s):\n";
+        $mensaje .= implode("\n", array_slice($omitidas, 0, 10));
+        if (count($omitidas) > 10) {
+            $mensaje .= "\n... y " . (count($omitidas) - 10) . ' más.';
+        }
+
+        return $mensaje;
     }
 
     /**
