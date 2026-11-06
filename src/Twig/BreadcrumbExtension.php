@@ -193,6 +193,7 @@ class BreadcrumbExtension extends AbstractExtension
             'app_juego_adivina_numero_articulo' => ['label' => '¿Qué Número Tiene el Artículo?', 'parent' => 'app_dashboard'],
             'app_juego_adivina_nombre_articulo' => ['label' => '¿Cómo se Llama el Artículo?', 'parent' => 'app_dashboard'],
             'app_juego_completa_fecha_ley' => ['label' => '¿Cuándo se Publicó la Ley?', 'parent' => 'app_dashboard'],
+            'app_juego_pena_articulo' => ['label' => '¿Multa o cárcel?', 'parent' => 'app_dashboard'],
             
             // Alumno - Gamificación
             'app_gamificacion_historial' => ['label' => 'Historial de Gamificación', 'parent' => 'app_dashboard'],

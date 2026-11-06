@@ -85,6 +85,7 @@ class PartidaJuego
             'completa_fecha_ley' => '¿Cuándo se Publicó la Ley?',
             'completa_texto_legal' => 'Completa el Artículo',
             'articulo_correcto' => 'El artículo correcto',
+            'pena_articulo' => '¿Multa o cárcel?',
             default => $this->tipoJuego,
         };
     }

@@ -7,6 +7,7 @@ use App\Repository\ArticuloRepository;
 use App\Repository\LeyRepository;
 use App\Repository\PreguntaRepository;
 use App\Repository\TemaRepository;
+use App\Service\PenaArticuloParser;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -64,9 +65,43 @@ class JuegoController extends AbstractController
         return $this->render('juego/articulo_correcto.html.twig', $this->temasViewData());
     }
 
+    #[Route('/juegos/multa-o-carcel', name: 'app_juego_pena_articulo')]
+    #[IsGranted('ROLE_USER')]
+    public function penaArticulo(): Response
+    {
+        return $this->render('juego/pena_articulo.html.twig');
+    }
+
     /**
-     * @return array{temas: list<\App\Entity\Tema>}
+     * Los temas 25, 26 y 27 comparten el Código Penal. Sus artículos son los de
+     * patrimonio (234-269), seguridad vial (379-385) y derechos fundamentales (510-521).
      */
+    private function articuloDeTemasPena(?int $numero): bool
+    {
+        if ($numero === null) {
+            return false;
+        }
+
+        return ($numero >= 234 && $numero <= 269)
+            || ($numero >= 379 && $numero <= 385)
+            || ($numero >= 510 && $numero <= 521);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function idsTemasPena(): array
+    {
+        $ids = [];
+        foreach ($this->temaRepository->findActivosOrderedByNombre() as $tema) {
+            if (preg_match('/^Tema 2[567]\b/u', (string) $tema->getNombre())) {
+                $ids[] = (int) $tema->getId();
+            }
+        }
+
+        return $ids;
+    }
+
     private function temasViewData(): array
     {
         return [
@@ -120,6 +155,7 @@ class JuegoController extends AbstractController
             'completa_fecha_ley',
             'completa_texto_legal',
             'articulo_correcto',
+            'pena_articulo',
         ];
 
         if (!$tipoJuego || !in_array($tipoJuego, $tiposValidos)) {
@@ -295,6 +331,65 @@ class JuegoController extends AbstractController
                     'nombre' => $articulo->getLey()->getNombre(),
                 ],
             ];
+        }
+
+        return new JsonResponse($resultado);
+    }
+
+    #[Route('/api/juegos/penas-lote', name: 'app_juego_api_penas_lote')]
+    #[IsGranted('ROLE_USER')]
+    public function getPenasLote(Request $request, ArticuloRepository $articuloRepository, PenaArticuloParser $parser): JsonResponse
+    {
+        $temaIds = $this->idsTemasPena();
+        if ($temaIds === []) {
+            return new JsonResponse(['error' => 'No están disponibles los temas 25, 26 y 27.'], 404);
+        }
+
+        $articulos = $articuloRepository->createQueryBuilder('a')
+            ->innerJoin('a.ley', 'l')
+            ->addSelect('l')
+            ->innerJoin('l.temas', 't')
+            ->where('a.activo = :activo')
+            ->andWhere('l.activo = :activo')
+            ->andWhere('t.id IN (:temaIds)')
+            ->andWhere('a.explicacion IS NOT NULL')
+            ->andWhere('a.explicacion != :vacio')
+            ->setParameter('activo', true)
+            ->setParameter('temaIds', $temaIds)
+            ->setParameter('vacio', '')
+            ->getQuery()
+            ->getResult();
+
+        $resultado = [];
+        $vistos = [];
+        foreach ($articulos as $articulo) {
+            if (isset($vistos[$articulo->getId()]) || !$this->articuloDeTemasPena($articulo->getNumero())) {
+                continue;
+            }
+            $vistos[$articulo->getId()] = true;
+            $pena = $parser->extraer($articulo->getExplicacion());
+            if ($pena === null) {
+                continue;
+            }
+
+            $resultado[] = [
+                'id' => $articulo->getId(),
+                'numeroCompleto' => $articulo->getNumeroCompleto(),
+                'titulo' => $parser->titulo($articulo->getNombre(), $articulo->getExplicacion()),
+                'ley' => [
+                    'nombre' => $articulo->getLey()?->getNombre() ?? '',
+                ],
+                'tipos' => $pena['tipos'],
+                'tramos' => $pena['tramos'],
+                'opciones' => $pena['opciones'],
+            ];
+        }
+
+        shuffle($resultado);
+        $resultado = array_slice($resultado, 0, 20);
+
+        if ($resultado === []) {
+            return new JsonResponse(['error' => 'No hay artículos con pena en los temas 25, 26 y 27.'], 404);
         }
 
         return new JsonResponse($resultado);

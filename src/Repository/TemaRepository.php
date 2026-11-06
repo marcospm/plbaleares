@@ -21,12 +21,12 @@ class TemaRepository extends ServiceEntityRepository
     }
 
     /**
-     * Obtiene todos los temas activos ordenados por nombre (con cache)
+     * Temas activos en orden natural: Tema 1, Tema 2, Tema 10.
      * @return Tema[]
      */
     public function findActivosOrderedByNombre(): array
     {
-        $cacheKey = 'temas_activos_ordered_nombre';
+        $cacheKey = 'temas_activos_ordered_nombre_natural';
         
         if ($this->cache) {
             $cacheItem = $this->cache->getItem($cacheKey);
@@ -35,7 +35,8 @@ class TemaRepository extends ServiceEntityRepository
             }
         }
 
-        $temas = $this->findBy(['activo' => true], ['nombre' => 'ASC']);
+        $temas = $this->findBy(['activo' => true]);
+        usort($temas, static fn (Tema $a, Tema $b): int => strnatcasecmp((string) $a->getNombre(), (string) $b->getNombre()));
 
         if ($this->cache) {
             $cacheItem->set($temas);

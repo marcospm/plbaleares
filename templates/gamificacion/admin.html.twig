@@ -39,6 +39,7 @@
                                     <th style="text-align: center;">📅 Fecha</th>
                                     <th style="text-align: center;">📄 Texto</th>
                                     <th style="text-align: center;">✅ Correcto</th>
+                                    <th style="text-align: center;">⚖️ Pena</th>
                                     <th style="text-align: center;">Total</th>
                                 </tr>
                             </thead>
@@ -64,8 +65,11 @@
                                         <td style="text-align: center; font-weight: 600; color: var(--color-primary);">
                                             {{ entry.partidas['articulo_correcto'] ?? 0 }}
                                         </td>
+                                        <td style="text-align: center; font-weight: 600; color: var(--color-primary);">
+                                            {{ entry.partidas['pena_articulo'] ?? 0 }}
+                                        </td>
                                         <td style="text-align: center; font-weight: bold; font-size: 1.1rem; color: var(--color-primary);">
-                                            {{ (entry.partidas['adivina_numero_articulo'] ?? 0) + (entry.partidas['adivina_nombre_articulo'] ?? 0) + (entry.partidas['completa_fecha_ley'] ?? 0) + (entry.partidas['completa_texto_legal'] ?? 0) + (entry.partidas['articulo_correcto'] ?? 0) }}
+                                            {{ (entry.partidas['adivina_numero_articulo'] ?? 0) + (entry.partidas['adivina_nombre_articulo'] ?? 0) + (entry.partidas['completa_fecha_ley'] ?? 0) + (entry.partidas['completa_texto_legal'] ?? 0) + (entry.partidas['articulo_correcto'] ?? 0) + (entry.partidas['pena_articulo'] ?? 0) }}
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -94,6 +98,7 @@
                             {% elseif tipo == 'completa_fecha_ley' %}📅
                             {% elseif tipo == 'completa_texto_legal' %}📄
                             {% elseif tipo == 'articulo_correcto' %}✅
+                            {% elseif tipo == 'pena_articulo' %}⚖️
                             {% endif %}
                             {{ datos.nombre }}
                         </h3>

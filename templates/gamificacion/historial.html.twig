@@ -21,7 +21,8 @@
                     'adivina_nombre_articulo': '¿Cómo se Llama el Artículo?',
                     'completa_fecha_ley': '¿Cuándo se Publicó la Ley?',
                     'completa_texto_legal': 'Completa el Artículo',
-                    'articulo_correcto': 'El artículo correcto'
+                    'articulo_correcto': 'El artículo correcto',
+                    'pena_articulo': '¿Multa o cárcel?'
                 } %}
                 {% for tipo, nombre in tiposJuegos %}
                     <div style="padding: 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -31,6 +32,7 @@
                             {% elseif tipo == 'completa_fecha_ley' %}📅
                             {% elseif tipo == 'completa_texto_legal' %}📄
                             {% elseif tipo == 'articulo_correcto' %}✅
+                            {% elseif tipo == 'pena_articulo' %}⚖️
                             {% endif %}
                         </div>
                         <h3 style="margin: 0.5rem 0; font-size: 1.1rem; font-weight: 600;">{{ nombre }}</h3>

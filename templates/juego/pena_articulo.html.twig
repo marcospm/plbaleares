@@ -1,0 +1,405 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}¿Multa o cárcel? - Gamificación - BISPOL{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .contador-progreso {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .pena-opciones {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+        }
+
+        .pena-opcion {
+            border: 2px solid var(--color-border);
+            background: #fff;
+            color: var(--color-text);
+            border-radius: 999px;
+            padding: 0.55rem 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .pena-opcion[aria-pressed="true"] {
+            border-color: var(--color-primary);
+            background: #e8f1f8;
+            color: var(--color-primary-dark);
+        }
+
+        .pena-opcion.acierto {
+            border-color: var(--color-success);
+            background: #e8f8ef;
+            color: #146c43;
+        }
+
+        .pena-opcion.fallo {
+            border-color: var(--color-danger);
+            background: #fdecea;
+            color: #922b21;
+        }
+
+        .pena-opcion.faltaba {
+            border-color: var(--color-warning);
+            background: #fff6e5;
+            color: #8a5a00;
+        }
+
+        .pena-opcion:disabled {
+            cursor: default;
+        }
+
+        .tramo-bloque {
+            margin-top: 1.25rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .tramo-escrito {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.7rem 0.9rem;
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            font-size: 1rem;
+            color: var(--color-text);
+        }
+
+        .tramo-escrito.acierto {
+            border-color: var(--color-success);
+            background: #e8f8ef;
+        }
+
+        .tramo-escrito.fallo {
+            border-color: var(--color-danger);
+            background: #fdecea;
+        }
+
+        .tramo-resultado {
+            margin: 0.55rem 0 0;
+            font-weight: 600;
+        }
+
+        .tramo-resultado.acierto {
+            color: #146c43;
+        }
+
+        .tramo-resultado.fallo {
+            color: #922b21;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div style="max-width: 800px; margin: 2rem auto; padding: 0 1rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">¿Multa o cárcel?</h1>
+        <p style="color: #666;">Artículos de los temas 25, 26 y 27. Marca las penas y escribe el tramo. La corrección sale al comprobar.</p>
+        <button id="btn-salir-juego" class="btn btn-danger" style="margin-top: 1rem; min-width: 120px; padding: 0.5rem 1rem; font-size: 0.9rem;">
+            Salir del juego
+        </button>
+    </div>
+
+    <div id="juego-area">
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-body" style="padding: 2rem;">
+                <div id="contador-progreso" class="contador-progreso">
+                    Artículo <span id="numero-actual">1</span> de <span id="total-articulos">1</span>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <h2 id="articulo-numero" style="margin: 0 0 0.35rem 0; color: var(--color-primary); font-size: 1.45rem;"></h2>
+                    <p id="articulo-titulo" style="margin: 0; font-size: 1.05rem; font-weight: 600; color: #333;"></p>
+                    <p id="ley-nombre" style="margin: 0.75rem 0 0 0; color: #666;"></p>
+                </div>
+
+                <div id="paso-tipos">
+                    <h3 style="margin: 0 0 0.75rem 0; font-size: 1.05rem;">¿Qué penas tiene?</h3>
+                    <div id="tipos-opciones" class="pena-opciones"></div>
+                </div>
+
+                <div id="paso-tramos"></div>
+                <button id="btn-comprobar" class="btn btn-primary" style="margin-top: 1rem; width: 100%; padding: 0.75rem;">Comprobar</button>
+
+                <div id="feedback" style="display: none; padding: 1rem; border-radius: 8px; margin-top: 1rem; background: #e9ecef; border-left: 4px solid #6c757d; color: #212529;"></div>
+
+                <button id="btn-siguiente" class="btn btn-secondary" style="margin-top: 1rem; width: 100%; padding: 0.75rem; display: none;">Siguiente</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const NOMBRES_TIPO = {
+        prision: 'Prisión',
+        multa: 'Multa',
+        trabajos: 'Trabajos en beneficio de la comunidad',
+        privacion: 'Privación del permiso',
+        inhabilitacion: 'Inhabilitación'
+    };
+
+    let articulos = [];
+    let indiceActual = 0;
+    let articuloActual = null;
+    let respondido = false;
+
+    function cargarArticulos() {
+        fetch('{{ path('app_juego_api_penas_lote') }}')
+            .then(function (response) { return response.json().then(function (data) { return { ok: response.ok, data: data }; }); })
+            .then(function (resultado) {
+                if (!resultado.ok || resultado.data.error) {
+                    alert(resultado.data.error || 'No se han podido cargar los artículos.');
+                    return;
+                }
+                articulos = resultado.data;
+                indiceActual = 0;
+                document.getElementById('total-articulos').textContent = articulos.length;
+                mostrarArticulo();
+            })
+            .catch(function () {
+                alert('Error al cargar los artículos. Recarga la página.');
+            });
+    }
+
+    function mostrarArticulo() {
+        if (indiceActual >= articulos.length) {
+            cargarArticulos();
+            return;
+        }
+
+        articuloActual = articulos[indiceActual];
+        respondido = false;
+        document.getElementById('numero-actual').textContent = indiceActual + 1;
+        indiceActual++;
+
+        document.getElementById('articulo-numero').textContent = 'Artículo ' + articuloActual.numeroCompleto;
+        document.getElementById('articulo-titulo').textContent = articuloActual.titulo || '';
+        document.getElementById('ley-nombre').textContent = articuloActual.ley && articuloActual.ley.nombre ? articuloActual.ley.nombre : '';
+
+        const caja = document.getElementById('tipos-opciones');
+        caja.innerHTML = '';
+        Object.keys(NOMBRES_TIPO).forEach(function (tipo) {
+            const boton = document.createElement('button');
+            boton.type = 'button';
+            boton.className = 'pena-opcion';
+            boton.dataset.tipo = tipo;
+            boton.setAttribute('aria-pressed', 'false');
+            boton.textContent = NOMBRES_TIPO[tipo];
+            boton.addEventListener('click', function () {
+                if (boton.disabled || respondido) {
+                    return;
+                }
+                const activo = boton.getAttribute('aria-pressed') === 'true';
+                boton.setAttribute('aria-pressed', activo ? 'false' : 'true');
+                if (activo) {
+                    const bloque = document.querySelector('#paso-tramos .tramo-bloque[data-tipo="' + tipo + '"]');
+                    if (bloque) {
+                        bloque.remove();
+                    }
+                } else {
+                    mostrarTramo(tipo);
+                }
+            });
+            caja.appendChild(boton);
+        });
+
+        document.getElementById('paso-tramos').innerHTML = '';
+        document.getElementById('btn-comprobar').style.display = 'block';
+        document.getElementById('feedback').style.display = 'none';
+        document.getElementById('feedback').textContent = '';
+        document.getElementById('btn-siguiente').style.display = 'none';
+    }
+
+    function normalizarTramo(texto) {
+        return texto
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[\u2013\u2014\u2212]/g, '-')
+            .replace(/\banos?\b/g, 'anos')
+            .replace(/\bmes(es)?\b/g, 'meses')
+            .replace(/\bdias?\b/g, 'dias')
+            .replace(/(\d+)\s+(anos|meses|dias)\s+a\s+(\d+)\s+\2/g, '$1 a $3 $2')
+            .replace(/(\d)\s*-\s*(\d)/g, '$1 a $2')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function clavesTramo(texto) {
+        const normalizado = normalizarTramo(texto);
+        const claves = [];
+        const compuesto = /(\d+) anos y (\d+) meses a (\d+) anos/g;
+        let coincidencia;
+        while ((coincidencia = compuesto.exec(normalizado)) !== null) {
+            claves.push(coincidencia[1] + ' anos y ' + coincidencia[2] + ' meses a ' + coincidencia[3] + ' anos');
+        }
+        const resto = normalizado.replace(/(\d+) anos y (\d+) meses a (\d+) anos/g, ' ');
+        const simple = /(\d+) a (\d+) (meses|anos|dias)/g;
+        while ((coincidencia = simple.exec(resto)) !== null) {
+            claves.push(coincidencia[1] + ' a ' + coincidencia[2] + ' ' + coincidencia[3]);
+        }
+        claves.sort();
+        return claves;
+    }
+
+    function mismoTramo(escrito, correctos) {
+        const esperadas = [];
+        correctos.forEach(function (etiqueta) {
+            clavesTramo(etiqueta).forEach(function (clave) {
+                esperadas.push(clave);
+            });
+        });
+        esperadas.sort();
+        const escritas = clavesTramo(escrito);
+        return escritas.length > 0 && escritas.join('|') === esperadas.join('|');
+    }
+
+    function mostrarTramo(tipo) {
+        const paso = document.getElementById('paso-tramos');
+        const bloque = document.createElement('div');
+        bloque.className = 'tramo-bloque';
+        bloque.dataset.tipo = tipo;
+        const titulo = document.createElement('h3');
+        titulo.style.margin = '0 0 0.5rem 0';
+        titulo.style.fontSize = '1.05rem';
+        titulo.textContent = NOMBRES_TIPO[tipo] + ': ¿cuánto?';
+        bloque.appendChild(titulo);
+        const aviso = document.createElement('p');
+        aviso.style.margin = '0 0 0.5rem 0';
+        aviso.style.color = '#666';
+        aviso.textContent = 'Escríbelo, por ejemplo 6 a 18 meses. Si hay varios, sepáralos con una coma.';
+        bloque.appendChild(aviso);
+        const campo = document.createElement('input');
+        campo.type = 'text';
+        campo.className = 'tramo-escrito';
+        campo.placeholder = 'Escribe el tramo';
+        campo.setAttribute('aria-label', 'Tramo de ' + NOMBRES_TIPO[tipo]);
+        bloque.appendChild(campo);
+        paso.appendChild(bloque);
+        campo.focus();
+    }
+
+    function comprobar() {
+        if (respondido) {
+            return;
+        }
+        const elegidos = tiposElegidos();
+        if (elegidos.length === 0) {
+            alert('Marca al menos una pena.');
+            return;
+        }
+
+        let completo = true;
+        elegidos.forEach(function (tipo) {
+            const bloque = document.querySelector('#paso-tramos .tramo-bloque[data-tipo="' + tipo + '"]');
+            const campo = bloque ? bloque.querySelector('.tramo-escrito') : null;
+            if (!campo || campo.value.trim() === '') {
+                completo = false;
+            }
+        });
+        if (!completo) {
+            alert('Escribe el tramo de cada pena que hayas marcado.');
+            return;
+        }
+
+        respondido = true;
+        const correctos = articuloActual.tipos || [];
+        document.querySelectorAll('#tipos-opciones .pena-opcion').forEach(function (boton) {
+            boton.disabled = true;
+            const tipo = boton.dataset.tipo;
+            const elegido = elegidos.indexOf(tipo) !== -1;
+            const correcto = correctos.indexOf(tipo) !== -1;
+            if (elegido && correcto) {
+                boton.classList.add('acierto');
+            } else if (elegido) {
+                boton.classList.add('fallo');
+            } else if (correcto) {
+                boton.classList.add('faltaba');
+            }
+        });
+
+        document.querySelectorAll('#paso-tramos .tramo-bloque').forEach(function (bloque) {
+            const tipo = bloque.dataset.tipo;
+            const tramos = articuloActual.tramos[tipo] || [];
+            const tipoCorrecto = correctos.indexOf(tipo) !== -1;
+            const tieneTramo = tramos.length > 0;
+            const campo = bloque.querySelector('.tramo-escrito');
+            if (campo) {
+                campo.disabled = true;
+            }
+            const nota = document.createElement('p');
+            nota.className = 'tramo-resultado';
+            if (!tipoCorrecto) {
+                if (campo) {
+                    campo.classList.add('fallo');
+                }
+                nota.classList.add('fallo');
+                nota.textContent = 'Esta pena no está en el apunte.';
+            } else if (!tieneTramo) {
+                nota.style.color = '#666';
+                nota.style.fontWeight = '500';
+                nota.textContent = 'El apunte no concreta el tramo.';
+            } else if (campo && mismoTramo(campo.value, tramos)) {
+                campo.classList.add('acierto');
+                nota.classList.add('acierto');
+                nota.textContent = 'Correcto: ' + tramos.join(', ') + '.';
+            } else {
+                if (campo) {
+                    campo.classList.add('fallo');
+                }
+                nota.classList.add('fallo');
+                nota.textContent = 'En el apunte: ' + tramos.join(', ') + '.';
+            }
+            bloque.appendChild(nota);
+        });
+
+        document.getElementById('btn-comprobar').style.display = 'none';
+        mostrarCierre();
+    }
+
+    function tiposElegidos() {
+        return Array.from(document.querySelectorAll('#tipos-opciones .pena-opcion[aria-pressed="true"]'))
+            .map(function (boton) { return boton.dataset.tipo; });
+    }
+
+    function textoPenas() {
+        return (articuloActual.tipos || []).map(function (tipo) {
+            const tramos = (articuloActual.tramos[tipo] || []).join(', ');
+            return NOMBRES_TIPO[tipo] + (tramos ? ' (' + tramos + ')' : '');
+        }).join('. ');
+    }
+
+    function mostrarCierre() {
+        const feedback = document.getElementById('feedback');
+        feedback.style.display = 'block';
+        feedback.textContent = 'En el apunte: ' + textoPenas() + '.';
+        document.getElementById('btn-siguiente').style.display = 'block';
+        fetch('{{ path('app_juego_api_guardar_partida') }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tipoJuego: 'pena_articulo' })
+        }).catch(function () {});
+    }
+
+    document.getElementById('btn-comprobar').addEventListener('click', comprobar);
+    document.getElementById('btn-siguiente').addEventListener('click', mostrarArticulo);
+    document.getElementById('btn-salir-juego').addEventListener('click', function () {
+        if (confirm('¿Seguro que quieres salir del juego?')) {
+            window.location.href = '{{ path('app_dashboard') }}';
+        }
+    });
+
+    cargarArticulos();
+</script>
+{% endblock %}
