@@ -1,0 +1,67 @@
+<div class="bloque-editor-caja">
+    <div class="bloque-editor-leyenda" aria-hidden="true">
+        <span class="bloque-etiqueta-tema"><i class="bloque-muestra"></i>Tema</span>
+        <span class="bloque-etiqueta-ley"><i class="bloque-muestra"></i>Ley</span>
+        <span class="bloque-etiqueta-articulo"><i class="bloque-muestra"></i>Artículo</span>
+        <span class="bloque-etiqueta-pregunta"><i class="bloque-muestra"></i>Pregunta</span>
+        <span class="bloque-etiqueta-opcion"><i class="bloque-muestra"></i>Opciones</span>
+        <span class="bloque-etiqueta-correcta"><i class="bloque-muestra"></i>Correcta</span>
+        <span class="bloque-etiqueta-explicacion"><i class="bloque-muestra"></i>Explicación</span>
+    </div>
+    <div class="bloque-editor">
+        <pre class="bloque-editor-vista" id="bloque-editor-vista" aria-hidden="true"></pre>
+        <textarea id="bloque-preguntas" name="bloque" class="bloque-editor-texto" spellcheck="false" autocomplete="off" autocapitalize="off">{{ bloqueTexto }}</textarea>
+    </div>
+</div>
+<script>
+(function () {
+    var area = document.getElementById('bloque-preguntas');
+    var vista = document.getElementById('bloque-editor-vista');
+    if (!area || !vista) {
+        return;
+    }
+
+    var tipos = {
+        TEMA: 'tema',
+        LEY: 'ley',
+        ARTICULO: 'articulo',
+        PREGUNTA: 'pregunta',
+        A: 'opcion',
+        B: 'opcion',
+        C: 'opcion',
+        D: 'opcion',
+        CORRECTA: 'correcta',
+        EXPLICACION: 'explicacion'
+    };
+
+    function escapar(texto) {
+        return texto
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function pintar() {
+        vista.innerHTML = escapar(area.value).replace(
+            /^(TEMA|LEY|ARTICULO|PREGUNTA|A|B|C|D|CORRECTA|EXPLICACION)(:)/gim,
+            function (_, etiqueta, dosPuntos) {
+                var tipo = tipos[etiqueta.toUpperCase()] || 'opcion';
+                return '<span class="bloque-etiqueta bloque-etiqueta-' + tipo + '">' + etiqueta + dosPuntos + '</span>';
+            }
+        ).replace(/^(---)(\s*)$/gm, '<span class="bloque-separador">$1</span>$2');
+    }
+
+    function sincronizar() {
+        vista.scrollTop = area.scrollTop;
+        vista.scrollLeft = area.scrollLeft;
+    }
+
+    area.addEventListener('scroll', sincronizar);
+    area.addEventListener('input', function () {
+        pintar();
+        window.requestAnimationFrame(sincronizar);
+    });
+    pintar();
+    sincronizar();
+})();
+</script>

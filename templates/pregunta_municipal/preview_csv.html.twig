@@ -57,7 +57,7 @@
                 <input type="hidden" name="accion" value="{{ total > 0 ? 'guardar' : 'comprobar' }}">
                 <div class="mb-4">
                     <label for="bloque-preguntas" class="form-label"><h4 class="mb-2">Texto de las preguntas</h4></label>
-                    <textarea id="bloque-preguntas" name="bloque" class="form-control" rows="22" style="font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre;">{{ bloqueTexto }}</textarea>
+                    {% include 'pregunta/_editor_bloque.html.twig' %}
                     <p class="text-muted mt-2 mb-0">{% if omitidas|default([]) is not empty %}Puedes corregir el texto antes de guardar. Las preguntas de la lista siguen en el texto: si las arreglas, se guardan; si no, se dejan fuera.{% else %}Puedes corregir el texto antes de guardar.{% endif %}</p>
                 </div>
                 <div class="d-flex gap-2">
