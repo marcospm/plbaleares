@@ -80,6 +80,32 @@
                 </a>
             </div>
         </div>
+
+        <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #e0e0e0;">
+            <h3 style="margin-bottom: 1.5rem; color: #333; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.5rem;">📋</span>
+                <span>Crear examen con la respuesta del prompt</span>
+            </h3>
+            <p style="color: #666; margin-bottom: 1.5rem; font-size: 0.95rem;">Copia el prompt, pega la respuesta, previsualiza las preguntas y esas preguntas quedan como el examen. El prompt pide 50.</p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.25rem;">
+                <a href="{{ path('app_examen_semanal_pegar') }}" style="text-decoration: none; display: block;">
+                    <div class="method-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); border-radius: 12px; padding: 1.5rem; color: white; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 100%;">
+                        <div style="font-size: 2.5rem; margin-bottom: 0.75rem; text-align: center;">📋</div>
+                        <h5 style="color: white; font-weight: 600; margin-bottom: 0.5rem; text-align: center; font-size: 1.1rem;">Desde el prompt (general)</h5>
+                        <p style="color: rgba(255,255,255,0.9); font-size: 0.85rem; text-align: center; margin: 0; line-height: 1.4;">50 preguntas del temario general. Se previsualizan y pasan a ser el examen.</p>
+                    </div>
+                </a>
+
+                <a href="{{ path('app_examen_semanal_pegar_municipal') }}" style="text-decoration: none; display: block;">
+                    <div class="method-card" style="background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); border-radius: 12px; padding: 1.5rem; color: white; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 100%;">
+                        <div style="font-size: 2.5rem; margin-bottom: 0.75rem; text-align: center;">🏛️</div>
+                        <h5 style="color: white; font-weight: 600; margin-bottom: 0.5rem; text-align: center; font-size: 1.1rem;">Desde el prompt (municipal)</h5>
+                        <p style="color: rgba(255,255,255,0.9); font-size: 0.85rem; text-align: center; margin: 0; line-height: 1.4;">50 preguntas de un municipio. Se previsualizan y pasan a ser el examen.</p>
+                    </div>
+                </a>
+            </div>
+        </div>
         
         <style>
             .method-card:hover {

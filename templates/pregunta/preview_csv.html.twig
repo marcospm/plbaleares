@@ -47,6 +47,10 @@
             </ul>
         </div>
 
+        {% if examenPegado|default(null) %}
+            {% include 'examen_semanal/_pegar_resumen.html.twig' %}
+        {% endif %}
+
         {% if editable|default(false) %}
             {% if omitidas|default([]) is not empty %}
                 <div class="alert alert-warning">
@@ -70,7 +74,7 @@
                 </div>
                 <div class="d-flex gap-2">
                     {% if total > 0 %}
-                        <button type="submit" class="btn btn-success">Guardar {{ total }} pregunta{% if total != 1 %}s{% endif %}</button>
+                        <button type="submit" class="btn btn-success">{% if examenPegado|default(null) %}Crear examen semanal con{% else %}Guardar{% endif %} {{ total }} pregunta{% if total != 1 %}s{% endif %}</button>
                     {% else %}
                         <button type="submit" class="btn btn-primary">Comprobar de nuevo</button>
                     {% endif %}

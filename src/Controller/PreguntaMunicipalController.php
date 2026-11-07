@@ -3,11 +3,14 @@
 namespace App\Controller;
 
 use App\Entity\PreguntaMunicipal;
+use App\Entity\User;
 use App\Form\PreguntaMunicipalType;
+use App\Repository\GrupoRepository;
 use App\Repository\PreguntaMunicipalRepository;
 use App\Repository\MunicipioRepository;
 use App\Repository\TemaMunicipalRepository;
 use App\Service\BloquePreguntasParser;
+use App\Service\ExamenSemanalDesdePegado;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -339,16 +342,18 @@ class PreguntaMunicipalController extends AbstractController
     }
 
     #[Route('/pegar', name: 'app_pregunta_municipal_pegar', methods: ['GET'])]
-    public function pegar(MunicipioRepository $municipioRepository): Response
+    public function pegar(MunicipioRepository $municipioRepository, Request $request): Response
     {
-        $municipios = $municipioRepository->createQueryBuilder('m')
-            ->orderBy('m.nombre', 'ASC')
-            ->getQuery()
-            ->getResult();
+        return $this->renderPegarMunicipal($municipioRepository, $request, false);
+    }
 
-        return $this->render('pregunta_municipal/pegar.html.twig', [
-            'municipios' => $municipios,
-        ]);
+    #[Route('/pegar-examen-semanal', name: 'app_examen_semanal_pegar_municipal', methods: ['GET'])]
+    public function pegarExamenSemanal(
+        MunicipioRepository $municipioRepository,
+        GrupoRepository $grupoRepository,
+        Request $request
+    ): Response {
+        return $this->renderPegarMunicipal($municipioRepository, $request, true, $grupoRepository);
     }
 
     #[Route('/procesar-pegar', name: 'app_pregunta_municipal_procesar_pegar', methods: ['POST'])]
@@ -356,8 +361,14 @@ class PreguntaMunicipalController extends AbstractController
         Request $request,
         MunicipioRepository $municipioRepository,
         TemaMunicipalRepository $temaMunicipalRepository,
-        BloquePreguntasParser $parser
+        BloquePreguntasParser $parser,
+        ExamenSemanalDesdePegado $examenSemanalDesdePegado
     ): Response {
+        $preparado = $this->prepararDestinoExamenMunicipal($request, $examenSemanalDesdePegado);
+        if ($preparado !== null) {
+            return $preparado;
+        }
+
         if ((string) $request->request->get('modo', 'unico') === 'aleatorio') {
             return $this->procesarPegarAleatorio($request, $municipioRepository, $temaMunicipalRepository, $parser);
         }
@@ -370,7 +381,7 @@ class PreguntaMunicipalController extends AbstractController
         if ($municipioId <= 0 || $temaMunicipalId <= 0 || !in_array($dificultad, ['facil', 'moderada', 'dificil', 'indeterminado'], true)) {
             $this->addFlash('error', 'Debes completar todos los campos: Municipio, Tema municipal y Dificultad.');
 
-            return $this->redirectToRoute('app_pregunta_municipal_pegar');
+            return $this->redirectToRoute($this->rutaPegadoMunicipal($request));
         }
 
         $municipio = $municipioRepository->find($municipioId);
@@ -380,12 +391,12 @@ class PreguntaMunicipalController extends AbstractController
         if (!$municipio || !$temaMunicipal || !$temaDelMunicipio) {
             $this->addFlash('error', 'El municipio o el tema municipal seleccionados no son válidos.');
 
-            return $this->redirectToRoute('app_pregunta_municipal_pegar');
+            return $this->redirectToRoute($this->rutaPegadoMunicipal($request));
         }
 
         return $this->previsualizarPegadoMunicipal(
             $request,
-            $this->filtrarPegadoMunicipal($bloque, 'unico', $municipioId, $temaMunicipalId, [], $municipioRepository, $temaMunicipalRepository, $parser),
+            $this->filtrarPegadoMunicipal($bloque, 'unico', $municipioId, $temaMunicipalId, [], $municipioRepository, $temaMunicipalRepository, $parser, $this->maximoPegadoMunicipal($request)),
             $bloque,
             $dificultad
         );
@@ -604,7 +615,8 @@ class PreguntaMunicipalController extends AbstractController
         MunicipioRepository $municipioRepository,
         TemaMunicipalRepository $temaMunicipalRepository,
         PreguntaMunicipalRepository $preguntaMunicipalRepository,
-        BloquePreguntasParser $parser
+        BloquePreguntasParser $parser,
+        ExamenSemanalDesdePegado $examenSemanalDesdePegado
     ): Response {
         // Validar token CSRF
         if (!$this->isCsrfTokenValid('confirmar_csv_municipal', $request->request->get('_token'))) {
@@ -615,7 +627,10 @@ class PreguntaMunicipalController extends AbstractController
         $session = $request->getSession();
         $omitidasAlGuardar = [];
 
-        if ($session->get('preguntas_municipal_csv_origen') === 'pegar' && $request->request->has('bloque')) {
+        $origenPegado = $session->get('preguntas_municipal_csv_origen');
+        $esPegado = $origenPegado === 'pegar' || $origenPegado === 'pegar_examen';
+
+        if ($esPegado && $request->request->has('bloque')) {
             $temaIds = $session->get('preguntas_municipal_csv_temas', []);
             if (!is_array($temaIds)) {
                 $temaIds = [];
@@ -628,12 +643,13 @@ class PreguntaMunicipalController extends AbstractController
                 array_map(static fn ($id): int => (int) $id, $temaIds),
                 $municipioRepository,
                 $temaMunicipalRepository,
-                $parser
+                $parser,
+                $this->maximoPegadoMunicipal($request)
             );
             if ($filtrado['fatal'] !== null) {
                 $this->addFlash('error', $filtrado['fatal']);
 
-                return $this->redirectToRoute('app_pregunta_municipal_pegar');
+                return $this->redirectToRoute($this->rutaPegadoMunicipal($request));
             }
             if ($filtrado['preguntas'] === [] || $request->request->get('accion') !== 'guardar') {
                 return $this->previsualizarPegadoMunicipal(
@@ -657,7 +673,7 @@ class PreguntaMunicipalController extends AbstractController
         $dificultad = $session->get('preguntas_municipal_csv_dificultad', '');
 
         if (empty($preguntas) || $municipioId <= 0 || $temaMunicipalId <= 0 || empty($dificultad)) {
-            $this->addFlash('error', $session->get('preguntas_municipal_csv_origen') === 'pegar'
+            $this->addFlash('error', $esPegado
                 ? 'Sesión expirada. Por favor, vuelve a pegar las preguntas.'
                 : 'Sesión expirada. Por favor, vuelve a cargar el CSV.');
             return $this->redirectToRoute($this->rutaOrigenPreguntasMunicipales($request));
@@ -674,6 +690,8 @@ class PreguntaMunicipalController extends AbstractController
         $creadas = 0;
         $actualizadas = 0;
         $errores = [];
+        $guardadas = [];
+        $examenCreado = null;
         $batchSize = 100;
 
         // Usar transacción para asegurar atomicidad
@@ -727,6 +745,7 @@ class PreguntaMunicipalController extends AbstractController
                     }
 
                     $entityManager->persist($pregunta);
+                    $guardadas[] = $pregunta;
                     
                     if ($esActualizacion) {
                         $actualizadas++;
@@ -745,6 +764,18 @@ class PreguntaMunicipalController extends AbstractController
 
             // Flush final
             $entityManager->flush();
+            if ($origenPegado === 'pegar_examen') {
+                $datosExamen = $session->get('examen_semanal_pegar');
+                $usuario = $this->getUser();
+                if (!is_array($datosExamen) || ($datosExamen['tipo'] ?? '') !== 'municipal' || !$usuario instanceof User) {
+                    throw new \RuntimeException('Faltan los datos del examen semanal. Vuelve a empezar.');
+                }
+                if ($guardadas === []) {
+                    throw new \RuntimeException('No hay preguntas válidas para crear el examen.');
+                }
+                $datosExamen['dificultad'] = $dificultad;
+                $examenCreado = $examenSemanalDesdePegado->crear($usuario, $datosExamen, [], $guardadas);
+            }
             $connection->commit();
         } catch (\Exception $e) {
             $connection->rollBack();
@@ -760,6 +791,9 @@ class PreguntaMunicipalController extends AbstractController
         $session->remove('preguntas_municipal_csv_origen');
         $session->remove('preguntas_municipal_csv_modo');
         $session->remove('preguntas_municipal_csv_temas');
+        if ($examenCreado !== null) {
+            $session->remove('examen_semanal_pegar');
+        }
 
         if ($omitidasAlGuardar !== []) {
             $this->addFlash('warning', $this->textoOmitidasMunicipales($omitidasAlGuardar));
@@ -773,13 +807,29 @@ class PreguntaMunicipalController extends AbstractController
             }
             $mensaje .= ", pero hubo algunos errores:\n" . $mensajeErrores;
             $this->addFlash('warning', $mensaje);
-        } else {
+        } elseif ($examenCreado === null) {
             $mensaje = "Se crearon correctamente {$creadas} preguntas nuevas";
             if ($actualizadas > 0) {
                 $mensaje .= " y se actualizaron {$actualizadas} preguntas existentes";
             }
             $mensaje .= ".";
             $this->addFlash('success', $mensaje);
+        }
+
+        if ($examenCreado !== null) {
+            try {
+                $examenSemanalDesdePegado->notificar($examenCreado);
+                $examenSemanalDesdePegado->invalidarCache();
+            } catch (\Exception $e) {
+                error_log('Error al crear notificaciones de examen semanal: ' . $e->getMessage());
+            }
+            $this->addFlash('success', sprintf(
+                'Examen semanal «%s» creado con %d preguntas.',
+                $examenCreado->getNombre(),
+                $examenCreado->getNumeroPreguntas()
+            ));
+
+            return $this->redirectToRoute('app_examen_semanal_index');
         }
 
         return $this->redirectToRoute('app_pregunta_municipal_index');
@@ -1149,12 +1199,12 @@ class PreguntaMunicipalController extends AbstractController
         if ($municipioId <= 0 || count($ids) < 2 || !in_array($dificultad, ['facil', 'moderada', 'dificil', 'indeterminado'], true)) {
             $this->addFlash('error', 'Elige el municipio, al menos dos temas y la dificultad.');
 
-            return $this->redirectToRoute('app_pregunta_municipal_pegar');
+            return $this->redirectToRoute($this->rutaPegadoMunicipal($request));
         }
 
         return $this->previsualizarPegadoMunicipal(
             $request,
-            $this->filtrarPegadoMunicipal($bloque, 'aleatorio', $municipioId, 0, $ids, $municipioRepository, $temaMunicipalRepository, $parser),
+            $this->filtrarPegadoMunicipal($bloque, 'aleatorio', $municipioId, 0, $ids, $municipioRepository, $temaMunicipalRepository, $parser, $this->maximoPegadoMunicipal($request)),
             $bloque,
             $dificultad
         );
@@ -1181,10 +1231,11 @@ class PreguntaMunicipalController extends AbstractController
         array $temaIds,
         MunicipioRepository $municipioRepository,
         TemaMunicipalRepository $temaMunicipalRepository,
-        BloquePreguntasParser $parser
+        BloquePreguntasParser $parser,
+        int $maximo = 20
     ): array {
         if ($modo === 'aleatorio') {
-            return $this->filtrarPegadoMunicipalAleatorio($bloque, $municipioId, $temaIds, $municipioRepository, $temaMunicipalRepository, $parser);
+            return $this->filtrarPegadoMunicipalAleatorio($bloque, $municipioId, $temaIds, $municipioRepository, $temaMunicipalRepository, $parser, $maximo);
         }
 
         $municipio = $municipioRepository->find($municipioId);
@@ -1194,7 +1245,7 @@ class PreguntaMunicipalController extends AbstractController
             return $this->resultadoPegadoMunicipalVacio('El municipio o el tema municipal seleccionados no son válidos.');
         }
 
-        $resultado = $parser->parsear($bloque);
+        $resultado = $parser->parsear($bloque, $maximo);
         $omitidas = $resultado['errores'];
         $validas = [];
         foreach ($resultado['preguntas'] as $pregunta) {
@@ -1237,7 +1288,8 @@ class PreguntaMunicipalController extends AbstractController
         array $ids,
         MunicipioRepository $municipioRepository,
         TemaMunicipalRepository $temaMunicipalRepository,
-        BloquePreguntasParser $parser
+        BloquePreguntasParser $parser,
+        int $maximo = 20
     ): array {
         $municipio = $municipioRepository->find($municipioId);
         if (!$municipio || count($ids) < 2) {
@@ -1275,7 +1327,7 @@ class PreguntaMunicipalController extends AbstractController
         }
         usort($nombresTemas, static fn (string $a, string $b): int => strnatcasecmp($a, $b));
 
-        $resultado = $parser->parsear($bloque);
+        $resultado = $parser->parsear($bloque, $maximo);
         $omitidas = $resultado['errores'];
         $validas = [];
         foreach ($resultado['preguntas'] as $pregunta) {
@@ -1376,7 +1428,7 @@ class PreguntaMunicipalController extends AbstractController
         if ($filtrado['fatal'] !== null) {
             $this->addFlash('error', $filtrado['fatal']);
 
-            return $this->redirectToRoute('app_pregunta_municipal_pegar');
+            return $this->redirectToRoute($this->rutaPegadoMunicipal($request));
         }
 
         $preguntas = $filtrado['preguntas'];
@@ -1384,11 +1436,14 @@ class PreguntaMunicipalController extends AbstractController
         $municipio = $filtrado['municipio'];
 
         $session = $request->getSession();
+        $datosExamen = $session->get('examen_semanal_pegar');
+        $esExamen = is_array($datosExamen) && ($datosExamen['tipo'] ?? '') === 'municipal';
         $session->set('preguntas_municipal_csv', $preguntas);
         $session->set('preguntas_municipal_csv_municipio', (int) ($municipio?->getId() ?? 0));
-        $session->set('preguntas_municipal_csv_tema', (int) ($preguntas[0]['temaMunicipalId'] ?? $temaMunicipal?->getId() ?? 0));
+        $primera = $preguntas[0] ?? null;
+        $session->set('preguntas_municipal_csv_tema', (int) ($primera['temaMunicipalId'] ?? $temaMunicipal?->getId() ?? 0));
         $session->set('preguntas_municipal_csv_dificultad', $dificultad);
-        $session->set('preguntas_municipal_csv_origen', 'pegar');
+        $session->set('preguntas_municipal_csv_origen', $esExamen ? 'pegar_examen' : 'pegar');
         $session->set('preguntas_municipal_csv_modo', $filtrado['temasAleatorios'] ? 'aleatorio' : 'unico');
         $session->set('preguntas_municipal_csv_temas', $filtrado['temaIds']);
 
@@ -1400,11 +1455,12 @@ class PreguntaMunicipalController extends AbstractController
             'nombresTemas' => $filtrado['nombresTemas'],
             'dificultad' => $dificultad,
             'total' => count($preguntas),
-            'volver' => 'app_pregunta_municipal_pegar',
-            'titulo' => 'Previsualizar preguntas pegadas',
+            'volver' => $esExamen ? 'app_examen_semanal_pegar_municipal' : 'app_pregunta_municipal_pegar',
+            'titulo' => $esExamen ? 'Previsualizar examen semanal' : 'Previsualizar preguntas pegadas',
             'editable' => true,
             'bloqueTexto' => $bloqueOriginal,
             'omitidas' => $filtrado['omitidas'],
+            'examenPegado' => $esExamen ? $datosExamen : null,
         ]);
     }
 
@@ -1476,9 +1532,97 @@ class PreguntaMunicipalController extends AbstractController
 
     private function rutaOrigenPreguntasMunicipales(Request $request): string
     {
-        return $request->getSession()->get('preguntas_municipal_csv_origen') === 'pegar'
-            ? 'app_pregunta_municipal_pegar'
-            : 'app_pregunta_municipal_new_csv';
+        return match ($request->getSession()->get('preguntas_municipal_csv_origen')) {
+            'pegar_examen' => 'app_examen_semanal_pegar_municipal',
+            'pegar' => 'app_pregunta_municipal_pegar',
+            default => 'app_pregunta_municipal_new_csv',
+        };
+    }
+
+    private function renderPegarMunicipal(
+        MunicipioRepository $municipioRepository,
+        Request $request,
+        bool $paraExamen,
+        ?GrupoRepository $grupoRepository = null
+    ): Response {
+        $municipios = $municipioRepository->createQueryBuilder('m')
+            ->orderBy('m.nombre', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $datos = $request->getSession()->get('examen_semanal_pegar');
+        $datosExamen = $paraExamen && is_array($datos) && ($datos['tipo'] ?? '') === 'municipal' ? $datos : null;
+
+        return $this->render('pregunta_municipal/pegar.html.twig', [
+            'municipios' => $municipios,
+            'paraExamen' => $paraExamen,
+            'cantidadPreguntas' => $paraExamen ? ExamenSemanalDesdePegado::CANTIDAD : 20,
+            'tituloPagina' => $paraExamen ? 'Examen semanal municipal desde el prompt' : 'Pegar preguntas municipales',
+            'rutaCancelar' => $paraExamen ? 'app_examen_semanal_new' : 'app_pregunta_municipal_index',
+            'grupos' => $paraExamen && $grupoRepository ? $grupoRepository->findBy([], ['nombre' => 'ASC']) : [],
+            'datosExamen' => $datosExamen,
+        ]);
+    }
+
+    private function prepararDestinoExamenMunicipal(Request $request, ExamenSemanalDesdePegado $servicio): ?Response
+    {
+        $session = $request->getSession();
+        if ((string) $request->request->get('destino') !== 'examen') {
+            $datos = $session->get('examen_semanal_pegar');
+            if (is_array($datos) && ($datos['tipo'] ?? '') === 'municipal') {
+                $session->remove('examen_semanal_pegar');
+                if ($session->get('preguntas_municipal_csv_origen') === 'pegar_examen') {
+                    $session->remove('preguntas_municipal_csv_origen');
+                }
+            }
+
+            return null;
+        }
+
+        $resultado = $servicio->validar('municipal', [
+            'nombre' => (string) $request->request->get('nombre', ''),
+            'descripcion' => (string) $request->request->get('descripcion', ''),
+            'fechaApertura' => (string) $request->request->get('fechaApertura', ''),
+            'fechaCierre' => (string) $request->request->get('fechaCierre', ''),
+            'grupoId' => $request->request->getInt('grupo', 0),
+            'dificultad' => (string) $request->request->get('dificultad', ''),
+        ]);
+        $session->set('examen_semanal_pegar', $resultado['datos']);
+        if ($resultado['error'] !== null) {
+            $this->addFlash('error', $resultado['error']);
+
+            return $this->redirectToRoute('app_examen_semanal_pegar_municipal');
+        }
+
+        $session->set('preguntas_municipal_csv_origen', 'pegar_examen');
+
+        return null;
+    }
+
+    private function rutaPegadoMunicipal(Request $request): string
+    {
+        if ((string) $request->request->get('destino') === 'examen') {
+            return 'app_examen_semanal_pegar_municipal';
+        }
+        $datos = $request->getSession()->get('examen_semanal_pegar');
+        if (is_array($datos) && ($datos['tipo'] ?? '') === 'municipal') {
+            return 'app_examen_semanal_pegar_municipal';
+        }
+
+        return 'app_pregunta_municipal_pegar';
+    }
+
+    private function maximoPegadoMunicipal(Request $request): int
+    {
+        if ((string) $request->request->get('destino') === 'examen') {
+            return ExamenSemanalDesdePegado::CANTIDAD;
+        }
+        $datos = $request->getSession()->get('examen_semanal_pegar');
+        if (is_array($datos) && ($datos['tipo'] ?? '') === 'municipal') {
+            return ExamenSemanalDesdePegado::CANTIDAD;
+        }
+
+        return 20;
     }
 }
 

@@ -3,13 +3,16 @@
 namespace App\Controller;
 
 use App\Entity\Pregunta;
+use App\Entity\User;
 use App\Form\PreguntaType;
 use App\Repository\PreguntaRepository;
+use App\Repository\GrupoRepository;
 use App\Repository\MensajePreguntaRepository;
 use App\Repository\TemaRepository;
 use App\Repository\LeyRepository;
 use App\Repository\ArticuloRepository;
 use App\Service\BloquePreguntasParser;
+use App\Service\ExamenSemanalDesdePegado;
 use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -383,42 +386,18 @@ class PreguntaController extends AbstractController
     }
 
     #[Route('/pegar', name: 'app_pregunta_pegar', methods: ['GET'])]
-    public function pegar(TemaRepository $temaRepository): Response
+    public function pegar(TemaRepository $temaRepository, Request $request): Response
     {
-        $temas = $temaRepository->createQueryBuilder('t')
-            ->leftJoin('t.leyes', 'l')
-            ->addSelect('l')
-            ->andWhere('t.activo = :activo')
-            ->setParameter('activo', true)
-            ->orderBy('t.nombre', 'ASC')
-            ->getQuery()
-            ->getResult();
+        return $this->renderPegar($temaRepository, $request, false);
+    }
 
-        $temasDatos = [];
-        foreach ($temas as $tema) {
-            $leyes = [];
-            foreach ($tema->getLeyes() as $ley) {
-                if (!$ley->isActivo()) {
-                    continue;
-                }
-                $leyes[] = [
-                    'id' => $ley->getId(),
-                    'nombre' => (string) $ley->getNombre(),
-                ];
-            }
-            usort($leyes, static fn (array $a, array $b): int => strcasecmp($a['nombre'], $b['nombre']));
-            $temasDatos[] = [
-                'id' => $tema->getId(),
-                'nombre' => (string) $tema->getNombre(),
-                'leyes' => $leyes,
-            ];
-        }
-        usort($temasDatos, static fn (array $a, array $b): int => strnatcasecmp($a['nombre'], $b['nombre']));
-
-        return $this->render('pregunta/pegar.html.twig', [
-            'temas' => $temas,
-            'temasDatos' => $temasDatos,
-        ]);
+    #[Route('/pegar-examen-semanal', name: 'app_examen_semanal_pegar', methods: ['GET'])]
+    public function pegarExamenSemanal(
+        TemaRepository $temaRepository,
+        GrupoRepository $grupoRepository,
+        Request $request
+    ): Response {
+        return $this->renderPegar($temaRepository, $request, true, $grupoRepository);
     }
 
     #[Route('/procesar-pegar', name: 'app_pregunta_procesar_pegar', methods: ['POST'])]
@@ -427,8 +406,14 @@ class PreguntaController extends AbstractController
         TemaRepository $temaRepository,
         LeyRepository $leyRepository,
         ArticuloRepository $articuloRepository,
-        BloquePreguntasParser $parser
+        BloquePreguntasParser $parser,
+        ExamenSemanalDesdePegado $examenSemanalDesdePegado
     ): Response {
+        $preparado = $this->prepararDestinoExamen($request, $examenSemanalDesdePegado, 'general');
+        if ($preparado !== null) {
+            return $preparado;
+        }
+
         if ((string) $request->request->get('modo', 'unico') === 'aleatorio') {
             return $this->procesarPegarAleatorio($request, $temaRepository, $leyRepository, $articuloRepository, $parser);
         }
@@ -441,7 +426,7 @@ class PreguntaController extends AbstractController
         if ($temaId <= 0 || $leyId <= 0 || !in_array($dificultad, ['facil', 'moderada', 'dificil', 'indeterminado'], true)) {
             $this->addFlash('error', 'Debes completar todos los campos: Tema, Ley y Dificultad.');
 
-            return $this->redirectToRoute('app_pregunta_pegar');
+            return $this->redirectToRoute($this->rutaPegado($request));
         }
 
         $tema = $temaRepository->find($temaId);
@@ -451,19 +436,19 @@ class PreguntaController extends AbstractController
         if (!$tema || !$tema->isActivo() || !$ley || !$leyDelTema) {
             $this->addFlash('error', 'El tema o la ley seleccionados no son válidos.');
 
-            return $this->redirectToRoute('app_pregunta_pegar');
+            return $this->redirectToRoute($this->rutaPegado($request));
         }
 
         $articulos = $articuloRepository->findActivosByLey($leyId);
         if ($articulos === []) {
             $this->addFlash('error', 'Esa ley no tiene artículos activos a los que asignar las preguntas.');
 
-            return $this->redirectToRoute('app_pregunta_pegar');
+            return $this->redirectToRoute($this->rutaPegado($request));
         }
 
         return $this->previsualizarPegado(
             $request,
-            $this->filtrarPegado($bloque, 'unico', $temaId, $leyId, [], $temaRepository, $leyRepository, $articuloRepository, $parser),
+            $this->filtrarPegado($bloque, 'unico', $temaId, $leyId, [], $temaRepository, $leyRepository, $articuloRepository, $parser, $this->maximoPegado($request)),
             $bloque,
             $dificultad
         );
@@ -687,7 +672,8 @@ class PreguntaController extends AbstractController
         TemaRepository $temaRepository,
         LeyRepository $leyRepository,
         ArticuloRepository $articuloRepository,
-        BloquePreguntasParser $parser
+        BloquePreguntasParser $parser,
+        ExamenSemanalDesdePegado $examenSemanalDesdePegado
     ): Response {
         // Validar token CSRF
         if (!$this->isCsrfTokenValid('confirmar_csv', $request->request->get('_token'))) {
@@ -698,7 +684,10 @@ class PreguntaController extends AbstractController
         $session = $request->getSession();
         $omitidasAlGuardar = [];
 
-        if ($session->get('preguntas_csv_origen') === 'pegar' && $request->request->has('bloque')) {
+        $origenPegado = $session->get('preguntas_csv_origen');
+        $esPegado = $origenPegado === 'pegar' || $origenPegado === 'pegar_examen';
+
+        if ($esPegado && $request->request->has('bloque')) {
             $temaIds = $session->get('preguntas_csv_temas', []);
             if (!is_array($temaIds)) {
                 $temaIds = [];
@@ -712,12 +701,13 @@ class PreguntaController extends AbstractController
                 $temaRepository,
                 $leyRepository,
                 $articuloRepository,
-                $parser
+                $parser,
+                $this->maximoPegado($request)
             );
             if ($filtrado['fatal'] !== null) {
                 $this->addFlash('error', $filtrado['fatal']);
 
-                return $this->redirectToRoute('app_pregunta_pegar');
+                return $this->redirectToRoute($this->rutaPegado($request));
             }
             if ($filtrado['preguntas'] === [] || $request->request->get('accion') !== 'guardar') {
                 return $this->previsualizarPegado(
@@ -743,7 +733,7 @@ class PreguntaController extends AbstractController
         $dificultad = $session->get('preguntas_csv_dificultad', '');
 
         if (empty($preguntas) || $temaId <= 0 || $leyId <= 0 || $articuloId <= 0 || empty($dificultad)) {
-            $this->addFlash('error', $session->get('preguntas_csv_origen') === 'pegar'
+            $this->addFlash('error', $esPegado
                 ? 'Sesión expirada. Por favor, vuelve a pegar el bloque.'
                 : 'Sesión expirada. Por favor, vuelve a cargar el CSV.');
             return $this->redirectToRoute($this->rutaOrigenPreguntas($request));
@@ -761,6 +751,8 @@ class PreguntaController extends AbstractController
         $creadas = 0;
         $actualizadas = 0;
         $errores = [];
+        $guardadas = [];
+        $examenCreado = null;
         $batchSize = 100; // Procesar en lotes de 100 para mejor performance
 
         // Usar transacción para asegurar atomicidad
@@ -835,6 +827,7 @@ class PreguntaController extends AbstractController
                     }
 
                     $entityManager->persist($pregunta);
+                    $guardadas[] = $pregunta;
                     
                     if ($esActualizacion) {
                         $actualizadas++;
@@ -853,6 +846,18 @@ class PreguntaController extends AbstractController
 
             // Flush final para las preguntas restantes
             $entityManager->flush();
+            if ($origenPegado === 'pegar_examen') {
+                $datosExamen = $session->get('examen_semanal_pegar');
+                $usuario = $this->getUser();
+                if (!is_array($datosExamen) || ($datosExamen['tipo'] ?? '') !== 'general' || !$usuario instanceof User) {
+                    throw new \RuntimeException('Faltan los datos del examen semanal. Vuelve a empezar.');
+                }
+                if ($guardadas === []) {
+                    throw new \RuntimeException('No hay preguntas válidas para crear el examen.');
+                }
+                $datosExamen['dificultad'] = $dificultad;
+                $examenCreado = $examenSemanalDesdePegado->crear($usuario, $datosExamen, $guardadas, []);
+            }
             $connection->commit();
         } catch (\Exception $e) {
             $connection->rollBack();
@@ -869,6 +874,9 @@ class PreguntaController extends AbstractController
         $session->remove('preguntas_csv_origen');
         $session->remove('preguntas_csv_modo');
         $session->remove('preguntas_csv_temas');
+        if ($examenCreado !== null) {
+            $session->remove('examen_semanal_pegar');
+        }
 
         if ($omitidasAlGuardar !== []) {
             $this->addFlash('warning', $this->textoOmitidas($omitidasAlGuardar));
@@ -882,13 +890,29 @@ class PreguntaController extends AbstractController
             }
             $mensaje .= ", pero hubo algunos errores:\n" . $mensajeErrores;
             $this->addFlash('warning', $mensaje);
-        } else {
+        } elseif ($examenCreado === null) {
             $mensaje = "Se crearon correctamente {$creadas} preguntas nuevas";
             if ($actualizadas > 0) {
                 $mensaje .= " y se actualizaron {$actualizadas} preguntas existentes";
             }
             $mensaje .= ".";
             $this->addFlash('success', $mensaje);
+        }
+
+        if ($examenCreado !== null) {
+            try {
+                $examenSemanalDesdePegado->notificar($examenCreado);
+                $examenSemanalDesdePegado->invalidarCache();
+            } catch (\Exception $e) {
+                error_log('Error al crear notificaciones de examen semanal: ' . $e->getMessage());
+            }
+            $this->addFlash('success', sprintf(
+                'Examen semanal «%s» creado con %d preguntas.',
+                $examenCreado->getNombre(),
+                $examenCreado->getNumeroPreguntas()
+            ));
+
+            return $this->redirectToRoute('app_examen_semanal_index');
         }
 
         return $this->redirectToRoute('app_pregunta_index');
@@ -1604,12 +1628,12 @@ class PreguntaController extends AbstractController
         if (count($ids) < 2 || !in_array($dificultad, ['facil', 'moderada', 'dificil', 'indeterminado'], true)) {
             $this->addFlash('error', 'Elige al menos dos temas y la dificultad.');
 
-            return $this->redirectToRoute('app_pregunta_pegar');
+            return $this->redirectToRoute($this->rutaPegado($request));
         }
 
         return $this->previsualizarPegado(
             $request,
-            $this->filtrarPegado($bloque, 'aleatorio', 0, 0, $ids, $temaRepository, $leyRepository, $articuloRepository, $parser),
+            $this->filtrarPegado($bloque, 'aleatorio', 0, 0, $ids, $temaRepository, $leyRepository, $articuloRepository, $parser, $this->maximoPegado($request)),
             $bloque,
             $dificultad
         );
@@ -1637,10 +1661,11 @@ class PreguntaController extends AbstractController
         TemaRepository $temaRepository,
         LeyRepository $leyRepository,
         ArticuloRepository $articuloRepository,
-        BloquePreguntasParser $parser
+        BloquePreguntasParser $parser,
+        int $maximo = 20
     ): array {
         if ($modo === 'aleatorio') {
-            return $this->filtrarPegadoAleatorio($bloque, $temaIds, $temaRepository, $articuloRepository, $parser);
+            return $this->filtrarPegadoAleatorio($bloque, $temaIds, $temaRepository, $articuloRepository, $parser, $maximo);
         }
 
         $tema = $temaRepository->find($temaId);
@@ -1655,7 +1680,7 @@ class PreguntaController extends AbstractController
             return $this->resultadoPegadoVacio('Esa ley no tiene artículos activos a los que asignar las preguntas.');
         }
 
-        $resultado = $parser->parsear($bloque);
+        $resultado = $parser->parsear($bloque, $maximo);
         $omitidas = $resultado['errores'];
         $validas = [];
         foreach ($resultado['preguntas'] as $pregunta) {
@@ -1710,7 +1735,8 @@ class PreguntaController extends AbstractController
         array $ids,
         TemaRepository $temaRepository,
         ArticuloRepository $articuloRepository,
-        BloquePreguntasParser $parser
+        BloquePreguntasParser $parser,
+        int $maximo = 20
     ): array {
         if (count($ids) < 2) {
             return $this->resultadoPegadoVacio('Elige al menos dos temas y la dificultad.', true, $ids);
@@ -1746,7 +1772,7 @@ class PreguntaController extends AbstractController
             $porNombre[$clave] = $tema;
         }
 
-        $resultado = $parser->parsear($bloque);
+        $resultado = $parser->parsear($bloque, $maximo);
         $omitidas = $resultado['errores'];
         $validas = [];
         $articulosPorLey = [];
@@ -1885,23 +1911,26 @@ class PreguntaController extends AbstractController
         if ($filtrado['fatal'] !== null) {
             $this->addFlash('error', $filtrado['fatal']);
 
-            return $this->redirectToRoute('app_pregunta_pegar');
+            return $this->redirectToRoute($this->rutaPegado($request));
         }
 
         $preguntas = $filtrado['preguntas'];
         $tema = $filtrado['tema'];
         $ley = $filtrado['ley'];
-        $temaId = (int) ($preguntas[0]['temaId'] ?? $tema?->getId() ?? 0);
-        $leyId = (int) ($preguntas[0]['leyId'] ?? $ley?->getId() ?? 0);
-        $articuloId = (int) ($preguntas[0]['articuloId'] ?? 0);
+        $primera = $preguntas[0] ?? null;
+        $temaId = (int) ($primera['temaId'] ?? $tema?->getId() ?? 0);
+        $leyId = (int) ($primera['leyId'] ?? $ley?->getId() ?? 0);
+        $articuloId = (int) ($primera['articuloId'] ?? 0);
 
         $session = $request->getSession();
+        $datosExamen = $session->get('examen_semanal_pegar');
+        $esExamen = is_array($datosExamen) && ($datosExamen['tipo'] ?? '') === 'general';
         $session->set('preguntas_csv', $preguntas);
         $session->set('preguntas_csv_tema', $temaId);
         $session->set('preguntas_csv_ley', $leyId);
         $session->set('preguntas_csv_articulo', $articuloId);
         $session->set('preguntas_csv_dificultad', $dificultad);
-        $session->set('preguntas_csv_origen', 'pegar');
+        $session->set('preguntas_csv_origen', $esExamen ? 'pegar_examen' : 'pegar');
         $session->set('preguntas_csv_modo', $filtrado['temasAleatorios'] ? 'aleatorio' : 'unico');
         $session->set('preguntas_csv_temas', $filtrado['temaIds']);
 
@@ -1915,11 +1944,12 @@ class PreguntaController extends AbstractController
             'nombresTemas' => $filtrado['nombresTemas'],
             'dificultad' => $dificultad,
             'total' => count($preguntas),
-            'volver' => 'app_pregunta_pegar',
-            'titulo' => 'Previsualizar preguntas pegadas',
+            'volver' => $esExamen ? 'app_examen_semanal_pegar' : 'app_pregunta_pegar',
+            'titulo' => $esExamen ? 'Previsualizar examen semanal' : 'Previsualizar preguntas pegadas',
             'editable' => true,
             'bloqueTexto' => $bloqueOriginal,
             'omitidas' => $filtrado['omitidas'],
+            'examenPegado' => $esExamen ? $datosExamen : null,
         ]);
     }
 
@@ -2006,9 +2036,126 @@ class PreguntaController extends AbstractController
 
     private function rutaOrigenPreguntas(Request $request): string
     {
-        return $request->getSession()->get('preguntas_csv_origen') === 'pegar'
-            ? 'app_pregunta_pegar'
-            : 'app_pregunta_new_csv';
+        return match ($request->getSession()->get('preguntas_csv_origen')) {
+            'pegar_examen' => 'app_examen_semanal_pegar',
+            'pegar' => 'app_pregunta_pegar',
+            default => 'app_pregunta_new_csv',
+        };
+    }
+
+    private function renderPegar(
+        TemaRepository $temaRepository,
+        Request $request,
+        bool $paraExamen,
+        ?GrupoRepository $grupoRepository = null
+    ): Response {
+        $temas = $temaRepository->createQueryBuilder('t')
+            ->leftJoin('t.leyes', 'l')
+            ->addSelect('l')
+            ->andWhere('t.activo = :activo')
+            ->setParameter('activo', true)
+            ->orderBy('t.nombre', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $temasDatos = [];
+        foreach ($temas as $tema) {
+            $leyes = [];
+            foreach ($tema->getLeyes() as $ley) {
+                if (!$ley->isActivo()) {
+                    continue;
+                }
+                $leyes[] = [
+                    'id' => $ley->getId(),
+                    'nombre' => (string) $ley->getNombre(),
+                ];
+            }
+            usort($leyes, static fn (array $a, array $b): int => strcasecmp($a['nombre'], $b['nombre']));
+            $temasDatos[] = [
+                'id' => $tema->getId(),
+                'nombre' => (string) $tema->getNombre(),
+                'leyes' => $leyes,
+            ];
+        }
+        usort($temasDatos, static fn (array $a, array $b): int => strnatcasecmp($a['nombre'], $b['nombre']));
+
+        $datos = $request->getSession()->get('examen_semanal_pegar');
+        $datosExamen = $paraExamen && is_array($datos) && ($datos['tipo'] ?? '') === 'general' ? $datos : null;
+
+        return $this->render('pregunta/pegar.html.twig', [
+            'temas' => $temas,
+            'temasDatos' => $temasDatos,
+            'paraExamen' => $paraExamen,
+            'cantidadPreguntas' => $paraExamen ? ExamenSemanalDesdePegado::CANTIDAD : 20,
+            'tituloPagina' => $paraExamen ? 'Examen semanal desde el prompt' : 'Pegar preguntas',
+            'rutaCancelar' => $paraExamen ? 'app_examen_semanal_new' : 'app_pregunta_index',
+            'grupos' => $paraExamen && $grupoRepository ? $grupoRepository->findBy([], ['nombre' => 'ASC']) : [],
+            'datosExamen' => $datosExamen,
+        ]);
+    }
+
+    private function prepararDestinoExamen(Request $request, ExamenSemanalDesdePegado $servicio, string $tipo): ?Response
+    {
+        $session = $request->getSession();
+        $claveOrigen = $tipo === 'municipal' ? 'preguntas_municipal_csv_origen' : 'preguntas_csv_origen';
+        $ruta = $tipo === 'municipal' ? 'app_examen_semanal_pegar_municipal' : 'app_examen_semanal_pegar';
+
+        if ((string) $request->request->get('destino') !== 'examen') {
+            $datos = $session->get('examen_semanal_pegar');
+            if (is_array($datos) && ($datos['tipo'] ?? '') === $tipo) {
+                $session->remove('examen_semanal_pegar');
+                if ($session->get($claveOrigen) === 'pegar_examen') {
+                    $session->remove($claveOrigen);
+                }
+            }
+
+            return null;
+        }
+
+        $resultado = $servicio->validar($tipo, [
+            'nombre' => (string) $request->request->get('nombre', ''),
+            'descripcion' => (string) $request->request->get('descripcion', ''),
+            'fechaApertura' => (string) $request->request->get('fechaApertura', ''),
+            'fechaCierre' => (string) $request->request->get('fechaCierre', ''),
+            'grupoId' => $request->request->getInt('grupo', 0),
+            'dificultad' => (string) $request->request->get('dificultad', ''),
+        ]);
+        $session->set('examen_semanal_pegar', $resultado['datos']);
+        if ($resultado['error'] !== null) {
+            $this->addFlash('error', $resultado['error']);
+
+            return $this->redirectToRoute($ruta);
+        }
+
+        $session->set($claveOrigen, 'pegar_examen');
+
+        return null;
+    }
+
+    private function rutaPegado(Request $request): string
+    {
+        if ((string) $request->request->get('destino') === 'examen') {
+            return 'app_examen_semanal_pegar';
+        }
+        $datos = $request->getSession()->get('examen_semanal_pegar');
+        if (is_array($datos) && ($datos['tipo'] ?? '') === 'general') {
+            return 'app_examen_semanal_pegar';
+        }
+
+        return 'app_pregunta_pegar';
+    }
+
+    private function maximoPegado(Request $request): int
+    {
+        if ((string) $request->request->get('destino') === 'examen') {
+            return ExamenSemanalDesdePegado::CANTIDAD;
+        }
+        $datos = $request->getSession()->get('examen_semanal_pegar');
+        if (is_array($datos) && ($datos['tipo'] ?? '') === 'general') {
+            return ExamenSemanalDesdePegado::CANTIDAD;
+        }
+
+        return 20;
     }
 }
 

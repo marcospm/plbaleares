@@ -1,0 +1,32 @@
+<input type="hidden" name="destino" value="examen">
+<div class="border rounded p-3 mb-4" style="background: #f8f9fa;">
+    <h2 class="h5 mb-3">Datos del examen semanal</h2>
+    <div class="mb-3">
+        <label class="form-label" for="examen-nombre">Nombre <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" name="nombre" id="examen-nombre" maxlength="255" required value="{{ datosExamen.nombre|default('') }}">
+    </div>
+    <div class="mb-3">
+        <label class="form-label" for="examen-descripcion">Descripción</label>
+        <textarea class="form-control" name="descripcion" id="examen-descripcion" rows="2">{{ datosExamen.descripcion|default('') }}</textarea>
+    </div>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label class="form-label" for="examen-apertura">Apertura <span class="text-danger">*</span></label>
+            <input type="datetime-local" class="form-control" name="fechaApertura" id="examen-apertura" required value="{{ datosExamen.fechaAperturaIso|default('') }}">
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="examen-cierre">Cierre <span class="text-danger">*</span></label>
+            <input type="datetime-local" class="form-control" name="fechaCierre" id="examen-cierre" required value="{{ datosExamen.fechaCierreIso|default('') }}">
+        </div>
+    </div>
+    <div class="mb-0">
+        <label class="form-label" for="examen-grupo">Grupo</label>
+        <select class="form-control" name="grupo" id="examen-grupo">
+            <option value="">Todos los alumnos</option>
+            {% for grupo in grupos|default([]) %}
+                <option value="{{ grupo.id }}"{% if datosExamen.grupoId|default(0) == grupo.id %} selected{% endif %}>{{ grupo.nombre }}</option>
+            {% endfor %}
+        </select>
+        <small class="text-muted">Si eliges un grupo, solo los alumnos de ese grupo verán el examen.</small>
+    </div>
+</div>

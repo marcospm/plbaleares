@@ -1,0 +1,13 @@
+<div class="alert alert-secondary mb-4">
+    <h5>Este será el examen semanal</h5>
+    <ul class="mb-0">
+        <li><strong>Nombre:</strong> {{ examenPegado.nombre }}</li>
+        <li><strong>Apertura:</strong> {{ examenPegado.fechaApertura }}</li>
+        <li><strong>Cierre:</strong> {{ examenPegado.fechaCierre }}</li>
+        <li><strong>Grupo:</strong> {{ examenPegado.grupoNombre|default('Todos los alumnos') }}</li>
+        {% if examenPegado.descripcion|default('') %}
+            <li><strong>Descripción:</strong> {{ examenPegado.descripcion }}</li>
+        {% endif %}
+        <li>Al confirmar, estas preguntas se guardan y quedan asignadas a este examen.</li>
+    </ul>
+</div>

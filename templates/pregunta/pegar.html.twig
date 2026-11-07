@@ -1,6 +1,10 @@
 {% extends 'base.html.twig' %}
+{% set cantidadPreguntas = cantidadPreguntas|default(20) %}
+{% set paraExamen = paraExamen|default(false) %}
+{% set tituloPagina = tituloPagina|default(paraExamen ? 'Examen semanal desde el prompt' : 'Pegar preguntas') %}
+{% set rutaCancelar = rutaCancelar|default('app_pregunta_index') %}
 
-{% block title %}Pegar preguntas{% endblock %}
+{% block title %}{{ tituloPagina }}{% endblock %}
 
 {% block stylesheets %}
     {{ parent() }}
@@ -63,19 +67,25 @@
 {% block body %}
 <div class="card">
     <div class="card-header">
-        <h1>Pegar preguntas</h1>
+        <h1>{{ tituloPagina }}</h1>
     </div>
     <div class="card-body">
         <div class="alert alert-info">
             <strong>Cómo funciona:</strong>
             <ol class="mb-0">
-                <li>Elige un tema y su ley, o marca varios temas para que las preguntas se repartan al azar entre ellos. La dificultad se aplica a las 20 preguntas.</li>
+                {% if paraExamen %}
+                    <li>Rellena el nombre, las fechas y, si quieres, el grupo. Las preguntas que salgan de la respuesta serán las del examen semanal.</li>
+                {% endif %}
+                <li>Elige un tema y su ley, o marca varios temas para que las preguntas se repartan al azar entre ellos. La dificultad se aplica a las {{ cantidadPreguntas }} preguntas.</li>
                 <li>No hace falta elegir artículo. Claude indica el artículo en cada bloque. Si el prompt es de varios temas, también indica el tema y la ley de cada pregunta, y cada una se guarda en el suyo.</li>
-                <li>Copia el prompt, pégalo en Claude y, debajo de <strong>CONTENIDO:</strong>, pega el texto. Como máximo, 20 preguntas.</li>
+                <li>Copia el prompt, pégalo en Claude y, debajo de <strong>CONTENIDO:</strong>, pega el texto. El prompt pide {{ cantidadPreguntas }} preguntas{% if paraExamen %}. Si el texto da para menos, el examen se crea con las que sean válidas{% else %}. Como máximo, {{ cantidadPreguntas }}{% endif %}.</li>
             </ol>
         </div>
 
         <form method="post" action="{{ path('app_pregunta_procesar_pegar') }}" id="pegar-form" data-turbo="false">
+            {% if paraExamen %}
+                {% include 'examen_semanal/_pegar_datos.html.twig' %}
+            {% endif %}
             <div class="mb-3">
                 <span class="form-label d-block">Origen de las preguntas</span>
                 <div class="d-flex gap-4 flex-wrap">
@@ -152,10 +162,10 @@
                     <label class="form-label">Dificultad <span class="text-danger">*</span></label>
                     <select name="dificultad" id="dificultad" class="form-control" required>
                         <option value="">Selecciona una dificultad</option>
-                        <option value="facil">Fácil</option>
-                        <option value="moderada">Moderada</option>
-                        <option value="dificil">Difícil</option>
-                        <option value="indeterminado">Indeterminado</option>
+                        <option value="facil"{% if datosExamen.dificultad|default('') == 'facil' %} selected{% endif %}>Fácil</option>
+                        <option value="moderada"{% if datosExamen.dificultad|default('') == 'moderada' %} selected{% endif %}>Moderada</option>
+                        <option value="dificil"{% if datosExamen.dificultad|default('') == 'dificil' %} selected{% endif %}>Difícil</option>
+                        <option value="indeterminado"{% if datosExamen.dificultad|default('') == 'indeterminado' %} selected{% endif %}>Indeterminado</option>
                     </select>
                 </div>
             </div>
@@ -172,7 +182,7 @@
 
             <div class="d-flex gap-2 mt-4">
                 <button type="submit" class="btn btn-primary">Previsualizar</button>
-                <a href="{{ path('app_pregunta_index') }}" class="btn btn-outline-secondary">Cancelar</a>
+                <a href="{{ path(rutaCancelar) }}" class="btn btn-outline-secondary">Cancelar</a>
             </div>
         </form>
     </div>
@@ -181,6 +191,7 @@
 <script type="application/json" id="temas-datos">{{ temasDatos|json_encode|raw }}</script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const cantidadPreguntas = {{ cantidadPreguntas }};
     const temasDatos = JSON.parse(document.getElementById('temas-datos').textContent);
     const temasPorId = {};
     temasDatos.forEach(function(tema) {
@@ -400,7 +411,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function construirPrompt(datos) {
         return [
-            'Eres un preparador de oposiciones de policía local en Baleares. Genera exactamente 20 preguntas tipo test, en español, solo con el contenido que pegue debajo de CONTENIDO. No inventes datos que no estén en ese texto.',
+            'Eres un preparador de oposiciones de policía local en Baleares. Genera exactamente ' + cantidadPreguntas + ' preguntas tipo test, en español, solo con el contenido que pegue debajo de CONTENIDO. No inventes datos que no estén en ese texto.',
             '',
             'Tema: ' + datos.tema,
             'Ley: ' + datos.ley,
@@ -412,8 +423,8 @@ document.addEventListener('DOMContentLoaded', function() {
             '- La línea ARTICULO lleva el número del artículo tal como está en el texto (14 o 14 bis). Es el mismo artículo que cita el enunciado. No inventes artículos que no estén en el contenido.',
             '- La explicación cita el fragmento del que sale la respuesta.',
             '- Responde solo con los bloques, sin introducción ni markdown.',
-            '- Si el contenido no da para 20, devuelve las que salgan y dilo en una línea al final, fuera de los bloques.',
-            '- Si después escribo «continúa», genera otras 20 distintas, del mismo contenido, en el mismo formato.',
+            '- Si el contenido no da para ' + cantidadPreguntas + ', devuelve las que salgan y dilo en una línea al final, fuera de los bloques.',
+            '- Si después escribo «continúa», genera otras ' + cantidadPreguntas + ' distintas, del mismo contenido, en el mismo formato.',
             '',
             'Formato de cada pregunta:',
             '',
@@ -445,9 +456,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const ejemplo = temasOrdenados[0];
         const leyEjemplo = ejemplo.leyes[0].nombre;
         return [
-            'Eres un preparador de oposiciones de policía local en Baleares. Genera exactamente 20 preguntas tipo test, en español, solo con el contenido que pegue debajo de CONTENIDO. No inventes datos que no estén en ese texto.',
+            'Eres un preparador de oposiciones de policía local en Baleares. Genera exactamente ' + cantidadPreguntas + ' preguntas tipo test, en español, solo con el contenido que pegue debajo de CONTENIDO. No inventes datos que no estén en ese texto.',
             '',
-            'No hagas las 20 preguntas de un solo tema. Cada pregunta es de uno de estos temas, elegido al azar. Reparte el bloque entre ellos: tienen que salir temas distintos.',
+            'No hagas las ' + cantidadPreguntas + ' preguntas de un solo tema. Cada pregunta es de uno de estos temas, elegido al azar. Reparte el bloque entre ellos: tienen que salir temas distintos.',
             '',
             'Temas y sus normas (usa el nombre exacto):',
             ...lineasTemas,
@@ -462,8 +473,8 @@ document.addEventListener('DOMContentLoaded', function() {
             '- La línea ARTICULO lleva el número del artículo tal como está en el texto (14 o 14 bis). Es el mismo artículo que cita el enunciado. No inventes artículos que no estén en el contenido.',
             '- La explicación cita el fragmento del que sale la respuesta.',
             '- Responde solo con los bloques, sin introducción ni markdown.',
-            '- Si el contenido no da para 20, devuelve las que salgan y dilo en una línea al final, fuera de los bloques.',
-            '- Si después escribo «continúa», genera otras 20 distintas, del mismo contenido, repartidas otra vez al azar entre esos temas, en el mismo formato.',
+            '- Si el contenido no da para ' + cantidadPreguntas + ', devuelve las que salgan y dilo en una línea al final, fuera de los bloques.',
+            '- Si después escribo «continúa», genera otras ' + cantidadPreguntas + ' distintas, del mismo contenido, repartidas otra vez al azar entre esos temas, en el mismo formato.',
             '',
             'Formato de cada pregunta:',
             '',
@@ -509,8 +520,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     aplicarModo();
 
+    function examenListo() {
+        const destino = document.querySelector('input[name="destino"]');
+        if (!destino || destino.value !== 'examen') {
+            return true;
+        }
+        const nombre = document.getElementById('examen-nombre').value.trim();
+        const apertura = document.getElementById('examen-apertura').value;
+        const cierre = document.getElementById('examen-cierre').value;
+        if (!nombre || !apertura || !cierre) {
+            alert('Completa el nombre y las fechas del examen semanal.');
+            return false;
+        }
+        if (cierre <= apertura) {
+            alert('La fecha de cierre tiene que ser posterior a la de apertura.');
+            return false;
+        }
+        return true;
+    }
+
     document.getElementById('pegar-form').addEventListener('submit', function(e) {
-        if (!seleccionValida()) {
+        if (!examenListo() || !seleccionValida()) {
             e.preventDefault();
             return;
         }

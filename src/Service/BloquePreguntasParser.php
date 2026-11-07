@@ -9,7 +9,7 @@ class BloquePreguntasParser
     /**
      * @return array{preguntas: list<array{id: null, texto: string, opcionA: string, opcionB: string, opcionC: string, opcionD: string, respuestaCorrecta: string, retroalimentacion: string, articulo: string, linea: int}>, errores: list<string>}
      */
-    public function parsear(string $texto): array
+    public function parsear(string $texto, int $maximo = self::MAX_PREGUNTAS): array
     {
         $texto = str_replace(["\r\n", "\r"], "\n", trim($texto));
         if ($texto === '') {
@@ -71,10 +71,11 @@ class BloquePreguntasParser
             ];
         }
 
-        if ($numero > self::MAX_PREGUNTAS) {
+        $maximo = max(1, $maximo);
+        if ($numero > $maximo) {
             return [
                 'preguntas' => [],
-                'errores' => ['Un bloque admite como máximo 20 preguntas. Has pegado ' . $numero . '.'],
+                'errores' => ['Un bloque admite como máximo ' . $maximo . ' preguntas. Has pegado ' . $numero . '.'],
             ];
         }
 
