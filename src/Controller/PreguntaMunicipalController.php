@@ -1584,7 +1584,7 @@ class PreguntaMunicipalController extends AbstractController
             'descripcion' => (string) $request->request->get('descripcion', ''),
             'fechaApertura' => (string) $request->request->get('fechaApertura', ''),
             'fechaCierre' => (string) $request->request->get('fechaCierre', ''),
-            'grupoId' => $request->request->getInt('grupo', 0),
+            'grupoId' => $this->grupoIdDesdeRequest($request),
             'dificultad' => (string) $request->request->get('dificultad', ''),
         ]);
         $session->set('examen_semanal_pegar', $resultado['datos']);
@@ -1610,6 +1610,13 @@ class PreguntaMunicipalController extends AbstractController
         }
 
         return 'app_pregunta_municipal_pegar';
+    }
+
+    private function grupoIdDesdeRequest(Request $request): int
+    {
+        $grupo = $request->request->get('grupo');
+
+        return is_numeric($grupo) ? (int) $grupo : 0;
     }
 
     private function maximoPegadoMunicipal(Request $request): int
