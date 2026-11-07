@@ -5,7 +5,7 @@
     <title>{{ examenSemanal.nombre }}</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: Helvetica, sans-serif;
             font-size: 11pt;
             line-height: 1.4;
             margin: 20px;
@@ -175,13 +175,13 @@
                 </div>
                 <div class="pregunta-metadata">
                     {% if pregunta.ley is defined and pregunta.ley %}
-                        <span class="pregunta-ley">📜 {{ pregunta.ley.nombre }}</span>
+                        <span class="pregunta-ley">{{ pregunta.ley.nombre }}</span>
                         {% if pregunta.tema is defined and pregunta.tema %}
                             <span style="color: #999; margin: 0 4px;">•</span>
                             <span class="pregunta-tema">{{ pregunta.tema.nombre }}</span>
                         {% endif %}
                     {% elseif pregunta.temaMunicipal is defined and pregunta.temaMunicipal %}
-                        <span class="pregunta-ley">🏛️ {{ pregunta.municipio.nombre }}</span>
+                        <span class="pregunta-ley">{{ pregunta.municipio.nombre }}</span>
                         <span style="color: #999; margin: 0 4px;">•</span>
                         <span class="pregunta-tema">{{ pregunta.temaMunicipal.nombre }}</span>
                     {% endif %}

@@ -6,13 +6,14 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
+use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 class IgnoreStaticFileErrorsListener implements EventSubscriberInterface
 {
     /**
-     * Lista de patrones de rutas que deben ser ignoradas
+     * Rutas de iconos y de sondas (xmlrpc, WordPress, .php) que no son de esta aplicación.
      */
     private const IGNORED_PATTERNS = [
         '/images/favicon',
@@ -20,6 +21,14 @@ class IgnoreStaticFileErrorsListener implements EventSubscriberInterface
         '/apple-touch-icon',
         '/robots.txt',
         '/.well-known/',
+        'xmlrpc',
+        'wp-login',
+        'wp-admin',
+        'wp-content',
+        'wp-includes',
+        'wlwmanifest',
+        '.env',
+        '.git/',
     ];
 
     public function __construct(
@@ -30,33 +39,48 @@ class IgnoreStaticFileErrorsListener implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
+            // Antes del enrutador, para que la sonda no llegue a lanzar la excepción.
+            KernelEvents::REQUEST => ['onKernelRequest', 64],
             // Prioridad alta para interceptar antes de que se registre el error
             KernelEvents::EXCEPTION => ['onKernelException', 512],
         ];
     }
 
-    public function onKernelException(ExceptionEvent $event): void
+    public function onKernelRequest(RequestEvent $event): void
     {
-        $exception = $event->getThrowable();
-        
-        // Solo procesar NotFoundHttpException (404)
-        if (!$exception instanceof NotFoundHttpException) {
+        if (!$event->isMainRequest() || !$this->esSonda($event->getRequest()->getPathInfo())) {
             return;
         }
 
-        $request = $event->getRequest();
-        $path = $request->getPathInfo();
+        $event->setResponse(new Response('', Response::HTTP_NOT_FOUND));
+    }
 
-        // Verificar si la ruta coincide con algún patrón ignorado
+    public function onKernelException(ExceptionEvent $event): void
+    {
+        $exception = $event->getThrowable();
+
+        // Solo procesar NotFoundHttpException (404)
+        if (!$exception instanceof NotFoundHttpException || !$this->esSonda($event->getRequest()->getPathInfo())) {
+            return;
+        }
+
+        $event->setResponse(new Response('', Response::HTTP_NOT_FOUND));
+        $event->stopPropagation();
+    }
+
+    private function esSonda(string $path): bool
+    {
+        $ruta = strtolower($path);
+        if (str_ends_with($ruta, '.php')) {
+            return true;
+        }
+
         foreach (self::IGNORED_PATTERNS as $pattern) {
-            if (str_contains($path, $pattern)) {
-                // Crear una respuesta 404 silenciosa sin registrar el error
-                $response = new Response('', 404);
-                $event->setResponse($response);
-                // Marcar el evento como manejado para prevenir el logging
-                $event->stopPropagation();
-                return;
+            if (str_contains($ruta, $pattern)) {
+                return true;
             }
         }
+
+        return false;
     }
 }

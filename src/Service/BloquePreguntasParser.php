@@ -23,7 +23,7 @@ class BloquePreguntasParser
 
         foreach ($trozos as $trozo) {
             $trozo = trim($trozo);
-            if ($trozo === '') {
+            if ($trozo === '' || preg_match('/^```[\w-]*$/', $trozo)) {
                 continue;
             }
 
@@ -95,25 +95,39 @@ class BloquePreguntasParser
         $tieneEtiqueta = false;
 
         foreach (preg_split('/\n/', $trozo) ?: [] as $linea) {
-            if (preg_match('/^(ARTICULO|PREGUNTA|A|B|C|D|CORRECTA|EXPLICACION|TEMA|LEY)\s*:\s*(.*)$/iu', $linea, $coincidencias)) {
+            $linea = trim($linea);
+            if ($linea === '' || str_starts_with($linea, '```')) {
+                continue;
+            }
+
+            if (preg_match('/^(?:[\s>#`*_-]*)(ARTICULO|PREGUNTA|A|B|C|D|CORRECTA|EXPLICACION|TEMA|LEY)(?:[*_`]*)\s*[:)]\s*(.*)$/iu', $linea, $coincidencias)) {
                 $tieneEtiqueta = true;
                 $actual = strtoupper($coincidencias[1]);
                 if ($actual === 'PREGUNTA' && isset($campos['PREGUNTA'])) {
                     $campos['__duplicada'] = '1';
                 }
-                $campos[$actual] = trim($coincidencias[2]);
+                $campos[$actual] = $this->limpiarTexto($coincidencias[2]);
                 continue;
             }
 
             if ($actual !== null) {
-                $extra = trim($linea);
-                if ($extra !== '') {
-                    $campos[$actual] = trim($campos[$actual] . ' ' . $extra);
-                }
+                $campos[$actual] = $this->limpiarTexto($campos[$actual] . ' ' . $linea);
             }
         }
 
         return $tieneEtiqueta ? $campos : null;
+    }
+
+    private function limpiarTexto(string $valor): string
+    {
+        $valor = preg_replace('/^(?:\*\*|__|`)+/u', '', $valor) ?? $valor;
+        $valor = preg_replace('/(?:\*\*|__|`)+$/u', '', $valor) ?? $valor;
+        $valor = preg_replace('/\*\*(.+?)\*\*/u', '$1', $valor) ?? $valor;
+        $valor = preg_replace('/__(.+?)__/u', '$1', $valor) ?? $valor;
+        $valor = preg_replace('/`([^`]+)`/u', '$1', $valor) ?? $valor;
+        $valor = str_replace(['**', '__', '`'], '', $valor);
+
+        return trim($valor);
     }
 
     private function normalizarCorrecta(string $valor): string

@@ -62,9 +62,11 @@
                 <input type="hidden" name="_token" value="{{ csrf_token('confirmar_csv') }}">
                 <input type="hidden" name="accion" value="{{ total > 0 ? 'guardar' : 'comprobar' }}">
                 <div class="mb-4">
-                    <label for="bloque-preguntas" class="form-label"><h4 class="mb-2">Texto de las preguntas</h4></label>
-                    {% include 'pregunta/_editor_bloque.html.twig' %}
-                    <p class="text-muted mt-2 mb-0">{% if omitidas|default([]) is not empty %}Puedes corregir el texto antes de guardar. Las preguntas de la lista siguen en el texto: si las arreglas, se guardan; si no, se dejan fuera.{% else %}Puedes corregir el texto antes de guardar.{% endif %}</p>
+                    <h4 class="mb-3">Preguntas</h4>
+                    {% include 'pregunta/_preview_preguntas.html.twig' with {
+                        mostrarTema: temasAleatorios|default(false),
+                        mostrarLey: temasAleatorios|default(false)
+                    } %}
                 </div>
                 <div class="d-flex gap-2">
                     {% if total > 0 %}

@@ -1107,93 +1107,54 @@ class ExamenSemanalController extends AbstractController
     #[Route('/{id}/pdf', name: 'app_examen_semanal_pdf', methods: ['GET'])]
     public function generarPdf(ExamenSemanal $examenSemanal): Response
     {
-        // Obtener preguntas del examen semanal
-        $preguntas = $this->obtenerPreguntasExamen($examenSemanal);
-        
-        if (empty($preguntas)) {
-            $this->addFlash('error', 'No hay preguntas disponibles para este examen semanal.');
-            return $this->redirectToRoute('app_examen_semanal_index', [], Response::HTTP_SEE_OTHER);
-        }
-
-        // Renderizar el template HTML
-        $html = $this->renderView('examen_semanal/pdf_examen.html.twig', [
-            'examenSemanal' => $examenSemanal,
-            'preguntas' => $preguntas,
-            'mostrarRespuestas' => false,
-        ]);
-
-        // Configurar opciones de dompdf
-        $options = new Options();
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isRemoteEnabled', true);
-        $options->set('defaultFont', 'Arial');
-
-        // Crear instancia de dompdf
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-
-        // Generar nombre del archivo incluyendo la dificultad
-        $dificultadNombre = match($examenSemanal->getDificultad()) {
-            'facil' => 'facil',
-            'moderada' => 'moderada',
-            'dificil' => 'dificil',
-            default => 'sin_dificultad',
-        };
-        $nombreArchivo = 'examen_' . preg_replace('/[^a-z0-9]+/', '_', strtolower($examenSemanal->getNombre())) . '_' . $dificultadNombre . '.pdf';
-
-        // Devolver el PDF
-        return new Response(
-            $dompdf->output(),
-            Response::HTTP_OK,
-            [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'attachment; filename="' . $nombreArchivo . '"',
-            ]
-        );
+        return $this->responderPdf($examenSemanal, false);
     }
 
     #[Route('/{id}/pdf-respuestas', name: 'app_examen_semanal_pdf_respuestas', methods: ['GET'])]
     public function generarPdfRespuestas(ExamenSemanal $examenSemanal): Response
     {
-        // Obtener preguntas del examen semanal
+        return $this->responderPdf($examenSemanal, true);
+    }
+
+    private function responderPdf(ExamenSemanal $examenSemanal, bool $mostrarRespuestas): Response
+    {
+        ini_set('memory_limit', '1024M');
+
         $preguntas = $this->obtenerPreguntasExamen($examenSemanal);
-        
-        if (empty($preguntas)) {
+
+        if ($preguntas === []) {
             $this->addFlash('error', 'No hay preguntas disponibles para este examen semanal.');
+
             return $this->redirectToRoute('app_examen_semanal_index', [], Response::HTTP_SEE_OTHER);
         }
 
-        // Renderizar el template HTML con respuestas
-        $html = $this->renderView('examen_semanal/pdf_examen.html.twig', [
-            'examenSemanal' => $examenSemanal,
-            'preguntas' => $preguntas,
-            'mostrarRespuestas' => true,
-        ]);
-
-        // Configurar opciones de dompdf
-        $options = new Options();
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isRemoteEnabled', true);
-        $options->set('defaultFont', 'Arial');
-
-        // Crear instancia de dompdf
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-
-        // Generar nombre del archivo incluyendo la dificultad
-        $dificultadNombre = match($examenSemanal->getDificultad()) {
+        $dificultadNombre = match ($examenSemanal->getDificultad()) {
             'facil' => 'facil',
             'moderada' => 'moderada',
             'dificil' => 'dificil',
             default => 'sin_dificultad',
         };
-        $nombreArchivo = 'respuestas_' . preg_replace('/[^a-z0-9]+/', '_', strtolower($examenSemanal->getNombre())) . '_' . $dificultadNombre . '.pdf';
+        $prefijo = $mostrarRespuestas ? 'respuestas_' : 'examen_';
+        $nombreArchivo = $prefijo . preg_replace('/[^a-z0-9]+/', '_', strtolower($examenSemanal->getNombre())) . '_' . $dificultadNombre . '.pdf';
 
-        // Devolver el PDF
+        $html = $this->renderView('examen_semanal/pdf_examen.html.twig', [
+            'examenSemanal' => $examenSemanal,
+            'preguntas' => $preguntas,
+            'mostrarRespuestas' => $mostrarRespuestas,
+        ]);
+        unset($preguntas);
+
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', false);
+        $options->set('defaultFont', 'Helvetica');
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        unset($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
         return new Response(
             $dompdf->output(),
             Response::HTTP_OK,

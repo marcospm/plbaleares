@@ -1,0 +1,80 @@
+<div
+    id="preguntas-preview-root"
+    class="preguntas-preview-root"
+    data-mostrar-tema="{{ mostrarTema|default(false) ? '1' : '0' }}"
+    data-mostrar-ley="{{ mostrarLey|default(false) ? '1' : '0' }}"
+    data-omitidas="{{ omitidas|default([])|json_encode|e('html_attr') }}"
+>
+    <p class="pregunta-preview-resumen" data-preview="resumen">
+        {%- if preguntas|default([]) is not empty -%}
+            {{ preguntas|length }} pregunta{{ preguntas|length == 1 ? '' : 's' }}. La opción en verde es la correcta.
+        {%- endif -%}
+    </p>
+    <div class="pregunta-preview-indice" data-preview="indice">
+        {% if preguntas|default([])|length > 1 %}
+            {% for pregunta in preguntas %}
+                <a class="pregunta-preview-ir" href="#pregunta-preview-{{ pregunta.linea }}">{{ pregunta.linea }}</a>
+            {% endfor %}
+        {% endif %}
+    </div>
+    <div class="pregunta-preview-lista" data-preview="lista">
+        {% for pregunta in preguntas|default([]) %}
+            {% set correcta = pregunta.respuestaCorrecta|default('')|upper %}
+            {% set partes = [] %}
+            {% if pregunta.articuloLabel|default('') %}
+                {% set partes = partes|merge([pregunta.articuloLabel]) %}
+            {% elseif pregunta.articulo|default('') %}
+                {% set numeroArticulo = pregunta.articulo %}
+                {% set partes = partes|merge([numeroArticulo matches '/^art/i' ? numeroArticulo : 'Art. ' ~ numeroArticulo]) %}
+            {% endif %}
+            {% if mostrarTema|default(false) %}
+                {% set nombreTema = pregunta.temaNombre|default(pregunta.tema|default('')) %}
+                {% if nombreTema %}
+                    {% set partes = partes|merge([nombreTema]) %}
+                {% endif %}
+            {% endif %}
+            {% if mostrarLey|default(false) %}
+                {% set nombreLey = pregunta.leyNombre|default(pregunta.ley|default('')) %}
+                {% if nombreLey %}
+                    {% set partes = partes|merge([nombreLey]) %}
+                {% endif %}
+            {% endif %}
+            <article class="pregunta-preview" id="pregunta-preview-{{ pregunta.linea }}" data-numero="{{ pregunta.linea }}">
+                <header class="pregunta-preview-cabecera">
+                    <span class="pregunta-preview-num">{{ pregunta.linea }}</span>
+                    <div class="pregunta-preview-identidad">
+                        <p class="pregunta-preview-kicker">Pregunta {{ pregunta.linea }}</p>
+                        {% if partes is not empty %}
+                            <p class="pregunta-preview-meta">{{ partes|join(' · ') }}</p>
+                        {% endif %}
+                    </div>
+                    <button type="button" class="pregunta-preview-boton" data-accion="editar" data-numero="{{ pregunta.linea }}">Editar</button>
+                </header>
+                <div class="pregunta-preview-cuerpo">
+                    <p class="pregunta-preview-texto">{{ pregunta.texto }}</p>
+                    <ul class="pregunta-preview-opciones">
+                        {% for letra in ['A', 'B', 'C', 'D'] %}
+                            {% set textoOpcion = attribute(pregunta, 'opcion' ~ letra)|default('') %}
+                            <li class="pregunta-preview-opcion{{ correcta == letra ? ' es-correcta' : '' }}">
+                                <span class="pregunta-preview-letra">{{ letra }}</span>
+                                <span class="pregunta-preview-opcion-texto{{ textoOpcion ? '' : ' es-vacio' }}">{{ textoOpcion ?: 'Sin texto' }}</span>
+                                {% if correcta == letra %}
+                                    <span class="pregunta-preview-marca">Correcta</span>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    {% if pregunta.retroalimentacion|default('') %}
+                        <div class="pregunta-preview-explica">
+                            <span>Explicación</span>
+                            <p>{{ pregunta.retroalimentacion }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+    <textarea id="bloque-preguntas" name="bloque" class="preguntas-preview-fuente" hidden spellcheck="false">{{ bloqueTexto|default('') }}</textarea>
+</div>
+<p class="pregunta-preview-ayuda">Así queda cada pregunta. Pulsa Editar en la que quieras cambiar y Listo para volver a verla. El resto no se toca. Al guardar se vuelven a comprobar.</p>
+<script src="{{ asset('pregunta_preview.js') }}"></script>
