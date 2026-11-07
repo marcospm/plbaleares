@@ -23,8 +23,6 @@ use App\Repository\ConfiguracionExamenRepository;
 use App\Service\ConfiguracionExamenService;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
-use Dompdf\Dompdf;
-use Dompdf\Options;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -1107,19 +1105,17 @@ class ExamenSemanalController extends AbstractController
     #[Route('/{id}/pdf', name: 'app_examen_semanal_pdf', methods: ['GET'])]
     public function generarPdf(ExamenSemanal $examenSemanal): Response
     {
-        return $this->responderPdf($examenSemanal, false);
+        return $this->responderVistaImprimible($examenSemanal, false);
     }
 
     #[Route('/{id}/pdf-respuestas', name: 'app_examen_semanal_pdf_respuestas', methods: ['GET'])]
     public function generarPdfRespuestas(ExamenSemanal $examenSemanal): Response
     {
-        return $this->responderPdf($examenSemanal, true);
+        return $this->responderVistaImprimible($examenSemanal, true);
     }
 
-    private function responderPdf(ExamenSemanal $examenSemanal, bool $mostrarRespuestas): Response
+    private function responderVistaImprimible(ExamenSemanal $examenSemanal, bool $mostrarRespuestas): Response
     {
-        ini_set('memory_limit', '1024M');
-
         $preguntas = $this->obtenerPreguntasExamen($examenSemanal);
 
         if ($preguntas === []) {
@@ -1135,34 +1131,14 @@ class ExamenSemanalController extends AbstractController
             default => 'sin_dificultad',
         };
         $prefijo = $mostrarRespuestas ? 'respuestas_' : 'examen_';
-        $nombreArchivo = $prefijo . preg_replace('/[^a-z0-9]+/', '_', strtolower($examenSemanal->getNombre())) . '_' . $dificultadNombre . '.pdf';
+        $nombreArchivo = $prefijo . preg_replace('/[^a-z0-9]+/', '_', strtolower($examenSemanal->getNombre())) . '_' . $dificultadNombre;
 
-        $html = $this->renderView('examen_semanal/pdf_examen.html.twig', [
+        return $this->render('examen_semanal/pdf_examen.html.twig', [
             'examenSemanal' => $examenSemanal,
             'preguntas' => $preguntas,
             'mostrarRespuestas' => $mostrarRespuestas,
+            'nombreArchivo' => $nombreArchivo,
         ]);
-        unset($preguntas);
-
-        $options = new Options();
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('isRemoteEnabled', false);
-        $options->set('defaultFont', 'Helvetica');
-
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html);
-        unset($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-
-        return new Response(
-            $dompdf->output(),
-            Response::HTTP_OK,
-            [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'attachment; filename="' . $nombreArchivo . '"',
-            ]
-        );
     }
 
     #[Route('/{id}/agregar-pregunta', name: 'app_examen_semanal_agregar_pregunta', methods: ['POST'])]
@@ -1640,10 +1616,30 @@ class ExamenSemanalController extends AbstractController
         if ($examenSemanal->getModoCreacion() === 'preguntas_especificas') {
             // Si es examen de convocatoria o municipal, las preguntas son municipales
             if ($examenSemanal->getConvocatoria() || $examenSemanal->getMunicipio()) {
-                return $examenSemanal->getPreguntasMunicipales()->toArray();
-            } else {
-                return $examenSemanal->getPreguntas()->toArray();
+                $examen = $this->examenSemanalRepository->createQueryBuilder('e')
+                    ->addSelect('p', 'tm', 'm')
+                    ->leftJoin('e.preguntasMunicipales', 'p')
+                    ->leftJoin('p.temaMunicipal', 'tm')
+                    ->leftJoin('p.municipio', 'm')
+                    ->where('e = :examen')
+                    ->setParameter('examen', $examenSemanal)
+                    ->getQuery()
+                    ->getOneOrNullResult();
+
+                return $examen ? $examen->getPreguntasMunicipales()->toArray() : [];
             }
+
+            $examen = $this->examenSemanalRepository->createQueryBuilder('e')
+                ->addSelect('p', 't', 'l')
+                ->leftJoin('e.preguntas', 'p')
+                ->leftJoin('p.tema', 't')
+                ->leftJoin('p.ley', 'l')
+                ->where('e = :examen')
+                ->setParameter('examen', $examenSemanal)
+                ->getQuery()
+                ->getOneOrNullResult();
+
+            return $examen ? $examen->getPreguntas()->toArray() : [];
         }
 
         // Método original: obtener preguntas por temas
@@ -1672,6 +1668,9 @@ class ExamenSemanalController extends AbstractController
             if (!empty($temas)) {
                 // Incluir también preguntas con dificultad "indeterminado"
                 $preguntas = $this->preguntaRepository->createQueryBuilder('p')
+                    ->addSelect('t', 'l')
+                    ->innerJoin('p.tema', 't')
+                    ->innerJoin('p.ley', 'l')
                     ->where('(p.dificultad = :dificultad OR p.dificultad = :indeterminado)')
                     ->andWhere('p.tema IN (:temas)')
                     ->andWhere('p.activo = :activo')

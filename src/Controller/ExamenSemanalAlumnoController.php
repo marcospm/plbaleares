@@ -339,12 +339,12 @@ class ExamenSemanalAlumnoController extends AbstractController
                 } else {
                     // Si no hay temas, usar selección determinística sin repetir artículos
                     $preguntas = $this->mezclarDeterministico($preguntas, $examenSemanal->getId());
-                    $preguntas = $this->seleccionarPreguntasSinRepetirArticulosDeterministico($preguntas, $numeroPreguntas);
+                    $preguntas = $this->seleccionarPreguntasSinRepetirArticulosDeterministico($preguntas, $numeroPreguntas, $examenSemanal->getId());
                 }
             } else {
                 // Para exámenes municipales, convocatorias o con preguntas específicas, usar selección determinística sin repetir artículos
                 $preguntas = $this->mezclarDeterministico($preguntas, $examenSemanal->getId());
-                $preguntas = $this->seleccionarPreguntasSinRepetirArticulosDeterministico($preguntas, $numeroPreguntas);
+                $preguntas = $this->seleccionarPreguntasSinRepetirArticulosDeterministico($preguntas, $numeroPreguntas, $examenSemanal->getId());
             }
             
             // Si hay menos preguntas disponibles que el límite solicitado, informar al usuario
@@ -355,7 +355,7 @@ class ExamenSemanalAlumnoController extends AbstractController
             // Si no hay límite, aplicar solo la restricción de no repetir artículos
             // pero usar todas las preguntas disponibles (con orden determinístico)
             $preguntas = $this->mezclarDeterministico($preguntas, $examenSemanal->getId());
-            $preguntas = $this->seleccionarPreguntasSinRepetirArticulosDeterministico($preguntas, count($preguntas));
+            $preguntas = $this->seleccionarPreguntasSinRepetirArticulosDeterministico($preguntas, count($preguntas), $examenSemanal->getId());
         }
         
         // Verificar nuevamente que haya preguntas después de la selección
@@ -750,9 +750,10 @@ class ExamenSemanalAlumnoController extends AbstractController
      * 
      * @param array $preguntas Array de preguntas disponibles (ya mezcladas de forma determinística)
      * @param int $cantidad Cantidad de preguntas a seleccionar
+     * @param int $semilla Semilla del examen, para que el desempate sea el mismo en cada intento
      * @return array Array de preguntas seleccionadas
      */
-    private function seleccionarPreguntasSinRepetirArticulosDeterministico(array $preguntas, int $cantidad): array
+    private function seleccionarPreguntasSinRepetirArticulosDeterministico(array $preguntas, int $cantidad, int $semilla): array
     {
         // FASE 1: Intentar seleccionar sin repetir artículos
         $preguntasSeleccionadas = [];

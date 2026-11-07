@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>{{ examenSemanal.nombre }}</title>
+    <title>{% if mostrarRespuestas %}Respuestas - {% endif %}{{ examenSemanal.nombre }}</title>
     <style>
         body {
             font-family: Helvetica, sans-serif;
@@ -123,14 +123,52 @@
             font-size: 14pt;
             color: #2196F3;
         }
+        .barra-acciones {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin: -20px -20px 24px;
+            padding: 14px 20px;
+            background: #1565C0;
+            color: #fff;
+        }
+        .barra-acciones button {
+            border: 0;
+            border-radius: 6px;
+            background: #fff;
+            color: #1565C0;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 10px 16px;
+            cursor: pointer;
+        }
+        .barra-acciones p {
+            margin: 0;
+            font-size: 13px;
+        }
+        @page {
+            size: A4;
+            margin: 15mm;
+        }
         @media print {
             body {
-                margin: 15mm;
+                margin: 0;
+            }
+            .barra-acciones {
+                display: none !important;
             }
         }
     </style>
 </head>
 <body>
+    <div class="barra-acciones">
+        <button type="button" onclick="descargarPdf()">Descargar PDF</button>
+        <p>El examen ya está abierto. En el cuadro de impresión elige «Guardar como PDF».</p>
+    </div>
     <div class="header">
         <h1>{{ examenSemanal.nombre }}</h1>
         {% if examenSemanal.descripcion %}
@@ -211,6 +249,17 @@
         {% endfor %}
     {% endif %}
 
+    <script>
+        function descargarPdf() {
+            const titulo = document.title;
+            document.title = '{{ nombreArchivo|e('js') }}';
+            window.addEventListener('afterprint', function restaurar() {
+                document.title = titulo;
+                window.removeEventListener('afterprint', restaurar);
+            });
+            window.print();
+        }
+    </script>
     <div class="footer">
         {% if mostrarRespuestas %}
             <p><strong>PLANTILLA DE RESPUESTAS</strong></p>

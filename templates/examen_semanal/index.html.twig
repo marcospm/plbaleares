@@ -298,10 +298,10 @@
                                         📊 %
                                     </button>
                                 {% endif %}
-                                <a href="{{ path('app_examen_semanal_pdf', {'id': examen.id}) }}" class="btn btn-success btn-sm" target="_blank" title="Generar PDF del examen para imprimir">
+                                <a href="{{ path('app_examen_semanal_pdf', {'id': examen.id}) }}" class="btn btn-success btn-sm" target="_blank" title="Abrir el examen en una pestaña para revisarlo y guardarlo como PDF">
                                     📄 PDF
                                 </a>
-                                <a href="{{ path('app_examen_semanal_pdf_respuestas', {'id': examen.id}) }}" class="btn btn-info btn-sm" target="_blank" title="Generar PDF con plantilla de respuestas">
+                                <a href="{{ path('app_examen_semanal_pdf_respuestas', {'id': examen.id}) }}" class="btn btn-info btn-sm" target="_blank" title="Abrir la plantilla de respuestas para revisarla y guardarla como PDF">
                                     ✅ Respuestas
                                 </a>
                                 <form method="post" action="{{ path('app_examen_semanal_delete', {'id': examen.id}) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de eliminar este examen semanal?');">

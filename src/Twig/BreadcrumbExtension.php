@@ -76,8 +76,8 @@ class BreadcrumbExtension extends AbstractExtension
             'app_examen_semanal_new_old' => ['label' => 'Nuevo Examen (Antiguo)', 'parent' => 'app_examen_semanal_new'],
             'app_examen_semanal_show' => ['label' => 'Ver Examen', 'parent' => 'app_examen_semanal_index'],
             'app_examen_semanal_edit' => ['label' => 'Editar Examen', 'parent' => 'app_examen_semanal_index'],
-            'app_examen_semanal_pdf' => ['label' => 'PDF del Examen', 'parent' => 'app_examen_semanal_show'],
-            'app_examen_semanal_pdf_respuestas' => ['label' => 'PDF de Respuestas', 'parent' => 'app_examen_semanal_show'],
+            'app_examen_semanal_pdf' => ['label' => 'Imprimir examen', 'parent' => 'app_examen_semanal_show'],
+            'app_examen_semanal_pdf_respuestas' => ['label' => 'Imprimir respuestas', 'parent' => 'app_examen_semanal_show'],
             
             // Profesor - Exámenes de Alumnos
             'app_examen_profesor' => ['label' => 'Exámenes de Alumnos', 'parent' => 'app_dashboard'],

@@ -68,7 +68,9 @@ class PreguntaMunicipalRepository extends ServiceEntityRepository
 
         // Incluir también preguntas con dificultad "indeterminado"
         return $this->createQueryBuilder('p')
+            ->addSelect('t', 'm')
             ->innerJoin('p.temaMunicipal', 't')
+            ->innerJoin('p.municipio', 'm')
             ->andWhere('p.temaMunicipal IN (:temas)')
             ->andWhere('t.activo = :activo')
             ->andWhere('(p.dificultad = :dificultad OR p.dificultad = :indeterminado)')
