@@ -381,7 +381,8 @@
                             <option value="">Todos los grupos</option>
                             {% for grupo in grupos %}
                                 <option value="{{ grupo.id }}" {% if grupoSeleccionado == grupo.id %}selected{% endif %}>
-                                    {{ grupo.nombre }} ({{ grupo.alumnos|length }} alumno{{ grupo.alumnos|length != 1 ? 's' : '' }})
+                                    {% set totalAlumnosGrupo = alumnosPorGrupo[grupo.id]|default(0) %}
+                                    {{ grupo.nombre }} ({{ totalAlumnosGrupo }} alumno{{ totalAlumnosGrupo != 1 ? 's' : '' }})
                                 </option>
                             {% endfor %}
                         </select>

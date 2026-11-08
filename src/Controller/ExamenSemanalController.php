@@ -381,17 +381,22 @@ class ExamenSemanalController extends AbstractController
                        ->getQuery()
                        ->getResult();
 
-        // Calcular porcentajes por tema para cada examen
-        $porcentajesPorExamen = [];
+        $ids = array_map(static fn (ExamenSemanal $examen) => $examen->getId(), $examenes);
+        $realizaciones = $this->examenSemanalRepository->contarRealizaciones($ids);
+
+        // Solo marcamos qué filas pueden mostrar la distribución. El cálculo
+        // (seleccionar preguntas de todo el temario) se hace al pulsar el botón.
+        $examenesConDistribucion = [];
         foreach ($examenes as $examen) {
             if ($examen->getMunicipio() === null && $examen->getConvocatoria() === null && $examen->getModoCreacion() !== 'preguntas_especificas') {
-                $porcentajesPorExamen[$examen->getId()] = $this->calcularPorcentajesPorTema($examen);
+                $examenesConDistribucion[$examen->getId()] = true;
             }
         }
 
         return $this->render('examen_semanal/index.html.twig', [
             'examenes' => $examenes,
-            'porcentajesPorExamen' => $porcentajesPorExamen,
+            'realizaciones' => $realizaciones,
+            'examenesConDistribucion' => $examenesConDistribucion,
             'currentPage' => $page,
             'totalPages' => $totalPages,
             'totalItems' => $totalItems,
@@ -400,6 +405,12 @@ class ExamenSemanalController extends AbstractController
             'dificultad' => $dificultad,
             'estado' => $estado,
         ]);
+    }
+
+    #[Route('/{id}/porcentajes', name: 'app_examen_semanal_porcentajes', methods: ['GET'], requirements: ['id' => '\d+'], priority: 10)]
+    public function porcentajes(ExamenSemanal $examenSemanal): JsonResponse
+    {
+        return new JsonResponse($this->calcularPorcentajesPorTema($examenSemanal));
     }
 
     #[Route('/new', name: 'app_examen_semanal_new', methods: ['GET'])]

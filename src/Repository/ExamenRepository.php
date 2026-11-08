@@ -154,6 +154,85 @@ class ExamenRepository extends ServiceEntityRepository
     }
 
     /**
+     * Arma el ranking a partir de filas ya ordenadas por usuario y fecha descendente.
+     * Cada fila trae solo aciertos, errores y en blanco, sin las respuestas.
+     *
+     * @param list<array<string, mixed>> $filas
+     * @return list<array{usuario: User, notaMedia: float, cantidadExamenes: int}>
+     */
+    private function rankingDesdeFilas(array $filas, int $cantidadExamenes): array
+    {
+        $porUsuario = [];
+        $vistos = [];
+        foreach ($filas as $fila) {
+            $examenId = (int) $fila['examenId'];
+            if (isset($vistos[$examenId])) {
+                continue;
+            }
+            $vistos[$examenId] = true;
+
+            $usuarioId = (int) $fila['usuarioId'];
+            if (!isset($porUsuario[$usuarioId])) {
+                $porUsuario[$usuarioId] = [];
+            }
+            if (count($porUsuario[$usuarioId]) >= $cantidadExamenes) {
+                continue;
+            }
+            $porUsuario[$usuarioId][] = $fila;
+        }
+
+        if ($porUsuario === []) {
+            return [];
+        }
+
+        $usuarios = $this->getEntityManager()->createQueryBuilder()
+            ->select('u')
+            ->from(User::class, 'u')
+            ->where('u.id IN (:ids)')
+            ->setParameter('ids', array_keys($porUsuario))
+            ->getQuery()
+            ->getResult();
+
+        $usuariosPorId = [];
+        foreach ($usuarios as $usuario) {
+            $usuariosPorId[$usuario->getId()] = $usuario;
+        }
+
+        $ranking = [];
+        foreach ($porUsuario as $usuarioId => $examenesUsuario) {
+            $usuario = $usuariosPorId[$usuarioId] ?? null;
+            if ($usuario === null) {
+                continue;
+            }
+
+            $totalAciertos = 0;
+            $totalErrores = 0;
+            $totalEnBlanco = 0;
+            foreach ($examenesUsuario as $examen) {
+                $totalAciertos += (int) $examen['aciertos'];
+                $totalErrores += (int) $examen['errores'];
+                $totalEnBlanco += (int) $examen['enBlanco'];
+            }
+
+            $ranking[] = [
+                'usuario' => $usuario,
+                'notaMedia' => $this->calcularNotaDesdeAciertosErrores($totalAciertos, $totalErrores, $totalEnBlanco),
+                'cantidadExamenes' => count($examenesUsuario),
+            ];
+        }
+
+        usort($ranking, function ($a, $b) {
+            if ($a['notaMedia'] == $b['notaMedia']) {
+                return 0;
+            }
+
+            return ($a['notaMedia'] > $b['notaMedia']) ? -1 : 1;
+        });
+
+        return $ranking;
+    }
+
+    /**
      * Calcula la nota media desde una lista de exámenes sumando aciertos, errores y en blanco
      * @param Examen[] $examenes
      * @return float|null
@@ -267,12 +346,9 @@ class ExamenRepository extends ServiceEntityRepository
                 return $cacheItem->get();
             }
         }
-        // Obtener todos los exámenes relevantes en una sola consulta con eager loading de usuario
         $qb = $this->createQueryBuilder('e')
+            ->select('e.id AS examenId, IDENTITY(e.usuario) AS usuarioId, e.aciertos AS aciertos, e.errores AS errores, e.enBlanco AS enBlanco')
             ->innerJoin('e.usuario', 'u')
-            ->addSelect('u')
-            ->leftJoin('e.temas', 't')
-            ->addSelect('t')
             ->where('e.dificultad = :dificultad')
             ->andWhere('e.municipio IS NULL')
             ->andWhere('u.activo = :activo')
@@ -284,70 +360,12 @@ class ExamenRepository extends ServiceEntityRepository
         $this->aplicarFechaCorteRanking($qb);
 
         if ($tema !== null) {
-            $qb->andWhere('t.id = :temaId')
-               ->setParameter('temaId', $tema->getId());
+            $qb->andWhere('SIZE(e.temas) = 1')
+               ->andWhere(':tema MEMBER OF e.temas')
+               ->setParameter('tema', $tema);
         }
 
-        $examenes = $qb->getQuery()->getResult();
-
-        // Si hay tema, filtrar solo exámenes íntegramente de ese tema
-        if ($tema !== null) {
-            $examenes = array_filter($examenes, function($examen) use ($tema) {
-                return $examen->getTemas()->count() === 1 && $examen->getTemas()->contains($tema);
-            });
-        }
-
-        // Agrupar exámenes por usuario y calcular promedio de los últimos N
-        $examenesPorUsuario = [];
-        foreach ($examenes as $examen) {
-            $usuarioId = $examen->getUsuario()->getId();
-            if (!isset($examenesPorUsuario[$usuarioId])) {
-                $examenesPorUsuario[$usuarioId] = [
-                    'usuario' => $examen->getUsuario(),
-                    'examenes' => []
-                ];
-            }
-            $examenesPorUsuario[$usuarioId]['examenes'][] = $examen;
-        }
-
-        // Calcular nota media para cada usuario (solo últimos N exámenes)
-        // Sumar todos los aciertos, errores y en blanco de todos los exámenes
-        $ranking = [];
-        foreach ($examenesPorUsuario as $data) {
-            $examenesUsuario = array_slice($data['examenes'], 0, $cantidadExamenes);
-            
-            if (empty($examenesUsuario)) {
-                continue;
-            }
-
-            // Sumar todos los aciertos, errores y en blanco
-            $totalAciertos = 0;
-            $totalErrores = 0;
-            $totalEnBlanco = 0;
-
-            foreach ($examenesUsuario as $examen) {
-                $totalAciertos += $examen->getAciertos();
-                $totalErrores += $examen->getErrores();
-                $totalEnBlanco += $examen->getEnBlanco();
-            }
-
-            // Calcular nota sobre 20
-            $notaMedia = $this->calcularNotaDesdeAciertosErrores($totalAciertos, $totalErrores, $totalEnBlanco);
-
-            $ranking[] = [
-                'usuario' => $data['usuario'],
-                'notaMedia' => $notaMedia,
-                'cantidadExamenes' => count($examenesUsuario),
-            ];
-        }
-
-        // Ordenar por nota media descendente
-        usort($ranking, function($a, $b) {
-            if ($a['notaMedia'] == $b['notaMedia']) {
-                return 0;
-            }
-            return ($a['notaMedia'] > $b['notaMedia']) ? -1 : 1;
-        });
+        $ranking = $this->rankingDesdeFilas($qb->getQuery()->getArrayResult(), $cantidadExamenes);
 
         // Guardar en caché
         if ($this->cache) {
@@ -673,10 +691,9 @@ class ExamenRepository extends ServiceEntityRepository
                 return $cacheItem->get();
             }
         }
-        // Obtener todos los exámenes relevantes en una sola consulta con eager loading de usuario
         $qb = $this->createQueryBuilder('e')
+            ->select('e.id AS examenId, IDENTITY(e.usuario) AS usuarioId, e.aciertos AS aciertos, e.errores AS errores, e.enBlanco AS enBlanco')
             ->innerJoin('e.usuario', 'u')
-            ->addSelect('u')
             ->innerJoin('u.convocatorias', 'c')
             ->where('e.convocatoria = :convocatoria')
             ->andWhere('e.dificultad = :dificultad')
@@ -690,65 +707,13 @@ class ExamenRepository extends ServiceEntityRepository
             ->addOrderBy('e.fecha', 'DESC');
 
         $this->aplicarFechaCorteRanking($qb);
-        
+
         if ($municipio) {
             $qb->andWhere('e.municipio = :municipio')
                ->setParameter('municipio', $municipio);
         }
 
-        $examenes = $qb->getQuery()->getResult();
-
-        // Agrupar exámenes por usuario y calcular promedio de los últimos N
-        $examenesPorUsuario = [];
-        foreach ($examenes as $examen) {
-            $usuarioId = $examen->getUsuario()->getId();
-            if (!isset($examenesPorUsuario[$usuarioId])) {
-                $examenesPorUsuario[$usuarioId] = [
-                    'usuario' => $examen->getUsuario(),
-                    'examenes' => []
-                ];
-            }
-            $examenesPorUsuario[$usuarioId]['examenes'][] = $examen;
-        }
-
-        // Calcular nota media para cada usuario (solo últimos N exámenes)
-        // Sumar todos los aciertos, errores y en blanco de todos los exámenes
-        $ranking = [];
-        foreach ($examenesPorUsuario as $data) {
-            $examenesUsuario = array_slice($data['examenes'], 0, $cantidadExamenes);
-            
-            if (empty($examenesUsuario)) {
-                continue;
-            }
-
-            // Sumar todos los aciertos, errores y en blanco
-            $totalAciertos = 0;
-            $totalErrores = 0;
-            $totalEnBlanco = 0;
-
-            foreach ($examenesUsuario as $examen) {
-                $totalAciertos += $examen->getAciertos();
-                $totalErrores += $examen->getErrores();
-                $totalEnBlanco += $examen->getEnBlanco();
-            }
-
-            // Calcular nota sobre 20
-            $notaMedia = $this->calcularNotaDesdeAciertosErrores($totalAciertos, $totalErrores, $totalEnBlanco);
-
-            $ranking[] = [
-                'usuario' => $data['usuario'],
-                'notaMedia' => $notaMedia,
-                'cantidadExamenes' => count($examenesUsuario),
-            ];
-        }
-
-        // Ordenar por nota media descendente
-        usort($ranking, function($a, $b) {
-            if ($a['notaMedia'] == $b['notaMedia']) {
-                return 0;
-            }
-            return ($a['notaMedia'] > $b['notaMedia']) ? -1 : 1;
-        });
+        $ranking = $this->rankingDesdeFilas($qb->getQuery()->getArrayResult(), $cantidadExamenes);
 
         // Guardar en cache (TTL: 10 minutos para rankings)
         if ($this->cache && $cacheItem) {

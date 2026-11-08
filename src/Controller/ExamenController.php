@@ -1975,23 +1975,36 @@ class ExamenController extends AbstractController
         // Obtener todos los temas activos para el filtro
         $temas = $temaRepository->findActivosOrderedById();
         
-        // Obtener grupos disponibles para el filtro
-        $todosGrupos = $grupoRepository->findAll();
-        $gruposDisponibles = [];
-        foreach ($todosGrupos as $g) {
-            $alumnosDelGrupo = $g->getAlumnos()->toArray();
-            // Si no es admin, solo mostrar grupos que tengan alumnos asignados al profesor
-            if (!$esAdmin && !empty($alumnosIds)) {
-                $alumnosComunes = array_intersect(
-                    array_map(fn($a) => $a->getId(), $alumnosDelGrupo),
-                    $alumnosIds
-                );
-                if (!empty($alumnosComunes)) {
-                    $gruposDisponibles[] = $g;
-                }
-            } else {
-                // Si es admin o no hay restricciones, mostrar todos los grupos
-                $gruposDisponibles[] = $g;
+        if ($esAdmin) {
+            $gruposDisponibles = $grupoRepository->createQueryBuilder('g')
+                ->orderBy('g.nombre', 'ASC')
+                ->getQuery()
+                ->getResult();
+        } elseif (!empty($alumnosIds) && $alumnosIds !== [-1]) {
+            $gruposDisponibles = $grupoRepository->createQueryBuilder('g')
+                ->innerJoin('g.alumnos', 'a')
+                ->where('a.id IN (:alumnosIds)')
+                ->setParameter('alumnosIds', $alumnosIds)
+                ->orderBy('g.nombre', 'ASC')
+                ->distinct()
+                ->getQuery()
+                ->getResult();
+        } else {
+            $gruposDisponibles = [];
+        }
+
+        $alumnosPorGrupo = [];
+        if ($gruposDisponibles !== []) {
+            $filasGrupos = $grupoRepository->createQueryBuilder('g')
+                ->select('g.id AS id, COUNT(a.id) AS total')
+                ->leftJoin('g.alumnos', 'a')
+                ->where('g.id IN (:ids)')
+                ->groupBy('g.id')
+                ->setParameter('ids', array_map(static fn ($grupo) => $grupo->getId(), $gruposDisponibles))
+                ->getQuery()
+                ->getArrayResult();
+            foreach ($filasGrupos as $fila) {
+                $alumnosPorGrupo[(int) $fila['id']] = (int) $fila['total'];
             }
         }
         
@@ -2007,9 +2020,11 @@ class ExamenController extends AbstractController
         // Query para exámenes municipales
         $qbMunicipal = $this->examenRepository->createQueryBuilder('e')
             ->join('e.usuario', 'u')
-            ->addSelect('u')  // Cargar explícitamente el usuario para que esté disponible después del caché
+            ->addSelect('u')
             ->leftJoin('e.examenSemanal', 'es')
             ->addSelect('es')
+            ->leftJoin('e.municipio', 'm')
+            ->addSelect('m')
             ->where('e.municipio IS NOT NULL')
             ->orderBy('e.fecha', 'DESC');
         
@@ -2055,124 +2070,21 @@ class ExamenController extends AbstractController
                         ->setParameter('dificultad', $dificultad);
         }
         
-        // Filtrar por tema si está seleccionado (solo para exámenes generales)
+        // Solo exámenes íntegros de ese tema, sin traer la colección de temas
         if ($tema !== null) {
-            $qbGeneral->innerJoin('e.temas', 't')
-                      ->andWhere('t.id = :temaId')
-                      ->setParameter('temaId', $tema->getId())
-                      ->groupBy('e.id')
-                      ->having('COUNT(t.id) = 1');
+            $qbGeneral->andWhere('SIZE(e.temas) = 1')
+                      ->andWhere(':tema MEMBER OF e.temas')
+                      ->setParameter('tema', $tema);
         }
-        
-        // Obtener versión del caché (se incrementa cuando se crea un examen)
-        $cacheVersion = 'v1'; // Versión base
-        if ($this->cache) {
-            $versionItem = $this->cache->getItem('profesor_examenes_version');
-            if ($versionItem->isHit()) {
-                $cacheVersion = $versionItem->get();
-            }
-        }
-        
-        // Generar clave de caché única basada en todos los filtros + versión
-        $cacheKeyParts = [
-            'profesor_examenes',
-            $cacheVersion,
-            'admin_' . ($esAdmin ? '1' : '0'),
-            'alumnos_' . md5(implode(',', $alumnosIds)),
-            'grupo_' . ($grupoId ?? '0'),
-            'usuario_' . ($usuarioId ?? '0'),
-            'dificultad_' . ($dificultad ?? 'all'),
-            'tema_' . ($tema ? $tema->getId() : '0'),
-        ];
-        $cacheKey = implode('_', $cacheKeyParts);
-        
-        // Intentar obtener de caché
-        $examenesFromCache = null;
-        if ($this->cache) {
-            $item = $this->cache->getItem($cacheKey);
-            if ($item->isHit()) {
-                $examenesFromCache = $item->get();
-            }
-        }
-        
-        if ($examenesFromCache !== null) {
-            $examenesGeneralRaw = $examenesFromCache['general'] ?? [];
-            $examenesMunicipalRaw = $examenesFromCache['municipal'] ?? [];
-            
-            // Las entidades del caché no están "managed", así que necesitamos obtenerlas de nuevo desde la BD
-            // para asegurar que las relaciones lazy estén cargadas correctamente
-            // Usar find() para obtener las entidades "managed" con todas sus relaciones cargadas
-            $examenesGeneral = [];
-            foreach ($examenesGeneralRaw as $examen) {
-                if ($examen instanceof Examen && $examen->getId()) {
-                    // Obtener el examen desde la BD para que esté "managed" y tenga las relaciones cargadas
-                    $examenManaged = $this->examenRepository->find($examen->getId());
-                    if ($examenManaged) {
-                        $examenesGeneral[] = $examenManaged;
-                    }
-                }
-            }
-            
-            $examenesMunicipal = [];
-            foreach ($examenesMunicipalRaw as $examen) {
-                if ($examen instanceof Examen && $examen->getId()) {
-                    // Obtener el examen desde la BD para que esté "managed" y tenga las relaciones cargadas
-                    $examenManaged = $this->examenRepository->find($examen->getId());
-                    if ($examenManaged) {
-                        $examenesMunicipal[] = $examenManaged;
-                    }
-                }
-            }
-        } else {
-            // Consultar base de datos
-            $examenesGeneral = $qbGeneral->getQuery()->getResult();
-            $examenesMunicipal = $qbMunicipal->getQuery()->getResult();
-            
-            // Guardar en caché (sin TTL, se invalidará cuando se cree un examen)
-            if ($this->cache) {
-                $item->set([
-                    'general' => $examenesGeneral,
-                    'municipal' => $examenesMunicipal,
-                ]);
-                // Sin expiresAfter - se invalidará manualmente cuando se cree un examen
-                $this->cache->save($item);
-            }
-        }
-        
-        // Filtrar en PHP para asegurar que solo sean exámenes íntegramente del tema
-        if ($tema !== null) {
-            $examenesGeneral = array_filter($examenesGeneral, function($examen) use ($tema) {
-                return $examen->getTemas()->count() === 1 && $examen->getTemas()->contains($tema);
-            });
-        }
-        
-        // Convertir a arrays indexados numéricamente
-        $examenesGeneral = array_values($examenesGeneral);
-        $examenesMunicipal = array_values($examenesMunicipal);
-        
-        // Parámetros de paginación
-        $itemsPerPage = 20; // Número de exámenes por página
-        // Si hay filtros activos pero no hay parámetro de página explícito, resetear a página 1
-        // Esto evita problemas cuando se cambian filtros pero la URL todavía tiene parámetros de página antiguos
+
+        $itemsPerPage = 20;
         $pageGeneralParam = $request->query->get('page_general');
-        $pageGeneral = ($pageGeneralParam !== null && $pageGeneralParam !== '') ? max(1, (int)$pageGeneralParam) : 1;
-        
+        $pageGeneral = ($pageGeneralParam !== null && $pageGeneralParam !== '') ? max(1, (int) $pageGeneralParam) : 1;
         $pageMunicipalParam = $request->query->get('page_municipal');
-        $pageMunicipal = ($pageMunicipalParam !== null && $pageMunicipalParam !== '') ? max(1, (int)$pageMunicipalParam) : 1;
-        
-        // Calcular paginación para exámenes generales
-        $totalItemsGeneral = count($examenesGeneral);
-        $totalPagesGeneral = max(1, ceil($totalItemsGeneral / $itemsPerPage));
-        $pageGeneral = min($pageGeneral, $totalPagesGeneral);
-        $offsetGeneral = ($pageGeneral - 1) * $itemsPerPage;
-        $examenesGeneralPaginated = array_slice($examenesGeneral, $offsetGeneral, $itemsPerPage);
-        
-        // Calcular paginación para exámenes municipales
-        $totalItemsMunicipal = count($examenesMunicipal);
-        $totalPagesMunicipal = max(1, ceil($totalItemsMunicipal / $itemsPerPage));
-        $pageMunicipal = min($pageMunicipal, $totalPagesMunicipal);
-        $offsetMunicipal = ($pageMunicipal - 1) * $itemsPerPage;
-        $examenesMunicipalPaginated = array_slice($examenesMunicipal, $offsetMunicipal, $itemsPerPage);
+        $pageMunicipal = ($pageMunicipalParam !== null && $pageMunicipalParam !== '') ? max(1, (int) $pageMunicipalParam) : 1;
+
+        [$examenesGeneralPaginated, $totalItemsGeneral, $totalPagesGeneral, $pageGeneral] = $this->paginarListadoExamenes($qbGeneral, $pageGeneral, $itemsPerPage);
+        [$examenesMunicipalPaginated, $totalItemsMunicipal, $totalPagesMunicipal, $pageMunicipal] = $this->paginarListadoExamenes($qbMunicipal, $pageMunicipal, $itemsPerPage);
         
         // Obtener usuarios para el filtro (solo alumnos asignados si no es admin)
         // Si hay un grupo seleccionado, solo mostrar alumnos de ese grupo
@@ -2422,6 +2334,7 @@ class ExamenController extends AbstractController
             'usuarios' => $usuarios,
             'temas' => $temas,
             'grupos' => $gruposDisponibles,
+            'alumnosPorGrupo' => $alumnosPorGrupo,
             'convocatorias' => $convocatoriasDisponibles,
             'usuarioSeleccionado' => $usuarioId,
             'dificultadSeleccionada' => ($dificultad === 'facil' || $dificultad === 'moderada' || $dificultad === 'dificil') ? $dificultad : null,
@@ -2441,6 +2354,28 @@ class ExamenController extends AbstractController
             'totalPagesMunicipal' => $totalPagesMunicipal,
             'totalItemsMunicipal' => $totalItemsMunicipal,
         ]);
+    }
+
+    /**
+     * @return array{0: list<Examen>, 1: int, 2: int, 3: int}
+     */
+    private function paginarListadoExamenes(\Doctrine\ORM\QueryBuilder $qb, int $page, int $itemsPerPage): array
+    {
+        $countQb = clone $qb;
+        $countQb->resetDQLPart('orderBy');
+        $countQb->select('COUNT(DISTINCT e.id)');
+        $total = (int) $countQb->getQuery()->getSingleScalarResult();
+
+        $totalPages = max(1, (int) ceil($total / $itemsPerPage));
+        $page = min(max(1, $page), $totalPages);
+
+        $examenes = $qb
+            ->setFirstResult(($page - 1) * $itemsPerPage)
+            ->setMaxResults($itemsPerPage)
+            ->getQuery()
+            ->getResult();
+
+        return [$examenes, $total, $totalPages, $page];
     }
 
     #[Route('/profesor/reset-ranking', name: 'app_examen_profesor_reset_ranking', methods: ['POST'])]

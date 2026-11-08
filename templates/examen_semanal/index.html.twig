@@ -288,13 +288,13 @@
                                 <span class="badge" style="background-color: #dc3545;">Inactivo</span>
                             {% endif %}
                         </td>
-                        <td>{{ examen.examenes|length }}</td>
+                        <td>{{ realizaciones[examen.id]|default(0) }}</td>
                         <td style="white-space: nowrap;">
                             <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                                 <a href="{{ path('app_examen_semanal_show', {'id': examen.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
                                 <a href="{{ path('app_examen_semanal_edit', {'id': examen.id}) }}" class="btn btn-primary btn-sm">Editar</a>
-                                {% if porcentajesPorExamen[examen.id] is defined and porcentajesPorExamen[examen.id]|length > 0 %}
-                                    <button type="button" class="btn btn-info btn-sm btnVerPorcentajes" data-examen-id="{{ examen.id }}" data-porcentajes="{{ porcentajesPorExamen[examen.id]|json_encode|e('html_attr') }}" title="Ver % por Tema" onclick="event.stopPropagation(); return false;">
+                                {% if examenesConDistribucion[examen.id] is defined %}
+                                    <button type="button" class="btn btn-info btn-sm btnVerPorcentajes" data-url="{{ path('app_examen_semanal_porcentajes', {'id': examen.id}) }}" title="Ver % por Tema">
                                         📊 %
                                     </button>
                                 {% endif %}
@@ -468,31 +468,44 @@ document.addEventListener('keydown', function(event) {
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
     const botones = document.querySelectorAll('.btnVerPorcentajes');
-    console.log('Botones encontrados:', botones.length);
-    
+
     botones.forEach(function(boton) {
         boton.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            e.stopImmediatePropagation();
-            
-            const porcentajesJson = this.getAttribute('data-porcentajes');
-            console.log('Porcentajes JSON:', porcentajesJson);
-            
-            if (porcentajesJson) {
-                try {
-                    const porcentajes = JSON.parse(porcentajesJson);
-                    console.log('Porcentajes parseados:', porcentajes);
-                    abrirModalPorcentajes(porcentajes);
-                } catch (error) {
-                    console.error('Error al parsear porcentajes:', error);
-                    alert('Error al cargar los porcentajes. Por favor, inténtalo de nuevo.');
-                }
-            } else {
-                console.error('No se encontraron porcentajes en el atributo data-porcentajes');
+
+            const url = this.getAttribute('data-url');
+            if (!url || this.dataset.cargando === '1') {
+                return;
             }
-            
-            return false;
+
+            const textoOriginal = this.textContent;
+            this.dataset.cargando = '1';
+            this.disabled = true;
+            this.textContent = '...';
+
+            fetch(url, { headers: { 'Accept': 'application/json' } })
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('Error al cargar los porcentajes');
+                    }
+                    return response.json();
+                })
+                .then(function(porcentajes) {
+                    if (!porcentajes || Object.keys(porcentajes).length === 0) {
+                        alert('Este examen no tiene distribución de preguntas por tema.');
+                        return;
+                    }
+                    abrirModalPorcentajes(porcentajes);
+                })
+                .catch(function() {
+                    alert('No se ha podido cargar la distribución. Inténtalo de nuevo.');
+                })
+                .finally(function() {
+                    boton.dataset.cargando = '0';
+                    boton.disabled = false;
+                    boton.textContent = textoOriginal;
+                });
         });
     });
     
