@@ -148,6 +148,12 @@ class BreadcrumbExtension extends AbstractExtension
             'app_convocatoria_new' => ['label' => 'Nueva Convocatoria', 'parent' => 'app_convocatoria_index'],
             'app_convocatoria_show' => ['label' => 'Ver Convocatoria', 'parent' => 'app_convocatoria_index'],
             'app_convocatoria_edit' => ['label' => 'Editar Convocatoria', 'parent' => 'app_convocatoria_index'],
+            'app_video_convocatoria_index' => ['label' => 'Vídeos de convocatoria', 'parent' => 'app_dashboard'],
+            'app_video_convocatoria_new' => ['label' => 'Nuevo vídeo', 'parent' => 'app_video_convocatoria_index'],
+            'app_video_convocatoria_show' => ['label' => 'Ver vídeo', 'parent' => 'app_video_convocatoria_index'],
+            'app_video_convocatoria_edit' => ['label' => 'Editar vídeo', 'parent' => 'app_video_convocatoria_index'],
+            'app_video_convocatoria_publico_index' => ['label' => 'Vídeos de convocatoria', 'parent' => 'app_dashboard'],
+            'app_video_convocatoria_publico_show' => ['label' => 'Ver vídeo', 'parent' => 'app_video_convocatoria_publico_index'],
             
             // Admin - Usuarios
             'app_user_index' => ['label' => 'Usuarios', 'parent' => 'app_dashboard'],

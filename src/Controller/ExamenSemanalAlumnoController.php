@@ -4,21 +4,17 @@ namespace App\Controller;
 
 use App\Entity\Examen;
 use App\Entity\ExamenSemanal;
-use App\Entity\Pregunta;
 use App\Entity\User;
 use App\Repository\ExamenSemanalRepository;
 use App\Repository\ExamenRepository;
 use App\Repository\ExamenBorradorRepository;
-use App\Repository\PreguntaRepository;
-use App\Repository\PreguntaMunicipalRepository;
 use App\Repository\TemaRepository;
 use App\Repository\TemaMunicipalRepository;
 use App\Repository\MunicipioRepository;
 use App\Entity\ExamenBorrador;
 use App\Form\ExamenSemanalPDFType;
-use App\Repository\ConfiguracionExamenRepository;
 use App\Service\NotificacionService;
-use App\Service\ConfiguracionExamenService;
+use App\Service\ExamenSemanalPreguntasService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -36,13 +32,10 @@ class ExamenSemanalAlumnoController extends AbstractController
         private ExamenSemanalRepository $examenSemanalRepository,
         private ExamenRepository $examenRepository,
         private ExamenBorradorRepository $examenBorradorRepository,
-        private PreguntaRepository $preguntaRepository,
-        private PreguntaMunicipalRepository $preguntaMunicipalRepository,
         private TemaRepository $temaRepository,
         private TemaMunicipalRepository $temaMunicipalRepository,
         private MunicipioRepository $municipioRepository,
-        private ConfiguracionExamenRepository $configuracionExamenRepository,
-        private ConfiguracionExamenService $configuracionExamenService,
+        private ExamenSemanalPreguntasService $examenSemanalPreguntas,
         private EntityManagerInterface $entityManager,
         private NotificacionService $notificacionService,
         private ?CacheItemPoolInterface $cache = null
@@ -260,61 +253,21 @@ class ExamenSemanalAlumnoController extends AbstractController
         $session->remove('examen_config');
         $session->remove('examen_pregunta_actual');
 
-        // Obtener preguntas según el modo de creación del examen
-        $preguntas = [];
         $esMunicipal = $examenSemanal->getMunicipio() !== null;
         $esConvocatoria = $examenSemanal->getConvocatoria() !== null;
 
-        if ($examenSemanal->getModoCreacion() === 'preguntas_especificas') {
-            // Examen con preguntas específicas (creadas al vuelo)
-            if ($esMunicipal || $esConvocatoria) {
-                $preguntas = $examenSemanal->getPreguntasMunicipales()->toArray();
-                // Filtrar solo preguntas activas
-                $preguntas = array_filter($preguntas, function($p) {
-                    return $p->isActivo();
-                });
-            } else {
-                $preguntas = $examenSemanal->getPreguntas()->toArray();
-                // Filtrar solo preguntas activas
-                $preguntas = array_filter($preguntas, function($p) {
-                    return $p->isActivo();
-                });
+        if ($examenSemanal->getModoCreacion() !== 'preguntas_especificas') {
+            if (($esMunicipal || $esConvocatoria) && $examenSemanal->getTemasMunicipales()->isEmpty()) {
+                $this->addFlash('error', 'Este examen semanal no tiene temas municipales asignados. Contacta con tu profesor.');
+                return $this->redirectToRoute('app_examen_semanal_alumno_index');
             }
-            
-            // Reindexar el array después de filtrar
-            $preguntas = array_values($preguntas);
-        } else {
-            // Examen con preguntas por temas (método tradicional)
-            if ($esMunicipal || $esConvocatoria) {
-                $temasMunicipales = $examenSemanal->getTemasMunicipales();
-                if ($temasMunicipales->isEmpty()) {
-                    $this->addFlash('error', 'Este examen semanal no tiene temas municipales asignados. Contacta con tu profesor.');
-                    return $this->redirectToRoute('app_examen_semanal_alumno_index');
-                }
-                foreach ($temasMunicipales as $temaMunicipal) {
-                    $preguntasTema = $this->preguntaMunicipalRepository->findBy([
-                        'temaMunicipal' => $temaMunicipal,
-                        'dificultad' => $examenSemanal->getDificultad(),
-                        'activo' => true,
-                    ]);
-                    $preguntas = array_merge($preguntas, $preguntasTema);
-                }
-            } else {
-                $temas = $examenSemanal->getTemas();
-                if ($temas->isEmpty()) {
-                    $this->addFlash('error', 'Este examen semanal no tiene temas asignados. Contacta con tu profesor.');
-                    return $this->redirectToRoute('app_examen_semanal_alumno_index');
-                }
-                foreach ($temas as $tema) {
-                    $preguntasTema = $this->preguntaRepository->findBy([
-                        'tema' => $tema,
-                        'dificultad' => $examenSemanal->getDificultad(),
-                        'activo' => true,
-                    ]);
-                    $preguntas = array_merge($preguntas, $preguntasTema);
-                }
+            if (!$esMunicipal && !$esConvocatoria && $examenSemanal->getTemas()->isEmpty()) {
+                $this->addFlash('error', 'Este examen semanal no tiene temas asignados. Contacta con tu profesor.');
+                return $this->redirectToRoute('app_examen_semanal_alumno_index');
             }
         }
+
+        $preguntas = $this->examenSemanalPreguntas->cargar($examenSemanal);
 
         if (empty($preguntas)) {
             $mensajeError = 'No hay preguntas disponibles para este examen.';
@@ -327,35 +280,11 @@ class ExamenSemanalAlumnoController extends AbstractController
             return $this->redirectToRoute('app_examen_semanal_alumno_index');
         }
 
-        // Limitar el número de preguntas si está especificado
         $numeroPreguntas = $examenSemanal->getNumeroPreguntas();
-        if ($numeroPreguntas !== null && $numeroPreguntas > 0) {
-            // Para exámenes generales (no municipales) con temas, usar distribución por porcentajes
-            if (!$esMunicipal && !$esConvocatoria && $examenSemanal->getModoCreacion() !== 'preguntas_especificas') {
-                $temas = $examenSemanal->getTemas()->toArray();
-                if (!empty($temas)) {
-                    // Usar distribución por porcentajes para exámenes generales (determinística)
-                    $preguntas = $this->distribuirPreguntasPorPorcentajesDeterministico($preguntas, $temas, $numeroPreguntas, $examenSemanal->getId());
-                } else {
-                    // Si no hay temas, usar selección determinística sin repetir artículos
-                    $preguntas = $this->mezclarDeterministico($preguntas, $examenSemanal->getId());
-                    $preguntas = $this->seleccionarPreguntasSinRepetirArticulosDeterministico($preguntas, $numeroPreguntas, $examenSemanal->getId());
-                }
-            } else {
-                // Para exámenes municipales, convocatorias o con preguntas específicas, usar selección determinística sin repetir artículos
-                $preguntas = $this->mezclarDeterministico($preguntas, $examenSemanal->getId());
-                $preguntas = $this->seleccionarPreguntasSinRepetirArticulosDeterministico($preguntas, $numeroPreguntas, $examenSemanal->getId());
-            }
-            
-            // Si hay menos preguntas disponibles que el límite solicitado, informar al usuario
-            if (count($preguntas) < $numeroPreguntas) {
-                $this->addFlash('info', 'Solo hay ' . count($preguntas) . ' preguntas disponibles sin repetir artículos. El examen se realizará con todas las preguntas disponibles.');
-            }
-        } else {
-            // Si no hay límite, aplicar solo la restricción de no repetir artículos
-            // pero usar todas las preguntas disponibles (con orden determinístico)
-            $preguntas = $this->mezclarDeterministico($preguntas, $examenSemanal->getId());
-            $preguntas = $this->seleccionarPreguntasSinRepetirArticulosDeterministico($preguntas, count($preguntas), $examenSemanal->getId());
+        $preguntas = $this->examenSemanalPreguntas->ordenar($examenSemanal, $preguntas);
+
+        if ($numeroPreguntas !== null && $numeroPreguntas > 0 && count($preguntas) < $numeroPreguntas) {
+            $this->addFlash('info', 'Solo hay ' . count($preguntas) . ' preguntas disponibles sin repetir artículos. El examen se realizará con todas las preguntas disponibles.');
         }
         
         // Verificar nuevamente que haya preguntas después de la selección
@@ -486,339 +415,6 @@ class ExamenSemanalAlumnoController extends AbstractController
         ]);
     }
 
-    /**
-     * Mezcla un array de forma determinística usando el ID del examen semanal como semilla
-     */
-    private function mezclarDeterministico(array $array, int $semilla): array
-    {
-        // Ordenar primero por ID para garantizar orden consistente antes de mezclar
-        usort($array, function($a, $b) {
-            return $a->getId() <=> $b->getId();
-        });
-        
-        // Usar el ID del examen semanal como semilla para mt_srand
-        mt_srand($semilla);
-        
-        // Algoritmo Fisher-Yates con generador determinístico
-        $n = count($array);
-        for ($i = $n - 1; $i > 0; $i--) {
-            $j = mt_rand(0, $i);
-            [$array[$i], $array[$j]] = [$array[$j], $array[$i]];
-        }
-        
-        // Restaurar semilla aleatoria
-        mt_srand();
-        
-        return $array;
-    }
-
-    /**
-     * Distribuir preguntas según porcentajes configurados por tema (versión determinística)
-     */
-    private function distribuirPreguntasPorPorcentajesDeterministico(array $preguntas, array $temas, int $cantidadTotal, int $semilla): array
-    {
-        // Obtener configuraciones de porcentajes
-        $configuraciones = $this->configuracionExamenRepository->findByTemas($temas);
-        
-        // Agrupar preguntas por tema
-        $preguntasPorTema = [];
-        foreach ($preguntas as $pregunta) {
-            $temaId = $pregunta->getTema()->getId();
-            if (!isset($preguntasPorTema[$temaId])) {
-                $preguntasPorTema[$temaId] = [];
-            }
-            $preguntasPorTema[$temaId][] = $pregunta;
-        }
-        
-        // Calcular cuántas preguntas por tema según porcentajes
-        $distribucionPorTema = [];
-        $totalTemas = count($temas);
-        $temasConPorcentaje = [];
-        $porcentajesTemas = [];
-        
-        // Primero, calcular porcentajes y cantidades esperadas
-        foreach ($temas as $tema) {
-            $temaId = $tema->getId();
-            $porcentaje = $this->configuracionExamenService->obtenerPorcentajeParaTema($configuraciones, $temaId, $totalTemas);
-            $porcentajesTemas[$temaId] = $porcentaje;
-            
-            // Si el tema tiene porcentaje > 0 y hay preguntas disponibles, debe tener al menos 1 pregunta
-            if ($porcentaje > 0 && isset($preguntasPorTema[$temaId]) && count($preguntasPorTema[$temaId]) > 0) {
-                $temasConPorcentaje[] = $temaId;
-                // Calcular cantidad ideal basada en porcentaje
-                $cantidadIdeal = ($porcentaje / 100) * $cantidadTotal;
-                // Asegurar mínimo de 1 pregunta
-                $cantidadParaTema = max(1, (int) round($cantidadIdeal));
-            } else {
-                $cantidadParaTema = 0;
-            }
-            
-            $distribucionPorTema[$temaId] = $cantidadParaTema;
-        }
-        
-        // Ajustar distribución para que se acerque lo más posible a los porcentajes
-        $sumaDistribucion = array_sum($distribucionPorTema);
-        $diferencia = $cantidadTotal - $sumaDistribucion;
-        
-        if ($diferencia != 0) {
-            // Crear lista de temas con su diferencia respecto al porcentaje ideal
-            $temasAjustables = [];
-            foreach ($temasConPorcentaje as $temaId) {
-                $porcentaje = $porcentajesTemas[$temaId];
-                $cantidadIdeal = ($porcentaje / 100) * $cantidadTotal;
-                $cantidadActual = $distribucionPorTema[$temaId];
-                $preguntasDisponibles = count($preguntasPorTema[$temaId] ?? []);
-                
-                $temasAjustables[] = [
-                    'temaId' => $temaId,
-                    'porcentaje' => $porcentaje,
-                    'cantidadIdeal' => $cantidadIdeal,
-                    'cantidadActual' => $cantidadActual,
-                    'diferencia' => $cantidadIdeal - $cantidadActual,
-                    'preguntasDisponibles' => $preguntasDisponibles,
-                ];
-            }
-            
-            if ($diferencia > 0) {
-                // Faltan preguntas: asignar a temas que están por debajo de su porcentaje ideal
-                // Ordenar por diferencia (mayor diferencia primero = más lejos del ideal)
-                usort($temasAjustables, function($a, $b) {
-                    return $b['diferencia'] <=> $a['diferencia'];
-                });
-                
-                foreach ($temasAjustables as $temaAjustable) {
-                    if ($diferencia <= 0) break;
-                    $temaId = $temaAjustable['temaId'];
-                    if ($temaAjustable['preguntasDisponibles'] > $distribucionPorTema[$temaId]) {
-                        $distribucionPorTema[$temaId]++;
-                        $diferencia--;
-                    }
-                }
-                
-                // Si aún faltan, distribuir equitativamente
-                while ($diferencia > 0) {
-                    $asignado = false;
-                    foreach ($temasAjustables as $temaAjustable) {
-                        if ($diferencia <= 0) break;
-                        $temaId = $temaAjustable['temaId'];
-                        if ($temaAjustable['preguntasDisponibles'] > $distribucionPorTema[$temaId]) {
-                            $distribucionPorTema[$temaId]++;
-                            $diferencia--;
-                            $asignado = true;
-                        }
-                    }
-                    if (!$asignado) break;
-                }
-            } else {
-                // Sobran preguntas: quitar de temas que están por encima de su porcentaje ideal
-                // Ordenar por diferencia negativa (menos diferencia = más por encima del ideal)
-                usort($temasAjustables, function($a, $b) {
-                    return $a['diferencia'] <=> $b['diferencia'];
-                });
-                
-                while ($diferencia < 0) {
-                    $quitado = false;
-                    foreach ($temasAjustables as $temaAjustable) {
-                        if ($diferencia >= 0) break;
-                        $temaId = $temaAjustable['temaId'];
-                        // No quitar si solo tiene 1 pregunta (mínimo garantizado)
-                        if ($distribucionPorTema[$temaId] > 1) {
-                            $distribucionPorTema[$temaId]--;
-                            $diferencia++;
-                            $quitado = true;
-                        }
-                    }
-                    if (!$quitado) break;
-                }
-            }
-        }
-        
-        // Seleccionar preguntas de cada tema según la distribución
-        $preguntasSeleccionadas = [];
-        $articulosUsados = [];
-        $preguntasIdsUsadas = []; // Rastrear IDs de preguntas usadas para evitar duplicados exactos
-        
-        foreach ($distribucionPorTema as $temaId => $cantidad) {
-            if ($cantidad <= 0 || !isset($preguntasPorTema[$temaId])) {
-                continue;
-            }
-            
-            // Mezclar preguntas del tema de forma determinística
-            $preguntasTema = $preguntasPorTema[$temaId];
-            $preguntasTema = $this->mezclarDeterministico($preguntasTema, $semilla + $temaId);
-            
-            // Seleccionar preguntas sin repetir artículos
-            $preguntasSeleccionadasTema = [];
-            foreach ($preguntasTema as $pregunta) {
-                if (count($preguntasSeleccionadasTema) >= $cantidad) {
-                    break;
-                }
-                
-                $articuloId = null;
-                if (method_exists($pregunta, 'getArticulo')) {
-                    $articulo = $pregunta->getArticulo();
-                    $articuloId = $articulo ? $articulo->getId() : null;
-                }
-                
-                // Si el artículo ya fue usado, saltar esta pregunta
-                if ($articuloId !== null && in_array($articuloId, $articulosUsados)) {
-                    continue;
-                }
-                
-                // Evitar repetir la misma pregunta
-                if (in_array($pregunta->getId(), $preguntasIdsUsadas)) {
-                    continue;
-                }
-                
-                $preguntasSeleccionadasTema[] = $pregunta;
-                $preguntasIdsUsadas[] = $pregunta->getId();
-                
-                // Marcar el artículo como usado
-                if ($articuloId !== null) {
-                    $articulosUsados[] = $articuloId;
-                }
-            }
-            
-            $preguntasSeleccionadas = array_merge($preguntasSeleccionadas, $preguntasSeleccionadasTema);
-        }
-        
-        // Si no se alcanzó la cantidad total, completar con preguntas aleatorias
-        // FASE 1: Intentar sin repetir artículos
-        if (count($preguntasSeleccionadas) < $cantidadTotal) {
-            $preguntasRestantes = array_filter($preguntas, function($p) use ($preguntasIdsUsadas) {
-                return !in_array($p->getId(), $preguntasIdsUsadas);
-            });
-            $preguntasRestantes = $this->mezclarDeterministico($preguntasRestantes, $semilla + 1000);
-            
-            $faltantes = $cantidadTotal - count($preguntasSeleccionadas);
-            foreach ($preguntasRestantes as $pregunta) {
-                if (count($preguntasSeleccionadas) >= $cantidadTotal) {
-                    break;
-                }
-                
-                $articuloId = null;
-                if (method_exists($pregunta, 'getArticulo')) {
-                    $articulo = $pregunta->getArticulo();
-                    $articuloId = $articulo ? $articulo->getId() : null;
-                }
-                
-                // Intentar sin repetir artículos
-                if ($articuloId === null || !in_array($articuloId, $articulosUsados)) {
-                    $preguntasSeleccionadas[] = $pregunta;
-                    $preguntasIdsUsadas[] = $pregunta->getId();
-                    if ($articuloId !== null) {
-                        $articulosUsados[] = $articuloId;
-                    }
-                }
-            }
-        }
-        
-        // FASE 2: Si aún faltan preguntas, permitir repetir artículos (pero no la misma pregunta)
-        if (count($preguntasSeleccionadas) < $cantidadTotal) {
-            $preguntasRestantes = array_filter($preguntas, function($p) use ($preguntasIdsUsadas) {
-                return !in_array($p->getId(), $preguntasIdsUsadas);
-            });
-            $preguntasRestantes = $this->mezclarDeterministico($preguntasRestantes, $semilla + 1000);
-            
-            foreach ($preguntasRestantes as $pregunta) {
-                if (count($preguntasSeleccionadas) >= $cantidadTotal) {
-                    break;
-                }
-                
-                // Solo verificar que no sea la misma pregunta (ya permitimos repetir artículo)
-                if (!in_array($pregunta->getId(), $preguntasIdsUsadas)) {
-                    $preguntasSeleccionadas[] = $pregunta;
-                    $preguntasIdsUsadas[] = $pregunta->getId();
-                }
-            }
-        }
-        
-        // Asegurar que no se exceda el límite (por si acaso hay más preguntas de las solicitadas)
-        if (count($preguntasSeleccionadas) > $cantidadTotal) {
-            $preguntasSeleccionadas = array_slice($preguntasSeleccionadas, 0, $cantidadTotal);
-        }
-        
-        // Mezclar todas las preguntas seleccionadas para que no estén agrupadas por tema (determinístico)
-        $preguntasSeleccionadas = $this->mezclarDeterministico($preguntasSeleccionadas, $semilla + 2000);
-        
-        return $preguntasSeleccionadas;
-    }
-
-    /**
-     * Selecciona preguntas asegurándose de que no haya dos preguntas del mismo artículo (versión determinística)
-     * Si no hay suficientes, permite repetir artículos pero con preguntas diferentes
-     * 
-     * @param array $preguntas Array de preguntas disponibles (ya mezcladas de forma determinística)
-     * @param int $cantidad Cantidad de preguntas a seleccionar
-     * @param int $semilla Semilla del examen, para que el desempate sea el mismo en cada intento
-     * @return array Array de preguntas seleccionadas
-     */
-    private function seleccionarPreguntasSinRepetirArticulosDeterministico(array $preguntas, int $cantidad, int $semilla): array
-    {
-        // FASE 1: Intentar seleccionar sin repetir artículos
-        $preguntasSeleccionadas = [];
-        $articulosUsados = [];
-        $preguntasIdsUsadas = []; // Rastrear IDs de preguntas usadas para evitar duplicados exactos
-        
-        foreach ($preguntas as $pregunta) {
-            // Si ya tenemos suficientes preguntas, parar
-            if (count($preguntasSeleccionadas) >= $cantidad) {
-                break;
-            }
-            
-            // Solo verificar artículos si la pregunta tiene el método getArticulo()
-            // (las preguntas municipales no tienen artículo)
-            $articuloId = null;
-            if (method_exists($pregunta, 'getArticulo')) {
-                $articulo = $pregunta->getArticulo();
-                $articuloId = $articulo ? $articulo->getId() : null;
-            }
-            
-            // Evitar repetir artículo Y evitar repetir la misma pregunta
-            if ($articuloId !== null && in_array($articuloId, $articulosUsados)) {
-                continue;
-            }
-            
-            // Evitar repetir la misma pregunta
-            if (in_array($pregunta->getId(), $preguntasIdsUsadas)) {
-                continue;
-            }
-            
-            // Agregar la pregunta a las seleccionadas
-            $preguntasSeleccionadas[] = $pregunta;
-            $preguntasIdsUsadas[] = $pregunta->getId();
-            
-            // Marcar el artículo como usado
-            if ($articuloId !== null) {
-                $articulosUsados[] = $articuloId;
-            }
-        }
-        
-        // FASE 2: Si faltan preguntas, permitir repetir artículos (pero no la misma pregunta)
-        if (count($preguntasSeleccionadas) < $cantidad) {
-            $preguntasRestantes = array_filter($preguntas, function($p) use ($preguntasIdsUsadas) {
-                return !in_array($p->getId(), $preguntasIdsUsadas);
-            });
-            $preguntasRestantes = $this->mezclarDeterministico($preguntasRestantes, $semilla + 1000);
-            
-            foreach ($preguntasRestantes as $pregunta) {
-                if (count($preguntasSeleccionadas) >= $cantidad) {
-                    break;
-                }
-                
-                // Solo verificar que no sea la misma pregunta (ya permitimos repetir artículo)
-                if (!in_array($pregunta->getId(), $preguntasIdsUsadas)) {
-                    $preguntasSeleccionadas[] = $pregunta;
-                    $preguntasIdsUsadas[] = $pregunta->getId();
-                }
-            }
-        }
-        
-        // IMPORTANTE: Si después de la Fase 2 aún no se alcanza la cantidad solicitada,
-        // se devuelven todas las preguntas disponibles (aunque no llegue al número solicitado)
-        
-        return $preguntasSeleccionadas;
-    }
 
     #[Route('/{id}/introducir-pdf', name: 'app_examen_semanal_alumno_introducir_pdf', methods: ['GET', 'POST'])]
     public function introducirPDF(Request $request, ExamenSemanal $examenSemanal): Response

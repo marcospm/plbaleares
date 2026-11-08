@@ -1,0 +1,10 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nuevo vídeo de convocatoria{% endblock %}
+
+{% block body %}
+    <h1>Nuevo vídeo de convocatoria</h1>
+    <p style="color: #666; margin-bottom: 1.5rem;">Añade la presentación de la convocatoria o cualquier otro vídeo que explique algo importante de esa instancia.</p>
+
+    {{ include('video_convocatoria/_form.html.twig', {'button_label': 'Crear vídeo'}) }}
+{% endblock %}

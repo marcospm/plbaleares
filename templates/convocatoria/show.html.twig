@@ -101,6 +101,7 @@
         <div class="d-flex gap-2 mt-4">
             <a href="{{ path('app_convocatoria_edit', {'id': convocatoria.id}) }}" class="btn btn-primary">Editar</a>
             <a href="{{ path('app_convocatoria_asignar_alumnos', {'id': convocatoria.id}) }}" class="btn btn-info">Asignar Alumnos</a>
+            <a href="{{ path('app_video_convocatoria_index', {'convocatoria': convocatoria.id}) }}" class="btn btn-info">Vídeos ({{ convocatoria.videos|length }})</a>
             <a href="{{ path('app_convocatoria_index') }}" class="btn btn-secondary">Volver</a>
         </div>
     </div>

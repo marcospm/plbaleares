@@ -1,0 +1,122 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Vídeos de convocatoria{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4" style="flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="margin-bottom: 0.35rem;">Vídeos de convocatoria</h1>
+        <p style="margin: 0; color: #666;">Presentación de la instancia y otros vídeos que expliquen información importante de una convocatoria.</p>
+    </div>
+    <a href="{{ path('app_video_convocatoria_new', convocatoriaId ? {'convocatoria': convocatoriaId} : {}) }}" class="btn btn-primary">Nuevo vídeo</a>
+</div>
+
+<form method="get" action="{{ path('app_video_convocatoria_index') }}" style="margin-bottom: 1.5rem;">
+    <div class="card">
+        <div class="card-body">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Buscar</label>
+                    <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Título, descripción o convocatoria">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Convocatoria</label>
+                    <select name="convocatoria" class="form-control">
+                        <option value="">Todas</option>
+                        {% for convocatoria in convocatorias %}
+                            <option value="{{ convocatoria.id }}" {% if convocatoriaId == convocatoria.id %}selected{% endif %}>{{ convocatoria.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+                <a href="{{ path('app_video_convocatoria_index') }}" class="btn btn-secondary">Limpiar</a>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if videos|length > 0 %}
+    <div class="card">
+        <div class="card-header">
+            <h3 style="margin: 0;">Vídeos ({{ totalItems }})</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Orden</th>
+                            <th>Título</th>
+                            <th>Convocatoria</th>
+                            <th>Creado por</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for video in videos %}
+                            <tr>
+                                <td>{{ video.orden }}</td>
+                                <td>
+                                    <strong>{{ video.titulo }}</strong>
+                                    {% if video.descripcion %}
+                                        <div style="color: #666; font-size: 0.9rem;">{{ video.descripcion|slice(0, 90) }}{% if video.descripcion|length > 90 %}...{% endif %}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ video.convocatoria.nombre }}
+                                    {% if not video.convocatoria.isActivo %}
+                                        <span class="badge bg-secondary">Inactiva</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ video.creadoPor.userIdentifier }}</td>
+                                <td>{{ video.fechaCreacion|date('d/m/Y') }}</td>
+                                <td>
+                                    <div class="d-flex gap-2" style="flex-wrap: wrap;">
+                                        <a href="{{ path('app_video_convocatoria_show', {'id': video.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
+                                        <a href="{{ path('app_video_convocatoria_edit', {'id': video.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                        {{ include('video_convocatoria/_delete_form.html.twig') }}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if totalPages > 1 %}
+                <ul class="pagination justify-content-center" style="margin-top: 1.5rem;">
+                    {% if page > 1 %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ path('app_video_convocatoria_index', {page: page - 1, search: search, convocatoria: convocatoriaId}) }}">Anterior</a>
+                        </li>
+                    {% endif %}
+                    {% for p in 1..totalPages %}
+                        {% if p == page %}
+                            <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                        {% elseif p == 1 or p == totalPages or (p >= page - 2 and p <= page + 2) %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ path('app_video_convocatoria_index', {page: p, search: search, convocatoria: convocatoriaId}) }}">{{ p }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page < totalPages %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ path('app_video_convocatoria_index', {page: page + 1, search: search, convocatoria: convocatoriaId}) }}">Siguiente</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-body text-center">
+            <p>No hay vídeos de convocatoria{% if search or convocatoriaId %} con esos filtros{% endif %}.</p>
+            <a href="{{ path('app_video_convocatoria_new', convocatoriaId ? {'convocatoria': convocatoriaId} : {}) }}" class="btn btn-primary">Crear el primero</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,16 @@
+{{ form_start(form) }}
+    <div class="card">
+        <div class="card-body">
+            {{ form_row(form.titulo) }}
+            {{ form_row(form.convocatoria) }}
+            {{ form_row(form.descripcion) }}
+            {{ form_row(form.orden) }}
+            {{ form_row(form.enlaceVideo) }}
+        </div>
+    </div>
+
+    <div style="margin-top: 1rem;">
+        <button type="submit" class="btn btn-primary">{{ button_label|default('Guardar') }}</button>
+        <a href="{{ path('app_video_convocatoria_index') }}" class="btn btn-secondary">Cancelar</a>
+    </div>
+{{ form_end(form) }}

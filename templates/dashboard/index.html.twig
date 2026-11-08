@@ -1044,6 +1044,18 @@
                                         </ul>
                                     </details>
                                 {% endif %}
+                                {% if convocatoria.videos|length > 0 %}
+                                    <details style="margin: 0.15rem 0 0.35rem;">
+                                        <summary style="cursor: pointer; font-size: 0.85rem; color: #666; font-weight: 600;">Vídeos ({{ convocatoria.videos|length }})</summary>
+                                        <ul style="margin: 0.4rem 0 0; padding-left: 1.1rem; font-size: 0.85rem;">
+                                            {% for video in convocatoria.videos %}
+                                                <li style="margin-bottom: 0.25rem;">
+                                                    <a href="{{ path('app_video_convocatoria_publico_index', {convocatoria: convocatoria.id}) }}" style="color: #1976D2; text-decoration: none;">{{ video.titulo }}</a>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </details>
+                                {% endif %}
                                 <div style="margin-top: 0.75rem;">
                                     <div style="font-size: 0.85rem; color: #666; font-weight: 600; margin-bottom: 0.5rem;">📍 Municipios:</div>
                                     <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">

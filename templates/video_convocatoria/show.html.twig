@@ -1,0 +1,81 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Vídeo: {{ video.titulo }}{% endblock %}
+
+{% block body %}
+<style>
+    .video-container {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        background: #000;
+        border-radius: 8px;
+    }
+
+    .video-container > div,
+    .video-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+    }
+
+    .video-container > div {
+        padding: 0 !important;
+    }
+</style>
+
+<div class="d-flex justify-content-between mb-4" style="flex-wrap: wrap; gap: 1rem;">
+    <h1 style="margin: 0;">{{ video.titulo }}</h1>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{{ path('app_video_convocatoria_edit', {'id': video.id}) }}" class="btn btn-primary">Editar</a>
+        <a href="{{ path('app_video_convocatoria_index', {'convocatoria': video.convocatoria.id}) }}" class="btn btn-secondary">Volver al listado</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table">
+            <tbody>
+                <tr>
+                    <th style="width: 20%;">Convocatoria</th>
+                    <td>{{ video.convocatoria.nombre }}</td>
+                </tr>
+                <tr>
+                    <th>Descripción</th>
+                    <td>{{ video.descripcion|default('Sin descripción')|nl2br }}</td>
+                </tr>
+                <tr>
+                    <th>Orden</th>
+                    <td>{{ video.orden }}</td>
+                </tr>
+                <tr>
+                    <th>Creado por</th>
+                    <td>{{ video.creadoPor.userIdentifier }}</td>
+                </tr>
+                <tr>
+                    <th>Fecha</th>
+                    <td>{{ video.fechaCreacion|date('d/m/Y H:i') }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 1.5rem;">
+    <div class="card-header">
+        <h3 style="margin: 0;">Vídeo</h3>
+    </div>
+    <div class="card-body">
+        <div class="video-container">
+            {{ video.enlaceVideo|raw }}
+        </div>
+    </div>
+</div>
+
+<div style="margin-top: 1.5rem;">
+    {{ include('video_convocatoria/_delete_form.html.twig') }}
+</div>
+{% endblock %}

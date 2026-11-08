@@ -43,6 +43,10 @@ class Convocatoria
     #[ORM\OrderBy(['id' => 'ASC'])]
     private Collection $bases;
 
+    #[ORM\OneToMany(targetEntity: VideoConvocatoria::class, mappedBy: 'convocatoria', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['orden' => 'ASC', 'id' => 'ASC'])]
+    private Collection $videos;
+
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
     private bool $activo = true;
 
@@ -57,6 +61,7 @@ class Convocatoria
         $this->usuarios = new ArrayCollection();
         $this->municipios = new ArrayCollection();
         $this->bases = new ArrayCollection();
+        $this->videos = new ArrayCollection();
         $this->fechaCreacion = new \DateTime();
         $this->fechaActualizacion = new \DateTime();
     }
@@ -195,6 +200,35 @@ class Convocatoria
     public function removeBase(ConvocatoriaBase $base): static
     {
         $this->bases->removeElement($base);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, VideoConvocatoria>
+     */
+    public function getVideos(): Collection
+    {
+        return $this->videos;
+    }
+
+    public function addVideo(VideoConvocatoria $video): static
+    {
+        if (!$this->videos->contains($video)) {
+            $this->videos->add($video);
+            $video->setConvocatoria($this);
+        }
+
+        return $this;
+    }
+
+    public function removeVideo(VideoConvocatoria $video): static
+    {
+        if ($this->videos->removeElement($video)) {
+            if ($video->getConvocatoria() === $this) {
+                $video->setConvocatoria(null);
+            }
+        }
 
         return $this;
     }

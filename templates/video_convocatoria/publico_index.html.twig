@@ -1,0 +1,107 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Vídeos de convocatoria{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .videos-container { max-width: 1100px; margin: 0 auto; }
+        .videos-header h1 { color: var(--color-primary); margin-bottom: 0.35rem; }
+        .videos-header p { color: #666; }
+        .videos-filters { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 12px; padding: 1.25rem; margin: 1.5rem 0; }
+        .videos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+        .video-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: center; }
+        .video-card h2 { font-size: 1.2rem; margin: 0 0 0.35rem; }
+        .video-card h2 a { color: inherit; text-decoration: none; }
+        .video-card p { margin: 0.35rem 0 0; color: #555; }
+        .video-meta { margin-top: 0.6rem; color: #666; font-size: 0.92rem; display: flex; gap: 0.75rem; flex-wrap: wrap; }
+        @media (max-width: 768px) {
+            .videos-header h1 { font-size: 1.6rem; }
+            .video-card .btn { width: 100%; }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="videos-container">
+    <div class="videos-header">
+        <h1>Vídeos de convocatoria</h1>
+        <p>La presentación de tu convocatoria y otros vídeos con información importante.</p>
+    </div>
+
+    <form method="get" action="{{ path('app_video_convocatoria_publico_index') }}">
+        <div class="videos-filters">
+            <div class="videos-grid">
+                <div>
+                    <label class="form-label">Buscar</label>
+                    <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Título o descripción">
+                </div>
+                <div>
+                    <label class="form-label">Convocatoria</label>
+                    <select name="convocatoria" class="form-control">
+                        <option value="">Todas</option>
+                        {% for convocatoria in convocatorias %}
+                            <option value="{{ convocatoria.id }}" {% if convocatoriaId == convocatoria.id %}selected{% endif %}>{{ convocatoria.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap;">
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+                <a href="{{ path('app_video_convocatoria_publico_index') }}" class="btn btn-secondary">Limpiar</a>
+            </div>
+        </div>
+    </form>
+
+    {% if videos|length > 0 %}
+        <p style="margin-bottom: 1rem;">{{ totalItems }} vídeo{{ totalItems == 1 ? '' : 's' }}</p>
+        <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+            {% for video in videos %}
+                <article class="video-card">
+                    <div>
+                        <h2><a href="{{ path('app_video_convocatoria_publico_show', {'id': video.id}) }}">{{ video.titulo }}</a></h2>
+                        <strong>{{ video.convocatoria.nombre }}</strong>
+                        {% if video.descripcion %}
+                            <p>{{ video.descripcion|slice(0, 180) }}{% if video.descripcion|length > 180 %}...{% endif %}</p>
+                        {% endif %}
+                        <div class="video-meta">
+                            <span>{{ video.fechaCreacion|date('d/m/Y') }}</span>
+                        </div>
+                    </div>
+                    <a href="{{ path('app_video_convocatoria_publico_show', {'id': video.id}) }}" class="btn btn-primary">Ver vídeo</a>
+                </article>
+            {% endfor %}
+        </div>
+
+        {% if totalPages > 1 %}
+            <ul class="pagination justify-content-center" style="margin-top: 1.5rem;">
+                {% if page > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ path('app_video_convocatoria_publico_index', {page: page - 1, search: search, convocatoria: convocatoriaId}) }}">Anterior</a>
+                    </li>
+                {% endif %}
+                {% for p in 1..totalPages %}
+                    {% if p == page %}
+                        <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                    {% elseif p == 1 or p == totalPages or (p >= page - 2 and p <= page + 2) %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ path('app_video_convocatoria_publico_index', {page: p, search: search, convocatoria: convocatoriaId}) }}">{{ p }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                {% if page < totalPages %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ path('app_video_convocatoria_publico_index', {page: page + 1, search: search, convocatoria: convocatoriaId}) }}">Siguiente</a>
+                    </li>
+                {% endif %}
+            </ul>
+        {% endif %}
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center">
+                <p>Todavía no hay vídeos de tu convocatoria.</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

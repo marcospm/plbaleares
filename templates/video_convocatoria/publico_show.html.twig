@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ video.titulo }}{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .video-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #000;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .video-container > div,
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
+        .video-container > div {
+            padding: 0 !important;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+            <h1 style="margin: 0;">{{ video.titulo }}</h1>
+            <a href="{{ path('app_video_convocatoria_publico_index', {'convocatoria': video.convocatoria.id}) }}" class="btn btn-secondary">Volver al listado</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="margin-top: 0;"><strong>Convocatoria:</strong> {{ video.convocatoria.nombre }}</p>
+        {% if video.descripcion %}
+            <p style="line-height: 1.6;">{{ video.descripcion|nl2br }}</p>
+        {% endif %}
+        <div class="video-container">
+            {{ video.enlaceVideo|raw }}
+        </div>
+    </div>
+</div>
+{% endblock %}

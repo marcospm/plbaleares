@@ -426,6 +426,8 @@ class DashboardController extends AbstractController
             ->addSelect('c')
             ->leftJoin('c.bases', 'bases')
             ->addSelect('bases')
+            ->leftJoin('c.videos', 'videos')
+            ->addSelect('videos')
             ->where('u.id = :userId')
             ->setParameter('userId', $user->getId())
             ->getQuery()

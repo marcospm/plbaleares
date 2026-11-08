@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Editar vídeo de convocatoria{% endblock %}
+
+{% block body %}
+    <h1>Editar vídeo</h1>
+
+    {{ include('video_convocatoria/_form.html.twig', {'button_label': 'Actualizar vídeo'}) }}
+
+    <div style="margin-top: 2rem;">
+        {{ include('video_convocatoria/_delete_form.html.twig') }}
+    </div>
+{% endblock %}

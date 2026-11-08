@@ -1,0 +1,4 @@
+<form method="post" action="{{ path('app_video_convocatoria_delete', {'id': video.id}) }}" onsubmit="return confirm('¿Eliminar este vídeo de la convocatoria?');" style="display: inline;">
+    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ video.id) }}">
+    <button class="btn btn-danger btn-sm">Eliminar</button>
+</form>
