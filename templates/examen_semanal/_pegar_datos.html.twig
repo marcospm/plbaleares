@@ -1,4 +1,10 @@
 <input type="hidden" name="destino" value="examen">
+{% if datosExamen.borradorId|default(0) %}
+    <input type="hidden" name="borrador_id" value="{{ datosExamen.borradorId }}">
+    <div class="alert alert-warning">
+        Estás continuando un borrador. Si guardas de nuevo, se actualiza esta misma copia con la última versión de las preguntas.
+    </div>
+{% endif %}
 <div class="border rounded p-3 mb-4" style="background: #f8f9fa;">
     <h2 class="h5 mb-3">Datos del examen semanal</h2>
     <div class="mb-3">

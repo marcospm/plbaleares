@@ -340,24 +340,36 @@ class ExamenSemanalController extends AbstractController
             switch ($estado) {
                 case 'disponible':
                     $qb->andWhere('e.activo = :activo')
+                       ->andWhere('e.borrador = :borrador')
                        ->andWhere('e.fechaApertura <= :now')
                        ->andWhere('e.fechaCierre >= :now')
                        ->setParameter('activo', true)
+                       ->setParameter('borrador', false)
                        ->setParameter('now', $now);
                     break;
                 case 'pendiente':
                     $qb->andWhere('e.activo = :activo')
+                       ->andWhere('e.borrador = :borrador')
                        ->andWhere('e.fechaApertura > :now')
                        ->setParameter('activo', true)
+                       ->setParameter('borrador', false)
                        ->setParameter('now', $now);
                     break;
                 case 'cerrado':
-                    $qb->andWhere('e.fechaCierre < :now')
+                    $qb->andWhere('e.borrador = :borrador')
+                       ->andWhere('e.fechaCierre < :now')
+                       ->setParameter('borrador', false)
                        ->setParameter('now', $now);
                     break;
                 case 'inactivo':
                     $qb->andWhere('e.activo = :activo')
-                       ->setParameter('activo', false);
+                       ->andWhere('e.borrador = :borrador')
+                       ->setParameter('activo', false)
+                       ->setParameter('borrador', false);
+                    break;
+                case 'borrador':
+                    $qb->andWhere('e.borrador = :borrador')
+                       ->setParameter('borrador', true);
                     break;
             }
         }
@@ -386,7 +398,7 @@ class ExamenSemanalController extends AbstractController
         // (seleccionar preguntas de todo el temario) se hace al pulsar el botón.
         $examenesConDistribucion = [];
         foreach ($examenes as $examen) {
-            if ($examen->getMunicipio() === null && $examen->getConvocatoria() === null && $examen->getModoCreacion() !== 'preguntas_especificas') {
+            if (!$examen->isBorrador() && $examen->getMunicipio() === null && $examen->getConvocatoria() === null && $examen->getModoCreacion() !== 'preguntas_especificas') {
                 $examenesConDistribucion[$examen->getId()] = true;
             }
         }
@@ -411,9 +423,28 @@ class ExamenSemanalController extends AbstractController
         return new JsonResponse($this->calcularPorcentajesPorTema($examenSemanal));
     }
 
-    #[Route('/new', name: 'app_examen_semanal_new', methods: ['GET'])]
-    public function new(): Response
+    #[Route('/{id}/continuar-borrador', name: 'app_examen_semanal_borrador_continuar', methods: ['GET'], requirements: ['id' => '\d+'], priority: 10)]
+    public function continuarBorrador(ExamenSemanal $examenSemanal): Response
     {
+        if (!$examenSemanal->isBorrador()) {
+            $this->addFlash('error', 'Este examen ya no es un borrador.');
+
+            return $this->redirectToRoute('app_examen_semanal_show', ['id' => $examenSemanal->getId()]);
+        }
+
+        $tipo = (string) (($examenSemanal->getBorradorMeta() ?? [])['tipo'] ?? '');
+        if ($tipo === 'municipal') {
+            return $this->redirectToRoute('app_pregunta_municipal_continuar_borrador_examen', ['id' => $examenSemanal->getId()]);
+        }
+
+        return $this->redirectToRoute('app_pregunta_continuar_borrador_examen', ['id' => $examenSemanal->getId()]);
+    }
+
+    #[Route('/new', name: 'app_examen_semanal_new', methods: ['GET'])]
+    public function new(Request $request): Response
+    {
+        $request->getSession()->remove('examen_semanal_pegar');
+        $request->getSession()->remove('examen_semanal_bloque');
         // Página de selección de tipo de examen
         $convocatorias = $this->convocatoriaRepository->findBy(['activo' => true], ['nombre' => 'ASC']);
         return $this->render('examen_semanal/new.html.twig', [

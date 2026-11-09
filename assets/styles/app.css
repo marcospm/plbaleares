@@ -1093,6 +1093,18 @@ input[type="radio"] {
     color: #8a5a00;
 }
 
+.pregunta-preview-cabecera-acciones {
+    margin-left: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    flex: 0 0 auto;
+}
+
+.pregunta-preview-cabecera-acciones .pregunta-preview-boton {
+    margin-left: 0;
+}
+
 .pregunta-preview-boton {
     flex: 0 0 auto;
     margin-left: auto;
@@ -1122,6 +1134,17 @@ input[type="radio"] {
 .pregunta-preview-boton-principal:hover,
 .pregunta-preview-boton-principal:focus-visible {
     background: var(--color-primary-dark);
+}
+
+.pregunta-preview-boton-quitar {
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+}
+
+.pregunta-preview-boton-quitar:hover,
+.pregunta-preview-boton-quitar:focus-visible {
+    background: var(--color-danger);
+    color: var(--color-white);
 }
 
 .pregunta-preview-cuerpo,
@@ -1375,7 +1398,8 @@ input[type="radio"] {
         flex-wrap: wrap;
     }
 
-    .pregunta-preview-boton {
+    .pregunta-preview-boton,
+    .pregunta-preview-cabecera-acciones {
         margin-left: 0;
     }
 

@@ -228,6 +228,7 @@
                     <option value="pendiente" {% if estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
                     <option value="cerrado" {% if estado == 'cerrado' %}selected{% endif %}>Cerrado</option>
                     <option value="inactivo" {% if estado == 'inactivo' %}selected{% endif %}>Inactivo</option>
+                    <option value="borrador" {% if estado == 'borrador' %}selected{% endif %}>Borrador</option>
                 </select>
             </div>
             <div style="display: flex; gap: 0.5rem; flex-direction: column;">
@@ -269,7 +270,9 @@
                         <td><strong>{{ examen.nombre }}</strong></td>
                         <td><span class="badge badge-{{ examen.dificultad }}">{{ examen.getDificultadLabel() }}</span></td>
                         <td>
-                            {% if examen.numeroPreguntas %}
+                            {% if examen.borrador %}
+                                <span class="badge" style="background-color: #6f42c1;">{{ examen.numeroPreguntas ?? 0 }}</span>
+                            {% elseif examen.numeroPreguntas %}
                                 <span class="badge" style="background-color: #2196F3;">{{ examen.numeroPreguntas }}</span>
                             {% else %}
                                 <span class="badge" style="background-color: #6c757d;color:white;">Todas</span>
@@ -278,7 +281,9 @@
                         <td>{{ examen.fechaApertura|date('d/m/Y H:i') }}</td>
                         <td>{{ examen.fechaCierre|date('d/m/Y H:i') }}</td>
                         <td>
-                            {% if examen.estaDisponible() %}
+                            {% if examen.borrador %}
+                                <span class="badge" style="background-color: #6f42c1;">Borrador</span>
+                            {% elseif examen.estaDisponible() %}
                                 <span class="badge" style="background-color: #28a745;">Disponible</span>
                             {% elseif examen.estaCerrado() %}
                                 <span class="badge" style="background-color: #6c757d;">Cerrado</span>
@@ -291,19 +296,24 @@
                         <td>{{ realizaciones[examen.id]|default(0) }}</td>
                         <td style="white-space: nowrap;">
                             <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                                {% if examen.borrador %}
+                                    <a href="{{ path('app_examen_semanal_borrador_continuar', {'id': examen.id}) }}" class="btn btn-success btn-sm">Continuar</a>
+                                {% endif %}
                                 <a href="{{ path('app_examen_semanal_show', {'id': examen.id}) }}" class="btn btn-secondary btn-sm">Ver</a>
                                 <a href="{{ path('app_examen_semanal_edit', {'id': examen.id}) }}" class="btn btn-primary btn-sm">Editar</a>
-                                {% if examenesConDistribucion[examen.id] is defined %}
+                                {% if not examen.borrador and examenesConDistribucion[examen.id] is defined %}
                                     <button type="button" class="btn btn-info btn-sm btnVerPorcentajes" data-url="{{ path('app_examen_semanal_porcentajes', {'id': examen.id}) }}" title="Ver % por Tema">
                                         📊 %
                                     </button>
                                 {% endif %}
+                                {% if not examen.borrador %}
                                 <a href="{{ path('app_examen_semanal_pdf', {'id': examen.id}) }}" class="btn btn-success btn-sm" target="_blank" title="Abrir el examen en una pestaña para revisarlo y guardarlo como PDF">
                                     📄 PDF
                                 </a>
                                 <a href="{{ path('app_examen_semanal_pdf_respuestas', {'id': examen.id}) }}" class="btn btn-info btn-sm" target="_blank" title="Abrir la plantilla de respuestas para revisarla y guardarla como PDF">
                                     ✅ Respuestas
                                 </a>
+                                {% endif %}
                                 <form method="post" action="{{ path('app_examen_semanal_delete', {'id': examen.id}) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de eliminar este examen semanal?');">
                                     <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ examen.id) }}">
                                     <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>

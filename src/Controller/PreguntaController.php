@@ -2,8 +2,10 @@
 
 namespace App\Controller;
 
+use App\Entity\ExamenSemanal;
 use App\Entity\Pregunta;
 use App\Entity\User;
+use App\Repository\ExamenSemanalRepository;
 use App\Form\PreguntaType;
 use App\Repository\PreguntaRepository;
 use App\Repository\GrupoRepository;
@@ -400,6 +402,54 @@ class PreguntaController extends AbstractController
         return $this->renderPegar($temaRepository, $request, true, $grupoRepository);
     }
 
+    #[Route('/continuar-borrador-examen/{id}', name: 'app_pregunta_continuar_borrador_examen', methods: ['GET'], requirements: ['id' => '\d+'])]
+    public function continuarBorradorExamen(
+        int $id,
+        Request $request,
+        ExamenSemanalRepository $examenSemanalRepository,
+        TemaRepository $temaRepository,
+        LeyRepository $leyRepository,
+        ArticuloRepository $articuloRepository,
+        BloquePreguntasParser $parser,
+        ExamenSemanalDesdePegado $examenSemanalDesdePegado
+    ): Response {
+        $examen = $examenSemanalRepository->find($id);
+        if (!$examen instanceof ExamenSemanal || !$examen->isBorrador()) {
+            $this->addFlash('error', 'Ese borrador ya no está disponible.');
+
+            return $this->redirectToRoute('app_examen_semanal_index');
+        }
+
+        $meta = $examen->getBorradorMeta() ?? [];
+        if (($meta['tipo'] ?? '') === 'municipal') {
+            return $this->redirectToRoute('app_pregunta_municipal_continuar_borrador_examen', ['id' => $id]);
+        }
+
+        $bloque = (string) $examen->getBloqueBorrador();
+        $session = $request->getSession();
+        $session->set('examen_semanal_pegar', $examenSemanalDesdePegado->datosDesdeExamen($examen));
+        $session->set('examen_semanal_bloque', $bloque);
+        $temaIds = is_array($meta['temaIds'] ?? null) ? $meta['temaIds'] : [];
+
+        return $this->previsualizarPegado(
+            $request,
+            $this->filtrarPegado(
+                $bloque,
+                (string) ($meta['modo'] ?? 'unico'),
+                (int) ($meta['temaId'] ?? 0),
+                (int) ($meta['leyId'] ?? 0),
+                array_map(static fn ($temaId): int => (int) $temaId, $temaIds),
+                $temaRepository,
+                $leyRepository,
+                $articuloRepository,
+                $parser,
+                ExamenSemanalDesdePegado::CANTIDAD
+            ),
+            $bloque,
+            (string) $examen->getDificultad()
+        );
+    }
+
     #[Route('/procesar-pegar', name: 'app_pregunta_procesar_pegar', methods: ['POST'])]
     public function procesarPegar(
         Request $request,
@@ -709,11 +759,41 @@ class PreguntaController extends AbstractController
 
                 return $this->redirectToRoute($this->rutaPegado($request));
             }
-            if ($filtrado['preguntas'] === [] || $request->request->get('accion') !== 'guardar') {
+
+            $accion = (string) $request->request->get('accion', '');
+            $bloqueEditado = (string) $request->request->get('bloque', '');
+            if ($accion === 'borrador' && $origenPegado === 'pegar_examen') {
+                $session->set('preguntas_csv_modo', $filtrado['temasAleatorios'] ? 'aleatorio' : 'unico');
+                $session->set('preguntas_csv_temas', $filtrado['temaIds']);
+                $primeraBorrador = $filtrado['preguntas'][0] ?? null;
+                if (is_array($primeraBorrador)) {
+                    $session->set('preguntas_csv_tema', (int) ($primeraBorrador['temaId'] ?? $filtrado['tema']?->getId() ?? $session->get('preguntas_csv_tema', 0)));
+                    $session->set('preguntas_csv_ley', (int) ($primeraBorrador['leyId'] ?? $filtrado['ley']?->getId() ?? $session->get('preguntas_csv_ley', 0)));
+                }
+                $temasBorrador = $session->get('preguntas_csv_temas', []);
+
+                return $this->guardarBorradorPegado(
+                    $request,
+                    $examenSemanalDesdePegado,
+                    'general',
+                    $bloqueEditado,
+                    count($filtrado['preguntas']),
+                    $filtrado['omitidas'],
+                    [
+                        'tipo' => 'general',
+                        'modo' => (string) $session->get('preguntas_csv_modo', 'unico'),
+                        'temaId' => (int) $session->get('preguntas_csv_tema', 0),
+                        'leyId' => (int) $session->get('preguntas_csv_ley', 0),
+                        'temaIds' => array_values(array_map(static fn ($temaId): int => (int) $temaId, is_array($temasBorrador) ? $temasBorrador : [])),
+                    ]
+                );
+            }
+
+            if ($filtrado['preguntas'] === [] || $accion !== 'guardar') {
                 return $this->previsualizarPegado(
                     $request,
                     $filtrado,
-                    (string) $request->request->get('bloque', ''),
+                    $bloqueEditado,
                     (string) $session->get('preguntas_csv_dificultad', '')
                 );
             }
@@ -876,6 +956,7 @@ class PreguntaController extends AbstractController
         $session->remove('preguntas_csv_temas');
         if ($examenCreado !== null) {
             $session->remove('examen_semanal_pegar');
+            $session->remove('examen_semanal_bloque');
         }
 
         if ($omitidasAlGuardar !== []) {
@@ -1925,6 +2006,9 @@ class PreguntaController extends AbstractController
         $session = $request->getSession();
         $datosExamen = $session->get('examen_semanal_pegar');
         $esExamen = is_array($datosExamen) && ($datosExamen['tipo'] ?? '') === 'general';
+        if ($esExamen) {
+            $session->set('examen_semanal_bloque', $bloqueOriginal);
+        }
         $session->set('preguntas_csv', $preguntas);
         $session->set('preguntas_csv_tema', $temaId);
         $session->set('preguntas_csv_ley', $leyId);
@@ -2091,6 +2175,7 @@ class PreguntaController extends AbstractController
             'rutaCancelar' => $paraExamen ? 'app_examen_semanal_new' : 'app_pregunta_index',
             'grupos' => $paraExamen && $grupoRepository ? $grupoRepository->findBy([], ['nombre' => 'ASC']) : [],
             'datosExamen' => $datosExamen,
+            'bloqueInicial' => $paraExamen ? (string) $request->getSession()->get('examen_semanal_bloque', '') : '',
         ]);
     }
 
@@ -2120,6 +2205,10 @@ class PreguntaController extends AbstractController
             'grupoId' => $this->grupoIdDesdeRequest($request),
             'dificultad' => (string) $request->request->get('dificultad', ''),
         ]);
+        $borradorId = $request->request->getInt('borrador_id');
+        if ($borradorId > 0) {
+            $resultado['datos']['borradorId'] = $borradorId;
+        }
         $session->set('examen_semanal_pegar', $resultado['datos']);
         if ($resultado['error'] !== null) {
             $this->addFlash('error', $resultado['error']);
@@ -2163,6 +2252,54 @@ class PreguntaController extends AbstractController
         }
 
         return 20;
+    }
+
+    /**
+     * @param list<string> $omitidas
+     * @param array<string, mixed> $meta
+     */
+    private function guardarBorradorPegado(
+        Request $request,
+        ExamenSemanalDesdePegado $servicio,
+        string $tipo,
+        string $bloque,
+        int $validas,
+        array $omitidas,
+        array $meta
+    ): Response {
+        $session = $request->getSession();
+        $datos = $session->get('examen_semanal_pegar');
+        $usuario = $this->getUser();
+        $ruta = $tipo === 'municipal' ? 'app_examen_semanal_pegar_municipal' : 'app_examen_semanal_pegar';
+        $claveDificultad = $tipo === 'municipal' ? 'preguntas_municipal_csv_dificultad' : 'preguntas_csv_dificultad';
+        if (!is_array($datos) || ($datos['tipo'] ?? '') !== $tipo || !$usuario instanceof User) {
+            $this->addFlash('error', 'Faltan los datos del examen semanal. Vuelve a empezar.');
+
+            return $this->redirectToRoute($ruta);
+        }
+
+        $datos['dificultad'] = (string) $session->get($claveDificultad, $datos['dificultad'] ?? '');
+        try {
+            $examen = $servicio->guardarBorrador($usuario, $datos, $bloque, $meta, $validas);
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
+
+            return $this->redirectToRoute($ruta);
+        }
+
+        $datos['borradorId'] = $examen->getId();
+        $session->set('examen_semanal_pegar', $datos);
+        $session->set('examen_semanal_bloque', $bloque);
+        if ($omitidas !== []) {
+            $this->addFlash('warning', $this->textoOmitidas($omitidas));
+        }
+        $this->addFlash('success', sprintf(
+            'Borrador «%s» guardado con la última versión de las preguntas (%d válidas). Los alumnos no lo verán hasta que lo publiques.',
+            $examen->getNombre(),
+            $validas
+        ));
+
+        return $this->redirectToRoute('app_examen_semanal_index');
     }
 }
 

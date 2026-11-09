@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\ExamenSemanal;
+use App\Entity\Municipio;
 use App\Entity\Pregunta;
 use App\Entity\PreguntaMunicipal;
 use App\Entity\User;
@@ -96,24 +97,27 @@ class ExamenSemanalDesdePegado
             throw new \RuntimeException('Las fechas del examen semanal no son válidas.');
         }
 
-        $examen = new ExamenSemanal();
+        $examen = $this->tomarBorrador($datos) ?? new ExamenSemanal();
+        if ($examen->getId() !== null) {
+            $this->vaciarAsignaciones($examen);
+        }
         $examen->setNombre((string) $datos['nombre']);
         $descripcion = trim((string) ($datos['descripcion'] ?? ''));
         $examen->setDescripcion($descripcion !== '' ? $descripcion : null);
         $examen->setFechaApertura($apertura);
         $examen->setFechaCierre($cierre);
         $examen->setDificultad((string) $datos['dificultad']);
-        $examen->setCreadoPor($creadoPor);
+        if ($examen->getCreadoPor() === null) {
+            $examen->setCreadoPor($creadoPor);
+        }
         $examen->setModoCreacion('preguntas_especificas');
         $examen->setActivo(true);
+        $examen->setBorrador(false);
+        $examen->setBloqueBorrador(null);
+        $examen->setBorradorMeta(null);
 
         $grupoId = (int) ($datos['grupoId'] ?? 0);
-        if ($grupoId > 0) {
-            $grupo = $this->grupoRepository->find($grupoId);
-            if ($grupo !== null) {
-                $examen->setGrupo($grupo);
-            }
-        }
+        $examen->setGrupo($grupoId > 0 ? $this->grupoRepository->find($grupoId) : null);
 
         if (($datos['tipo'] ?? '') === 'municipal') {
             if ($preguntasMunicipales === []) {
@@ -144,12 +148,132 @@ class ExamenSemanalDesdePegado
                 }
             }
             $examen->setNumeroPreguntas(count($preguntas));
+            $examen->setMunicipio(null);
+            $examen->setConvocatoria(null);
         }
 
         $this->entityManager->persist($examen);
         $this->entityManager->flush();
 
         return $examen;
+    }
+
+    /**
+     * Guarda el examen sin publicarlo. El bloque es la última versión de las
+     * preguntas, ya con las ediciones hechas en la previsualización.
+     *
+     * @param array<string, mixed> $datos
+     * @param array<string, mixed> $meta
+     */
+    public function guardarBorrador(User $creadoPor, array $datos, string $bloque, array $meta, int $preguntasValidas): ExamenSemanal
+    {
+        $apertura = $this->fecha((string) ($datos['fechaAperturaIso'] ?? ''));
+        $cierre = $this->fecha((string) ($datos['fechaCierreIso'] ?? ''));
+        if ($apertura === null || $cierre === null || $cierre <= $apertura) {
+            throw new \RuntimeException('Las fechas del examen semanal no son válidas.');
+        }
+        if (trim($bloque) === '') {
+            throw new \RuntimeException('No hay preguntas para guardar en el borrador.');
+        }
+
+        $examen = $this->tomarBorrador($datos) ?? new ExamenSemanal();
+        $examen->setNombre((string) $datos['nombre']);
+        $descripcion = trim((string) ($datos['descripcion'] ?? ''));
+        $examen->setDescripcion($descripcion !== '' ? $descripcion : null);
+        $examen->setFechaApertura($apertura);
+        $examen->setFechaCierre($cierre);
+        $examen->setDificultad((string) ($datos['dificultad'] ?? 'indeterminado'));
+        if ($examen->getCreadoPor() === null) {
+            $examen->setCreadoPor($creadoPor);
+        }
+        $examen->setModoCreacion('borrador');
+        $examen->setActivo(false);
+        $examen->setBorrador(true);
+        $examen->setBloqueBorrador($bloque);
+        $meta['tipo'] = (string) ($datos['tipo'] ?? ($meta['tipo'] ?? 'general'));
+        $examen->setBorradorMeta($meta);
+        $examen->setNumeroPreguntas($preguntasValidas);
+
+        $grupoId = (int) ($datos['grupoId'] ?? 0);
+        $examen->setGrupo($grupoId > 0 ? $this->grupoRepository->find($grupoId) : null);
+
+        if (($datos['tipo'] ?? '') === 'municipal') {
+            $municipioId = (int) ($meta['municipioId'] ?? 0);
+            $municipio = $municipioId > 0 ? $this->entityManager->find(Municipio::class, $municipioId) : null;
+            $examen->setMunicipio($municipio instanceof Municipio ? $municipio : null);
+        } else {
+            $examen->setMunicipio(null);
+        }
+        $examen->setConvocatoria(null);
+
+        $this->entityManager->persist($examen);
+        $this->entityManager->flush();
+
+        return $examen;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function datosDesdeExamen(ExamenSemanal $examen): array
+    {
+        $apertura = $examen->getFechaApertura();
+        $cierre = $examen->getFechaCierre();
+        $meta = $examen->getBorradorMeta() ?? [];
+
+        return [
+            'tipo' => (string) ($meta['tipo'] ?? 'general'),
+            'nombre' => (string) $examen->getNombre(),
+            'descripcion' => (string) ($examen->getDescripcion() ?? ''),
+            'fechaAperturaIso' => $apertura?->format('Y-m-d\TH:i') ?? '',
+            'fechaCierreIso' => $cierre?->format('Y-m-d\TH:i') ?? '',
+            'fechaApertura' => $apertura?->format('d/m/Y H:i') ?? '',
+            'fechaCierre' => $cierre?->format('d/m/Y H:i') ?? '',
+            'grupoId' => (int) ($examen->getGrupo()?->getId() ?? 0),
+            'grupoNombre' => $examen->getGrupo()?->getNombre(),
+            'dificultad' => (string) $examen->getDificultad(),
+            'borradorId' => (int) $examen->getId(),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $datos
+     */
+    public function tomarBorrador(array $datos): ?ExamenSemanal
+    {
+        $id = (int) ($datos['borradorId'] ?? 0);
+        if ($id <= 0) {
+            return null;
+        }
+
+        $examen = $this->entityManager->find(ExamenSemanal::class, $id);
+        if (!$examen instanceof ExamenSemanal || !$examen->isBorrador()) {
+            return null;
+        }
+
+        $tipoGuardado = (string) (($examen->getBorradorMeta() ?? [])['tipo'] ?? '');
+        $tipo = (string) ($datos['tipo'] ?? '');
+        if ($tipoGuardado !== '' && $tipo !== '' && $tipoGuardado !== $tipo) {
+            return null;
+        }
+
+        return $examen;
+    }
+
+    private function vaciarAsignaciones(ExamenSemanal $examen): void
+    {
+        foreach ($examen->getPreguntas()->toArray() as $pregunta) {
+            $examen->removePregunta($pregunta);
+        }
+        foreach ($examen->getPreguntasMunicipales()->toArray() as $pregunta) {
+            $examen->removePreguntasMunicipale($pregunta);
+        }
+        foreach ($examen->getTemas()->toArray() as $tema) {
+            $examen->removeTema($tema);
+        }
+        foreach ($examen->getTemasMunicipales()->toArray() as $tema) {
+            $examen->removeTemasMunicipale($tema);
+        }
     }
 
     public function notificar(ExamenSemanal $examenSemanal): void

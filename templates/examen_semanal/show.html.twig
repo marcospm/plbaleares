@@ -8,12 +8,20 @@
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h1>{{ examenSemanal.nombre }}</h1>
             <div>
+                {% if examenSemanal.borrador %}
+                    <a href="{{ path('app_examen_semanal_borrador_continuar', {'id': examenSemanal.id}) }}" class="btn btn-success">Continuar borrador</a>
+                {% endif %}
                 <a href="{{ path('app_examen_semanal_edit', {'id': examenSemanal.id}) }}" class="btn btn-primary">Editar</a>
                 <a href="{{ path('app_examen_semanal_index') }}" class="btn btn-secondary">Volver</a>
             </div>
         </div>
     </div>
     <div class="card-body">
+        {% if examenSemanal.borrador %}
+            <div class="alert alert-warning">
+                Este examen está en borrador. Guarda la última versión de las preguntas del prompt, incluidas las que hayas editado. Los alumnos no lo ven hasta que pulses «Crear examen semanal» en la previsualización.
+            </div>
+        {% endif %}
         {% if examenSemanal.descripcion %}
             <div class="mb-3">
                 <strong>Descripción:</strong>
@@ -26,7 +34,12 @@
             <span class="badge badge-{{ examenSemanal.dificultad }}">{{ examenSemanal.getDificultadLabel() }}</span>
         </div>
 
-        {% if examenSemanal.numeroPreguntas %}
+        {% if examenSemanal.borrador %}
+            <div class="mb-3">
+                <strong>Preguntas válidas en la última versión:</strong>
+                <span class="badge" style="background-color: #6f42c1; padding: 0.5rem 1rem; font-size: 1rem;">{{ examenSemanal.numeroPreguntas ?? 0 }}</span>
+            </div>
+        {% elseif examenSemanal.numeroPreguntas %}
             <div class="mb-3">
                 <strong>Número de Preguntas:</strong> 
                 <span class="badge" style="background-color: #2196F3; padding: 0.5rem 1rem; font-size: 1rem;">{{ examenSemanal.numeroPreguntas }} preguntas</span>
@@ -48,7 +61,9 @@
 
         <div class="mb-3">
             <strong>Estado:</strong>
-            {% if examenSemanal.estaDisponible() %}
+            {% if examenSemanal.borrador %}
+                <span class="badge" style="background-color: #6f42c1;">Borrador</span>
+            {% elseif examenSemanal.estaDisponible() %}
                 <span class="badge" style="background-color: #28a745;">Disponible</span>
             {% elseif examenSemanal.estaCerrado() %}
                 <span class="badge" style="background-color: #6c757d;">Cerrado</span>

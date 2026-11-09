@@ -397,11 +397,7 @@
             }
             cabecera.appendChild(identidad);
             if (editando !== posicion) {
-                var editar = el('button', 'pregunta-preview-boton', 'Editar');
-                editar.type = 'button';
-                editar.setAttribute('data-accion', 'editar');
-                editar.setAttribute('data-indice', String(posicion));
-                cabecera.appendChild(editar);
+                cabecera.appendChild(botonesPregunta(posicion));
             }
             card.appendChild(cabecera);
 
@@ -449,6 +445,7 @@
                 descartar.setAttribute('data-accion', 'cancelar');
                 acciones.appendChild(listo);
                 acciones.appendChild(descartar);
+                acciones.appendChild(botonEliminar(posicion));
                 formEdicion.appendChild(acciones);
                 card.appendChild(formEdicion);
                 return card;
@@ -536,6 +533,7 @@
                 fuente.classList.add('form-control');
                 fuente.rows = 16;
                 resumen.textContent = 'No se reconoció ninguna pregunta. Corrige el texto y vuelve a comprobar.';
+                actualizarContador(0);
                 return;
             }
 
@@ -561,6 +559,59 @@
             piezas.forEach(function (pieza, posicion) {
                 lista.appendChild(pieza.tipo === 'pregunta' ? pintarPregunta(pieza, posicion) : pintarNota(pieza, posicion));
             });
+            actualizarContador(preguntas.length);
+        }
+
+        function botonEliminar(posicion) {
+            var quitar = el('button', 'pregunta-preview-boton pregunta-preview-boton-quitar', 'Eliminar');
+            quitar.type = 'button';
+            quitar.setAttribute('data-accion', 'eliminar');
+            quitar.setAttribute('data-indice', String(posicion));
+            return quitar;
+        }
+
+        function botonesPregunta(posicion) {
+            var grupo = el('div', 'pregunta-preview-cabecera-acciones');
+            var editar = el('button', 'pregunta-preview-boton', 'Editar');
+            editar.type = 'button';
+            editar.setAttribute('data-accion', 'editar');
+            editar.setAttribute('data-indice', String(posicion));
+            grupo.appendChild(editar);
+            grupo.appendChild(botonEliminar(posicion));
+            return grupo;
+        }
+
+        function actualizarContador(total) {
+            if (!form) {
+                return;
+            }
+            var etiqueta = total + (total === 1 ? ' pregunta' : ' preguntas');
+            form.querySelectorAll('button[type="submit"]').forEach(function (boton) {
+                if (!/preguntas?/.test(boton.textContent)) {
+                    return;
+                }
+                boton.textContent = boton.textContent.replace(/\d+\s+preguntas?/, etiqueta);
+            });
+        }
+
+        function eliminar(indice) {
+            var pieza = piezas[indice];
+            if (!pieza || pieza.tipo !== 'pregunta') {
+                return;
+            }
+            if (editando !== null && editando !== indice && editorSucio() && !window.confirm('Has cambiado otra pregunta y no has pulsado Listo. ¿Descartas esos cambios y quitas esta?')) {
+                return;
+            }
+            if (!window.confirm('¿Quitas la pregunta ' + pieza.numero + '? No se guardará.')) {
+                return;
+            }
+            piezas.splice(indice, 1);
+            editando = null;
+            baseCampos = null;
+            editadas = new Set();
+            escribir();
+            piezas = parsear(fuente.value);
+            render();
         }
 
         root.addEventListener('click', function (evento) {
@@ -594,6 +645,11 @@
                 aplicar();
             } else if (accion === 'cancelar') {
                 cancelar();
+            } else if (accion === 'eliminar') {
+                var posicion = Number(boton.getAttribute('data-indice'));
+                if (posicion >= 0) {
+                    eliminar(posicion);
+                }
             } else if (accion === 'ir') {
                 var destino = lista.querySelector('[data-numero="' + boton.getAttribute('data-numero') + '"]');
                 if (destino) {

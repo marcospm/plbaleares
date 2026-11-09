@@ -157,6 +157,12 @@
                 </div>
             </div>
 
+            <div class="mb-3">
+                <label class="form-label" for="instruccion-extra">Instrucción extra para el prompt</label>
+                <textarea id="instruccion-extra" class="form-control" rows="2" placeholder="Por ejemplo: añademe 3 preguntas donde me pidas penas de prisión"></textarea>
+                <small class="text-muted">Opcional. Al copiar el prompt se incluye esta instrucción. Si la dejas vacía, el prompt sale como siempre.</small>
+            </div>
+
             <div class="d-flex gap-2 mb-3 flex-wrap">
                 <button type="button" class="btn btn-secondary" id="copiar-prompt">Copiar prompt</button>
                 <span id="prompt-copiado" style="display: none; align-self: center; color: #198754;">Prompt copiado. Pégalo en el chat y añade el contenido debajo.</span>
@@ -164,7 +170,7 @@
 
             <div class="mb-3">
                 <label for="bloque" class="form-label">Respuesta <span class="text-danger">*</span></label>
-                <textarea name="bloque" id="bloque" class="form-control" required placeholder="Pega aquí los bloques que devuelva el chat"></textarea>
+                <textarea name="bloque" id="bloque" class="form-control" required placeholder="Pega aquí los bloques que devuelva el chat">{{ bloqueInicial|default('') }}</textarea>
             </div>
 
             <div class="d-flex gap-2 mt-4">
@@ -437,6 +443,20 @@ document.addEventListener('DOMContentLoaded', function() {
         return datos;
     }
 
+    function lineasInstruccionExtra() {
+        const campo = document.getElementById('instruccion-extra');
+        const texto = campo ? campo.value.trim() : '';
+        if (!texto) {
+            return [];
+        }
+        return [
+            'Instrucción adicional (cúmplela sí o sí, además del resto):',
+            texto,
+            'Si esa instrucción pide un número de preguntas sobre un asunto, haz exactamente esas dentro del total de ' + cantidadPreguntas + ', con el mismo formato. El resto completa el bloque. No inventes datos que no estén en el CONTENIDO.',
+            ''
+        ];
+    }
+
     function construirPrompt(datos) {
         return [
             'Eres un preparador de oposiciones de policía local en Baleares. Genera exactamente ' + cantidadPreguntas + ' preguntas tipo test, en español, solo con el contenido municipal que pegue debajo de CONTENIDO. No inventes datos que no estén en ese texto.',
@@ -445,6 +465,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'Tema: ' + datos.tema,
             'Dificultad: ' + datos.dificultad,
             '',
+            ...lineasInstruccionExtra(),
             'Reglas:',
             '- Una sola respuesta correcta. La letra de la opción correcta tiene que variar de una pregunta a otra: no puede ser siempre la misma. A lo largo del bloque deben aparecer A, B, C y D. Las otras tres opciones tienen que ser plausibles.',
             '- Cada enunciado es una pregunta tipo test y cita siempre el municipio, el tema y el artículo. Nombra el municipio y el tema exactamente como aparecen arriba, y el número del artículo.',
@@ -490,6 +511,7 @@ document.addEventListener('DOMContentLoaded', function() {
             '',
             'Dificultad: ' + datos.dificultad,
             '',
+            ...lineasInstruccionExtra(),
             'Reglas:',
             '- Una sola respuesta correcta. La letra de la opción correcta tiene que variar de una pregunta a otra: no puede ser siempre la misma. A lo largo del bloque deben aparecer A, B, C y D. Las otras tres opciones tienen que ser plausibles.',
             '- Cada pregunta lleva la línea TEMA con el nombre exacto de uno de los temas de la lista.',

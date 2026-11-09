@@ -78,6 +78,15 @@ class ExamenSemanal
     #[ORM\JoinColumn(nullable: true)]
     private ?Grupo $grupo = null;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $borrador = false;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $bloqueBorrador = null;
+
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $borradorMeta = null;
+
     public function __construct()
     {
         $this->temas = new ArrayCollection();
@@ -405,6 +414,48 @@ class ExamenSemanal
     public function setGrupo(?Grupo $grupo): static
     {
         $this->grupo = $grupo;
+
+        return $this;
+    }
+
+    public function isBorrador(): bool
+    {
+        return $this->borrador;
+    }
+
+    public function setBorrador(bool $borrador): static
+    {
+        $this->borrador = $borrador;
+
+        return $this;
+    }
+
+    public function getBloqueBorrador(): ?string
+    {
+        return $this->bloqueBorrador;
+    }
+
+    public function setBloqueBorrador(?string $bloqueBorrador): static
+    {
+        $this->bloqueBorrador = $bloqueBorrador;
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getBorradorMeta(): ?array
+    {
+        return $this->borradorMeta;
+    }
+
+    /**
+     * @param array<string, mixed>|null $borradorMeta
+     */
+    public function setBorradorMeta(?array $borradorMeta): static
+    {
+        $this->borradorMeta = $borradorMeta;
 
         return $this;
     }
