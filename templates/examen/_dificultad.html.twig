@@ -1,0 +1,31 @@
+{% macro campo(field) %}
+    {% if field.vars.choices|length <= 1 %}
+        <label class="form-label">{{ field.vars.label }}</label>
+        <p style="margin: 0.35rem 0 0;"><strong>{{ field.vars.choices|first.label }}</strong></p>
+        <div hidden>{{ form_widget(field) }}</div>
+        {{ form_errors(field) }}
+    {% else %}
+        {{ form_label(field) }}
+        {{ form_widget(field) }}
+        {{ form_errors(field) }}
+        {{ form_help(field) }}
+    {% endif %}
+{% endmacro %}
+
+{% macro select(id, name, selected, incluirIndeterminado) %}
+    {% set niveles = dificultades_examen_activas() %}
+    {% if incluirIndeterminado|default(false) %}
+        {% set niveles = niveles|merge([{value: 'indeterminado', label: 'Indeterminado'}]) %}
+    {% endif %}
+    {% if niveles|length <= 1 %}
+        <input type="hidden" name="{{ name }}" id="{{ id }}" value="{{ niveles[0].value }}">
+        <p style="margin: 0.35rem 0 0;"><strong>{{ niveles[0].label }}</strong></p>
+    {% else %}
+        <select name="{{ name }}" id="{{ id }}" class="form-control" required>
+            <option value="">Selecciona una dificultad</option>
+            {% for nivel in niveles %}
+                <option value="{{ nivel.value }}"{% if selected == nivel.value %} selected{% endif %}>{{ nivel.label }}</option>
+            {% endfor %}
+        </select>
+    {% endif %}
+{% endmacro %}

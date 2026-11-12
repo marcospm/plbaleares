@@ -160,13 +160,8 @@
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label class="form-label">Dificultad <span class="text-danger">*</span></label>
-                    <select name="dificultad" id="dificultad" class="form-control" required>
-                        <option value="">Selecciona una dificultad</option>
-                        <option value="facil"{% if datosExamen.dificultad|default('') == 'facil' %} selected{% endif %}>Fácil</option>
-                        <option value="moderada"{% if datosExamen.dificultad|default('') == 'moderada' %} selected{% endif %}>Moderada</option>
-                        <option value="dificil"{% if datosExamen.dificultad|default('') == 'dificil' %} selected{% endif %}>Difícil</option>
-                        <option value="indeterminado"{% if datosExamen.dificultad|default('') == 'indeterminado' %} selected{% endif %}>Indeterminado</option>
-                    </select>
+                    {% import 'examen/_dificultad.html.twig' as dificultadExamen %}
+                    {{ dificultadExamen.select('dificultad', 'dificultad', datosExamen.dificultad|default(''), true) }}
                 </div>
             </div>
 

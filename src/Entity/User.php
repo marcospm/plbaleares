@@ -76,6 +76,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 1, nullable: true)]
     private ?string $sexo = null; // M, F, O (Masculino, Femenino, Otro)
 
+    /**
+     * Categoría de la oposición a la que se prepara el usuario.
+     */
+    #[ORM\Column(length: 20, enumType: CategoriaOposicion::class, options: ['default' => 'policia'])]
+    private CategoriaOposicion $categoria = CategoriaOposicion::POLICIA;
+
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $notas = null;
 
@@ -368,6 +374,23 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             'O' => 'Otro',
             default => 'No especificado'
         };
+    }
+
+    public function getCategoria(): CategoriaOposicion
+    {
+        return $this->categoria;
+    }
+
+    public function setCategoria(CategoriaOposicion $categoria): static
+    {
+        $this->categoria = $categoria;
+
+        return $this;
+    }
+
+    public function getCategoriaLabel(): string
+    {
+        return $this->categoria->getLabel();
     }
 
     public function getNotas(): ?string

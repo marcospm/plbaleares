@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Convocatoria;
+use App\Entity\Municipio;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -89,6 +90,21 @@ class ConvocatoriaRepository extends ServiceEntityRepository
                 'convocatorias_activas_ordered_nombre_asc'
             ]);
         }
+    }
+
+    public function contarOtrasActivasConMunicipio(Municipio $municipio, Convocatoria $convocatoria): int
+    {
+        return (int) $this->createQueryBuilder('c')
+            ->select('COUNT(DISTINCT c.id)')
+            ->innerJoin('c.municipios', 'm')
+            ->andWhere('m = :municipio')
+            ->andWhere('c.activo = :activo')
+            ->andWhere('c != :convocatoria')
+            ->setParameter('municipio', $municipio)
+            ->setParameter('activo', true)
+            ->setParameter('convocatoria', $convocatoria)
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
     /**

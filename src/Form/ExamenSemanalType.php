@@ -8,6 +8,7 @@ use App\Entity\TemaMunicipal;
 use App\Entity\Municipio;
 use App\Entity\Convocatoria;
 use App\Entity\Grupo;
+use App\Service\DificultadExamenService;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
@@ -24,6 +25,11 @@ use Symfony\Component\Validator\Constraints\Count;
 
 class ExamenSemanalType extends AbstractType
 {
+    public function __construct(
+        private DificultadExamenService $dificultadExamenService,
+    ) {
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $isEditMode = $options['is_edit_mode'] ?? false;
@@ -85,11 +91,8 @@ class ExamenSemanalType extends AbstractType
         if (!$isEditMode) {
             $builder->add('dificultad', ChoiceType::class, [
                 'label' => 'Dificultad',
-                'choices' => [
-                    'Fácil' => 'facil',
-                    'Moderada' => 'moderada',
-                    'Difícil' => 'dificil',
-                ],
+                'choices' => $this->dificultadExamenService->choices(),
+                'invalid_message' => 'Esa dificultad no está disponible.',
                 'required' => false,
                 'mapped' => false, // No mapear en modo creación
                 'attr' => ['class' => 'form-control']
@@ -219,11 +222,8 @@ class ExamenSemanalType extends AbstractType
                 ])
                 ->add('dificultadGeneral', ChoiceType::class, [
                     'label' => 'Dificultad - General',
-                    'choices' => [
-                        'Fácil' => 'facil',
-                        'Moderada' => 'moderada',
-                        'Difícil' => 'dificil',
-                    ],
+                    'choices' => $this->dificultadExamenService->choices(),
+                    'invalid_message' => 'Esa dificultad no está disponible.',
                     'required' => false,
                     'mapped' => false,
                     'placeholder' => 'Selecciona dificultad',
@@ -281,11 +281,8 @@ class ExamenSemanalType extends AbstractType
                 ])
                 ->add('dificultadMunicipal', ChoiceType::class, [
                     'label' => 'Dificultad - Municipal',
-                    'choices' => [
-                        'Fácil' => 'facil',
-                        'Moderada' => 'moderada',
-                        'Difícil' => 'dificil',
-                    ],
+                    'choices' => $this->dificultadExamenService->choices(),
+                    'invalid_message' => 'Esa dificultad no está disponible.',
                     'required' => false,
                     'mapped' => false,
                     'placeholder' => 'Selecciona dificultad',
@@ -343,11 +340,8 @@ class ExamenSemanalType extends AbstractType
                 ])
                 ->add('dificultadConvocatoria', ChoiceType::class, [
                     'label' => 'Dificultad - Convocatoria',
-                    'choices' => [
-                        'Fácil' => 'facil',
-                        'Moderada' => 'moderada',
-                        'Difícil' => 'dificil',
-                    ],
+                    'choices' => $this->dificultadExamenService->choices(),
+                    'invalid_message' => 'Esa dificultad no está disponible.',
                     'required' => false,
                     'mapped' => false,
                     'placeholder' => 'Selecciona dificultad',

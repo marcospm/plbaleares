@@ -8,6 +8,11 @@
         <h1>Editar Recurso Específico</h1>
     </div>
     <div class="card-body">
+        {% if recursosGrupo is defined and recursosGrupo|length > 1 %}
+            <p style="margin-top: 0; color: var(--color-text-light);">
+                Este recurso agrupa {{ recursosGrupo|length }} archivos. Puedes cambiar los datos, añadir archivos o quitar los que sobren.
+            </p>
+        {% endif %}
         {{ form_start(form) }}
             <input type="hidden" name="asignar_todos_alumnos" id="asignar-todos-alumnos-input" value="0">
             <div class="form-group">

@@ -6,6 +6,7 @@ use App\Entity\Tema;
 use App\Entity\Municipio;
 use App\Entity\TemaMunicipal;
 use App\Entity\Convocatoria;
+use App\Service\DificultadExamenService;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -20,6 +21,11 @@ use Symfony\Component\Form\FormError;
 
 class ExamenIniciarType extends AbstractType
 {
+    public function __construct(
+        private DificultadExamenService $dificultadExamenService,
+    ) {
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $user = $options['user'] ?? null;
@@ -163,16 +169,7 @@ class ExamenIniciarType extends AbstractType
                 'attr' => ['class' => 'form-check', 'id' => 'temas_municipales', 'style' => 'display: none;'],
                 'placeholder' => false,
             ])
-            ->add('dificultad', ChoiceType::class, [
-                'label' => 'Dificultad',
-                'choices' => [
-                    'Fácil' => 'facil',
-                    'Moderada' => 'moderada',
-                    'Difícil' => 'dificil',
-                ],
-                'required' => true,
-                'attr' => ['class' => 'form-control']
-            ])
+            ->add('dificultad', ChoiceType::class, $this->dificultadExamenService->opcionesCampo('Dificultad', false))
             ->add('numeroPreguntas', ChoiceType::class, [
                 'label' => 'Número de Preguntas',
                 'choices' => [

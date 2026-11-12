@@ -6,7 +6,7 @@
 <div class="card">
     <div class="card-header">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>{{ recursoEspecifico.nombre }}</h1>
+            <h1>{{ nombreGrupo|default(recursoEspecifico.nombre) }}</h1>
             <div>
                 <a href="{{ path('app_recurso_especifico_edit', {'id': recursoEspecifico.id}) }}" class="btn btn-primary">Editar</a>
                 <a href="{{ path('app_recurso_especifico_index') }}" class="btn btn-secondary">Volver</a>
@@ -21,7 +21,20 @@
 
         <div style="margin-bottom: 1.5rem;">
             <h3>Contenido</h3>
-            {% if recursoEspecifico.tieneEnlace %}
+            {% if recursosGrupo is defined and recursosGrupo|length > 1 %}
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    {% for recurso in recursosGrupo %}
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; background: #f5f5f5; border-radius: 4px;">
+                            <span>{{ recurso.nombreArchivoOriginal|default(recurso.nombre) }}</span>
+                            {% if recurso.tieneArchivo %}
+                                <a href="{{ recurso.rutaArchivo }}" target="_blank" class="btn btn-sm btn-primary" rel="noopener noreferrer">Descargar</a>
+                            {% elseif recurso.tieneEnlace %}
+                                <a href="{{ recurso.enlace }}" target="_blank" class="btn btn-sm btn-primary" rel="noopener noreferrer">Abrir enlace</a>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% elseif recursoEspecifico.tieneEnlace %}
                 <p>
                     <strong>Tipo:</strong> Enlace externo<br>
                     <a href="{{ recursoEspecifico.enlace }}" target="_blank" class="btn btn-primary" rel="noopener noreferrer">Abrir enlace</a>

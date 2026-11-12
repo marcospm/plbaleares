@@ -7,12 +7,34 @@
 </div>
 
 <div id="bloque-archivo-recurso" class="form-group">
+    {% if recursosGrupo is defined and recursosGrupo|length > 1 %}
+        <div style="margin-bottom: 1rem;">
+            <strong>Archivos de este recurso</strong>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+                {% for recurso in recursosGrupo %}
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; background: #e8f5e9; border-radius: 4px;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; margin: 0; flex: 1; cursor: pointer;">
+                            <input type="checkbox" name="eliminar_archivos[]" value="{{ recurso.id }}">
+                            <span>Quitar</span>
+                            <span>{{ recurso.nombreArchivoOriginal|default(recurso.nombre) }}</span>
+                        </label>
+                        {% if recurso.tieneArchivo %}
+                            <a href="{{ recurso.rutaArchivo }}" target="_blank" rel="noopener noreferrer">Ver</a>
+                        {% elseif recurso.tieneEnlace %}
+                            <a href="{{ recurso.enlace }}" target="_blank" rel="noopener noreferrer">Abrir</a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+            <small>Marca los archivos que quieras quitar al guardar. El nombre, la descripción y los alumnos se aplican a todos.</small>
+        </div>
+    {% endif %}
     {{ form_label(form.archivo) }}
-    {% if recursoEspecifico is defined and recursoEspecifico.tieneArchivo %}
+    {% if recursoEspecifico is defined and recursoEspecifico.tieneArchivo and (recursosGrupo is not defined or recursosGrupo|length < 2) %}
         <div style="margin-bottom: 0.5rem; padding: 0.5rem; background-color: #e8f5e9; border-radius: 4px;">
             <strong>Archivo actual:</strong> {{ recursoEspecifico.nombreArchivoOriginal ?? 'Archivo sin nombre' }}
             <br>
-            <small>Deja este campo vacío si no deseas cambiar el archivo.</small>
+            <small>Deja este campo vacío si no deseas cambiar el archivo. Si eliges varios, se añaden y se muestran juntos.</small>
         </div>
     {% endif %}
     {{ form_widget(form.archivo) }}

@@ -12,6 +12,7 @@ use App\Repository\PreguntaMunicipalRepository;
 use App\Repository\MunicipioRepository;
 use App\Repository\TemaMunicipalRepository;
 use App\Service\BloquePreguntasParser;
+use App\Service\DificultadExamenService;
 use App\Service\ExamenSemanalDesdePegado;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -410,7 +411,8 @@ class PreguntaMunicipalController extends AbstractController
         MunicipioRepository $municipioRepository,
         TemaMunicipalRepository $temaMunicipalRepository,
         BloquePreguntasParser $parser,
-        ExamenSemanalDesdePegado $examenSemanalDesdePegado
+        ExamenSemanalDesdePegado $examenSemanalDesdePegado,
+        DificultadExamenService $dificultadExamenService
     ): Response {
         $preparado = $this->prepararDestinoExamenMunicipal($request, $examenSemanalDesdePegado);
         if ($preparado !== null) {
@@ -418,7 +420,7 @@ class PreguntaMunicipalController extends AbstractController
         }
 
         if ((string) $request->request->get('modo', 'unico') === 'aleatorio') {
-            return $this->procesarPegarAleatorio($request, $municipioRepository, $temaMunicipalRepository, $parser);
+            return $this->procesarPegarAleatorio($request, $municipioRepository, $temaMunicipalRepository, $parser, $dificultadExamenService);
         }
 
         $municipioId = $request->request->getInt('municipio', 0);
@@ -426,7 +428,7 @@ class PreguntaMunicipalController extends AbstractController
         $dificultad = (string) $request->request->get('dificultad', '');
         $bloque = (string) $request->request->get('bloque', '');
 
-        if ($municipioId <= 0 || $temaMunicipalId <= 0 || !in_array($dificultad, ['facil', 'moderada', 'dificil', 'indeterminado'], true)) {
+        if ($municipioId <= 0 || $temaMunicipalId <= 0 || !$dificultadExamenService->acepta($dificultad, true)) {
             $this->addFlash('error', 'Debes completar todos los campos: Municipio, Tema municipal y Dificultad.');
 
             return $this->redirectToRoute($this->rutaPegadoMunicipal($request));
@@ -1257,7 +1259,8 @@ class PreguntaMunicipalController extends AbstractController
         Request $request,
         MunicipioRepository $municipioRepository,
         TemaMunicipalRepository $temaMunicipalRepository,
-        BloquePreguntasParser $parser
+        BloquePreguntasParser $parser,
+        DificultadExamenService $dificultadExamenService
     ): Response {
         $municipioId = $request->request->getInt('municipio', 0);
         $dificultad = (string) $request->request->get('dificultad', '');
@@ -1274,7 +1277,7 @@ class PreguntaMunicipalController extends AbstractController
         }
         $ids = array_values($ids);
 
-        if ($municipioId <= 0 || count($ids) < 2 || !in_array($dificultad, ['facil', 'moderada', 'dificil', 'indeterminado'], true)) {
+        if ($municipioId <= 0 || count($ids) < 2 || !$dificultadExamenService->acepta($dificultad, true)) {
             $this->addFlash('error', 'Elige el municipio, al menos dos temas y la dificultad.');
 
             return $this->redirectToRoute($this->rutaPegadoMunicipal($request));

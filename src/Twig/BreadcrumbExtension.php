@@ -184,6 +184,7 @@ class BreadcrumbExtension extends AbstractExtension
             'app_examen_pdf_edit' => ['label' => 'Editar Examen PDF', 'parent' => 'app_examen_pdf_index'],
             
             // Profesor - Configuración de Exámenes
+            'app_configuracion_dificultad_examen' => ['label' => 'Dificultades de examen', 'parent' => 'app_dashboard'],
             'app_configuracion_examen_index' => ['label' => 'Configuración de Exámenes', 'parent' => 'app_dashboard'],
             'app_configuracion_examen_new' => ['label' => 'Nueva Configuración', 'parent' => 'app_configuracion_examen_index'],
             'app_configuracion_examen_show' => ['label' => 'Ver Configuración', 'parent' => 'app_configuracion_examen_index'],

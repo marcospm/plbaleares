@@ -187,7 +187,12 @@
             </div>
 
             <div class="form-group mb-3">
-                {{ form_row(form.dificultad) }}
+                {% import 'examen/_dificultad.html.twig' as dificultadExamen %}
+                {% if form.dificultad.vars.choices|length <= 1 %}
+                    {{ dificultadExamen.campo(form.dificultad) }}
+                {% else %}
+                    {{ form_row(form.dificultad) }}
+                {% endif %}
             </div>
 
             <div class="form-group mb-3">

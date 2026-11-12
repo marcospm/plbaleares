@@ -48,6 +48,8 @@ class ExportacionDatosService
             'provincia' => $user->getProvincia(),
             'fecha_nacimiento' => $user->getFechaNacimiento()?->format('Y-m-d'),
             'sexo' => $user->getSexo(),
+            'categoria' => $user->getCategoria()->value,
+            'categoria_nombre' => $user->getCategoriaLabel(),
             'notas' => $user->getNotas(),
             'roles' => $user->getRoles(),
             'activo' => $user->isActivo(),

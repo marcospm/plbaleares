@@ -141,18 +141,7 @@ class RecursoPublicoController extends AbstractController
      */
     private function nombreVisibleDelGrupo(array $recursos): string
     {
-        $nombre = $recursos[0]->getNombre() ?? '';
-        if (count($recursos) < 2) {
-            return $nombre;
-        }
-
-        $separador = ' — ';
-        $posicion = strpos($nombre, $separador);
-        if ($posicion === false) {
-            return $nombre;
-        }
-
-        return substr($nombre, 0, $posicion);
+        return $recursos[0]->getNombreBase();
     }
 }
 

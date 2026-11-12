@@ -110,7 +110,7 @@ class RecursoEspecificoType extends AbstractType
                 'help' => 'URL del recurso (web, Drive, Dropbox, etc.).',
             ])
             ->add('archivo', FileType::class, [
-                'label' => 'Archivo',
+                'label' => $options['es_grupo'] ? 'Añadir archivos' : 'Archivo',
                 'required' => false,
                 'mapped' => false,
                 'multiple' => $options['multiple_archivos'],
@@ -133,9 +133,11 @@ class RecursoEspecificoType extends AbstractType
                             maxSizeMessage: 'El archivo es demasiado grande. Tamaño máximo: 100 MB.'
                         ),
                 ],
-                'help' => $options['multiple_archivos']
-                    ? 'Puedes elegir varios archivos. Cada uno se guarda como un recurso, con el mismo nombre, descripción y alumnos. Máximo 100 MB por archivo.'
-                    : 'Tamaño máximo: 100 MB. PDF u otro tipo de archivo.',
+                'help' => $this->textoAyudaArchivo(
+                    (bool) $options['es_grupo'],
+                    (bool) $options['edicion'],
+                    (bool) $options['multiple_archivos']
+                ),
             ])
         ;
 
@@ -157,7 +159,26 @@ class RecursoEspecificoType extends AbstractType
             'alumnos_query_builder' => null,
             'grupos_query_builder' => null,
             'multiple_archivos' => false,
+            'es_grupo' => false,
+            'edicion' => false,
         ]);
+    }
+
+    private function textoAyudaArchivo(bool $esGrupo, bool $edicion, bool $multiple): string
+    {
+        if ($esGrupo) {
+            return 'Los archivos que elijas se añaden a los que ya tiene el recurso. Máximo 100 MB por archivo.';
+        }
+
+        if ($edicion) {
+            return 'Elige un archivo para sustituir el actual, o varios para dejarlos juntos en el mismo recurso. Máximo 100 MB por archivo.';
+        }
+
+        if ($multiple) {
+            return 'Puedes elegir varios archivos. Se verán como un único recurso y podrás añadir más al editarlo. Máximo 100 MB por archivo.';
+        }
+
+        return 'Tamaño máximo: 100 MB. PDF u otro tipo de archivo.';
     }
 }
 

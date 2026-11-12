@@ -12,6 +12,8 @@ use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Count;
 
@@ -19,6 +21,21 @@ class ConvocatoriaType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $idsMunicipiosAsignados = [];
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) use (&$idsMunicipiosAsignados): void {
+            $idsMunicipiosAsignados = [];
+            $convocatoria = $event->getData();
+            if (!$convocatoria instanceof Convocatoria) {
+                return;
+            }
+
+            foreach ($convocatoria->getMunicipios() as $municipio) {
+                if ($municipio->getId() !== null) {
+                    $idsMunicipiosAsignados[] = $municipio->getId();
+                }
+            }
+        });
+
         $builder
             ->add('nombre', TextType::class, [
                 'label' => 'Nombre de la Convocatoria',
@@ -27,17 +44,30 @@ class ConvocatoriaType extends AbstractType
             ])
             ->add('municipios', EntityType::class, [
                 'class' => Municipio::class,
-                'choice_label' => 'nombre',
+                'choice_label' => function (Municipio $municipio): string {
+                    $nombre = $municipio->getNombre() ?? '';
+
+                    return $municipio->isActivo() ? $nombre : $nombre . ' (inactivo)';
+                },
                 'required' => true,
                 'multiple' => true,
                 'expanded' => false,
                 'label' => 'Municipios <span style="color: #dc3545;">*</span>',
                 'label_html' => true,
-                'query_builder' => function (MunicipioRepository $er) {
-                    return $er->createQueryBuilder('m')
-                        ->where('m.activo = :activo')
-                        ->setParameter('activo', true)
+                'query_builder' => function (MunicipioRepository $er) use (&$idsMunicipiosAsignados) {
+                    $qb = $er->createQueryBuilder('m')
                         ->orderBy('m.nombre', 'ASC');
+
+                    if ($idsMunicipiosAsignados === []) {
+                        return $qb
+                            ->where('m.activo = :activo')
+                            ->setParameter('activo', true);
+                    }
+
+                    return $qb
+                        ->where('m.activo = :activo OR m.id IN (:ids)')
+                        ->setParameter('activo', true)
+                        ->setParameter('ids', $idsMunicipiosAsignados);
                 },
                 'attr' => ['class' => 'form-control', 'size' => 5],
                 'constraints' => [
@@ -89,7 +119,6 @@ class ConvocatoriaType extends AbstractType
             ->add('activo', CheckboxType::class, [
                 'label' => 'Activa',
                 'required' => false,
-                'data' => true,
             ])
         ;
     }

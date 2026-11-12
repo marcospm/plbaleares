@@ -261,6 +261,7 @@
                         <th>ID</th>
                         <th>Nombre de Usuario</th>
                         <th>Roles</th>
+                        <th>Categoría</th>
                         <th>Estado</th>
                         <th>Último Login</th>
                         {% if is_granted('ROLE_ADMIN') %}
@@ -281,6 +282,7 @@
                                     </span>
                                 {% endfor %}
                             </td>
+                            <td>{{ user.categoriaLabel }}</td>
                             <td>
                                 {% if user.isSuprimido %}
                                     <span class="badge" style="background-color: #842029;">Datos suprimidos</span>
@@ -378,6 +380,10 @@
                                 </span>
                             {% endfor %}
                         </div>
+                    </div>
+                    <div class="user-card-row">
+                        <div class="user-card-label">Categoría:</div>
+                        <div class="user-card-value">{{ user.categoriaLabel }}</div>
                     </div>
                     <div class="user-card-row">
                         <div class="user-card-label">Estado:</div>

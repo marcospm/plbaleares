@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\RecursoEspecifico;
+use App\Entity\User;
 use App\Form\RecursoEspecificoType;
 use App\Repository\RecursoEspecificoRepository;
 use App\Repository\UserRepository;
@@ -34,8 +35,7 @@ class RecursoEspecificoController extends AbstractController
     {
         $profesor = $this->getUser();
         $search = trim($request->query->get('search', ''));
-        
-        // Filtrar recursos por búsqueda si existe
+
         if (!empty($search)) {
             $recursos = $recursoEspecificoRepository->createQueryBuilder('r')
                 ->where('r.profesor = :profesor')
@@ -45,12 +45,13 @@ class RecursoEspecificoController extends AbstractController
                 ->orderBy('r.fechaCreacion', 'DESC')
                 ->getQuery()
                 ->getResult();
+            $recursos = $this->completarLotesDeLaBusqueda($recursos, $recursoEspecificoRepository, $profesor);
         } else {
             $recursos = $recursoEspecificoRepository->findByProfesor($profesor);
         }
 
         return $this->render('recurso_especifico/index.html.twig', [
-            'recursos' => $recursos,
+            'grupos' => $this->agruparParaListado($recursos),
             'search' => $search,
         ]);
     }
@@ -183,7 +184,7 @@ class RecursoEspecificoController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_recurso_especifico_show', methods: ['GET'])]
-    public function show(RecursoEspecifico $recursoEspecifico): Response
+    public function show(RecursoEspecifico $recursoEspecifico, RecursoEspecificoRepository $recursoEspecificoRepository): Response
     {
         // Verificar que el profesor tiene acceso a este recurso
         $profesor = $this->getUser();
@@ -192,13 +193,17 @@ class RecursoEspecificoController extends AbstractController
             return $this->redirectToRoute('app_recurso_especifico_index', [], Response::HTTP_SEE_OTHER);
         }
 
+        $recursosGrupo = $this->recursosDelMismoLote($recursoEspecifico, $recursoEspecificoRepository);
+
         return $this->render('recurso_especifico/show.html.twig', [
             'recursoEspecifico' => $recursoEspecifico,
+            'recursosGrupo' => $recursosGrupo,
+            'nombreGrupo' => $recursosGrupo[0]->getNombreBase(),
         ]);
     }
 
     #[Route('/{id}/edit', name: 'app_recurso_especifico_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, RecursoEspecifico $recursoEspecifico, EntityManagerInterface $entityManager, SluggerInterface $slugger, UserRepository $userRepository, GrupoRepository $grupoRepository): Response
+    public function edit(Request $request, RecursoEspecifico $recursoEspecifico, EntityManagerInterface $entityManager, SluggerInterface $slugger, UserRepository $userRepository, GrupoRepository $grupoRepository, RecursoEspecificoRepository $recursoEspecificoRepository): Response
     {
         // Verificar que el profesor tiene acceso a este recurso
         $profesor = $this->getUser();
@@ -206,6 +211,9 @@ class RecursoEspecificoController extends AbstractController
             $this->addFlash('error', 'No tienes acceso a este recurso.');
             return $this->redirectToRoute('app_recurso_especifico_index', [], Response::HTTP_SEE_OTHER);
         }
+
+        $recursosGrupo = $this->recursosDelMismoLote($recursoEspecifico, $recursoEspecificoRepository);
+        $recursoEspecifico->setNombre($recursoEspecifico->getNombreBase());
 
         // Obtener solo los alumnos asignados al profesor
         $esAdmin = $this->isGranted('ROLE_ADMIN');
@@ -264,6 +272,9 @@ class RecursoEspecificoController extends AbstractController
         $form = $this->createForm(RecursoEspecificoType::class, $recursoEspecifico, [
             'alumnos_query_builder' => $alumnosQueryBuilder,
             'grupos_query_builder' => $gruposQueryBuilder,
+            'multiple_archivos' => true,
+            'es_grupo' => count($recursosGrupo) > 1,
+            'edicion' => true,
         ]);
         $form->handleRequest($request);
 
@@ -289,45 +300,30 @@ class RecursoEspecificoController extends AbstractController
             // Validar que hay al menos un alumno asignado, un grupo o una convocatoria
             if ($recursoEspecifico->getAlumnos()->isEmpty() && $grupo === null && $recursoEspecifico->getConvocatorias()->isEmpty()) {
                 $this->addFlash('error', 'Debes asignar el recurso a al menos un alumno, un grupo o una convocatoria.');
-                return $this->render('recurso_especifico/edit.html.twig', [
-                    'recursoEspecifico' => $recursoEspecifico,
-                    'form' => $form,
-                ]);
+                return $this->renderFormularioEdicion($form, $recursoEspecifico, $recursosGrupo);
             }
-            
-            /** @var UploadedFile|null $archivo */
-            $archivo = $form->get('archivo')->getData();
-            $tipoRecurso = (string) $form->get('tipoRecurso')->getData();
 
-            $errorContenido = $this->procesarArchivoOEnlace(
+            $errorContenido = $this->guardarEdicionConArchivos(
+                $request,
                 $recursoEspecifico,
-                $archivo,
-                $tipoRecurso,
-                $slugger,
-                false
+                $recursosGrupo,
+                $form,
+                $entityManager,
+                $slugger
             );
             if ($errorContenido !== null) {
                 $this->addFlash('error', $errorContenido);
-                return $this->render('recurso_especifico/edit.html.twig', [
-                    'recursoEspecifico' => $recursoEspecifico,
-                    'form' => $form,
-                ]);
+                return $this->renderFormularioEdicion($form, $recursoEspecifico, $recursosGrupo);
             }
-            
-            $entityManager->flush();
 
-            $this->addFlash('success', 'Recurso específico actualizado correctamente.');
             return $this->redirectToRoute('app_recurso_especifico_index', [], Response::HTTP_SEE_OTHER);
         }
 
-        return $this->render('recurso_especifico/edit.html.twig', [
-            'recursoEspecifico' => $recursoEspecifico,
-            'form' => $form,
-        ]);
+        return $this->renderFormularioEdicion($form, $recursoEspecifico, $recursosGrupo);
     }
 
     #[Route('/{id}', name: 'app_recurso_especifico_delete', methods: ['POST'])]
-    public function delete(Request $request, RecursoEspecifico $recursoEspecifico, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, RecursoEspecifico $recursoEspecifico, EntityManagerInterface $entityManager, RecursoEspecificoRepository $recursoEspecificoRepository): Response
     {
         // Verificar que el profesor tiene acceso a este recurso
         $profesor = $this->getUser();
@@ -337,18 +333,16 @@ class RecursoEspecificoController extends AbstractController
         }
 
         if ($this->isCsrfTokenValid('delete'.$recursoEspecifico->getId(), $request->getPayload()->getString('_token'))) {
-            // Eliminar archivo físico si existe
-            if ($recursoEspecifico->tieneArchivo()) {
-                $rutaFisica = $this->kernel->getProjectDir() . '/public' . $recursoEspecifico->getRutaArchivo();
-                if (file_exists($rutaFisica)) {
-                    unlink($rutaFisica);
-                }
+            $recursos = $this->recursosDelMismoLote($recursoEspecifico, $recursoEspecificoRepository);
+            foreach ($recursos as $recurso) {
+                $this->eliminarArchivoFisico($recurso);
+                $entityManager->remove($recurso);
             }
-            
-            $entityManager->remove($recursoEspecifico);
             $entityManager->flush();
-            
-            $this->addFlash('success', 'Recurso específico eliminado correctamente.');
+
+            $this->addFlash('success', count($recursos) > 1
+                ? 'Se ha eliminado el recurso y sus ' . count($recursos) . ' archivos.'
+                : 'Recurso específico eliminado correctamente.');
         }
 
         return $this->redirectToRoute('app_recurso_especifico_index', [], Response::HTTP_SEE_OTHER);
@@ -454,7 +448,7 @@ class RecursoEspecificoController extends AbstractController
 
         return array_values(array_filter(
             $data,
-            static fn ($archivo) => $archivo instanceof UploadedFile
+            static fn ($archivo) => $archivo instanceof UploadedFile && $archivo->getError() !== \UPLOAD_ERR_NO_FILE
         ));
     }
 
@@ -580,6 +574,272 @@ class RecursoEspecificoController extends AbstractController
         $rutaFisica = $this->kernel->getProjectDir() . '/public' . $recursoEspecifico->getRutaArchivo();
         if (file_exists($rutaFisica)) {
             unlink($rutaFisica);
+        }
+    }
+
+    /**
+     * @param list<RecursoEspecifico> $recursos
+     * @return list<RecursoEspecifico>
+     */
+    private function completarLotesDeLaBusqueda(array $recursos, RecursoEspecificoRepository $repository, mixed $profesor): array
+    {
+        if (!$profesor instanceof User) {
+            return $recursos;
+        }
+
+        $lotes = [];
+        foreach ($recursos as $recurso) {
+            $lote = $recurso->getLote();
+            if ($lote !== null && $lote !== '') {
+                $lotes[$lote] = $lote;
+            }
+        }
+        if ($lotes === []) {
+            return $recursos;
+        }
+
+        $porId = [];
+        foreach ($recursos as $recurso) {
+            $porId[$recurso->getId()] = $recurso;
+        }
+        foreach ($repository->findByLotesYProfesor(array_values($lotes), $profesor) as $recurso) {
+            $porId[$recurso->getId()] ??= $recurso;
+        }
+
+        return array_values($porId);
+    }
+
+    /**
+     * @param list<RecursoEspecifico> $recursos
+     * @return list<array{nombre: string, descripcion: ?string, fecha: ?\DateTimeInterface, recursos: list<RecursoEspecifico>, principal: RecursoEspecifico}>
+     */
+    private function agruparParaListado(array $recursos): array
+    {
+        $grupos = [];
+        $orden = [];
+        foreach ($recursos as $recurso) {
+            $lote = $recurso->getLote();
+            $clave = ($lote !== null && $lote !== '') ? 'lote-' . $lote : 'recurso-' . $recurso->getId();
+            if (!isset($grupos[$clave])) {
+                $orden[] = $clave;
+            }
+            $grupos[$clave][] = $recurso;
+        }
+
+        $resultado = [];
+        foreach ($orden as $clave) {
+            $items = $grupos[$clave];
+            usort($items, static fn (RecursoEspecifico $a, RecursoEspecifico $b): int => ($a->getId() ?? 0) <=> ($b->getId() ?? 0));
+            $fecha = $items[0]->getFechaCreacion();
+            foreach ($items as $item) {
+                $candidata = $item->getFechaCreacion();
+                if ($fecha === null || ($candidata !== null && $candidata > $fecha)) {
+                    $fecha = $candidata;
+                }
+            }
+            $resultado[] = [
+                'nombre' => $items[0]->getNombreBase(),
+                'descripcion' => $items[0]->getDescripcion(),
+                'fecha' => $fecha,
+                'recursos' => $items,
+                'principal' => $items[0],
+            ];
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * @return list<RecursoEspecifico>
+     */
+    private function recursosDelMismoLote(RecursoEspecifico $recurso, RecursoEspecificoRepository $repository): array
+    {
+        $lote = $recurso->getLote();
+        $profesor = $recurso->getProfesor();
+        if ($lote === null || $lote === '' || !$profesor instanceof User) {
+            return [$recurso];
+        }
+
+        $recursos = $repository->findByLoteYProfesor($lote, $profesor);
+
+        return $recursos !== [] ? $recursos : [$recurso];
+    }
+
+    /**
+     * @param list<RecursoEspecifico> $recursosGrupo
+     */
+    private function renderFormularioEdicion(FormInterface $form, RecursoEspecifico $recurso, array $recursosGrupo): Response
+    {
+        return $this->render('recurso_especifico/edit.html.twig', [
+            'recursoEspecifico' => $recurso,
+            'form' => $form,
+            'recursosGrupo' => $recursosGrupo,
+        ]);
+    }
+
+    /**
+     * @param list<RecursoEspecifico> $recursosGrupo
+     */
+    private function guardarEdicionConArchivos(
+        Request $request,
+        RecursoEspecifico $recursoEspecifico,
+        array $recursosGrupo,
+        FormInterface $form,
+        EntityManagerInterface $entityManager,
+        SluggerInterface $slugger,
+    ): ?string {
+        $nombreBase = $recursoEspecifico->getNombre() ?? 'Recurso';
+        $tipoRecurso = (string) $form->get('tipoRecurso')->getData();
+        $idsEliminar = $this->idsArchivosAEliminar($request);
+        $archivosNuevos = $this->normalizarArchivosSubidos($form->get('archivo')->getData());
+
+        if ($tipoRecurso === 'enlace') {
+            if (count($recursosGrupo) > 1 || $idsEliminar !== []) {
+                return 'Un recurso con varios archivos no puede pasar a ser un enlace. Quita archivos hasta dejar uno, o crea el enlace aparte.';
+            }
+
+            $error = $this->procesarArchivoOEnlace($recursoEspecifico, null, 'enlace', $slugger, false);
+            if ($error !== null) {
+                return $error;
+            }
+
+            $entityManager->flush();
+            $this->addFlash('success', 'Recurso específico actualizado correctamente.');
+
+            return null;
+        }
+
+        $porId = [];
+        foreach ($recursosGrupo as $item) {
+            if ($item->getId() !== null) {
+                $porId[$item->getId()] = $item;
+            }
+        }
+        $aEliminar = [];
+        foreach ($idsEliminar as $id) {
+            if (isset($porId[$id])) {
+                $aEliminar[] = $porId[$id];
+            }
+        }
+        $seQuedan = [];
+        foreach ($recursosGrupo as $item) {
+            if (!in_array($item, $aEliminar, true)) {
+                $seQuedan[] = $item;
+            }
+        }
+
+        $esSustitucion = count($recursosGrupo) === 1
+            && $idsEliminar === []
+            && count($archivosNuevos) === 1;
+
+        if ($esSustitucion) {
+            $error = $this->procesarArchivoOEnlace($recursoEspecifico, $archivosNuevos[0], 'archivo', $slugger, false);
+            if ($error !== null) {
+                return $error;
+            }
+
+            $recursoEspecifico->setLote(null);
+            $entityManager->flush();
+            $this->addFlash('success', 'Recurso específico actualizado correctamente.');
+
+            return null;
+        }
+
+        if ($seQuedan === [] && $archivosNuevos === []) {
+            return 'El recurso debe conservar al menos un archivo.';
+        }
+
+        if ((count($seQuedan) + count($archivosNuevos)) > 1 && ($recursoEspecifico->getLote() === null || $recursoEspecifico->getLote() === '')) {
+            $recursoEspecifico->setLote(bin2hex(random_bytes(16)));
+        }
+
+        $creados = [];
+        foreach ($archivosNuevos as $archivo) {
+            $nuevo = $this->copiarAsignacion($recursoEspecifico);
+            $nuevo->setNombre($nombreBase . ' — ' . $archivo->getClientOriginalName());
+            $error = $this->procesarArchivoOEnlace($nuevo, $archivo, 'archivo', $slugger, true);
+            if ($error !== null) {
+                foreach ($creados as $creado) {
+                    $this->eliminarArchivoFisico($creado);
+                }
+                $this->eliminarArchivoFisico($nuevo);
+
+                return $error;
+            }
+            $creados[] = $nuevo;
+        }
+
+        $finales = array_merge($seQuedan, $creados);
+        $esGrupo = count($finales) > 1;
+        $loteFinal = $esGrupo ? ($recursoEspecifico->getLote() ?: bin2hex(random_bytes(16))) : null;
+
+        foreach ($finales as $item) {
+            $item->setLote($loteFinal);
+            $archivo = $item->getNombreArchivoOriginal() ?: 'archivo';
+            $item->setNombre($esGrupo ? $nombreBase . ' — ' . $archivo : $nombreBase);
+            $this->copiarDatosSobre($recursoEspecifico, $item);
+        }
+
+        foreach ($aEliminar as $item) {
+            $this->eliminarArchivoFisico($item);
+            $entityManager->remove($item);
+        }
+        foreach ($creados as $creado) {
+            $entityManager->persist($creado);
+        }
+        $entityManager->flush();
+
+        $mensaje = 'Recurso específico actualizado correctamente.';
+        if (count($creados) > 0) {
+            $mensaje .= count($creados) === 1
+                ? ' Se ha añadido 1 archivo.'
+                : ' Se han añadido ' . count($creados) . ' archivos.';
+        }
+        $this->addFlash('success', $mensaje);
+
+        return null;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function idsArchivosAEliminar(Request $request): array
+    {
+        if (!$request->request->has('eliminar_archivos')) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($request->request->all('eliminar_archivos') as $id) {
+            if (is_scalar($id) && ctype_digit((string) $id)) {
+                $ids[] = (int) $id;
+            }
+        }
+
+        return $ids;
+    }
+
+    private function copiarDatosSobre(RecursoEspecifico $origen, RecursoEspecifico $destino): void
+    {
+        if ($origen === $destino) {
+            return;
+        }
+
+        $destino->setDescripcion($origen->getDescripcion());
+        $destino->setGrupo($origen->getGrupo());
+
+        foreach ($destino->getConvocatorias()->toArray() as $convocatoria) {
+            $destino->removeConvocatoria($convocatoria);
+        }
+        foreach ($origen->getConvocatorias() as $convocatoria) {
+            $destino->addConvocatoria($convocatoria);
+        }
+
+        foreach ($destino->getAlumnos()->toArray() as $alumno) {
+            $destino->removeAlumno($alumno);
+        }
+        foreach ($origen->getAlumnos() as $alumno) {
+            $destino->addAlumno($alumno);
         }
     }
 }

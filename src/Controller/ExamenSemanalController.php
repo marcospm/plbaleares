@@ -19,6 +19,7 @@ use App\Service\PreguntaService;
 use App\Repository\TemaRepository;
 use App\Repository\LeyRepository;
 use App\Repository\ArticuloRepository;
+use App\Service\DificultadExamenService;
 use App\Service\ExamenSemanalPreguntasService;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -49,6 +50,7 @@ class ExamenSemanalController extends AbstractController
         private LeyRepository $leyRepository,
         private ArticuloRepository $articuloRepository,
         private ExamenSemanalPreguntasService $examenSemanalPreguntas,
+        private DificultadExamenService $dificultadExamenService,
         private ?CacheItemPoolInterface $cache = null
     ) {
     }
@@ -178,6 +180,9 @@ class ExamenSemanalController extends AbstractController
                 if (empty($datos['nombre']) || empty($datos['fechaApertura']) || empty($datos['fechaCierre']) || empty($datos['dificultad'])) {
                     return new JsonResponse(['error' => 'Faltan datos requeridos del examen'], 400);
                 }
+                if (!$this->dificultadExamenService->acepta((string) $datos['dificultad'])) {
+                    return new JsonResponse(['error' => 'Esa dificultad no está disponible.'], 400);
+                }
 
                 // Crear examen semanal
                 $examenSemanal = new ExamenSemanal();
@@ -255,6 +260,9 @@ class ExamenSemanalController extends AbstractController
                 // Validar datos básicos del examen
                 if (empty($datos['nombre']) || empty($datos['fechaApertura']) || empty($datos['fechaCierre']) || empty($datos['dificultad']) || empty($datos['convocatoriaId'])) {
                     return new JsonResponse(['error' => 'Faltan datos requeridos del examen'], 400);
+                }
+                if (!$this->dificultadExamenService->acepta((string) $datos['dificultad'])) {
+                    return new JsonResponse(['error' => 'Esa dificultad no está disponible.'], 400);
                 }
 
                 $convocatoria = $this->convocatoriaRepository->find($datos['convocatoriaId']);

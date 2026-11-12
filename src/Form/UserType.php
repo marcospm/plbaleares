@@ -2,9 +2,11 @@
 
 namespace App\Form;
 
+use App\Entity\CategoriaOposicion;
 use App\Entity\User;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
@@ -89,6 +91,14 @@ class UserType extends AbstractType
         }
         
         $builder->add('roles', ChoiceType::class, $rolesOptions);
+
+        $builder->add('categoria', EnumType::class, [
+            'label' => 'Categoría',
+            'class' => CategoriaOposicion::class,
+            'choice_label' => static fn (CategoriaOposicion $categoria): string => $categoria->getLabel(),
+            'required' => true,
+            'attr' => ['class' => 'form-control'],
+        ]);
 
         $builder
             ->add('email', EmailType::class, [

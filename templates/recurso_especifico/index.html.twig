@@ -147,7 +147,7 @@
     </div>
     <div class="card-body">
         <p style="margin-bottom: 2rem; color: var(--color-text-light);">
-            Gestiona los recursos específicos que compartes con tus alumnos asignados. Estos recursos aparecerán en la sección de recursos de cada alumno asignado.
+            Gestiona los recursos específicos que compartes con tus alumnos asignados. Si subes varios archivos a la vez, se muestran como un solo recurso: desde Editar puedes añadir o quitar archivos.
         </p>
 
         {# Buscador #}
@@ -181,13 +181,13 @@
                 </form>
                 {% if search %}
                     <div style="margin-top: 1rem; color: white; font-size: 0.95rem;">
-                        <strong>{{ recursos|length }}</strong> recurso(s) encontrado(s) para "<strong>{{ search }}</strong>"
+                        <strong>{{ grupos|length }}</strong> recurso(s) encontrado(s) para "<strong>{{ search }}</strong>"
                     </div>
                 {% endif %}
             </div>
         </div>
 
-        {% if recursos|length > 0 %}
+        {% if grupos|length > 0 %}
             <div class="table-responsive">
                 <table class="table">
                 <thead>
@@ -200,12 +200,24 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for recurso in recursos %}
+                    {% for grupo in grupos %}
+                        {% set recurso = grupo.principal %}
                         <tr>
-                            <td><strong>{{ recurso.nombre }}</strong></td>
-                            <td>{{ recurso.descripcion|slice(0, 100) }}{% if recurso.descripcion|length > 100 %}...{% endif %}</td>
                             <td>
-                                {% if recurso.tieneEnlace %}
+                                <strong>{{ grupo.nombre }}</strong>
+                                {% if grupo.recursos|length > 1 %}
+                                    <div style="color: #666; font-size: 0.85rem;">{{ grupo.recursos|length }} archivos</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ grupo.descripcion|slice(0, 100) }}{% if grupo.descripcion|length > 100 %}...{% endif %}</td>
+                            <td>
+                                {% if grupo.recursos|length > 1 %}
+                                    <div style="display: flex; flex-direction: column; gap: 0.25rem; align-items: flex-start;">
+                                        {% for archivo in grupo.recursos %}
+                                            <span class="badge badge-facil">{{ archivo.nombreArchivoOriginal|default(archivo.nombre) }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% elseif recurso.tieneEnlace %}
                                     <span class="badge" style="background-color: #2196F3; color: white;">🔗 Enlace</span>
                                 {% elseif recurso.nombreArchivoOriginal %}
                                     <span class="badge badge-facil">{{ recurso.nombreArchivoOriginal }}</span>
@@ -213,12 +225,12 @@
                                     <span class="text-muted">Sin contenido</span>
                                 {% endif %}
                             </td>
-                            <td>{{ recurso.fechaCreacion|date('d/m/Y H:i') }}</td>
+                            <td>{{ grupo.fecha|date('d/m/Y H:i') }}</td>
                             <td>
                                 <div style="display: flex; gap: 0.5rem;">
                                     <a href="{{ path('app_recurso_especifico_show', {'id': recurso.id}) }}" class="btn btn-sm btn-secondary">Ver</a>
                                     <a href="{{ path('app_recurso_especifico_edit', {'id': recurso.id}) }}" class="btn btn-sm btn-primary">Editar</a>
-                                    <form method="post" action="{{ path('app_recurso_especifico_delete', {'id': recurso.id}) }}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este recurso?');">
+                                    <form method="post" action="{{ path('app_recurso_especifico_delete', {'id': recurso.id}) }}" style="display: inline;" onsubmit="return confirm('{% if grupo.recursos|length > 1 %}¿Eliminar este recurso y sus {{ grupo.recursos|length }} archivos?{% else %}¿Estás seguro de que deseas eliminar este recurso?{% endif %}');">
                                         <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ recurso.id) }}">
                                         <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
                                     </form>
@@ -228,6 +240,10 @@
                     {% endfor %}
                 </tbody>
             </table>
+            </div>
+        {% elseif search %}
+            <div class="text-center" style="padding: 2rem;">
+                <p style="font-size: 1.1rem; color: #666; margin-bottom: 1rem;">No hay recursos que coincidan con "{{ search }}".</p>
             </div>
         {% else %}
             <div class="text-center" style="padding: 2rem;">

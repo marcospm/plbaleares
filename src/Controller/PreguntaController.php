@@ -14,6 +14,7 @@ use App\Repository\TemaRepository;
 use App\Repository\LeyRepository;
 use App\Repository\ArticuloRepository;
 use App\Service\BloquePreguntasParser;
+use App\Service\DificultadExamenService;
 use App\Service\ExamenSemanalDesdePegado;
 use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
@@ -457,7 +458,8 @@ class PreguntaController extends AbstractController
         LeyRepository $leyRepository,
         ArticuloRepository $articuloRepository,
         BloquePreguntasParser $parser,
-        ExamenSemanalDesdePegado $examenSemanalDesdePegado
+        ExamenSemanalDesdePegado $examenSemanalDesdePegado,
+        DificultadExamenService $dificultadExamenService
     ): Response {
         $preparado = $this->prepararDestinoExamen($request, $examenSemanalDesdePegado, 'general');
         if ($preparado !== null) {
@@ -465,7 +467,7 @@ class PreguntaController extends AbstractController
         }
 
         if ((string) $request->request->get('modo', 'unico') === 'aleatorio') {
-            return $this->procesarPegarAleatorio($request, $temaRepository, $leyRepository, $articuloRepository, $parser);
+            return $this->procesarPegarAleatorio($request, $temaRepository, $leyRepository, $articuloRepository, $parser, $dificultadExamenService);
         }
 
         $temaId = $request->request->getInt('tema', 0);
@@ -473,7 +475,7 @@ class PreguntaController extends AbstractController
         $dificultad = (string) $request->request->get('dificultad', '');
         $bloque = (string) $request->request->get('bloque', '');
 
-        if ($temaId <= 0 || $leyId <= 0 || !in_array($dificultad, ['facil', 'moderada', 'dificil', 'indeterminado'], true)) {
+        if ($temaId <= 0 || $leyId <= 0 || !$dificultadExamenService->acepta($dificultad, true)) {
             $this->addFlash('error', 'Debes completar todos los campos: Tema, Ley y Dificultad.');
 
             return $this->redirectToRoute($this->rutaPegado($request));
@@ -1444,7 +1446,8 @@ class PreguntaController extends AbstractController
     public function generarExamenPdf(
         Request $request,
         PreguntaRepository $preguntaRepository,
-        TemaRepository $temaRepository
+        TemaRepository $temaRepository,
+        DificultadExamenService $dificultadExamenService
     ): Response {
         if (!$this->isCsrfTokenValid('examen_pdf', $request->request->get('_token'))) {
             $this->addFlash('error', 'Token de seguridad inválido. Inténtalo de nuevo.');
@@ -1462,9 +1465,8 @@ class PreguntaController extends AbstractController
         }
 
         $dificultad = trim((string) $request->request->get('dificultad', ''));
-        $dificultadesValidas = ['facil', 'moderada', 'dificil'];
-        if (!in_array($dificultad, $dificultadesValidas, true)) {
-            $this->addFlash('error', 'Debes seleccionar una dificultad válida (Fácil, Moderada o Difícil).');
+        if (!$dificultadExamenService->acepta($dificultad)) {
+            $this->addFlash('error', 'Esa dificultad no está disponible.');
             return $this->redirectToRoute('app_pregunta_index');
         }
 
@@ -1690,7 +1692,8 @@ class PreguntaController extends AbstractController
         TemaRepository $temaRepository,
         LeyRepository $leyRepository,
         ArticuloRepository $articuloRepository,
-        BloquePreguntasParser $parser
+        BloquePreguntasParser $parser,
+        DificultadExamenService $dificultadExamenService
     ): Response {
         $dificultad = (string) $request->request->get('dificultad', '');
         $bloque = (string) $request->request->get('bloque', '');
@@ -1706,7 +1709,7 @@ class PreguntaController extends AbstractController
         }
         $ids = array_values($ids);
 
-        if (count($ids) < 2 || !in_array($dificultad, ['facil', 'moderada', 'dificil', 'indeterminado'], true)) {
+        if (count($ids) < 2 || !$dificultadExamenService->acepta($dificultad, true)) {
             $this->addFlash('error', 'Elige al menos dos temas y la dificultad.');
 
             return $this->redirectToRoute($this->rutaPegado($request));

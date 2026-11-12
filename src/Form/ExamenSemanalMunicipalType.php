@@ -6,6 +6,7 @@ use App\Entity\ExamenSemanal;
 use App\Entity\TemaMunicipal;
 use App\Entity\Municipio;
 use App\Entity\Grupo;
+use App\Service\DificultadExamenService;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
@@ -21,6 +22,11 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 
 class ExamenSemanalMunicipalType extends AbstractType
 {
+    public function __construct(
+        private DificultadExamenService $dificultadExamenService,
+    ) {
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
@@ -63,16 +69,7 @@ class ExamenSemanalMunicipalType extends AbstractType
                     new NotBlank(message: 'La fecha de cierre es obligatoria.'),
                 ],
             ])
-            ->add('dificultad', ChoiceType::class, [
-                'label' => 'Dificultad',
-                'choices' => [
-                    'Fácil' => 'facil',
-                    'Moderada' => 'moderada',
-                    'Difícil' => 'dificil',
-                ],
-                'required' => true,
-                'placeholder' => 'Selecciona dificultad',
-                'attr' => ['class' => 'form-control'],
+            ->add('dificultad', ChoiceType::class, $this->dificultadExamenService->opcionesCampo() + [
                 'constraints' => [
                     new NotBlank(message: 'La dificultad es obligatoria.'),
                 ],

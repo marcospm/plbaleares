@@ -280,12 +280,8 @@
                         </div>
                         <div class="form-group">
                             <label>Dificultad *</label>
-                            <select id="dificultadExamen" class="form-control" required>
-                                <option value="">Selecciona...</option>
-                                <option value="facil">Fácil</option>
-                                <option value="moderada">Moderada</option>
-                                <option value="dificil">Difícil</option>
-                            </select>
+                            {% import 'examen/_dificultad.html.twig' as dificultadExamen %}
+                            {{ dificultadExamen.select('dificultadExamen', 'dificultad', '', false) }}
                         </div>
                     </div>
                     <div class="form-group">

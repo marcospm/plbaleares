@@ -51,6 +51,41 @@ class RecursoEspecificoRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * @return list<RecursoEspecifico>
+     */
+    public function findByLoteYProfesor(string $lote, User $profesor): array
+    {
+        return $this->createQueryBuilder('r')
+            ->where('r.lote = :lote')
+            ->andWhere('r.profesor = :profesor')
+            ->setParameter('lote', $lote)
+            ->setParameter('profesor', $profesor)
+            ->orderBy('r.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * @param list<string> $lotes
+     * @return list<RecursoEspecifico>
+     */
+    public function findByLotesYProfesor(array $lotes, User $profesor): array
+    {
+        if ($lotes === []) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('r')
+            ->where('r.lote IN (:lotes)')
+            ->andWhere('r.profesor = :profesor')
+            ->setParameter('lotes', $lotes)
+            ->setParameter('profesor', $profesor)
+            ->orderBy('r.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }
 
 

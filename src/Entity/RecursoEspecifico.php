@@ -147,6 +147,22 @@ class RecursoEspecifico
         return $this;
     }
 
+    public function getNombreBase(): string
+    {
+        $nombre = $this->nombre ?? '';
+        if ($this->lote === null || $this->lote === '') {
+            return $nombre;
+        }
+
+        $separador = ' — ';
+        $posicion = strpos($nombre, $separador);
+        if ($posicion === false) {
+            return $nombre;
+        }
+
+        return substr($nombre, 0, $posicion);
+    }
+
     public function getFechaCreacion(): ?\DateTimeInterface
     {
         return $this->fechaCreacion;

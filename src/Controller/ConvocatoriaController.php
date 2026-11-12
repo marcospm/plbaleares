@@ -120,8 +120,9 @@ class ConvocatoriaController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'app_convocatoria_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Convocatoria $convocatoria, EntityManagerInterface $entityManager, SluggerInterface $slugger): Response
+    public function edit(Request $request, Convocatoria $convocatoria, EntityManagerInterface $entityManager, SluggerInterface $slugger, ConvocatoriaRepository $convocatoriaRepository): Response
     {
+        $estabaActiva = $convocatoria->isActivo();
         $form = $this->createForm(ConvocatoriaType::class, $convocatoria);
         $form->handleRequest($request);
 
@@ -136,10 +137,13 @@ class ConvocatoriaController extends AbstractController
                 ]);
             }
 
+            $municipiosCambiados = $this->sincronizarMunicipiosConEstado($convocatoria, $estabaActiva, $convocatoriaRepository);
             $convocatoria->setFechaActualizacion(new \DateTime());
             $entityManager->flush();
 
-            $this->addFlash('success', 'Convocatoria actualizada correctamente.');
+            $this->addFlash('success', $estabaActiva === $convocatoria->isActivo()
+                ? 'Convocatoria actualizada correctamente.'
+                : 'Convocatoria actualizada. ' . $this->mensajeCambioEstado($convocatoria, $municipiosCambiados));
             return $this->redirectToRoute('app_convocatoria_index', [], Response::HTTP_SEE_OTHER);
         }
 
@@ -150,13 +154,15 @@ class ConvocatoriaController extends AbstractController
     }
 
     #[Route('/{id}/toggle-activo', name: 'app_convocatoria_toggle_activo', methods: ['POST'])]
-    public function toggleActivo(Request $request, Convocatoria $convocatoria, EntityManagerInterface $entityManager): Response
+    public function toggleActivo(Request $request, Convocatoria $convocatoria, EntityManagerInterface $entityManager, ConvocatoriaRepository $convocatoriaRepository): Response
     {
-        $convocatoria->setActivo(!$convocatoria->isActivo());
+        $estabaActiva = $convocatoria->isActivo();
+        $convocatoria->setActivo(!$estabaActiva);
+        $municipiosCambiados = $this->sincronizarMunicipiosConEstado($convocatoria, $estabaActiva, $convocatoriaRepository);
         $convocatoria->setFechaActualizacion(new \DateTime());
         $entityManager->flush();
 
-        $this->addFlash('success', 'Estado de la convocatoria actualizado.');
+        $this->addFlash('success', $this->mensajeCambioEstado($convocatoria, $municipiosCambiados));
 
         $filtros = [];
         $search = trim((string) $request->request->get('search', ''));
@@ -389,6 +395,63 @@ class ConvocatoriaController extends AbstractController
         } catch (\Throwable) {
             // El PDF sigue siendo válido si no se puede escribir el título.
         }
+    }
+
+    private function sincronizarMunicipiosConEstado(
+        Convocatoria $convocatoria,
+        bool $estabaActiva,
+        ConvocatoriaRepository $convocatoriaRepository,
+    ): int {
+        if ($estabaActiva === $convocatoria->isActivo()) {
+            return 0;
+        }
+
+        $cambiados = 0;
+        foreach ($convocatoria->getMunicipios() as $municipio) {
+            if ($convocatoria->isActivo()) {
+                if (!$municipio->isActivo()) {
+                    $municipio->setActivo(true);
+                    $cambiados++;
+                }
+                continue;
+            }
+
+            if (!$municipio->isActivo()) {
+                continue;
+            }
+
+            if ($convocatoriaRepository->contarOtrasActivasConMunicipio($municipio, $convocatoria) > 0) {
+                continue;
+            }
+
+            $municipio->setActivo(false);
+            $cambiados++;
+        }
+
+        return $cambiados;
+    }
+
+    private function mensajeCambioEstado(Convocatoria $convocatoria, int $municipiosCambiados): string
+    {
+        if ($convocatoria->isActivo()) {
+            $mensaje = 'Convocatoria activada.';
+            if ($municipiosCambiados === 1) {
+                $mensaje .= ' Se ha activado 1 municipio.';
+            } elseif ($municipiosCambiados > 1) {
+                $mensaje .= ' Se han activado ' . $municipiosCambiados . ' municipios.';
+            }
+
+            return $mensaje;
+        }
+
+        $mensaje = 'Convocatoria desactivada.';
+        if ($municipiosCambiados === 1) {
+            $mensaje .= ' Se ha desactivado 1 municipio.';
+        } elseif ($municipiosCambiados > 1) {
+            $mensaje .= ' Se han desactivado ' . $municipiosCambiados . ' municipios.';
+        }
+
+        return $mensaje;
     }
 }
 

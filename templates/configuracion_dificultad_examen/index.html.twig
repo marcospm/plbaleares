@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dificultades de examen{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4">
+    <h1>Dificultades de examen</h1>
+</div>
+
+<div class="card">
+    <div class="card-header" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+        <h3 style="margin: 0; color: #333; font-size: 1.1rem; font-weight: 600;">Niveles que se pueden usar</h3>
+    </div>
+    <div class="card-body">
+        <p style="color: #555;">
+            Desactiva un nivel para que deje de salir al empezar un examen, al crear un examen semanal o al generar un examen PDF.
+            Los exámenes que ya existen se pueden seguir haciendo. Las preguntas conservan su dificultad.
+            Si solo queda un nivel, el selector desaparece y el examen usa ese nivel.
+        </p>
+
+        <form method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('dificultades_examen') }}">
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" name="facil" id="dificultad_facil" value="1" {% if config.facil %}checked{% endif %}>
+                <label class="form-check-label" for="dificultad_facil">Fácil</label>
+            </div>
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" name="moderada" id="dificultad_moderada" value="1" {% if config.moderada %}checked{% endif %}>
+                <label class="form-check-label" for="dificultad_moderada">Moderada</label>
+            </div>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="dificil" id="dificultad_dificil" value="1" {% if config.dificil %}checked{% endif %}>
+                <label class="form-check-label" for="dificultad_dificil">Difícil</label>
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

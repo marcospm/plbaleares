@@ -247,10 +247,8 @@
                     <div class="form-section-title">Configuración del Examen</div>
                     <div class="form-row">
                         <div class="form-group">
-                            {{ form_label(form.dificultad) }}
-                            {{ form_widget(form.dificultad, {'attr': {'class': 'form-control'}}) }}
-                            {{ form_errors(form.dificultad) }}
-                            {{ form_help(form.dificultad) }}
+                            {% import 'examen/_dificultad.html.twig' as dificultadExamen %}
+                            {{ dificultadExamen.campo(form.dificultad) }}
                         </div>
                         <div class="form-group">
                             {{ form_label(form.numeroPreguntas) }}

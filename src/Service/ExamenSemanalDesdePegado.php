@@ -24,6 +24,7 @@ class ExamenSemanalDesdePegado
         private NotificacionService $notificacionService,
         private UserRepository $userRepository,
         private LoggerInterface $logger,
+        private DificultadExamenService $dificultadExamenService,
         #[Autowire(service: 'cache.app')]
         private CacheItemPoolInterface $cache,
     ) {
@@ -75,8 +76,8 @@ class ExamenSemanalDesdePegado
             $error = 'Indica la fecha de apertura y la de cierre.';
         } elseif ($cierre <= $apertura) {
             $error = 'La fecha de cierre debe ser posterior a la fecha de apertura.';
-        } elseif (!in_array($dificultad, ['facil', 'moderada', 'dificil', 'indeterminado'], true)) {
-            $error = 'Elige la dificultad del examen.';
+        } elseif (!$this->dificultadExamenService->acepta($dificultad, true)) {
+            $error = 'Esa dificultad no está disponible.';
         } elseif ($grupoInvalido) {
             $error = 'El grupo seleccionado no es válido.';
         }

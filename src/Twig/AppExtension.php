@@ -4,6 +4,7 @@ namespace App\Twig;
 
 use App\Entity\Ley;
 use App\Service\BoeLeyService;
+use App\Service\DificultadExamenService;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 use Twig\TwigFilter;
@@ -12,6 +13,7 @@ class AppExtension extends AbstractExtension
 {
     public function __construct(
         private BoeLeyService $boeLeyService,
+        private DificultadExamenService $dificultadExamenService,
     ) {
     }
 
@@ -21,6 +23,7 @@ class AppExtension extends AbstractExtension
             new TwigFunction('ofuscar_nombre', [$this, 'ofuscarNombre']),
             new TwigFunction('ley_actualizada_recientemente', [$this, 'leyActualizadaRecientemente']),
             new TwigFunction('info_actualizacion_ley', [$this, 'infoActualizacionLey']),
+            new TwigFunction('dificultades_examen_activas', [$this->dificultadExamenService, 'nivelesActivos']),
         ];
     }
 
