@@ -8,7 +8,7 @@
         <h1 style="margin: 0; color: white;">Psicotécnicos</h1>
     </div>
     <div class="card-body">
-        <p style="color: #666;">Apuntes y ejercicios organizados por categoría. Abre cada archivo para verlo.</p>
+        <p style="color: #666;">Apuntes y ejercicios organizados por categoría. Cada publicación puede incluir uno o varios archivos.</p>
 
         <form method="get" action="{{ path('app_psicotecnico_publico_index') }}" style="margin-bottom: 1.5rem;">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
@@ -41,26 +41,31 @@
             </div>
         {% endif %}
 
-        {% if archivos|length > 0 %}
+        {% if grupos|length > 0 %}
             <div style="display: grid; gap: 1rem;">
-                {% for archivo in archivos %}
+                {% for grupo in grupos %}
+                    {% set principal = grupo.archivos|first %}
                     <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: center;">
                         <div style="flex: 1; min-width: 220px;">
-                            <strong style="color: #6f42c1; font-size: 1.05rem;">{{ archivo.nombre }}</strong>
-                            {% if archivo.descripcion %}
-                                <p style="margin: 0.35rem 0 0; color: #666;">{{ archivo.descripcion }}</p>
+                            <strong style="color: #6f42c1; font-size: 1.05rem;">{{ grupo.nombre }}</strong>
+                            {% if grupo.descripcion %}
+                                <p style="margin: 0.35rem 0 0; color: #666;">{{ grupo.descripcion }}</p>
                             {% endif %}
                             <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">
-                                {% for categoria in archivo.categorias %}
+                                {% for categoria in principal.categorias %}
                                     {% if categoria.activo %}
                                         <span class="badge" style="background-color: #6f42c1; color: white;">{{ categoria.nombre }}</span>
                                     {% endif %}
                                 {% endfor %}
                             </div>
                         </div>
-                        {% if archivo.tieneArchivo %}
-                            <a href="{{ archivo.rutaArchivo }}" target="_blank" class="btn btn-primary" rel="noopener noreferrer">Ver archivo</a>
-                        {% endif %}
+                        <div style="display: flex; flex-direction: column; gap: 0.4rem; align-items: stretch;">
+                            {% for archivo in grupo.archivos %}
+                                {% if archivo.tieneArchivo %}
+                                    <a href="{{ archivo.rutaArchivo }}" target="_blank" class="btn btn-primary" rel="noopener noreferrer">{{ (grupo.archivos|length > 1) ? (archivo.nombreArchivoOriginal|default('Ver archivo')) : 'Ver archivo' }}</a>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
                     </div>
                 {% endfor %}
             </div>

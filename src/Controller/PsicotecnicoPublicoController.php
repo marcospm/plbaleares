@@ -23,7 +23,7 @@ class PsicotecnicoPublicoController extends AbstractController
         $categoriaId = $categoriaId > 0 ? $categoriaId : null;
 
         return $this->render('psicotecnico/publico_index.html.twig', [
-            'archivos' => $archivoRepository->findVisibles($categoriaId, $search !== '' ? $search : null),
+            'grupos' => $archivoRepository->findGruposVisibles($categoriaId, $search !== '' ? $search : null),
             'categorias' => $categoriaRepository->findActivas(),
             'search' => $search,
             'categoriaId' => $categoriaId,

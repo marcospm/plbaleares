@@ -11,6 +11,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ArchivoPsicotecnicoRepository::class)]
 #[ORM\Table(name: 'archivo_psicotecnico')]
+#[ORM\Index(name: 'idx_archivo_psicotecnico_lote', columns: ['lote'])]
 class ArchivoPsicotecnico
 {
     #[ORM\Id]
@@ -31,6 +32,9 @@ class ArchivoPsicotecnico
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $nombreArchivoOriginal = null;
+
+    #[ORM\Column(length: 36, nullable: true)]
+    private ?string $lote = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $fechaCreacion = null;
@@ -107,6 +111,18 @@ class ArchivoPsicotecnico
     public function tieneArchivo(): bool
     {
         return $this->rutaArchivo !== null && $this->rutaArchivo !== '';
+    }
+
+    public function getLote(): ?string
+    {
+        return $this->lote;
+    }
+
+    public function setLote(?string $lote): static
+    {
+        $this->lote = $lote;
+
+        return $this;
     }
 
     public function getFechaCreacion(): ?\DateTimeInterface

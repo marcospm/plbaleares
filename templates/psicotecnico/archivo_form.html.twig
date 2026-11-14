@@ -63,6 +63,33 @@
             outline: 2px solid #6f42c1;
             outline-offset: 2px;
         }
+
+        .archivos-grupo {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin: 0.5rem 0 1rem;
+        }
+
+        .archivo-grupo-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.7rem 0.85rem;
+            background: #f6f0ff;
+            border: 1px solid #e4d8f5;
+            border-radius: 8px;
+        }
+
+        .archivo-grupo-item label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0;
+            flex: 1;
+            cursor: pointer;
+            color: #3d2f66;
+        }
     </style>
 {% endblock %}
 
@@ -72,11 +99,8 @@
         <h1>{{ titulo }}</h1>
     </div>
     <div class="card-body">
-        {% if archivo.tieneArchivo %}
-            <p>
-                <strong>Archivo actual:</strong>
-                <a href="{{ archivo.rutaArchivo }}" target="_blank" rel="noopener noreferrer">{{ archivo.nombreArchivoOriginal|default(archivo.nombre) }}</a>
-            </p>
+        {% if archivosGrupo|default([])|length > 1 %}
+            <p>Este grupo junta {{ archivosGrupo|length }} archivos. El nombre, la descripción y las categorías se aplican a todos. Puedes añadir más o quitar los que sobren.</p>
         {% endif %}
         {{ form_start(form) }}
             {{ form_row(form.nombre) }}
@@ -87,6 +111,30 @@
                 {{ form_help(form.categorias) }}
                 {{ form_errors(form.categorias) }}
             </div>
+            {% if archivosGrupo|default([])|length > 1 %}
+                <div class="form-group">
+                    <strong>Archivos de este grupo</strong>
+                    <div class="archivos-grupo">
+                        {% for item in archivosGrupo %}
+                            <div class="archivo-grupo-item">
+                                <label>
+                                    <input type="checkbox" name="eliminar_archivos[]" value="{{ item.id }}">
+                                    <span>Quitar</span>
+                                    <span>{{ item.nombreArchivoOriginal|default(item.nombre) }}</span>
+                                </label>
+                                {% if item.tieneArchivo %}
+                                    <a href="{{ item.rutaArchivo }}" target="_blank" rel="noopener noreferrer">Ver</a>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% elseif archivo.tieneArchivo %}
+                <p>
+                    <strong>Archivo actual:</strong>
+                    <a href="{{ archivo.rutaArchivo }}" target="_blank" rel="noopener noreferrer">{{ archivo.nombreArchivoOriginal|default(archivo.nombre) }}</a>
+                </p>
+            {% endif %}
             {{ form_row(form.archivo) }}
             <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
                 <button type="submit" class="btn btn-primary">Guardar</button>

@@ -8,7 +8,7 @@
     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
         <a href="{{ path('app_categoria_psicotecnico_index') }}" class="btn btn-secondary">Categorías</a>
         <a href="{{ path('app_psicotecnico_publico_index') }}" class="btn btn-secondary">Ver como alumno</a>
-        <a href="{{ path('app_archivo_psicotecnico_new') }}" class="btn btn-primary">Subir archivo</a>
+        <a href="{{ path('app_archivo_psicotecnico_new') }}" class="btn btn-primary">Subir archivos</a>
     </div>
 </div>
 
@@ -38,43 +38,52 @@
 
 <div class="card">
     <div class="card-body">
-        {% if archivos|length > 0 %}
+        {% if grupos|length > 0 %}
             <div class="table-responsive">
                 <table class="table">
                     <thead>
                         <tr>
                             <th>Nombre</th>
                             <th>Categorías</th>
-                            <th>Archivo</th>
+                            <th>Archivos</th>
                             <th>Fecha</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for archivo in archivos %}
+                        {% for grupo in grupos %}
+                            {% set principal = grupo.archivos|first %}
                             <tr>
                                 <td>
-                                    <strong>{{ archivo.nombre }}</strong>
-                                    {% if archivo.descripcion %}
-                                        <div style="color: #666; font-size: 0.9rem;">{{ archivo.descripcion|slice(0, 120) }}{% if archivo.descripcion|length > 120 %}...{% endif %}</div>
+                                    <strong>{{ grupo.nombre }}</strong>
+                                    {% if grupo.archivos|length > 1 %}
+                                        <span class="badge" style="background-color: #6f42c1; color: white;">{{ grupo.archivos|length }} archivos</span>
+                                    {% endif %}
+                                    {% if grupo.descripcion %}
+                                        <div style="color: #666; font-size: 0.9rem;">{{ grupo.descripcion|slice(0, 120) }}{% if grupo.descripcion|length > 120 %}...{% endif %}</div>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% for categoria in archivo.categorias %}
+                                    {% for categoria in principal.categorias %}
                                         <span class="badge" style="background-color: #6f42c1; color: white; margin: 0.1rem;">{{ categoria.nombre }}</span>
                                     {% endfor %}
                                 </td>
                                 <td>
-                                    {% if archivo.tieneArchivo %}
-                                        <a href="{{ archivo.rutaArchivo }}" target="_blank" rel="noopener noreferrer">{{ archivo.nombreArchivoOriginal|default('Ver archivo') }}</a>
-                                    {% endif %}
+                                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                        {% for archivo in grupo.archivos %}
+                                            {% if archivo.tieneArchivo %}
+                                                <a href="{{ archivo.rutaArchivo }}" target="_blank" rel="noopener noreferrer">{{ archivo.nombreArchivoOriginal|default('Ver archivo') }}</a>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
                                 </td>
-                                <td>{{ archivo.fechaCreacion|date('d/m/Y') }}</td>
+                                <td>{{ grupo.fecha ? (grupo.fecha|date('d/m/Y')) : '' }}</td>
                                 <td>
                                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                        <a href="{{ path('app_archivo_psicotecnico_edit', {id: archivo.id}) }}" class="btn btn-primary btn-sm">Editar</a>
-                                        <form method="post" action="{{ path('app_archivo_psicotecnico_delete', {id: archivo.id}) }}" onsubmit="return confirm('¿Eliminar este archivo?');" style="display: inline;">
-                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ archivo.id) }}">
+                                        <a href="{{ path('app_archivo_psicotecnico_edit', {id: principal.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                        {% set confirmar = grupo.archivos|length > 1 ? '¿Eliminar este grupo y sus ' ~ (grupo.archivos|length) ~ ' archivos?' : '¿Eliminar este archivo?' %}
+                                        <form method="post" action="{{ path('app_archivo_psicotecnico_delete', {id: principal.id}) }}" onsubmit="return confirm('{{ confirmar|e('js') }}');" style="display: inline;">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ principal.id) }}">
                                             <button class="btn btn-danger btn-sm">Eliminar</button>
                                         </form>
                                     </div>
@@ -85,7 +94,7 @@
                 </table>
             </div>
         {% else %}
-            <p>No hay archivos con ese filtro. Sube el primero desde «Subir archivo».</p>
+            <p>No hay archivos con ese filtro. Sube el primero desde «Subir archivos».</p>
         {% endif %}
     </div>
 </div>

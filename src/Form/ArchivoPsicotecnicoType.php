@@ -12,6 +12,7 @@ use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\All;
 use Symfony\Component\Validator\Constraints\File;
 
 class ArchivoPsicotecnicoType extends AbstractType
@@ -58,16 +59,21 @@ class ArchivoPsicotecnicoType extends AbstractType
                 },
             ])
             ->add('archivo', FileType::class, [
-                'label' => $options['requerir_archivo'] ? 'Archivo' : 'Sustituir archivo (opcional)',
+                'label' => $options['es_grupo'] ? 'Añadir archivos' : 'Archivos',
                 'mapped' => false,
-                'required' => $options['requerir_archivo'],
+                'required' => false,
+                'multiple' => true,
                 'constraints' => [
-                    new File(
-                        maxSize: '100M',
-                        maxSizeMessage: 'El archivo es demasiado grande. Tamaño máximo: 100 MB.',
+                    new All(
+                        constraints: [
+                            new File(
+                                maxSize: '100M',
+                                maxSizeMessage: 'Hay un archivo demasiado grande. Tamaño máximo: 100 MB por archivo.',
+                            ),
+                        ]
                     ),
                 ],
-                'help' => 'PDF, Office, imagen, ZIP u ODT. Máximo 100 MB.',
+                'help' => $this->textoAyuda((bool) $options['es_grupo'], (bool) $options['edicion']),
                 'attr' => ['class' => 'form-control'],
             ]);
     }
@@ -76,8 +82,23 @@ class ArchivoPsicotecnicoType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => ArchivoPsicotecnico::class,
-            'requerir_archivo' => true,
+            'es_grupo' => false,
+            'edicion' => false,
         ]);
-        $resolver->setAllowedTypes('requerir_archivo', 'bool');
+        $resolver->setAllowedTypes('es_grupo', 'bool');
+        $resolver->setAllowedTypes('edicion', 'bool');
+    }
+
+    private function textoAyuda(bool $esGrupo, bool $edicion): string
+    {
+        if ($esGrupo) {
+            return 'Los archivos que elijas se añaden a los que ya hay. Máximo 100 MB por archivo.';
+        }
+
+        if ($edicion) {
+            return 'Elige un archivo para sustituir el actual, o varios para dejarlos juntos. Máximo 100 MB por archivo.';
+        }
+
+        return 'Puedes elegir varios. Se verán juntos y podrás añadir o quitar al editar. Máximo 100 MB por archivo.';
     }
 }
