@@ -1,0 +1,32 @@
+{% macro enlace(archivo) %}
+    {% if archivo.tieneArchivo %}
+        {% set nombreVisible = archivo.nombreArchivoOriginal|default('Archivo') %}
+        {% set trozos = nombreVisible|split('.') %}
+        {% set extension = trozos|length > 1 ? trozos|last|lower : '' %}
+        {% set tipos = {
+            'pdf': 'pdf',
+            'doc': 'doc',
+            'docx': 'doc',
+            'odt': 'doc',
+            'ppt': 'ppt',
+            'pptx': 'ppt',
+            'odp': 'ppt',
+            'xls': 'xls',
+            'xlsx': 'xls',
+            'ods': 'xls',
+            'png': 'img',
+            'jpg': 'img',
+            'jpeg': 'img',
+            'webp': 'img',
+            'zip': 'zip',
+            'txt': 'txt'
+        } %}
+        {% set tipo = extension in tipos|keys ? tipos[extension] : 'otro' %}
+        {% set etiqueta = extension|length > 0 and extension|length <= 4 ? extension|upper : 'FILE' %}
+        <a class="psico-archivo" href="{{ archivo.rutaArchivo }}" target="_blank" rel="noopener noreferrer" aria-label="Abrir {{ nombreVisible }}">
+            <span class="psico-ext psico-ext-{{ tipo }}" aria-hidden="true">{{ etiqueta }}</span>
+            <span class="psico-archivo-nombre">{{ nombreVisible }}</span>
+            <span class="psico-archivo-accion">Abrir</span>
+        </a>
+    {% endif %}
+{% endmacro %}

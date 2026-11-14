@@ -1,101 +1,95 @@
 {% extends 'base.html.twig' %}
+{% import 'psicotecnico/_enlace_archivo.html.twig' as psico %}
 
 {% block title %}Archivos de psicotécnicos{% endblock %}
 
-{% block body %}
-<div class="d-flex justify-content-between mb-4" style="flex-wrap: wrap; gap: 1rem;">
-    <h1>Archivos de psicotécnicos</h1>
-    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <a href="{{ path('app_categoria_psicotecnico_index') }}" class="btn btn-secondary">Categorías</a>
-        <a href="{{ path('app_psicotecnico_publico_index') }}" class="btn btn-secondary">Ver como alumno</a>
-        <a href="{{ path('app_archivo_psicotecnico_new') }}" class="btn btn-primary">Subir archivos</a>
-    </div>
-</div>
+{% block stylesheets %}
+    {{ parent() }}
+    {% include 'psicotecnico/_estilos_vista.html.twig' %}
+{% endblock %}
 
-<form method="get" action="{{ path('app_archivo_psicotecnico_index') }}" style="margin-bottom: 1.5rem;">
-    <div class="card">
-        <div class="card-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
-            <div>
-                <label class="form-label">Buscar</label>
-                <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Nombre o descripción">
-            </div>
-            <div>
-                <label class="form-label">Categoría</label>
-                <select name="categoria" class="form-control">
-                    <option value="">Todas</option>
-                    {% for categoria in categorias %}
-                        <option value="{{ categoria.id }}" {% if categoriaId == categoria.id %}selected{% endif %}>{{ categoria.nombre }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div style="display: flex; gap: 0.5rem;">
-                <button type="submit" class="btn btn-primary">Filtrar</button>
-                <a href="{{ path('app_archivo_psicotecnico_index') }}" class="btn btn-secondary">Limpiar</a>
-            </div>
+{% block body %}
+<div class="psico-pagina">
+    <div class="psico-cabecera">
+        <div>
+            <h1>Archivos de psicotécnicos</h1>
+            <p>{{ grupos|length }} {{ grupos|length == 1 ? 'publicación' : 'publicaciones' }}</p>
+        </div>
+        <div class="psico-cabecera-acciones">
+            <a href="{{ path('app_categoria_psicotecnico_index') }}" class="btn btn-secondary">Categorías</a>
+            <a href="{{ path('app_psicotecnico_publico_index') }}" class="btn btn-secondary">Ver como alumno</a>
+            <a href="{{ path('app_archivo_psicotecnico_new') }}" class="btn btn-primary">Subir archivos</a>
         </div>
     </div>
-</form>
 
-<div class="card">
-    <div class="card-body">
-        {% if grupos|length > 0 %}
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Nombre</th>
-                            <th>Categorías</th>
-                            <th>Archivos</th>
-                            <th>Fecha</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for grupo in grupos %}
-                            {% set principal = grupo.archivos|first %}
-                            <tr>
-                                <td>
-                                    <strong>{{ grupo.nombre }}</strong>
-                                    {% if grupo.archivos|length > 1 %}
-                                        <span class="badge" style="background-color: #6f42c1; color: white;">{{ grupo.archivos|length }} archivos</span>
-                                    {% endif %}
-                                    {% if grupo.descripcion %}
-                                        <div style="color: #666; font-size: 0.9rem;">{{ grupo.descripcion|slice(0, 120) }}{% if grupo.descripcion|length > 120 %}...{% endif %}</div>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% for categoria in principal.categorias %}
-                                        <span class="badge" style="background-color: #6f42c1; color: white; margin: 0.1rem;">{{ categoria.nombre }}</span>
-                                    {% endfor %}
-                                </td>
-                                <td>
-                                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                                        {% for archivo in grupo.archivos %}
-                                            {% if archivo.tieneArchivo %}
-                                                <a href="{{ archivo.rutaArchivo }}" target="_blank" rel="noopener noreferrer">{{ archivo.nombreArchivoOriginal|default('Ver archivo') }}</a>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                </td>
-                                <td>{{ grupo.fecha ? (grupo.fecha|date('d/m/Y')) : '' }}</td>
-                                <td>
-                                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                        <a href="{{ path('app_archivo_psicotecnico_edit', {id: principal.id}) }}" class="btn btn-primary btn-sm">Editar</a>
-                                        {% set confirmar = grupo.archivos|length > 1 ? '¿Eliminar este grupo y sus ' ~ (grupo.archivos|length) ~ ' archivos?' : '¿Eliminar este archivo?' %}
-                                        <form method="post" action="{{ path('app_archivo_psicotecnico_delete', {id: principal.id}) }}" onsubmit="return confirm('{{ confirmar|e('js') }}');" style="display: inline;">
-                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ principal.id) }}">
-                                            <button class="btn btn-danger btn-sm">Eliminar</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
+    <form method="get" action="{{ path('app_archivo_psicotecnico_index') }}">
+        <div class="psico-panel">
+            <div class="psico-filtros">
+                <div class="form-group">
+                    <label class="form-label" for="psico-admin-buscar">Buscar</label>
+                    <input id="psico-admin-buscar" type="text" name="search" value="{{ search }}" class="form-control" placeholder="Nombre o descripción">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="psico-admin-categoria">Categoría</label>
+                    <select id="psico-admin-categoria" name="categoria" class="form-control">
+                        <option value="">Todas</option>
+                        {% for categoria in categorias %}
+                            <option value="{{ categoria.id }}" {% if categoriaId == categoria.id %}selected{% endif %}>{{ categoria.nombre }}</option>
                         {% endfor %}
-                    </tbody>
-                </table>
+                    </select>
+                </div>
+                <div class="psico-filtros-botones">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ path('app_archivo_psicotecnico_index') }}" class="btn btn-secondary">Limpiar</a>
+                </div>
             </div>
-        {% else %}
+        </div>
+    </form>
+
+    {% if grupos|length > 0 %}
+        <div class="psico-lista">
+            {% for grupo in grupos %}
+                {% set principal = grupo.archivos|first %}
+                <article class="psico-card">
+                    <div class="psico-card-info">
+                        <div class="psico-card-top">
+                            <h2>{{ grupo.nombre }}</h2>
+                            {% if grupo.fecha %}
+                                <time class="psico-fecha" datetime="{{ grupo.fecha|date('Y-m-d') }}">{{ grupo.fecha|date('d/m/Y') }}</time>
+                            {% endif %}
+                        </div>
+                        {% if grupo.descripcion %}
+                            <p class="psico-desc">{{ grupo.descripcion }}</p>
+                        {% endif %}
+                        <div class="psico-badges">
+                            {% if grupo.archivos|length > 1 %}
+                                <span class="psico-badge psico-badge-cuenta">{{ grupo.archivos|length }} archivos</span>
+                            {% endif %}
+                            {% for categoria in principal.categorias %}
+                                <span class="psico-badge">{{ categoria.nombre }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="psico-archivos">
+                        {% for archivo in grupo.archivos %}
+                            {{ psico.enlace(archivo) }}
+                        {% endfor %}
+                    </div>
+                    <div class="psico-card-acciones">
+                        <a href="{{ path('app_archivo_psicotecnico_edit', {id: principal.id}) }}" class="btn btn-primary">Editar</a>
+                        {% set confirmar = grupo.archivos|length > 1 ? '¿Eliminar este grupo y sus ' ~ (grupo.archivos|length) ~ ' archivos?' : '¿Eliminar este archivo?' %}
+                        <form class="psico-form-eliminar" method="post" action="{{ path('app_archivo_psicotecnico_delete', {id: principal.id}) }}" onsubmit="return confirm('{{ confirmar|e('js') }}');">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ principal.id) }}">
+                            <button class="btn btn-danger">Eliminar</button>
+                        </form>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="psico-vacio">
             <p>No hay archivos con ese filtro. Sube el primero desde «Subir archivos».</p>
-        {% endif %}
-    </div>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

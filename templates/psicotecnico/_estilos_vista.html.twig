@@ -1,0 +1,309 @@
+<style>
+    .psico-pagina {
+        color: var(--color-text);
+    }
+
+    .psico-cabecera {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 1rem 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .psico-cabecera h1 {
+        margin: 0;
+        color: #4a1d96;
+        font-size: clamp(1.45rem, 3.4vw, 1.9rem);
+        line-height: 1.15;
+    }
+
+    .psico-cabecera p,
+    .psico-resumen {
+        margin: 0.4rem 0 0;
+        color: var(--color-text-light);
+    }
+
+    .psico-cabecera-acciones,
+    .psico-filtros-botones,
+    .psico-card-acciones {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .psico-panel {
+        background: #fff;
+        border: 1px solid #e4d8f5;
+        border-radius: 14px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 10px rgba(74, 29, 150, 0.05);
+    }
+
+    .psico-filtros {
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) auto;
+        gap: 0.85rem;
+        align-items: end;
+    }
+
+    .psico-filtros .form-group {
+        margin: 0;
+        min-width: 0;
+    }
+
+    .psico-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .psico-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: 0.4rem 0.9rem;
+        border-radius: 999px;
+        border: 1px solid #d4c4ee;
+        background: #fff;
+        color: #4a1d96;
+        font-weight: 600;
+        font-size: 0.92rem;
+        text-decoration: none;
+        line-height: 1.2;
+        text-align: center;
+    }
+
+    .psico-chip:hover,
+    .psico-chip.is-active {
+        background: #6f42c1;
+        border-color: #6f42c1;
+        color: #fff;
+    }
+
+    .psico-resumen + .psico-lista {
+        margin-top: 0.75rem;
+    }
+
+    .psico-lista {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+    }
+
+    .psico-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(210px, 340px);
+        gap: 0.9rem 1.25rem;
+        align-items: start;
+        padding: 1.05rem 1.15rem;
+        background: #fff;
+        border: 1px solid #e4d8f5;
+        border-left: 4px solid #6f42c1;
+        border-radius: 14px;
+        box-shadow: 0 2px 10px rgba(74, 29, 150, 0.06);
+    }
+
+    .psico-card-info,
+    .psico-archivos,
+    .psico-card-top,
+    .psico-badges {
+        min-width: 0;
+    }
+
+    .psico-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .psico-card h2 {
+        margin: 0;
+        color: #3d2f66;
+        font-size: 1.12rem;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+
+    .psico-fecha {
+        flex-shrink: 0;
+        color: var(--color-text-light);
+        font-size: 0.85rem;
+        padding-top: 0.15rem;
+    }
+
+    .psico-desc {
+        margin: 0.45rem 0 0;
+        color: #5c5470;
+        overflow-wrap: anywhere;
+    }
+
+    .psico-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-top: 0.7rem;
+    }
+
+    .psico-badge {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        background: #f3ebff;
+        color: #4a1d96;
+        font-size: 0.78rem;
+        font-weight: 700;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+
+    .psico-badge-cuenta {
+        background: #6f42c1;
+        color: #fff;
+    }
+
+    .psico-archivos {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+    }
+
+    .psico-archivo {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        min-height: 48px;
+        padding: 0.5rem 0.7rem;
+        border: 1px solid #e4d8f5;
+        border-radius: 10px;
+        background: #f8f4fd;
+        color: #3d2f66;
+        text-decoration: none;
+    }
+
+    .psico-archivo:hover,
+    .psico-archivo:focus-visible {
+        background: #efe6fb;
+        border-color: #6f42c1;
+        outline: none;
+    }
+
+    .psico-ext {
+        flex-shrink: 0;
+        min-width: 2.7rem;
+        padding: 0.2rem 0.35rem;
+        border-radius: 6px;
+        background: #6f42c1;
+        color: #fff;
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        text-align: center;
+        line-height: 1.2;
+    }
+
+    .psico-ext-pdf { background: #c0392b; }
+    .psico-ext-doc { background: #1a4d7a; }
+    .psico-ext-ppt { background: #d35400; }
+    .psico-ext-xls { background: #1e8449; }
+    .psico-ext-img { background: #8e44ad; }
+    .psico-ext-zip { background: #566573; }
+    .psico-ext-txt { background: #5d6d7e; }
+
+    .psico-archivo-nombre {
+        flex: 1;
+        min-width: 0;
+        font-weight: 600;
+        font-size: 0.92rem;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+
+    .psico-archivo-accion {
+        flex-shrink: 0;
+        color: #6f42c1;
+        font-size: 0.82rem;
+        font-weight: 800;
+    }
+
+    .psico-card-acciones {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+        padding-top: 0.15rem;
+    }
+
+    .psico-form-eliminar {
+        margin: 0;
+    }
+
+    .psico-vacio {
+        padding: 1.5rem 1rem;
+        text-align: center;
+        color: var(--color-text-light);
+        background: #fff;
+        border: 1px dashed #d4c4ee;
+        border-radius: 14px;
+    }
+
+    @media (max-width: 760px) {
+        .psico-cabecera,
+        .psico-cabecera-acciones {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .psico-cabecera-acciones .btn,
+        .psico-filtros-botones .btn {
+            width: 100%;
+            min-height: 46px;
+        }
+
+        .psico-filtros {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .psico-filtros-botones {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .psico-card {
+            grid-template-columns: minmax(0, 1fr);
+            padding: 0.95rem;
+        }
+
+        .psico-card-top {
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .psico-card-acciones {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .psico-card-acciones .btn,
+        .psico-form-eliminar,
+        .psico-form-eliminar .btn {
+            width: 100%;
+            min-height: 46px;
+        }
+
+        .psico-chip {
+            min-height: 44px;
+        }
+    }
+
+    @media (max-width: 380px) {
+        .psico-filtros-botones,
+        .psico-card-acciones {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

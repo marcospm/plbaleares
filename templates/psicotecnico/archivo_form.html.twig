@@ -87,8 +87,37 @@
             gap: 0.5rem;
             margin: 0;
             flex: 1;
+            min-width: 0;
             cursor: pointer;
             color: #3d2f66;
+            overflow-wrap: anywhere;
+        }
+
+        .psico-form-acciones {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 640px) {
+            .categoria-opciones {
+                grid-template-columns: 1fr;
+            }
+
+            .archivo-grupo-item {
+                flex-wrap: wrap;
+                align-items: flex-start;
+            }
+
+            .psico-form-acciones {
+                flex-direction: column;
+            }
+
+            .psico-form-acciones .btn {
+                width: 100%;
+                min-height: 46px;
+            }
         }
     </style>
 {% endblock %}
@@ -136,7 +165,7 @@
                 </p>
             {% endif %}
             {{ form_row(form.archivo) }}
-            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+            <div class="psico-form-acciones">
                 <button type="submit" class="btn btn-primary">Guardar</button>
                 <a href="{{ path('app_archivo_psicotecnico_index') }}" class="btn btn-secondary">Cancelar</a>
             </div>
