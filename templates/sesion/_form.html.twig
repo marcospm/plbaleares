@@ -31,7 +31,7 @@
                     {{ form_label(form.temas) }}
                     {{ form_widget(form.temas, {'attr': {'class': 'form-control', 'size': '10', 'multiple': 'multiple'}}) }}
                     {{ form_errors(form.temas) }}
-                    <small class="form-text text-muted">Puedes seleccionar múltiples temas. Mantén presionada la tecla Ctrl (o Cmd en Mac) para seleccionar varios.</small>
+                    <small class="form-text text-muted">Puedes seleccionar varios temas. Si la sesión es de psicotécnicos, el tema es opcional.</small>
                 </div>
             </div>
             
@@ -288,7 +288,7 @@
                 
                 // Si no tiene valor, determinar según los datos
                 if (!tipoTemaValue) {
-                    {% if sesion.temas|length > 0 %}
+                    {% if sesion.temas|length > 0 or (sesion.esPsicotecnico and sesion.temasMunicipales|length == 0 and sesion.convocatorias|length == 0 and sesion.municipios|length == 0) %}
                         tipoTemaValue = 'general';
                     {% elseif sesion.temasMunicipales|length > 0 or sesion.convocatorias|length > 0 or sesion.municipios|length > 0 %}
                         tipoTemaValue = 'municipal';

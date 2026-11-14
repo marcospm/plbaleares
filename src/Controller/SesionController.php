@@ -128,7 +128,7 @@ final class SesionController extends AbstractController
             $sesion->setMunicipio(null);
             $sesion->setConvocatoria(null);
             
-            if ($sesion->getTemas()->count() === 0) {
+            if ($sesion->getTemas()->count() === 0 && !$sesion->isEsPsicotecnico()) {
                 $this->addFlash('error', 'Debes seleccionar al menos un tema general.');
                 return $this->render('sesion/new_general.html.twig', [
                     'sesion' => $sesion,
@@ -249,6 +249,8 @@ final class SesionController extends AbstractController
                     $tipo = 'general';
                 } elseif ($sesion->getTemasMunicipales()->count() > 0) {
                     $tipo = 'municipal';
+                } elseif ($sesion->isEsPsicotecnico()) {
+                    $tipo = 'general';
                 }
             }
             
@@ -259,7 +261,7 @@ final class SesionController extends AbstractController
                 $sesion->getMunicipios()->clear();
                 $sesion->getConvocatorias()->clear();
                 
-                if ($sesion->getTemas()->count() === 0) {
+                if ($sesion->getTemas()->count() === 0 && !$sesion->isEsPsicotecnico()) {
                     $this->addFlash('error', 'Debes seleccionar al menos un tema general.');
                     return $this->render('sesion/edit.html.twig', [
                         'sesion' => $sesion,

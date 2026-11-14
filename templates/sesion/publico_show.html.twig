@@ -102,6 +102,8 @@
                             {% for temaMunicipal in temasMunicipalesActivos %}
                                 <span class="badge bg-info">{{ temaMunicipal.nombre }}</span>
                             {% endfor %}
+                        {% else %}
+                            <span class="badge bg-secondary">Sin tema</span>
                         {% endif %}
                     </div>
                 </div>

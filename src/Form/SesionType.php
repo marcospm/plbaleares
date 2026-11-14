@@ -70,8 +70,10 @@ class SesionType extends AbstractType
             if ($sesion && $sesion->getId()) {
                 if ($sesion->getTemas()->count() > 0) {
                     $tipoDefault = 'general';
-                } elseif ($sesion->getTemasMunicipales()->count() > 0) {
+                } elseif ($sesion->getTemasMunicipales()->count() > 0 || $sesion->getMunicipios()->count() > 0 || $sesion->getConvocatorias()->count() > 0) {
                     $tipoDefault = 'municipal';
+                } elseif ($sesion->isEsPsicotecnico()) {
+                    $tipoDefault = 'general';
                 }
             }
             
@@ -120,13 +122,12 @@ class SesionType extends AbstractType
                     // Si ya existe, establecer el tipo de tema según los datos
                     if ($sesion->getId()) {
                         if ($sesion->getTemas()->count() > 0) {
-                            // Es tema general
                             $form->get('tipoTema')->setData('general');
-                        } elseif ($sesion->getTemasMunicipales()->count() > 0) {
-                            // Es tema municipal
+                        } elseif ($sesion->getTemasMunicipales()->count() > 0 || $sesion->getMunicipios()->count() > 0 || $sesion->getConvocatorias()->count() > 0) {
                             $form->get('tipoTema')->setData('municipal');
+                        } elseif ($sesion->isEsPsicotecnico()) {
+                            $form->get('tipoTema')->setData('general');
                         } else {
-                            // Si no hay temas, establecer un valor por defecto (municipal)
                             $form->get('tipoTema')->setData('municipal');
                         }
                     } else {
