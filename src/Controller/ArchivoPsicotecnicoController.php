@@ -151,7 +151,7 @@ class ArchivoPsicotecnicoController extends AbstractController
         $original = pathinfo($subido->getClientOriginalName(), PATHINFO_FILENAME);
         $nombre = $slugger->slug($original)->lower() . '-' . uniqid() . '.' . $extension;
         $directorio = $this->kernel->getProjectDir() . '/public/psicotecnicos';
-        if (!is_dir($directorio) && !mkdir($directorio, 0755, true) && !is_dir($directorio)) {
+        if (!is_dir($directorio) && !@mkdir($directorio, 0755, true) && !is_dir($directorio)) {
             return 'No se pudo crear la carpeta de archivos.';
         }
 
