@@ -19,7 +19,11 @@
 ###> symfony/asset-mapper ###
 /public/assets/
 /public/examenes/
+/public/examenes-convocatorias/
 /public/pdfs/
 /public/pdf_municipales/
+/public/recursos_especificos/
+/public/archivos_psicotecnicos/
+/public/psicotecnicos/
 /assets/vendor/
 ###< symfony/asset-mapper ###
