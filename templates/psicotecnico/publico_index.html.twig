@@ -1,0 +1,72 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Psicotécnicos{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header" style="background-color: #6f42c1; color: white;">
+        <h1 style="margin: 0; color: white;">Psicotécnicos</h1>
+    </div>
+    <div class="card-body">
+        <p style="color: #666;">Apuntes y ejercicios organizados por categoría. Abre cada archivo para verlo.</p>
+
+        <form method="get" action="{{ path('app_psicotecnico_publico_index') }}" style="margin-bottom: 1.5rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
+                <div>
+                    <label class="form-label">Buscar</label>
+                    <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Nombre del archivo">
+                </div>
+                <div>
+                    <label class="form-label">Categoría</label>
+                    <select name="categoria" class="form-control">
+                        <option value="">Todas</option>
+                        {% for categoria in categorias %}
+                            <option value="{{ categoria.id }}" {% if categoriaId == categoria.id %}selected{% endif %}>{{ categoria.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ path('app_psicotecnico_publico_index') }}" class="btn btn-secondary">Limpiar</a>
+                </div>
+            </div>
+        </form>
+
+        {% if categorias|length > 0 %}
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem;">
+                <a href="{{ path('app_psicotecnico_publico_index', {search: search}) }}" class="btn btn-sm {% if not categoriaId %}btn-primary{% else %}btn-secondary{% endif %}">Todas</a>
+                {% for categoria in categorias %}
+                    <a href="{{ path('app_psicotecnico_publico_index', {categoria: categoria.id, search: search}) }}" class="btn btn-sm {% if categoriaId == categoria.id %}btn-primary{% else %}btn-secondary{% endif %}">{{ categoria.nombre }}</a>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if archivos|length > 0 %}
+            <div style="display: grid; gap: 1rem;">
+                {% for archivo in archivos %}
+                    <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                        <div style="flex: 1; min-width: 220px;">
+                            <strong style="color: #6f42c1; font-size: 1.05rem;">{{ archivo.nombre }}</strong>
+                            {% if archivo.descripcion %}
+                                <p style="margin: 0.35rem 0 0; color: #666;">{{ archivo.descripcion }}</p>
+                            {% endif %}
+                            <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.35rem;">
+                                {% for categoria in archivo.categorias %}
+                                    {% if categoria.activo %}
+                                        <span class="badge" style="background-color: #6f42c1; color: white;">{{ categoria.nombre }}</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% if archivo.tieneArchivo %}
+                            <a href="{{ archivo.rutaArchivo }}" target="_blank" class="btn btn-primary" rel="noopener noreferrer">Ver archivo</a>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>Todavía no hay archivos de psicotécnicos en esta categoría.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

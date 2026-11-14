@@ -10,6 +10,7 @@ use App\Repository\TemaMunicipalRepository;
 use App\Repository\MunicipioRepository;
 use App\Entity\RecursoEspecifico;
 use App\Repository\RecursoEspecificoRepository;
+use App\Repository\CategoriaPsicotecnicoRepository;
 use App\Repository\ConvocatoriaRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,7 +27,8 @@ class RecursoPublicoController extends AbstractController
         TemaMunicipalRepository $temaMunicipalRepository,
         MunicipioRepository $municipioRepository,
         RecursoEspecificoRepository $recursoEspecificoRepository,
-        ConvocatoriaRepository $convocatoriaRepository
+        ConvocatoriaRepository $convocatoriaRepository,
+        CategoriaPsicotecnicoRepository $categoriaPsicotecnicoRepository
     ): Response {
         $user = $this->getUser();
         
@@ -104,6 +106,7 @@ class RecursoPublicoController extends AbstractController
             'temas' => $temas,
             'temasPorMunicipio' => $temasPorMunicipio,
             'temasPorConvocatoria' => $temasPorConvocatoria,
+            'resumenPsicotecnicos' => $categoriaPsicotecnicoRepository->resumenVisible(),
         ]);
     }
 

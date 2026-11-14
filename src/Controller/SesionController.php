@@ -40,6 +40,11 @@ final class SesionController extends AbstractController
         $municipioId = $municipioId !== '' && $municipioId !== null ? (int)$municipioId : null;
         $convocatoriaId = $request->query->get('convocatoria', '');
         $convocatoriaId = $convocatoriaId !== '' && $convocatoriaId !== null ? (int)$convocatoriaId : null;
+        $psicotecnico = (string) $request->query->get('psicotecnico', '');
+        if (!in_array($psicotecnico, ['0', '1'], true)) {
+            $psicotecnico = '';
+        }
+        $esPsicotecnico = $psicotecnico === '' ? null : $psicotecnico === '1';
         
         // Parámetros de paginación
         $itemsPerPage = 20;
@@ -54,7 +59,8 @@ final class SesionController extends AbstractController
             $convocatoriaId,
             null,
             $page,
-            $itemsPerPage
+            $itemsPerPage,
+            $esPsicotecnico
         );
         $sesiones = $result['sesiones'];
         $totalItems = $result['total'];
@@ -79,6 +85,7 @@ final class SesionController extends AbstractController
             'temaMunicipalId' => $temaMunicipalId,
             'municipioId' => $municipioId,
             'convocatoriaId' => $convocatoriaId,
+            'psicotecnico' => $psicotecnico,
             'temas' => $temas,
             'temasMunicipales' => $temasMunicipales,
             'municipios' => $municipios,

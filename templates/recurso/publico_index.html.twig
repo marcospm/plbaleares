@@ -148,6 +148,25 @@
             Accede al temario completo y descarga los exámenes PDF disponibles para tu preparación.
         </p>
 
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header" style="background-color: #6f42c1; color: white;">
+                <h2 style="margin: 0; color: white;">Psicotécnicos</h2>
+            </div>
+            <div class="card-body">
+                <p style="margin-top: 0; color: #666;">Apuntes y ejercicios de psicotécnicos. Cada archivo está clasificado (matemáticas, verbal, espacial, ómnibus y las categorías que añada el administrador).</p>
+                {% if resumenPsicotecnicos|length > 0 %}
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+                        {% for categoria in resumenPsicotecnicos %}
+                            <a href="{{ path('app_psicotecnico_publico_index', {categoria: categoria.id}) }}" class="btn btn-sm btn-secondary">
+                                {{ categoria.nombre }} ({{ categoria.total }})
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <a href="{{ path('app_psicotecnico_publico_index') }}" class="btn btn-primary">Ver archivos de psicotécnicos</a>
+            </div>
+        </div>
+
         {# Diseño de dos columnas como el dashboard del alumno #}
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
             {# Columna izquierda: Temario #}

@@ -1,0 +1,92 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Archivos de psicotécnicos{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4" style="flex-wrap: wrap; gap: 1rem;">
+    <h1>Archivos de psicotécnicos</h1>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{{ path('app_categoria_psicotecnico_index') }}" class="btn btn-secondary">Categorías</a>
+        <a href="{{ path('app_psicotecnico_publico_index') }}" class="btn btn-secondary">Ver como alumno</a>
+        <a href="{{ path('app_archivo_psicotecnico_new') }}" class="btn btn-primary">Subir archivo</a>
+    </div>
+</div>
+
+<form method="get" action="{{ path('app_archivo_psicotecnico_index') }}" style="margin-bottom: 1.5rem;">
+    <div class="card">
+        <div class="card-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
+            <div>
+                <label class="form-label">Buscar</label>
+                <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Nombre o descripción">
+            </div>
+            <div>
+                <label class="form-label">Categoría</label>
+                <select name="categoria" class="form-control">
+                    <option value="">Todas</option>
+                    {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}" {% if categoriaId == categoria.id %}selected{% endif %}>{{ categoria.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+                <a href="{{ path('app_archivo_psicotecnico_index') }}" class="btn btn-secondary">Limpiar</a>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="card">
+    <div class="card-body">
+        {% if archivos|length > 0 %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Categorías</th>
+                            <th>Archivo</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for archivo in archivos %}
+                            <tr>
+                                <td>
+                                    <strong>{{ archivo.nombre }}</strong>
+                                    {% if archivo.descripcion %}
+                                        <div style="color: #666; font-size: 0.9rem;">{{ archivo.descripcion|slice(0, 120) }}{% if archivo.descripcion|length > 120 %}...{% endif %}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% for categoria in archivo.categorias %}
+                                        <span class="badge" style="background-color: #6f42c1; color: white; margin: 0.1rem;">{{ categoria.nombre }}</span>
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    {% if archivo.tieneArchivo %}
+                                        <a href="{{ archivo.rutaArchivo }}" target="_blank" rel="noopener noreferrer">{{ archivo.nombreArchivoOriginal|default('Ver archivo') }}</a>
+                                    {% endif %}
+                                </td>
+                                <td>{{ archivo.fechaCreacion|date('d/m/Y') }}</td>
+                                <td>
+                                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                        <a href="{{ path('app_archivo_psicotecnico_edit', {id: archivo.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                        <form method="post" action="{{ path('app_archivo_psicotecnico_delete', {id: archivo.id}) }}" onsubmit="return confirm('¿Eliminar este archivo?');" style="display: inline;">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ archivo.id) }}">
+                                            <button class="btn btn-danger btn-sm">Eliminar</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p>No hay archivos con ese filtro. Sube el primero desde «Subir archivo».</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

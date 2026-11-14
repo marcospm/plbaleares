@@ -1,0 +1,98 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .categoria-opciones {
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 0.75rem;
+            margin-top: 0.35rem;
+        }
+
+        .categoria-opciones input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            width: 1px;
+            height: 1px;
+            margin: 0;
+        }
+
+        .categoria-opciones label {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            min-height: 3.4rem;
+            height: 100%;
+            margin: 0;
+            padding: 0.85rem 1rem;
+            border: 2px solid #d9d4e8;
+            border-radius: 12px;
+            background: #fff;
+            color: #3d2f66;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .categoria-opciones label::before {
+            content: "";
+            width: 1.15rem;
+            height: 1.15rem;
+            flex-shrink: 0;
+            border: 2px solid #b9a8d6;
+            border-radius: 4px;
+            background: #fff;
+        }
+
+        .categoria-opciones input[type="checkbox"]:checked + label {
+            border-color: #6f42c1;
+            background: #f6f0ff;
+            color: #4a1d96;
+        }
+
+        .categoria-opciones input[type="checkbox"]:checked + label::before {
+            border-color: #6f42c1;
+            background: #6f42c1;
+            box-shadow: inset 0 0 0 2px #fff;
+        }
+
+        .categoria-opciones input[type="checkbox"]:focus-visible + label {
+            outline: 2px solid #6f42c1;
+            outline-offset: 2px;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-header">
+        <h1>{{ titulo }}</h1>
+    </div>
+    <div class="card-body">
+        {% if archivo.tieneArchivo %}
+            <p>
+                <strong>Archivo actual:</strong>
+                <a href="{{ archivo.rutaArchivo }}" target="_blank" rel="noopener noreferrer">{{ archivo.nombreArchivoOriginal|default(archivo.nombre) }}</a>
+            </p>
+        {% endif %}
+        {{ form_start(form) }}
+            {{ form_row(form.nombre) }}
+            {{ form_row(form.descripcion) }}
+            <div class="form-group mb-3">
+                {{ form_label(form.categorias) }}
+                {{ form_widget(form.categorias) }}
+                {{ form_help(form.categorias) }}
+                {{ form_errors(form.categorias) }}
+            </div>
+            {{ form_row(form.archivo) }}
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+                <a href="{{ path('app_archivo_psicotecnico_index') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

@@ -409,7 +409,7 @@
 <div class="sesiones-container">
     <div class="page-header">
         <h1>🎥 Sesiones</h1>
-        <p>Accede a las sesiones de video creadas por los profesores. Puedes filtrar por nombre, tema, municipio o convocatoria.</p>
+        <p>Accede a las sesiones de video creadas por los profesores. Puedes filtrar por nombre, tema, municipio, convocatoria o si el vídeo es de psicotécnicos.</p>
     </div>
     
     <form method="get" action="{{ path('app_sesion_publico_index') }}">
@@ -457,6 +457,15 @@
                         {% for temaMunicipal in temasMunicipales %}
                             <option value="{{ temaMunicipal.id }}" {% if temaMunicipalId == temaMunicipal.id %}selected{% endif %}>{{ temaMunicipal.nombre }}</option>
                         {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">🧠 Tipo de vídeo</label>
+                    <select name="psicotecnico" class="filter-input">
+                        <option value="">Todos</option>
+                        <option value="1" {% if psicotecnico == '1' %}selected{% endif %}>Solo psicotécnicos</option>
+                        <option value="0" {% if psicotecnico == '0' %}selected{% endif %}>Resto de sesiones</option>
                     </select>
                 </div>
             </div>
@@ -508,6 +517,9 @@
                         </div>
                         
                         <div class="sesion-badges">
+                            {% if sesion.esPsicotecnico %}
+                                <span class="badge sesion-badge" style="background-color: #6f42c1; color: white;">Psicotécnico</span>
+                            {% endif %}
                             {% set temasActivos = sesion.temas|filter(tema => tema.activo) %}
                             {% set temasMunicipalesActivos = sesion.temasMunicipales|filter(tema => tema.activo) %}
                             {% if temasActivos|length > 0 %}
@@ -542,7 +554,7 @@
                                 'tema': temaId,
                                 'tema_municipal': temaMunicipalId,
                                 'municipio': municipioId,
-                                'convocatoria': convocatoriaId
+                                'convocatoria': convocatoriaId, 'psicotecnico': psicotecnico
                             }) }}">Anterior</a>
                         </li>
                     {% endif %}
@@ -560,7 +572,7 @@
                                     'tema': temaId,
                                     'tema_municipal': temaMunicipalId,
                                     'municipio': municipioId,
-                                    'convocatoria': convocatoriaId
+                                    'convocatoria': convocatoriaId, 'psicotecnico': psicotecnico
                                 }) }}">{{ p }}</a>
                             </li>
                         {% elseif p == page - 3 or p == page + 3 %}
@@ -578,7 +590,7 @@
                                 'tema': temaId,
                                 'tema_municipal': temaMunicipalId,
                                 'municipio': municipioId,
-                                'convocatoria': convocatoriaId
+                                'convocatoria': convocatoriaId, 'psicotecnico': psicotecnico
                             }) }}">Siguiente</a>
                         </li>
                     {% endif %}

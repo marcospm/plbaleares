@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Categorías de psicotécnicos{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between mb-4" style="flex-wrap: wrap; gap: 1rem;">
+    <h1>Categorías de psicotécnicos</h1>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{{ path('app_archivo_psicotecnico_index') }}" class="btn btn-secondary">Archivos</a>
+        <a href="{{ path('app_categoria_psicotecnico_new') }}" class="btn btn-primary">Nueva categoría</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <p style="color: #666;">Matemáticas, verbal, espacial, ómnibus y las que añadas aquí. Cada archivo puede llevar varias.</p>
+        {% if categorias|length > 0 %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Orden</th>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Archivos</th>
+                            <th>Visible</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for categoria in categorias %}
+                            <tr>
+                                <td>{{ categoria.orden }}</td>
+                                <td><strong>{{ categoria.nombre }}</strong></td>
+                                <td>{{ categoria.descripcion|default('—') }}</td>
+                                <td>{{ categoria.archivos|length }}</td>
+                                <td>
+                                    {% if categoria.activo %}
+                                        <span class="badge bg-success">Sí</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">No</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                        <a href="{{ path('app_categoria_psicotecnico_edit', {id: categoria.id}) }}" class="btn btn-primary btn-sm">Editar</a>
+                                        <form method="post" action="{{ path('app_categoria_psicotecnico_delete', {id: categoria.id}) }}" onsubmit="return confirm('¿Eliminar esta categoría?');" style="display: inline;">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ categoria.id) }}">
+                                            <button class="btn btn-danger btn-sm">Eliminar</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p>Todavía no hay categorías.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

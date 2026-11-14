@@ -1,0 +1,43 @@
+<style>
+    .sesion-psicotecnico {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.85rem;
+        margin-bottom: 1.25rem;
+        padding: 0.9rem 1rem;
+        border: 2px solid #d9d4e8;
+        border-radius: 12px;
+        background: #f6f0ff;
+    }
+
+    .sesion-psicotecnico input[type="checkbox"] {
+        width: 1.35rem;
+        height: 1.35rem;
+        margin-top: 0.15rem;
+        flex-shrink: 0;
+        accent-color: #6f42c1;
+        cursor: pointer;
+    }
+
+    .sesion-psicotecnico label {
+        display: inline;
+        margin: 0;
+        font-weight: 700;
+        color: #4a1d96;
+        cursor: pointer;
+    }
+
+    .sesion-psicotecnico [id$="_help"] {
+        margin-top: 0.25rem;
+        color: #5c5470;
+        font-size: 0.92rem;
+    }
+</style>
+<div class="sesion-psicotecnico">
+    {{ form_widget(form.esPsicotecnico) }}
+    <div>
+        {{ form_label(form.esPsicotecnico) }}
+        {{ form_help(form.esPsicotecnico) }}
+        {{ form_errors(form.esPsicotecnico) }}
+    </div>
+</div>

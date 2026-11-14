@@ -41,6 +41,9 @@ class Sesion
     #[ORM\Column(type: Types::TEXT)]
     private ?string $enlaceVideo = null;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $esPsicotecnico = false;
+
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $fechaCreacion = null;
 
@@ -231,6 +234,23 @@ class Sesion
     public function setEnlaceVideo(string $enlaceVideo): static
     {
         $this->enlaceVideo = $enlaceVideo;
+
+        return $this;
+    }
+
+    public function isEsPsicotecnico(): bool
+    {
+        return $this->esPsicotecnico;
+    }
+
+    public function getEsPsicotecnico(): bool
+    {
+        return $this->esPsicotecnico;
+    }
+
+    public function setEsPsicotecnico(bool $esPsicotecnico): static
+    {
+        $this->esPsicotecnico = $esPsicotecnico;
 
         return $this;
     }

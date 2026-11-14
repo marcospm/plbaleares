@@ -9,6 +9,7 @@ use App\Entity\Municipio;
 use App\Entity\Convocatoria;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -92,7 +93,13 @@ class SesionType extends AbstractType
             $this->addMunicipalFields($builder, $options);
         }
         
-        $builder->add('enlaceVideo', TextareaType::class, [
+        $builder
+            ->add('esPsicotecnico', CheckboxType::class, [
+                'label' => 'Sesión de psicotécnicos',
+                'required' => false,
+                'help' => 'Márcala para poder filtrar este vídeo aparte del resto de sesiones.',
+            ])
+            ->add('enlaceVideo', TextareaType::class, [
             'label' => 'Código de Video (Vimeo)',
             'required' => true,
             'attr' => [

@@ -26,6 +26,7 @@ class SesionRepository extends ServiceEntityRepository
      * @param int|null $convocatoriaId Filtro por convocatoria
      * @param int $page Número de página (empezando en 1)
      * @param int $itemsPerPage Items por página
+     * @param bool|null $esPsicotecnico true solo psicotécnicos, false el resto, null todos
      * @return array ['sesiones' => Sesion[], 'total' => int]
      */
     public function findPaginatedForAlumno(
@@ -35,7 +36,8 @@ class SesionRepository extends ServiceEntityRepository
         ?int $municipioId = null,
         ?int $convocatoriaId = null,
         int $page = 1,
-        int $itemsPerPage = 20
+        int $itemsPerPage = 20,
+        ?bool $esPsicotecnico = null,
     ): array {
         $qb = $this->createQueryBuilder('s')
             ->leftJoin('s.temas', 't')
@@ -73,6 +75,11 @@ class SesionRepository extends ServiceEntityRepository
             $qb->andWhere('c.id = :convocatoriaId')
                ->setParameter('convocatoriaId', $convocatoriaId);
         }
+
+        if ($esPsicotecnico !== null) {
+            $qb->andWhere('s.esPsicotecnico = :esPsicotecnico')
+               ->setParameter('esPsicotecnico', $esPsicotecnico);
+        }
         
         // Contar total antes de paginar (usar DISTINCT para evitar duplicados por los joins)
         $totalQb = clone $qb;
@@ -82,14 +89,16 @@ class SesionRepository extends ServiceEntityRepository
         
         // Obtener IDs únicos de sesiones con paginación
         $idsQb = clone $qb;
-        $idsQb->select('DISTINCT s.id')
+        $idsQb->resetDQLPart('select');
+        $idsQb->select('s.id AS id, s.fechaCreacion AS fechaCreacion')
+              ->distinct()
               ->orderBy('s.fechaCreacion', 'DESC')
               ->setFirstResult(($page - 1) * $itemsPerPage)
               ->setMaxResults($itemsPerPage);
         
-        $ids = array_map(function($row) {
-            return is_array($row) ? $row['id'] : $row;
-        }, $idsQb->getQuery()->getResult());
+        $ids = array_map(static function (array $row): int {
+            return (int) $row['id'];
+        }, $idsQb->getQuery()->getScalarResult());
         
         if (empty($ids)) {
             return [
@@ -133,6 +142,7 @@ class SesionRepository extends ServiceEntityRepository
      * @param User|null $creadoPor Filtro por creador
      * @param int $page Número de página (empezando en 1)
      * @param int $itemsPerPage Items por página
+     * @param bool|null $esPsicotecnico true solo psicotécnicos, false el resto, null todos
      * @return array ['sesiones' => Sesion[], 'total' => int]
      */
     public function findPaginatedForProfesor(
@@ -143,7 +153,8 @@ class SesionRepository extends ServiceEntityRepository
         ?int $convocatoriaId = null,
         ?User $creadoPor = null,
         int $page = 1,
-        int $itemsPerPage = 20
+        int $itemsPerPage = 20,
+        ?bool $esPsicotecnico = null,
     ): array {
         $qb = $this->createQueryBuilder('s')
             ->leftJoin('s.temas', 't')
@@ -188,6 +199,11 @@ class SesionRepository extends ServiceEntityRepository
             $qb->andWhere('s.creadoPor = :creadoPor')
                ->setParameter('creadoPor', $creadoPor);
         }
+
+        if ($esPsicotecnico !== null) {
+            $qb->andWhere('s.esPsicotecnico = :esPsicotecnico')
+               ->setParameter('esPsicotecnico', $esPsicotecnico);
+        }
         
         // Contar total antes de paginar (usar DISTINCT para evitar duplicados por los joins)
         $totalQb = clone $qb;
@@ -197,14 +213,16 @@ class SesionRepository extends ServiceEntityRepository
         
         // Obtener IDs únicos de sesiones con paginación
         $idsQb = clone $qb;
-        $idsQb->select('DISTINCT s.id')
+        $idsQb->resetDQLPart('select');
+        $idsQb->select('s.id AS id, s.fechaCreacion AS fechaCreacion')
+              ->distinct()
               ->orderBy('s.fechaCreacion', 'DESC')
               ->setFirstResult(($page - 1) * $itemsPerPage)
               ->setMaxResults($itemsPerPage);
         
-        $ids = array_map(function($row) {
-            return is_array($row) ? $row['id'] : $row;
-        }, $idsQb->getQuery()->getResult());
+        $ids = array_map(static function (array $row): int {
+            return (int) $row['id'];
+        }, $idsQb->getQuery()->getScalarResult());
         
         if (empty($ids)) {
             return [

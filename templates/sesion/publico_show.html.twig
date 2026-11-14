@@ -58,7 +58,12 @@
 <div class="card">
     <div class="card-header">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-            <h1 style="margin: 0;">{{ sesion.nombre }}</h1>
+            <h1 style="margin: 0;">
+                {{ sesion.nombre }}
+                {% if sesion.esPsicotecnico %}
+                    <span class="badge" style="background-color: #6f42c1; color: white; font-size: 0.8rem; vertical-align: middle;">Psicotécnico</span>
+                {% endif %}
+            </h1>
             <a href="{{ path('app_sesion_publico_index') }}" class="btn btn-secondary">Volver al listado</a>
         </div>
     </div>

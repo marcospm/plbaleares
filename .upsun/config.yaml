@@ -7,7 +7,7 @@ applications:
     source:
       root: "/"
 
-    type: "php:8.4"
+    type: "php:8.5"
 
     build:
         flavor: none  # Desactivar build flavor automático para controlar composer install manualmente
