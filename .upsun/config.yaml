@@ -49,7 +49,7 @@ applications:
       "/public/pdf_municipales": "shared:files/pdf_municipales"
       "/public/pdfs": "shared:files/pdfs"
       "/public/recursos_especificos": "shared:files/recursos_especificos"
-      "/public/psicotecnicos": "shared:files/psicotecnicos"
+      "/public/archivos_psicotecnicos": "shared:files/psicotecnicos"
       "/public/videos": "shared:files/videos"
 
     variables:
@@ -83,7 +83,7 @@ applications:
           public/pdf_municipales \
           public/pdfs \
           public/recursos_especificos \
-          public/psicotecnicos \
+          public/archivos_psicotecnicos \
           public/videos
 
         # Ejecutar composer install sin scripts (cache:clear requiere REDIS_URL que no está disponible durante el build)

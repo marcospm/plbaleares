@@ -24,6 +24,8 @@ class ArchivoPsicotecnicoController extends AbstractController
 {
     private const EXTENSIONES = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'zip', 'png', 'jpg', 'jpeg', 'webp', 'txt', 'odt', 'ods', 'odp'];
 
+    private const CARPETA = 'archivos_psicotecnicos';
+
     public function __construct(
         private readonly KernelInterface $kernel,
     ) {
@@ -150,7 +152,7 @@ class ArchivoPsicotecnicoController extends AbstractController
         $anterior = $archivo->getRutaArchivo();
         $original = pathinfo($subido->getClientOriginalName(), PATHINFO_FILENAME);
         $nombre = $slugger->slug($original)->lower() . '-' . uniqid() . '.' . $extension;
-        $directorio = $this->kernel->getProjectDir() . '/public/psicotecnicos';
+        $directorio = $this->directorioArchivos();
         if (!is_dir($directorio) && !@mkdir($directorio, 0755, true) && !is_dir($directorio)) {
             return 'No se pudo crear la carpeta de archivos.';
         }
@@ -165,7 +167,7 @@ class ArchivoPsicotecnicoController extends AbstractController
             $this->borrarRuta($anterior);
         }
 
-        $archivo->setRutaArchivo('/psicotecnicos/' . $nombre);
+        $archivo->setRutaArchivo('/' . self::CARPETA . '/' . $nombre);
         $archivo->setNombreArchivoOriginal($subido->getClientOriginalName());
 
         return null;
@@ -178,9 +180,14 @@ class ArchivoPsicotecnicoController extends AbstractController
         }
 
         $nombre = basename($ruta);
-        $path = $this->kernel->getProjectDir() . '/public/psicotecnicos/' . $nombre;
+        $path = $this->directorioArchivos() . '/' . $nombre;
         if (is_file($path)) {
             unlink($path);
         }
+    }
+
+    private function directorioArchivos(): string
+    {
+        return $this->kernel->getProjectDir() . '/public/' . self::CARPETA;
     }
 }
