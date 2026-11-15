@@ -2478,12 +2478,18 @@ class ExamenController extends AbstractController
         }
         
         // Si es profesor (pero no admin), verificar que el alumno está asignado
+        // o que este usuario creó el examen semanal del que sale el intento.
         if ($esProfesor && !$esAdmin && $examen->getUsuario() !== $usuarioActual) {
             $alumnosIds = array_map(function($alumno) {
                 return $alumno->getId();
             }, $usuarioActual->getAlumnos()->toArray());
+
+            $creadorSemanalId = $examen->getExamenSemanal()?->getCreadoPor()?->getId();
+            $esCreadorSemanal = $usuarioActual instanceof User
+                && $creadorSemanalId !== null
+                && $creadorSemanalId === $usuarioActual->getId();
             
-            if (!in_array($examen->getUsuario()->getId(), $alumnosIds)) {
+            if (!in_array($examen->getUsuario()->getId(), $alumnosIds, true) && !$esCreadorSemanal) {
                 throw $this->createAccessDeniedException('No tienes acceso a los exámenes de ese alumno.');
             }
         }

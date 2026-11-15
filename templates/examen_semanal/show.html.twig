@@ -2,12 +2,138 @@
 
 {% block title %}{{ examenSemanal.nombre }}{% endblock %}
 
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .examen-show-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .examen-show-header h1 {
+            margin: 0;
+            flex: 1;
+            min-width: 0;
+            word-break: break-word;
+        }
+
+        .examen-show-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .realizaciones-cards {
+            display: none;
+        }
+
+        .realizacion-card {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.85rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .realizacion-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .realizacion-nombre {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #222;
+            line-height: 1.3;
+        }
+
+        .realizacion-fecha {
+            margin-top: 0.2rem;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .realizacion-nota {
+            font-size: 1.6rem;
+            font-weight: 700;
+            line-height: 1;
+            white-space: nowrap;
+        }
+
+        .realizacion-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin: 0.9rem 0;
+        }
+
+        .realizacion-stat {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 0.55rem 0.4rem;
+            text-align: center;
+        }
+
+        .realizacion-stat strong {
+            display: block;
+            font-size: 1.15rem;
+        }
+
+        .realizacion-stat span {
+            display: block;
+            margin-top: 0.15rem;
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+
+        .realizacion-card .btn {
+            width: 100%;
+            min-height: 44px;
+        }
+
+        @media (max-width: 768px) {
+            .examen-show-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .examen-show-actions .btn {
+                width: 100%;
+                min-height: 44px;
+            }
+
+            .realizaciones-tabla {
+                display: none;
+            }
+
+            .realizaciones-cards {
+                display: block;
+            }
+
+            .temas-header {
+                align-items: stretch !important;
+            }
+
+            .temas-header .btn {
+                width: 100%;
+                min-height: 44px;
+            }
+        }
+    </style>
+{% endblock %}
+
 {% block body %}
 <div class="card">
     <div class="card-header">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="examen-show-header">
             <h1>{{ examenSemanal.nombre }}</h1>
-            <div>
+            <div class="examen-show-actions">
                 {% if examenSemanal.borrador %}
                     <a href="{{ path('app_examen_semanal_borrador_continuar', {'id': examenSemanal.id}) }}" class="btn btn-success">Continuar borrador</a>
                 {% endif %}
@@ -87,7 +213,7 @@
             </div>
         {% else %}
             <div class="mb-3">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div class="temas-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                     <div>
                         <strong>Temas:</strong>
                         {% for tema in examenSemanal.temas|filter(tema => tema.activo) %}
@@ -113,31 +239,72 @@
 
         <h3 style="margin-top: 2rem;">Exámenes Realizados: {{ examenSemanal.examenes|length }}</h3>
         {% if examenSemanal.examenes|length > 0 %}
-            <div class="card mt-3">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Alumno</th>
-                            <th>Fecha</th>
-                            <th>Nota</th>
-                            <th>Aciertos</th>
-                            <th>Errores</th>
-                            <th>En blanco</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for examen in examenesOrdenados %}
+            <div class="card mt-3 realizaciones-tabla">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
                             <tr>
-                                <td>{{ examen.usuario.nombreDisplay }}</td>
-                                <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>
-                                <td><strong style="font-size: 1.2rem; color: {% if examen.nota >= 10 %}var(--color-success){% else %}var(--color-danger){% endif %};">{{ examen.nota|number_format(2, ',', '.') }}</strong></td>
-                                <td style="color: var(--color-success);"><strong>{{ examen.aciertos }}</strong></td>
-                                <td style="color: var(--color-danger);"><strong>{{ examen.errores }}</strong></td>
-                                <td style="color: #999;"><strong>{{ examen.enBlanco }}</strong></td>
+                                <th>Alumno</th>
+                                <th>Fecha</th>
+                                <th>Nota</th>
+                                <th>Aciertos</th>
+                                <th>Errores</th>
+                                <th>En blanco</th>
+                                <th>Acciones</th>
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {% for examen in examenesOrdenados %}
+                                <tr>
+                                    <td>{{ examen.usuario.nombreDisplay }}</td>
+                                    <td>{{ examen.fecha|date('d/m/Y H:i') }}</td>
+                                    <td><strong style="font-size: 1.2rem; color: {% if examen.nota >= 10 %}var(--color-success){% else %}var(--color-danger){% endif %};">{{ examen.nota|number_format(2, ',', '.') }}</strong></td>
+                                    <td style="color: var(--color-success);"><strong>{{ examen.aciertos }}</strong></td>
+                                    <td style="color: var(--color-danger);"><strong>{{ examen.errores }}</strong></td>
+                                    <td style="color: #999;"><strong>{{ examen.enBlanco }}</strong></td>
+                                    <td>
+                                        {% if puedeVerDetalle[examen.id]|default(false) %}
+                                            <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-primary btn-sm">Ver examen</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="realizaciones-cards mt-3">
+                {% for examen in examenesOrdenados %}
+                    <article class="realizacion-card">
+                        <div class="realizacion-card-top">
+                            <div>
+                                <div class="realizacion-nombre">{{ examen.usuario.nombreDisplay }}</div>
+                                <div class="realizacion-fecha">{{ examen.fecha|date('d/m/Y H:i') }}</div>
+                            </div>
+                            <div class="realizacion-nota" style="color: {% if examen.nota >= 10 %}var(--color-success){% else %}var(--color-danger){% endif %};">
+                                {{ examen.nota|number_format(2, ',', '.') }}
+                            </div>
+                        </div>
+                        <div class="realizacion-stats">
+                            <div class="realizacion-stat">
+                                <strong style="color: var(--color-success);">{{ examen.aciertos }}</strong>
+                                <span>Aciertos</span>
+                            </div>
+                            <div class="realizacion-stat">
+                                <strong style="color: var(--color-danger);">{{ examen.errores }}</strong>
+                                <span>Errores</span>
+                            </div>
+                            <div class="realizacion-stat">
+                                <strong style="color: #666;">{{ examen.enBlanco }}</strong>
+                                <span>En blanco</span>
+                            </div>
+                        </div>
+                        {% if puedeVerDetalle[examen.id]|default(false) %}
+                            <a href="{{ path('app_examen_detalle', {'id': examen.id}) }}" class="btn btn-primary">Ver examen</a>
+                        {% endif %}
+                    </article>
+                {% endfor %}
             </div>
         {% endif %}
     </div>

@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\ExamenSemanal;
+use App\Entity\User;
 use App\Form\ExamenSemanalType;
 use App\Form\ExamenSemanalGeneralType;
 use App\Form\ExamenSemanalMunicipalType;
@@ -1453,11 +1454,30 @@ class ExamenSemanalController extends AbstractController
             // Ordenar por nota descendente (mayor nota primero)
             return (float)$b->getNota() <=> (float)$a->getNota();
         });
-        
+
+        $usuarioActual = $this->getUser();
+        $esAdmin = $this->isGranted('ROLE_ADMIN');
+        $esCreador = $usuarioActual instanceof User
+            && $examenSemanal->getCreadoPor()?->getId() === $usuarioActual->getId();
+        $alumnosIds = [];
+        if ($usuarioActual instanceof User) {
+            foreach ($usuarioActual->getAlumnos() as $alumno) {
+                $alumnosIds[$alumno->getId()] = true;
+            }
+        }
+        $puedeVerDetalle = [];
+        foreach ($examenes as $examenRealizado) {
+            $alumnoId = $examenRealizado->getUsuario()?->getId();
+            $puedeVerDetalle[$examenRealizado->getId()] = $esAdmin
+                || $esCreador
+                || ($alumnoId !== null && isset($alumnosIds[$alumnoId]));
+        }
+
         return $this->render('examen_semanal/show.html.twig', [
             'examenSemanal' => $examenSemanal,
             'porcentajesPorTema' => $porcentajesPorTema,
             'examenesOrdenados' => $examenes,
+            'puedeVerDetalle' => $puedeVerDetalle,
         ]);
     }
 

@@ -325,12 +325,20 @@
                     const submenu = element.nextElementSibling;
                     const isOpen = submenu && submenu.classList.contains('show');
                     
-                    // Cerrar otros submenús del mismo nivel
-                    const parent = element.closest('.dropdown-menu');
-                    if (parent) {
-                        parent.querySelectorAll('.submenu').forEach(menu => {
-                            if (menu !== submenu) {
+                    // Cerrar solo los submenús hermanos. Así un grupo dentro de
+                    // Contenido no cierra el propio menú de Contenido.
+                    const level = element.parentElement ? element.parentElement.parentElement : null;
+                    if (level) {
+                        Array.from(level.children).forEach(function (item) {
+                            if (!item.classList || !item.classList.contains('dropdown-item-with-submenu')) {
+                                return;
+                            }
+                            const menu = item.querySelector('.submenu');
+                            if (menu && menu !== submenu) {
                                 menu.classList.remove('show');
+                                menu.querySelectorAll('.submenu').forEach(function (nested) {
+                                    nested.classList.remove('show');
+                                });
                             }
                         });
                     }
@@ -341,6 +349,9 @@
                             submenu.classList.add('show');
                         } else {
                             submenu.classList.remove('show');
+                            submenu.querySelectorAll('.submenu').forEach(function (nested) {
+                                nested.classList.remove('show');
+                            });
                         }
                     }
                 }
@@ -640,20 +651,44 @@
                                                     <span>📚 Contenido</span>
                                                     <span style="margin-left: 1rem;">▶</span>
                                                 </a>
-                                                <ul class="submenu">
-                                                    <li><a href="{{ path('app_tema_index') }}" class="dropdown-item">Temas</a></li>
-                                                    <li><a href="{{ path('app_ley_index') }}" class="dropdown-item">Leyes</a></li>
-                                                    <li><a href="{{ path('app_articulo_index') }}" class="dropdown-item">Artículos</a></li>
-                                                    <li><a href="{{ path('app_pregunta_index') }}" class="dropdown-item">Preguntas</a></li>
-                                                    <li><a href="{{ path('app_plantilla_index') }}" class="dropdown-item">Plantillas de preguntas</a></li>
-                                                    <li><a href="{{ path('app_recurso_index') }}" class="dropdown-item">30 Temas</a></li>
-                                                    <li><a href="{{ path('app_examen_pdf_index') }}" class="dropdown-item">Exámenes PDF</a></li>
-                                                    <li><a href="{{ path('app_examen_convocatoria_index') }}" class="dropdown-item">Exámenes de Otras Convocatorias</a></li>
-                                                    <li><a href="{{ path('app_sesion_index') }}" class="dropdown-item">Sesiones</a></li>
-                                                    <li><a href="{{ path('app_psicotecnico_publico_index') }}" class="dropdown-item">Psicotécnicos</a></li>
-                                                    <li><a href="{{ path('app_video_convocatoria_index') }}" class="dropdown-item">Vídeos de convocatoria</a></li>
-                                                    <li><a href="{{ path('app_boib_index') }}" class="dropdown-item">BOIB</a></li>
-                                                    <li><a href="{{ path('app_boe_index') }}" class="dropdown-item">BOE</a></li>
+                                                <ul class="submenu submenu-contenido">
+                                                    <li class="dropdown-item-with-submenu">
+                                                        <a href="#" class="dropdown-item" onclick="toggleSubmenu(this); return false;">
+                                                            <span>📖 Temario</span>
+                                                            <span style="margin-left: 1rem;">▶</span>
+                                                        </a>
+                                                        <ul class="submenu">
+                                                            <li><a href="{{ path('app_tema_index') }}" class="dropdown-item">📑 Temas</a></li>
+                                                            <li><a href="{{ path('app_ley_index') }}" class="dropdown-item">⚖️ Leyes</a></li>
+                                                            <li><a href="{{ path('app_articulo_index') }}" class="dropdown-item">📄 Artículos</a></li>
+                                                            <li><a href="{{ path('app_pregunta_index') }}" class="dropdown-item">❓ Preguntas</a></li>
+                                                            <li><a href="{{ path('app_plantilla_index') }}" class="dropdown-item">📋 Plantillas de preguntas</a></li>
+                                                        </ul>
+                                                    </li>
+                                                    <li class="dropdown-item-with-submenu">
+                                                        <a href="#" class="dropdown-item" onclick="toggleSubmenu(this); return false;">
+                                                            <span>🗂️ Material</span>
+                                                            <span style="margin-left: 1rem;">▶</span>
+                                                        </a>
+                                                        <ul class="submenu">
+                                                            <li><a href="{{ path('app_recurso_index') }}" class="dropdown-item">📚 30 Temas</a></li>
+                                                            <li><a href="{{ path('app_sesion_index') }}" class="dropdown-item">🗓️ Sesiones</a></li>
+                                                            <li><a href="{{ path('app_examen_pdf_index') }}" class="dropdown-item">📕 Exámenes PDF</a></li>
+                                                            <li><a href="{{ path('app_examen_convocatoria_index') }}" class="dropdown-item">📝 Exámenes de Otras Convocatorias</a></li>
+                                                        </ul>
+                                                    </li>
+                                                    <li class="dropdown-item-with-submenu">
+                                                        <a href="#" class="dropdown-item" onclick="toggleSubmenu(this); return false;">
+                                                            <span>🔎 Recursos</span>
+                                                            <span style="margin-left: 1rem;">▶</span>
+                                                        </a>
+                                                        <ul class="submenu">
+                                                            <li><a href="{{ path('app_psicotecnico_publico_index') }}" class="dropdown-item">🧠 Psicotécnicos</a></li>
+                                                            <li><a href="{{ path('app_video_convocatoria_index') }}" class="dropdown-item">🎬 Vídeos de convocatoria</a></li>
+                                                            <li><a href="{{ path('app_boib_index') }}" class="dropdown-item">📰 BOIB</a></li>
+                                                            <li><a href="{{ path('app_boe_index') }}" class="dropdown-item">📰 BOE</a></li>
+                                                        </ul>
+                                                    </li>
                                                 </ul>
                                             </li>
                                             <li class="dropdown-item-with-submenu">

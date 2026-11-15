@@ -375,7 +375,10 @@
             </div>
         {% endfor %}
 
-        <div class="d-flex gap-2 mt-4">
+        <div class="d-flex gap-2 mt-4 detalle-acciones">
+            {% if examen.examenSemanal and (is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN')) %}
+                <a href="{{ path('app_examen_semanal_show', {'id': examen.examenSemanal.id}) }}" class="btn btn-primary">Volver al examen semanal</a>
+            {% endif %}
             {% if is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN') %}
                 <a href="{{ path('app_examen_profesor') }}" class="btn btn-secondary">Volver a Exámenes</a>
             {% else %}
@@ -427,6 +430,20 @@
             flex-direction: column !important;
             align-items: flex-start !important;
             gap: 0.75rem !important;
+        }
+
+        .detalle-acciones {
+            flex-direction: column;
+        }
+
+        .detalle-acciones .btn {
+            width: 100%;
+            min-height: 44px;
+        }
+
+        .card-header h1 {
+            font-size: 1.35rem;
+            word-break: break-word;
         }
     }
 </style>
