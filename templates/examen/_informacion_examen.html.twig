@@ -1,0 +1,203 @@
+<style>
+    .examen-info {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 0.35rem 0.85rem;
+        margin-bottom: 1.5rem;
+    }
+    .examen-info > summary,
+    .examen-info-anidado > summary {
+        cursor: pointer;
+        font-weight: 700;
+        color: var(--color-primary);
+        list-style: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        min-height: 44px;
+        user-select: none;
+    }
+    .examen-info > summary { font-size: 1.05rem; }
+    .examen-info-anidado > summary { font-size: 1rem; }
+    .examen-info > summary > span,
+    .examen-info-anidado > summary > span { min-width: 0; flex: 1 1 auto; }
+    .examen-info > summary::-webkit-details-marker,
+    .examen-info-anidado > summary::-webkit-details-marker { display: none; }
+    .examen-info > summary::after,
+    .examen-info-anidado > summary::after {
+        content: '';
+        width: 0.5rem;
+        height: 0.5rem;
+        border-right: 2px solid currentColor;
+        border-bottom: 2px solid currentColor;
+        transform: rotate(45deg);
+        flex: 0 0 auto;
+        margin-top: -0.2rem;
+    }
+    .examen-info[open] > summary::after,
+    .examen-info-anidado[open] > summary::after {
+        transform: rotate(-135deg);
+        margin-top: 0.15rem;
+    }
+    .examen-info-cuerpo {
+        display: grid;
+        gap: 0.65rem;
+        padding: 0.35rem 0 0.7rem;
+        border-top: 1px solid #dee2e6;
+    }
+    .examen-info-anidado {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 0.15rem 0.75rem;
+    }
+    .examen-info-nota {
+        color: #666;
+        margin: 0 0 0.75rem;
+        font-size: 0.9rem;
+    }
+    .examen-bloques { display: grid; gap: 0.65rem; }
+    .examen-bloque {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 0.75rem;
+        background: #fff;
+    }
+    .examen-bloque-titulo { font-weight: 700; line-height: 1.3; }
+    .examen-bloque-rango { color: #666; font-size: 0.85rem; margin-top: 0.15rem; }
+    .examen-bloque-cifras {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+    }
+    .examen-bloque-cifra { min-width: 0; }
+    .examen-bloque-cifra span { display: block; color: #666; font-size: 0.75rem; }
+    .examen-bloque-cifra strong { display: block; font-size: 1.2rem; line-height: 1.2; }
+    .examen-bloque-cifra small { display: block; color: #666; font-size: 0.8rem; margin-top: 0.15rem; }
+    .examen-temas {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-top: 0.35rem;
+    }
+    .examen-tema-badge {
+        max-width: 100%;
+        white-space: normal;
+        text-align: left;
+        line-height: 1.35;
+        height: auto;
+    }
+    .examen-dato { margin-bottom: 0.75rem; }
+    .examen-dato strong { display: block; margin-bottom: 0.35rem; }
+    @media (max-width: 480px) {
+        .examen-info { padding: 0.15rem 0.65rem; }
+        .examen-info-anidado { padding: 0.1rem 0.6rem; }
+        .examen-bloque { padding: 0.65rem; }
+        .examen-bloque-cifra strong { font-size: 1.05rem; }
+    }
+</style>
+
+<details class="examen-info">
+    <summary><span>Información del examen</span></summary>
+    <div class="examen-info-cuerpo">
+        {% if bloques is defined and bloques is not empty %}
+            <details class="examen-info-anidado">
+                <summary><span>Resultado por bloque</span></summary>
+                <div style="padding: 0.35rem 0 0.75rem;">
+                    <p class="examen-info-nota">Porcentaje de preguntas acertadas, falladas y en blanco dentro de cada bloque de este examen.</p>
+                    <div class="examen-bloques">
+                        {% for bloque in bloques %}
+                            <div class="examen-bloque">
+                                <div class="examen-bloque-titulo">{{ bloque.nombre }}</div>
+                                <div class="examen-bloque-rango">{{ bloque.rango }} · {{ bloque.total }} {{ bloque.total == 1 ? 'pregunta' : 'preguntas' }}</div>
+                                <div class="examen-bloque-cifras">
+                                    <div class="examen-bloque-cifra">
+                                        <span>Acertadas</span>
+                                        <strong style="color: var(--color-success);">{{ bloque.pctAciertos }}</strong>
+                                        <small>{{ bloque.aciertos }} de {{ bloque.total }}</small>
+                                    </div>
+                                    <div class="examen-bloque-cifra">
+                                        <span>Falladas</span>
+                                        <strong style="color: var(--color-danger);">{{ bloque.pctFallos }}</strong>
+                                        <small>{{ bloque.fallos }} de {{ bloque.total }}</small>
+                                    </div>
+                                    <div class="examen-bloque-cifra">
+                                        <span>En blanco</span>
+                                        <strong style="color: #666;">{{ bloque.pctBlanco }}</strong>
+                                        <small>{{ bloque.blanco }} de {{ bloque.total }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </details>
+        {% endif %}
+
+        <details class="examen-info-anidado">
+            <summary><span>Temas</span></summary>
+            <div style="padding: 0.35rem 0 0.75rem;">
+                {% if examen.convocatoria %}
+                    <div class="examen-dato">
+                        <strong>Convocatoria</strong>
+                        <span class="badge examen-tema-badge" style="background-color: #9C27B0;">{{ examen.convocatoria.nombre }}</span>
+                    </div>
+                    <div class="examen-dato">
+                        <strong>Municipios</strong>
+                        {% if examen.convocatoria.municipios|length > 0 %}
+                            <div class="examen-temas">
+                                {% for municipio in examen.convocatoria.municipios %}
+                                    <span class="badge examen-tema-badge" style="background-color: #2196F3;">{{ municipio.nombre }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <span class="text-muted">No hay municipios asignados</span>
+                        {% endif %}
+                    </div>
+                    <div class="examen-dato" style="margin-bottom: 0;">
+                        <strong>Temas municipales</strong>
+                        {% if examen.temasMunicipales|length > 0 %}
+                            <div class="examen-temas">
+                                {% for temaMunicipal in examen.temasMunicipales %}
+                                    <span class="badge badge-facil examen-tema-badge">{{ temaMunicipal.nombre }}{% if temaMunicipal.municipio %} ({{ temaMunicipal.municipio.nombre }}){% endif %}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <span class="text-muted">No hay temas asignados</span>
+                        {% endif %}
+                    </div>
+                {% elseif examen.municipio %}
+                    <div class="examen-dato">
+                        <strong>Municipio</strong>
+                        <span class="badge examen-tema-badge" style="background-color: #2196F3;">{{ examen.municipio.nombre }}</span>
+                    </div>
+                    <div class="examen-dato" style="margin-bottom: 0;">
+                        <strong>Temas municipales</strong>
+                        {% if examen.temasMunicipales|length > 0 %}
+                            <div class="examen-temas">
+                                {% for temaMunicipal in examen.temasMunicipales %}
+                                    <span class="badge badge-facil examen-tema-badge">{{ temaMunicipal.nombre }}</span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <span class="text-muted">No hay temas asignados</span>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    {% if examen.temas|length > 0 %}
+                        <div class="examen-temas">
+                            {% for tema in examen.temas %}
+                                <span class="badge badge-facil examen-tema-badge">{{ tema.nombre }}</span>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <span class="text-muted">No hay temas asignados</span>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </details>
+    </div>
+</details>

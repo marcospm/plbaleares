@@ -1,0 +1,233 @@
+function repartirPreguntasPorTema(entradas, total) {
+    const especificados = [];
+    const libres = [];
+    let suma = 0;
+
+    for (let i = 0; i < entradas.length; i++) {
+        const entrada = entradas[i];
+        const texto = String(entrada.cantidadTexto == null ? '' : entrada.cantidadTexto).trim();
+        if (texto === '') {
+            libres.push(entrada);
+            continue;
+        }
+        if (!/^\d+$/.test(texto) || Number(texto) < 1) {
+            return {
+                error: 'En «' + entrada.tema.nombre + '» escribe un número entero mayor que 0, o déjalo vacío para que entre en el reparto.',
+                explicito: false,
+                items: []
+            };
+        }
+        const cantidad = Number(texto);
+        if (cantidad > total) {
+            return {
+                error: '«' + entrada.tema.nombre + '» no puede pasar de ' + total + ' preguntas.',
+                explicito: false,
+                items: []
+            };
+        }
+        suma += cantidad;
+        especificados.push({ tema: entrada.tema, cantidad: cantidad, fijado: true });
+    }
+
+    if (especificados.length === 0) {
+        return { error: null, explicito: false, items: [] };
+    }
+    if (suma > total) {
+        return {
+            error: 'Las preguntas que has indicado suman ' + suma + ' y el examen tiene ' + total + '.',
+            explicito: false,
+            items: []
+        };
+    }
+
+    const resto = total - suma;
+    if (libres.length === 0) {
+        if (resto !== 0) {
+            return {
+                error: 'Has puesto número en todos los temas y suman ' + suma + '. Tienen que sumar ' + total + '.',
+                explicito: false,
+                items: []
+            };
+        }
+        return { error: null, explicito: true, items: especificados };
+    }
+    if (resto < libres.length) {
+        return {
+            error: 'Quedan ' + resto + ' preguntas para ' + libres.length + ' temas sin número. No llega a una por tema: baja alguna cantidad o desmarca temas.',
+            explicito: false,
+            items: []
+        };
+    }
+
+    const base = Math.floor(resto / libres.length);
+    let sobra = resto % libres.length;
+    const porTema = new Map();
+    especificados.forEach(function(item) {
+        porTema.set(item.tema, item);
+    });
+    libres.forEach(function(entrada) {
+        const cantidad = base + (sobra > 0 ? 1 : 0);
+        if (sobra > 0) {
+            sobra -= 1;
+        }
+        porTema.set(entrada.tema, { tema: entrada.tema, cantidad: cantidad, fijado: false });
+    });
+
+    return {
+        error: null,
+        explicito: true,
+        items: entradas.map(function(entrada) {
+            return porTema.get(entrada.tema);
+        })
+    };
+}
+
+function campoDeTema(tema) {
+    const casilla = document.getElementById('tema-aleatorio-' + tema.id);
+    if (!casilla) {
+        return null;
+    }
+    const item = casilla.closest('.tema-aleatorio-item');
+    return item ? item.querySelector('.tema-cantidad') : null;
+}
+
+function entradasDesdeTemas(temas) {
+    return temas.map(function(tema) {
+        const campo = campoDeTema(tema);
+        const fijado = campo && !campo.disabled && campo.dataset.fijado === '1';
+        return {
+            tema: tema,
+            cantidadTexto: fijado ? campo.value.trim() : ''
+        };
+    });
+}
+
+function marcarCantidadEscrita(campo) {
+    if (campo.value.trim() === '') {
+        delete campo.dataset.fijado;
+        campo.classList.remove('tema-cantidad-manual');
+        return;
+    }
+    campo.dataset.fijado = '1';
+    campo.classList.remove('tema-cantidad-auto');
+    campo.classList.add('tema-cantidad-manual');
+}
+
+function reflejarRepartoEnCajas(temas, resultado) {
+    const porId = {};
+    if (resultado && resultado.explicito && !resultado.error) {
+        resultado.items.forEach(function(item) {
+            porId[String(item.tema.id)] = item;
+        });
+    }
+    temas.forEach(function(tema) {
+        const campo = campoDeTema(tema);
+        if (!campo || campo.disabled || campo.dataset.fijado === '1') {
+            return;
+        }
+        if (document.activeElement === campo) {
+            campo.classList.remove('tema-cantidad-auto');
+            return;
+        }
+        const item = porId[String(tema.id)];
+        const auto = item && item.fijado === false ? String(item.cantidad) : '';
+        if (campo.value !== auto) {
+            campo.value = auto;
+        }
+        campo.classList.toggle('tema-cantidad-auto', auto !== '');
+    });
+}
+
+function sincronizarCantidades() {
+    document.querySelectorAll('.tema-aleatorio-check').forEach(function(casilla) {
+        const item = casilla.closest('.tema-aleatorio-item');
+        const campo = item ? item.querySelector('.tema-cantidad') : null;
+        if (!campo) {
+            return;
+        }
+        const activo = casilla.checked && !casilla.disabled;
+        campo.disabled = !activo;
+        if (!activo) {
+            campo.value = '';
+            delete campo.dataset.fijado;
+            campo.classList.remove('tema-cantidad-auto', 'tema-cantidad-manual');
+        }
+    });
+    pintarResumenReparto();
+}
+
+function pintarResumenReparto() {
+    const caja = document.getElementById('reparto-resumen');
+    if (!caja || typeof temasMarcados !== 'function' || typeof cantidadPreguntas === 'undefined') {
+        return;
+    }
+    const temas = temasMarcados();
+    if (temas.length < 2) {
+        reflejarRepartoEnCajas(temas, null);
+        caja.style.color = '#666';
+        caja.textContent = 'Marca al menos dos temas. El examen tiene ' + cantidadPreguntas + ' preguntas.';
+        return;
+    }
+    const resultado = repartirPreguntasPorTema(entradasDesdeTemas(temas), cantidadPreguntas);
+    reflejarRepartoEnCajas(temas, resultado);
+    if (resultado.error) {
+        caja.style.color = '#b02a37';
+        caja.textContent = resultado.error;
+        return;
+    }
+    caja.style.color = '#666';
+    if (!resultado.explicito) {
+        caja.textContent = 'Sin números: las ' + cantidadPreguntas + ' preguntas se reparten al azar. Escribe cuántas quieres de un tema y verás el reparto en las demás cajas.';
+        return;
+    }
+    caja.textContent = 'En azul, lo que se reparte solo. Si cambias un número, las demás cajas se recalculan.';
+}
+
+function aplicarReparto(temas) {
+    if (typeof paraExamen === 'undefined' || !paraExamen) {
+        return { temas: temas, reparto: null };
+    }
+    const resultado = repartirPreguntasPorTema(entradasDesdeTemas(temas), cantidadPreguntas);
+    if (resultado.error) {
+        alert(resultado.error);
+        return null;
+    }
+    return {
+        temas: temas,
+        reparto: resultado.explicito ? resultado.items : null
+    };
+}
+
+function engancharReparto() {
+    const lista = document.getElementById('temas-aleatorio-lista');
+    if (!lista || lista.dataset.reparto) {
+        return;
+    }
+    lista.dataset.reparto = '1';
+    lista.addEventListener('change', function(e) {
+        if (e.target.classList.contains('tema-aleatorio-check')) {
+            sincronizarCantidades();
+            return;
+        }
+        if (e.target.classList.contains('tema-cantidad')) {
+            marcarCantidadEscrita(e.target);
+            pintarResumenReparto();
+        }
+    });
+    lista.addEventListener('input', function(e) {
+        if (e.target.classList.contains('tema-cantidad')) {
+            marcarCantidadEscrita(e.target);
+            pintarResumenReparto();
+        }
+    });
+    lista.addEventListener('focusout', function(e) {
+        if (e.target.classList.contains('tema-cantidad')) {
+            pintarResumenReparto();
+        }
+    });
+    lista.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.target.classList.contains('tema-cantidad')) {
+            e.preventDefault();
+        }
+    });
+}

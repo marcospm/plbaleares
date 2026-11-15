@@ -22,6 +22,7 @@ use App\Service\NotificacionService;
 use App\Service\ConfiguracionExamenService;
 use App\Service\PreguntaRiesgoService;
 use App\Service\BoeLeyService;
+use App\Service\BloquesTemario;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -1070,7 +1071,7 @@ class ExamenController extends AbstractController
     }
 
     #[Route('/resultado', name: 'app_examen_resultado', methods: ['GET'])]
-    public function resultado(SessionInterface $session): Response
+    public function resultado(SessionInterface $session, BloquesTemario $bloquesTemario): Response
     {
         $preguntasIds = $session->get('examen_preguntas', []);
         $respuestas = $session->get('examen_respuestas', []);
@@ -1409,6 +1410,7 @@ class ExamenController extends AbstractController
             'enBlanco' => $enBlanco,
             'total' => $total,
             'esMunicipal' => $esMunicipal,
+            'bloques' => $esMunicipal ? [] : $bloquesTemario->resumir($preguntas),
         ]);
     }
 
@@ -2443,7 +2445,7 @@ class ExamenController extends AbstractController
     }
 
     #[Route('/detalle/{id}', name: 'app_examen_detalle', methods: ['GET'])]
-    public function detalle(Examen $examen): Response
+    public function detalle(Examen $examen, BloquesTemario $bloquesTemario): Response
     {
         // Cargar explícitamente los temas municipales y temas generales
         $examen = $this->examenRepository->createQueryBuilder('e')
@@ -2552,6 +2554,7 @@ class ExamenController extends AbstractController
             'preguntas' => $preguntas,
             'esMunicipal' => $esMunicipal,
             'esConvocatoria' => $esConvocatoria,
+            'bloques' => ($esMunicipal || $esConvocatoria) ? [] : $bloquesTemario->resumir($preguntas),
         ]);
     }
 

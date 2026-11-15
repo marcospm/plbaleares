@@ -58,8 +58,88 @@
             overflow-y: auto;
             border: 1px solid #ddd;
             border-radius: 4px;
-            padding: 0.75rem 1rem;
+            padding: 0.25rem 0.85rem;
             background: #fff;
+        }
+        .temas-aleatorios-lista-examen { max-height: 460px; }
+        .tema-aleatorio-cabecera {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.45rem 0.15rem;
+            border-bottom: 1px solid #e6e6e6;
+            color: #666;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+        .tema-aleatorio-cabecera span:last-child {
+            width: 4.75rem;
+            flex: 0 0 4.75rem;
+            text-align: center;
+        }
+        .temas-aleatorios-lista .tema-aleatorio-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin: 0;
+            padding: 0.7rem 0.15rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .temas-aleatorios-lista .tema-aleatorio-item:last-child { border-bottom: 0; }
+        .temas-aleatorios-lista .tema-aleatorio-etiqueta {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.65rem;
+            flex: 1 1 auto;
+            min-width: 0;
+            margin: 0;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .temas-aleatorios-lista .tema-aleatorio-check {
+            width: 18px;
+            height: 18px;
+            margin: 0.15rem 0 0;
+            flex: 0 0 auto;
+        }
+        .temas-aleatorios-lista .tema-aleatorio-texto { min-width: 0; }
+        .temas-aleatorios-lista .tema-aleatorio-nombre { display: block; line-height: 1.35; }
+        .temas-aleatorios-lista input.tema-cantidad {
+            width: 4.75rem;
+            max-width: 4.75rem;
+            height: 2.25rem;
+            flex: 0 0 4.75rem;
+            margin: 0;
+            padding: 0.25rem 0.4rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            background: #fff;
+            box-shadow: none;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+        .temas-aleatorios-lista input.tema-cantidad:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.1);
+        }
+        .temas-aleatorios-lista input.tema-cantidad:disabled {
+            background: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+        }
+        .temas-aleatorios-lista input.tema-cantidad-auto {
+            background: #e8f0fe;
+            border-color: #c5d4f5;
+            color: #1a237e;
+            font-weight: 700;
+        }
+        .temas-aleatorios-lista input.tema-cantidad-manual {
+            background: #fff;
+            font-weight: 700;
         }
     </style>
 {% endblock %}
@@ -76,7 +156,13 @@
                 {% if paraExamen %}
                     <li>Rellena el nombre, las fechas y, si quieres, el grupo. Las preguntas que salgan de la respuesta serán las del examen semanal.</li>
                 {% endif %}
-                <li>Elige el municipio. Luego un tema, o varios de ese municipio para repartir las preguntas al azar. La dificultad se aplica a las {{ cantidadPreguntas }} preguntas.</li>
+                <li>
+                    {% if paraExamen %}
+                        Elige el municipio. Luego un tema, o varios de ese municipio. Si quieres, indica cuántas preguntas de cada tema: el examen tiene {{ cantidadPreguntas }} y las que no indiques se reparten a partes iguales entre los temas sin número. Si no indicas ninguna, se reparten al azar. La dificultad se aplica a todas.
+                    {% else %}
+                        Elige el municipio. Luego un tema, o varios de ese municipio para repartir las preguntas al azar. La dificultad se aplica a las {{ cantidadPreguntas }} preguntas.
+                    {% endif %}
+                </li>
                 <li>No hace falta elegir artículo. La respuesta indica el artículo en cada bloque. Si el prompt es de varios temas, también indica el tema de cada pregunta, y cada una se guarda en el suyo.</li>
                 <li>Copia el prompt, pégalo en el chat y, debajo de <strong>CONTENIDO:</strong>, pega el texto. El prompt pide {{ cantidadPreguntas }} preguntas{% if paraExamen %}. Si el texto da para menos, el examen se crea con las que sean válidas{% else %}. Como máximo, {{ cantidadPreguntas }}{% endif %}.</li>
             </ol>
@@ -133,15 +219,24 @@
 
             <div class="mb-3" id="fila-temas-aleatorios" style="display: none;">
                 <label class="form-label">Temas del sorteo <span class="text-danger">*</span></label>
-                <p class="text-muted mb-2">Marca los temas de este municipio entre los que se repartirán las preguntas. Cada pregunta saldrá de uno de ellos, al azar.</p>
+                <p class="text-muted mb-2">
+                    {% if paraExamen %}
+                        Marca los temas de este municipio. El número de cada uno es opcional: el total es {{ cantidadPreguntas }} y lo que no indiques se reparte a partes iguales entre los temas sin número.
+                    {% else %}
+                        Marca los temas de este municipio entre los que se repartirán las preguntas. Cada pregunta saldrá de uno de ellos, al azar.
+                    {% endif %}
+                </p>
                 <div class="d-flex gap-2 mb-2 flex-wrap">
                     <button type="button" class="btn btn-sm btn-outline-primary" id="temas-aleatorio-todos">Marcar todos</button>
                     <button type="button" class="btn btn-sm btn-outline-secondary" id="temas-aleatorio-ninguno">Quitar todos</button>
                 </div>
                 <input type="search" class="form-control mb-2" id="temas-aleatorio-buscar" placeholder="Buscar tema...">
-                <div class="temas-aleatorios-lista" id="temas-aleatorio-lista">
+                <div class="temas-aleatorios-lista{% if paraExamen %} temas-aleatorios-lista-examen{% endif %}" id="temas-aleatorio-lista">
                     <p class="text-muted mb-0" id="temas-aleatorio-vacio">Primero selecciona un municipio.</p>
                 </div>
+                {% if paraExamen %}
+                    <p id="reparto-resumen" class="text-muted mt-2 mb-0">Sin números: las {{ cantidadPreguntas }} preguntas se reparten al azar. Escribe cuántas quieres de un tema y verás el reparto en las demás cajas.</p>
+                {% endif %}
             </div>
 
             <div class="row mb-3">
@@ -179,6 +274,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const cantidadPreguntas = {{ cantidadPreguntas }};
+    const paraExamen = {{ paraExamen ? 'true' : 'false' }};
+    {% include 'pregunta/_reparto_prompt.js.twig' %}
     function elegirTema(id, nombre) {
         document.getElementById('tema-value').value = id;
         document.getElementById('tema-display').textContent = nombre;
@@ -204,28 +301,56 @@ document.addEventListener('DOMContentLoaded', function() {
         lista.innerHTML = '';
         if (!temas.length) {
             lista.innerHTML = '<p class="text-muted mb-0">Este municipio no tiene temas.</p>';
+            pintarResumenReparto();
             return;
         }
         const aleatorio = modoAleatorio();
+        if (paraExamen) {
+            const cabecera = document.createElement('div');
+            cabecera.className = 'tema-aleatorio-cabecera';
+            cabecera.innerHTML = '<span>Tema</span><span>Preguntas</span>';
+            lista.appendChild(cabecera);
+        }
         temas.forEach(function(tema) {
             const item = document.createElement('div');
-            item.className = 'form-check mb-2 tema-aleatorio-item';
+            item.className = 'tema-aleatorio-item';
             item.setAttribute('data-text', tema.nombre);
             const casilla = document.createElement('input');
-            casilla.className = 'form-check-input tema-aleatorio-check';
+            casilla.className = 'tema-aleatorio-check';
             casilla.type = 'checkbox';
             casilla.name = 'temas[]';
             casilla.value = String(tema.id);
             casilla.id = 'tema-aleatorio-' + tema.id;
             casilla.disabled = !aleatorio;
             const etiqueta = document.createElement('label');
-            etiqueta.className = 'form-check-label';
+            etiqueta.className = 'tema-aleatorio-etiqueta';
             etiqueta.htmlFor = casilla.id;
-            etiqueta.textContent = tema.nombre;
-            item.appendChild(casilla);
+            const texto = document.createElement('span');
+            texto.className = 'tema-aleatorio-texto';
+            const nombre = document.createElement('span');
+            nombre.className = 'tema-aleatorio-nombre';
+            nombre.textContent = tema.nombre;
+            texto.appendChild(nombre);
+            etiqueta.appendChild(casilla);
+            etiqueta.appendChild(texto);
             item.appendChild(etiqueta);
+            if (paraExamen) {
+                const cantidad = document.createElement('input');
+                cantidad.type = 'number';
+                cantidad.className = 'tema-cantidad';
+                cantidad.min = '1';
+                cantidad.max = String(cantidadPreguntas);
+                cantidad.step = '1';
+                cantidad.inputMode = 'numeric';
+                cantidad.placeholder = '—';
+                cantidad.title = 'Preguntas de este tema. Vacío: entra en el reparto.';
+                cantidad.disabled = true;
+                cantidad.setAttribute('aria-label', 'Preguntas de ' + tema.nombre);
+                item.appendChild(cantidad);
+            }
             lista.appendChild(item);
         });
+        sincronizarCantidades();
     }
 
     function loadTemas(municipioId) {
@@ -354,8 +479,11 @@ document.addEventListener('DOMContentLoaded', function() {
             casilla.disabled = !aleatorio;
         });
         document.getElementById('modo-ayuda').textContent = aleatorio
-            ? 'Marca los temas de este municipio. Cada pregunta saldrá de uno de ellos, al azar.'
+            ? (paraExamen
+                ? 'Marca los temas de este municipio. Si escribes un número, el resto hasta ' + cantidadPreguntas + ' se reparte a partes iguales entre los que dejes vacíos.'
+                : 'Marca los temas de este municipio. Cada pregunta saldrá de uno de ellos, al azar.')
             : 'El prompt se centra en el tema que elijas de este municipio.';
+        sincronizarCantidades();
     }
 
     document.querySelectorAll('input[name="modo"]').forEach(function(radio) {
@@ -377,13 +505,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.getElementById('temas-aleatorio-todos').addEventListener('click', function() {
         document.querySelectorAll('.tema-aleatorio-check').forEach(function(casilla) {
-            casilla.checked = true;
+            if (!casilla.disabled) {
+                casilla.checked = true;
+            }
         });
+        sincronizarCantidades();
     });
     document.getElementById('temas-aleatorio-ninguno').addEventListener('click', function() {
         document.querySelectorAll('.tema-aleatorio-check').forEach(function(casilla) {
             casilla.checked = false;
         });
+        sincronizarCantidades();
     });
 
     function textoDificultad() {
@@ -425,8 +557,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Marca al menos dos temas. Las preguntas se repartirán al azar entre ellos.');
                 return null;
             }
+            const conReparto = aplicarReparto(temas);
+            if (!conReparto) {
+                return null;
+            }
             datos.aleatorio = true;
-            datos.temas = temas;
+            datos.temas = conReparto.temas;
+            datos.reparto = conReparto.reparto;
             return datos;
         }
         if (!document.getElementById('tema-value').value) {
@@ -490,18 +627,26 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function construirPromptAleatorio(datos) {
-        const lineasTemas = datos.temas.map(function(tema) {
-            return '- ' + tema.nombre;
-        });
+        const conReparto = Array.isArray(datos.reparto) && datos.reparto.length > 0;
+        const lineasTemas = conReparto
+            ? datos.reparto.map(function(item) {
+                return '- ' + item.tema.nombre + ': exactamente ' + item.cantidad + ' preguntas';
+            })
+            : datos.temas.map(function(tema) {
+                return '- ' + tema.nombre;
+            });
         const ejemplo = datos.temas[0].nombre;
+        const introTemas = conReparto
+            ? 'Haz exactamente ' + cantidadPreguntas + ' preguntas, con este reparto. Ni una más ni una menos de cada tema, y no pases preguntas de un tema a otro:'
+            : 'No hagas las ' + cantidadPreguntas + ' preguntas de un solo tema. Cada pregunta es de uno de estos temas del municipio, elegido al azar. Reparte el bloque entre ellos: tienen que salir temas distintos.';
         return [
             'Eres un preparador de oposiciones de policía local en Baleares. Genera exactamente ' + cantidadPreguntas + ' preguntas tipo test, en español, solo con el contenido municipal que pegue debajo de CONTENIDO. No inventes datos que no estén en ese texto.',
             '',
             'Municipio: ' + datos.municipio,
             '',
-            'No hagas las ' + cantidadPreguntas + ' preguntas de un solo tema. Cada pregunta es de uno de estos temas del municipio, elegido al azar. Reparte el bloque entre ellos: tienen que salir temas distintos.',
+            introTemas,
             '',
-            'Temas (usa el nombre exacto):',
+            conReparto ? 'Temas y cantidades (usa el nombre exacto):' : 'Temas (usa el nombre exacto):',
             ...lineasTemas,
             '',
             'Dificultad: ' + datos.dificultad,
@@ -510,13 +655,17 @@ document.addEventListener('DOMContentLoaded', function() {
             'Reglas:',
             '- Una sola respuesta correcta. La letra de la opción correcta tiene que variar de una pregunta a otra: no puede ser siempre la misma. A lo largo del bloque deben aparecer A, B, C y D. Las otras tres opciones tienen que ser plausibles.',
             '- Cada pregunta lleva la línea TEMA con el nombre exacto de uno de los temas de la lista.',
-            '- Reparte las preguntas al azar entre los temas de la lista. No concentres el bloque en un único tema.',
+            conReparto
+                ? '- Haz exactamente el número de preguntas indicado en cada tema. No pases preguntas de un tema a otro.'
+                : '- Reparte las preguntas al azar entre los temas de la lista. No concentres el bloque en un único tema.',
             '- Cada enunciado es una pregunta tipo test y cita siempre el municipio, el tema y el artículo. Nombra el municipio y el tema exactamente como aparecen arriba, y el número del artículo.',
             '- La línea ARTICULO lleva el número del artículo tal como está en el texto (14 o 14 bis). Es el mismo artículo que cita el enunciado. No inventes artículos que no estén en el contenido.',
             '- La explicación cita el fragmento del que sale la respuesta.',
             '- Responde solo con los bloques, sin introducción ni markdown.',
             '- Si el contenido no da para ' + cantidadPreguntas + ', devuelve las que salgan y dilo en una línea al final, fuera de los bloques.',
-            '- Si después escribo «continúa», genera otras ' + cantidadPreguntas + ' distintas, del mismo contenido, repartidas otra vez al azar entre esos temas, en el mismo formato.',
+            conReparto
+                ? '- Si después escribo «continúa», genera otras ' + cantidadPreguntas + ' distintas, del mismo contenido, con las mismas cantidades por tema y el mismo formato.'
+                : '- Si después escribo «continúa», genera otras ' + cantidadPreguntas + ' distintas, del mismo contenido, repartidas otra vez al azar entre esos temas, en el mismo formato.',
             '',
             'Formato de cada pregunta:',
             '',
@@ -557,6 +706,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.prompt('Copia este prompt:', prompt);
     });
 
+    engancharReparto();
     aplicarModo();
 
     function examenListo() {
