@@ -163,7 +163,7 @@
                         Elige el municipio. Luego un tema, o varios de ese municipio para repartir las preguntas al azar. La dificultad se aplica a las {{ cantidadPreguntas }} preguntas.
                     {% endif %}
                 </li>
-                <li>No hace falta elegir artículo. La respuesta indica el artículo en cada bloque. Si el prompt es de varios temas, también indica el tema de cada pregunta, y cada una se guarda en el suyo.</li>
+                <li>No hace falta elegir artículo. La respuesta indica el artículo en cada bloque. Si no hay artículo (una calle, un callejero u otro dato que no es un artículo), el prompt pide que se ponga 0 y que el enunciado no lo mencione. Si el prompt es de varios temas, también indica el tema de cada pregunta, y cada una se guarda en el suyo.</li>
                 <li>Copia el prompt, pégalo en el chat y, debajo de <strong>CONTENIDO:</strong>, pega el texto. El prompt pide {{ cantidadPreguntas }} preguntas{% if paraExamen %}. Si el texto da para menos, el examen se crea con las que sean válidas{% else %}. Como máximo, {{ cantidadPreguntas }}{% endif %}.</li>
             </ol>
         </div>
@@ -600,8 +600,9 @@ document.addEventListener('DOMContentLoaded', function() {
             ...lineasInstruccionExtra(),
             'Reglas:',
             '- Una sola respuesta correcta. La letra de la opción correcta tiene que variar de una pregunta a otra: no puede ser siempre la misma. A lo largo del bloque deben aparecer A, B, C y D. Las otras tres opciones tienen que ser plausibles.',
-            '- Cada enunciado es una pregunta tipo test y cita siempre el municipio, el tema y el artículo. Nombra el municipio y el tema exactamente como aparecen arriba, y el número del artículo.',
-            '- La línea ARTICULO lleva el número del artículo tal como está en el texto (14 o 14 bis). Es el mismo artículo que cita el enunciado. No inventes artículos que no estén en el contenido.',
+            '- Cada enunciado es una pregunta tipo test y cita siempre el municipio y el tema, con el nombre exacto de arriba.',
+            '- Si el fragmento es un artículo, cítalo también en el enunciado con su número. La línea ARTICULO lleva ese número tal como está en el texto (14 o 14 bis). Es el mismo artículo que cita el enunciado. No inventes artículos que no estén en el contenido.',
+            '- Si no hay artículo que poner, porque es una calle, una plaza, un callejero u otro dato que no es un artículo, escribe ARTICULO: 0. En las preguntas municipales el artículo no es relevante en ese caso: no lo menciones en el enunciado. Basta con el municipio y el tema.',
             '- La explicación cita el fragmento del que sale la respuesta.',
             '- Responde solo con los bloques, sin introducción ni markdown.',
             '- Si el contenido no da para ' + cantidadPreguntas + ', devuelve las que salgan y dilo en una línea al final, fuera de los bloques.',
@@ -621,6 +622,7 @@ document.addEventListener('DOMContentLoaded', function() {
             '---',
             '',
             'La B de CORRECTA en el ejemplo es solo el formato. En las preguntas reales cambia la letra.',
+            'Si no hay artículo, el bloque usa ARTICULO: 0 y el enunciado no dice «artículo».',
             '',
             'CONTENIDO:'
         ].join('\n');
@@ -658,8 +660,9 @@ document.addEventListener('DOMContentLoaded', function() {
             conReparto
                 ? '- Haz exactamente el número de preguntas indicado en cada tema. No pases preguntas de un tema a otro.'
                 : '- Reparte las preguntas al azar entre los temas de la lista. No concentres el bloque en un único tema.',
-            '- Cada enunciado es una pregunta tipo test y cita siempre el municipio, el tema y el artículo. Nombra el municipio y el tema exactamente como aparecen arriba, y el número del artículo.',
-            '- La línea ARTICULO lleva el número del artículo tal como está en el texto (14 o 14 bis). Es el mismo artículo que cita el enunciado. No inventes artículos que no estén en el contenido.',
+            '- Cada enunciado es una pregunta tipo test y cita siempre el municipio y el tema, con el nombre exacto de arriba.',
+            '- Si el fragmento es un artículo, cítalo también en el enunciado con su número. La línea ARTICULO lleva ese número tal como está en el texto (14 o 14 bis). Es el mismo artículo que cita el enunciado. No inventes artículos que no estén en el contenido.',
+            '- Si no hay artículo que poner, porque es una calle, una plaza, un callejero u otro dato que no es un artículo, escribe ARTICULO: 0. En las preguntas municipales el artículo no es relevante en ese caso: no lo menciones en el enunciado. Basta con el municipio y el tema.',
             '- La explicación cita el fragmento del que sale la respuesta.',
             '- Responde solo con los bloques, sin introducción ni markdown.',
             '- Si el contenido no da para ' + cantidadPreguntas + ', devuelve las que salgan y dilo en una línea al final, fuera de los bloques.',
@@ -682,6 +685,7 @@ document.addEventListener('DOMContentLoaded', function() {
             '---',
             '',
             'La B de CORRECTA en el ejemplo es solo el formato. En las preguntas reales cambia la letra. El TEMA de cada pregunta tiene que ir cambiando entre los de la lista.',
+            'Si no hay artículo, el bloque usa ARTICULO: 0 y el enunciado no dice «artículo».',
             '',
             'CONTENIDO:'
         ].join('\n');

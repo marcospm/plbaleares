@@ -1452,7 +1452,8 @@ class PreguntaMunicipalController extends AbstractController
         if ($articulo === null) {
             return 'Bloque ' . $pregunta['linea'] . ': el artículo «' . $pregunta['articulo'] . '» no tiene un número válido.';
         }
-        if (!$this->enunciadoCitaArticulo($pregunta['texto'], $articulo['numero'], $articulo['sufijo'])) {
+        $sinArticulo = $articulo['numero'] === '0' && $articulo['sufijo'] === '';
+        if (!$sinArticulo && !$this->enunciadoCitaArticulo($pregunta['texto'], $articulo['numero'], $articulo['sufijo'])) {
             return 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el artículo ' . trim($articulo['numero'] . ' ' . $articulo['sufijo']) . '.';
         }
         if (!$this->enunciadoCitaTexto($pregunta['texto'], $municipio)) {
