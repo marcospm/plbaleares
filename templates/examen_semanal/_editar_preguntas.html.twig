@@ -1,0 +1,451 @@
+{% set formulario = formularioPregunta|default('') %}
+{% set publicados = valoresPregunta|default({}) %}
+
+<div class="card mt-4" id="preguntas-examen">
+    <div class="card-header">
+        <h2 style="margin: 0;">Preguntas</h2>
+    </div>
+    <div class="card-body">
+        {% if examenSemanal.borrador %}
+            <div class="alert alert-warning">
+                Las preguntas de este borrador se cambian al continuar el borrador.
+                <a href="{{ path('app_examen_semanal_borrador_continuar', {'id': examenSemanal.id}) }}">Continuar borrador</a>
+            </div>
+        {% elseif not puedeEditarPreguntas %}
+            <div class="alert alert-info">{{ motivoPreguntas }}</div>
+        {% else %}
+            <p>
+                Nadie ha realizado todavía este examen, así que puedes añadir, corregir o quitar preguntas.
+                Corregir una pregunta también la cambia en el banco. Eliminarla solo la quita de este examen.
+            </p>
+            {% if examenSemanal.modoCreacion != 'preguntas_especificas' %}
+                <p>Estas son las preguntas que verán los alumnos. Al guardar un cambio, el examen se queda con esta lista y deja de elegirlas del temario.</p>
+            {% endif %}
+
+            {% if preguntasExamen is empty %}
+                <p>Este examen todavía no tiene preguntas.</p>
+            {% endif %}
+
+            {% for pregunta in preguntasExamen %}
+                {% set clave = 'p' ~ pregunta.id %}
+                {% set v = formulario == clave ? publicados : {} %}
+                {% set texto = v.texto is defined ? v.texto : pregunta.texto %}
+                {% set opcionA = v.opcionA is defined ? v.opcionA : pregunta.opcionA %}
+                {% set opcionB = v.opcionB is defined ? v.opcionB : pregunta.opcionB %}
+                {% set opcionC = v.opcionC is defined ? v.opcionC : pregunta.opcionC %}
+                {% set opcionD = v.opcionD is defined ? v.opcionD : pregunta.opcionD %}
+                {% set correcta = v.respuestaCorrecta is defined ? v.respuestaCorrecta : pregunta.respuestaCorrecta %}
+                {% set explicacion = v.retroalimentacion is defined ? v.retroalimentacion : (pregunta.retroalimentacion ?? '') %}
+                {% set dificultad = v.dificultad is defined ? v.dificultad : pregunta.dificultad %}
+                <details class="pregunta-examen" {% if formulario == clave %}open{% endif %}>
+                    <summary>
+                        <span class="pregunta-examen-num">{{ loop.index }}</span>
+                        <span class="pregunta-examen-resumen">{{ texto|striptags }}</span>
+                    </summary>
+                    <div class="pregunta-examen-cuerpo">
+                        <ul class="pregunta-examen-opciones">
+                            {% for letra, textoOpcion in {A: opcionA, B: opcionB, C: opcionC, D: opcionD} %}
+                                <li class="{{ correcta == letra ? 'es-correcta' : '' }}">
+                                    <strong>{{ letra }}.</strong> {{ textoOpcion }}
+                                    {% if correcta == letra %}<span class="pregunta-examen-marca">Correcta</span>{% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        {% if explicacion %}
+                            <p class="pregunta-examen-explica"><strong>Explicación:</strong> {{ explicacion }}</p>
+                        {% endif %}
+
+                        <form method="post" action="{{ path('app_examen_semanal_pregunta_actualizar', {'id': examenSemanal.id, 'preguntaId': pregunta.id}) }}" data-formulario="{{ clave }}" {% if examenSemanal.convocatoria %}data-editor="convocatoria"{% elseif examenSemanal.municipio %}data-editor="municipal"{% else %}data-editor="general"{% endif %}>
+                            <input type="hidden" name="_token" value="{{ csrf_token('examen_preguntas' ~ examenSemanal.id) }}">
+                            <div class="mb-3">
+                                <label>Enunciado</label>
+                                <textarea name="texto" class="form-control" rows="3" required>{{ texto }}</textarea>
+                            </div>
+                            {% for letra in ['A', 'B', 'C', 'D'] %}
+                                <div class="mb-3">
+                                    <label>Opción {{ letra }}</label>
+                                    <textarea name="opcion{{ letra }}" class="form-control" rows="2" required>{{ attribute(_context, 'opcion' ~ letra) }}</textarea>
+                                </div>
+                            {% endfor %}
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label>Respuesta correcta</label>
+                                    <select name="respuestaCorrecta" class="form-control" required>
+                                        {% for letra in ['A', 'B', 'C', 'D'] %}
+                                            <option value="{{ letra }}" {{ correcta == letra ? 'selected' : '' }}>{{ letra }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label>Dificultad</label>
+                                    <select name="dificultad" class="form-control" required>
+                                        {% for valor, etiqueta in dificultades %}
+                                            <option value="{{ valor }}" {{ dificultad == valor ? 'selected' : '' }}>{{ etiqueta }}</option>
+                                        {% endfor %}
+                                        {% if dificultad not in dificultades|keys %}
+                                            <option value="{{ dificultad }}" selected>{{ dificultad }}</option>
+                                        {% endif %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label>Explicación (opcional)</label>
+                                <textarea name="retroalimentacion" class="form-control" rows="2">{{ explicacion }}</textarea>
+                            </div>
+
+                            {% if examenSemanal.municipio or examenSemanal.convocatoria %}
+                                {% set municipioId = v.municipioId is defined and v.municipioId != '' ? v.municipioId : pregunta.municipio.id %}
+                                {% set temaMunicipalId = v.temaMunicipalId is defined and v.temaMunicipalId != '' ? v.temaMunicipalId : pregunta.temaMunicipal.id %}
+                                {% if examenSemanal.convocatoria %}
+                                    <div class="mb-3">
+                                        <label>Municipio</label>
+                                        <select name="municipioId" class="form-control" data-campo="municipio" data-tema-actual="{{ temaMunicipalId }}" required>
+                                            {% for municipio in examenSemanal.convocatoria.municipios %}
+                                                <option value="{{ municipio.id }}" {{ municipio.id == municipioId ? 'selected' : '' }}>{{ municipio.nombre }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                {% endif %}
+                                <div class="mb-3">
+                                    <label>Tema municipal</label>
+                                    <select name="temaMunicipalId" class="form-control" data-campo="tema-municipal" required>
+                                        {% if examenSemanal.municipio %}
+                                            {% for tema in temasMunicipales %}
+                                                <option value="{{ tema.id }}" {{ tema.id == temaMunicipalId ? 'selected' : '' }}>{{ tema.nombre }}</option>
+                                            {% endfor %}
+                                        {% else %}
+                                            {% for tema in pregunta.municipio.temasMunicipales|filter(tema => tema.activo) %}
+                                                <option value="{{ tema.id }}" {{ tema.id == temaMunicipalId ? 'selected' : '' }}>{{ tema.nombre }}</option>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </select>
+                                </div>
+                            {% else %}
+                                {% set temaId = v.temaId is defined and v.temaId != '' ? v.temaId : pregunta.tema.id %}
+                                {% set leyId = v.leyId is defined and v.leyId != '' ? v.leyId : pregunta.ley.id %}
+                                {% set articuloId = v.articuloId is defined and v.articuloId != '' ? v.articuloId : pregunta.articulo.id %}
+                                <div class="mb-3">
+                                    <label>Tema</label>
+                                    <select name="temaId" class="form-control" data-campo="tema" required>
+                                        {% for tema in temas %}
+                                            <option value="{{ tema.id }}" {{ tema.id == temaId ? 'selected' : '' }}>{{ tema.nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label>Ley</label>
+                                        <select name="leyId" class="form-control" data-campo="ley" required>
+                                            <option value="{{ pregunta.ley.id }}" selected>{{ pregunta.ley.nombre }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label>Artículo</label>
+                                        <select name="articuloId" class="form-control" data-campo="articulo" required>
+                                            <option value="{{ pregunta.articulo.id }}" selected>Art. {{ pregunta.articulo.numeroCompleto }}{% if pregunta.articulo.nombre %} — {{ pregunta.articulo.nombre }}{% endif %}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <button type="submit" class="btn btn-primary">Guardar pregunta</button>
+                        </form>
+
+                        {% if preguntasExamen|length > 1 %}
+                            <form method="post" action="{{ path('app_examen_semanal_pregunta_quitar', {'id': examenSemanal.id, 'preguntaId': pregunta.id}) }}" class="mt-3" onsubmit="return confirm('¿Eliminar esta pregunta del examen?');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('examen_preguntas' ~ examenSemanal.id) }}">
+                                <button type="submit" class="btn btn-danger">Eliminar</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </details>
+            {% endfor %}
+
+            <h3 class="mt-4">Añadir pregunta</h3>
+            {% set v = formulario == 'nueva' ? publicados : {} %}
+            <form method="post" action="{{ path('app_examen_semanal_pregunta_anadir', {'id': examenSemanal.id}) }}" id="anadir-pregunta" data-formulario="nueva" data-ley-actual="{{ v.leyId|default('') }}" data-articulo-actual="{{ v.articuloId|default('') }}" {% if examenSemanal.convocatoria %}data-editor="convocatoria"{% elseif examenSemanal.municipio %}data-editor="municipal"{% else %}data-editor="general"{% endif %}>
+                <input type="hidden" name="_token" value="{{ csrf_token('examen_preguntas' ~ examenSemanal.id) }}">
+                <div class="mb-3">
+                    <label>Enunciado</label>
+                    <textarea name="texto" class="form-control" rows="3" required>{{ v.texto|default('') }}</textarea>
+                </div>
+                {% for letra in ['A', 'B', 'C', 'D'] %}
+                    <div class="mb-3">
+                        <label>Opción {{ letra }}</label>
+                        <textarea name="opcion{{ letra }}" class="form-control" rows="2" required>{{ attribute(v, 'opcion' ~ letra)|default('') }}</textarea>
+                    </div>
+                {% endfor %}
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>Respuesta correcta</label>
+                        <select name="respuestaCorrecta" class="form-control" required>
+                            {% for letra in ['A', 'B', 'C', 'D'] %}
+                                <option value="{{ letra }}" {{ v.respuestaCorrecta|default('A') == letra ? 'selected' : '' }}>{{ letra }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label>Dificultad</label>
+                        <select name="dificultad" class="form-control" required>
+                            {% for valor, etiqueta in dificultades %}
+                                <option value="{{ valor }}" {{ v.dificultad|default(examenSemanal.dificultad) == valor ? 'selected' : '' }}>{{ etiqueta }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label>Explicación (opcional)</label>
+                    <textarea name="retroalimentacion" class="form-control" rows="2">{{ v.retroalimentacion|default('') }}</textarea>
+                </div>
+
+                {% if examenSemanal.municipio %}
+                    <div class="mb-3">
+                        <label>Tema municipal</label>
+                        <select name="temaMunicipalId" class="form-control" required>
+                            <option value="">Selecciona un tema</option>
+                            {% for tema in temasMunicipales %}
+                                <option value="{{ tema.id }}" {{ v.temaMunicipalId|default('') == tema.id ? 'selected' : '' }}>{{ tema.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% elseif examenSemanal.convocatoria %}
+                    <div class="mb-3">
+                        <label>Municipio</label>
+                        <select name="municipioId" class="form-control" data-campo="municipio" data-tema-actual="{{ v.temaMunicipalId|default('') }}" required>
+                            <option value="">Selecciona un municipio</option>
+                            {% for municipio in examenSemanal.convocatoria.municipios %}
+                                <option value="{{ municipio.id }}" {{ v.municipioId|default('') == municipio.id ? 'selected' : '' }}>{{ municipio.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Tema municipal</label>
+                        <select name="temaMunicipalId" class="form-control" data-campo="tema-municipal" required>
+                            <option value="">Selecciona un municipio primero</option>
+                        </select>
+                    </div>
+                {% else %}
+                    <div class="mb-3">
+                        <label>Tema</label>
+                        <select name="temaId" class="form-control" data-campo="tema" required>
+                            <option value="">Selecciona un tema</option>
+                            {% for tema in temas %}
+                                <option value="{{ tema.id }}" {{ v.temaId|default('') == tema.id ? 'selected' : '' }}>{{ tema.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Ley</label>
+                            <select name="leyId" class="form-control" data-campo="ley" required>
+                                <option value="">Selecciona un tema primero</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Artículo</label>
+                            <select name="articuloId" class="form-control" data-campo="articulo" required>
+                                <option value="">Selecciona una ley primero</option>
+                            </select>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-success">Añadir pregunta</button>
+            </form>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .pregunta-examen {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.75rem;
+        background: #fff;
+    }
+
+    .pregunta-examen summary {
+        display: flex;
+        align-items: baseline;
+        gap: 0.75rem;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    .pregunta-examen-num {
+        flex: 0 0 auto;
+        color: #0d6efd;
+    }
+
+    .pregunta-examen-resumen {
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .pregunta-examen-cuerpo {
+        margin-top: 1rem;
+    }
+
+    .pregunta-examen-opciones {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 1rem 0;
+    }
+
+    .pregunta-examen-opciones li {
+        padding: 0.35rem 0;
+    }
+
+    .pregunta-examen-opciones li.es-correcta {
+        color: #198754;
+        font-weight: 600;
+    }
+
+    .pregunta-examen-marca {
+        margin-left: 0.5rem;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+    }
+
+    .pregunta-examen-explica {
+        color: #495057;
+    }
+
+    @media (max-width: 768px) {
+        .pregunta-examen-resumen {
+            white-space: normal;
+        }
+
+        #preguntas-examen .btn {
+            width: 100%;
+            min-height: 44px;
+        }
+    }
+</style>
+
+<script>
+(function () {
+    function opcion(valor, texto, seleccionado) {
+        const option = document.createElement('option');
+        option.value = valor;
+        option.textContent = texto;
+        if (seleccionado) {
+            option.selected = true;
+        }
+        return option;
+    }
+
+    function cargarArticulos(leyId, articuloSelect, articuloId) {
+        articuloSelect.innerHTML = '';
+        articuloSelect.appendChild(opcion('', 'Selecciona un artículo', false));
+        if (!leyId) {
+            return;
+        }
+        fetch('/pregunta/api/articulos-por-ley/' + leyId)
+            .then(function (response) { return response.json(); })
+            .then(function (articulos) {
+                articulos.forEach(function (articulo) {
+                    articuloSelect.appendChild(opcion(articulo.id, articulo.label, String(articulo.id) === String(articuloId)));
+                });
+            });
+    }
+
+    function cargarLeyes(temaId, leySelect, articuloSelect, leyId, articuloId) {
+        leySelect.innerHTML = '';
+        leySelect.appendChild(opcion('', 'Selecciona una ley', false));
+        articuloSelect.innerHTML = '';
+        articuloSelect.appendChild(opcion('', 'Selecciona un artículo', false));
+        if (!temaId) {
+            return;
+        }
+        fetch('/pregunta/api/leyes-por-tema/' + temaId)
+            .then(function (response) { return response.json(); })
+            .then(function (leyes) {
+                leyes.filter(function (ley) { return ley.activo !== false; }).forEach(function (ley) {
+                    leySelect.appendChild(opcion(ley.id, ley.nombre, String(ley.id) === String(leyId)));
+                });
+                if (leySelect.value) {
+                    cargarArticulos(leySelect.value, articuloSelect, articuloId);
+                }
+            });
+    }
+
+    function cargarTemasMunicipales(municipioId, temaSelect, temaId) {
+        const actual = temaSelect.value || temaId;
+        temaSelect.innerHTML = '';
+        temaSelect.appendChild(opcion('', 'Selecciona un tema', false));
+        if (!municipioId) {
+            return;
+        }
+        fetch('/examen-semanal/temas-municipales/' + municipioId)
+            .then(function (response) { return response.json(); })
+            .then(function (temas) {
+                temas.forEach(function (tema) {
+                    temaSelect.appendChild(opcion(tema.id, tema.nombre, String(tema.id) === String(actual)));
+                });
+            });
+    }
+
+    document.querySelectorAll('[data-editor="general"]').forEach(function (editor) {
+        const tema = editor.querySelector('[data-campo="tema"]');
+        const ley = editor.querySelector('[data-campo="ley"]');
+        const articulo = editor.querySelector('[data-campo="articulo"]');
+        if (!tema || !ley || !articulo) {
+            return;
+        }
+        tema.addEventListener('change', function () {
+            cargarLeyes(tema.value, ley, articulo, '', '');
+        });
+        ley.addEventListener('change', function () {
+            if (ley.dataset.cargando === '1') {
+                return;
+            }
+            cargarArticulos(ley.value, articulo, '');
+        });
+        if (!editor.closest('details') && tema.value) {
+            cargarLeyes(tema.value, ley, articulo, editor.dataset.leyActual || '', editor.dataset.articuloActual || '');
+        }
+        ley.addEventListener('focus', function () {
+            if (ley.dataset.cargado === '1' || !tema.value) {
+                return;
+            }
+            ley.dataset.cargado = '1';
+            ley.dataset.cargando = '1';
+            const leyId = ley.value;
+            const articuloId = articulo.value;
+            fetch('/pregunta/api/leyes-por-tema/' + tema.value)
+                .then(function (response) { return response.json(); })
+                .then(function (leyes) {
+                    ley.innerHTML = '';
+                    ley.appendChild(opcion('', 'Selecciona una ley', false));
+                    leyes.filter(function (item) { return item.activo !== false; }).forEach(function (item) {
+                        ley.appendChild(opcion(item.id, item.nombre, String(item.id) === String(leyId)));
+                    });
+                    if (ley.value) {
+                        cargarArticulos(ley.value, articulo, articuloId);
+                    }
+                })
+                .finally(function () {
+                    ley.dataset.cargando = '0';
+                });
+        });
+    });
+
+    document.querySelectorAll('[data-editor="convocatoria"]').forEach(function (editor) {
+        const municipio = editor.querySelector('[data-campo="municipio"]');
+        const tema = editor.querySelector('[data-campo="tema-municipal"]');
+        if (!municipio || !tema) {
+            return;
+        }
+        municipio.addEventListener('change', function () {
+            cargarTemasMunicipales(municipio.value, tema, '');
+        });
+        if (municipio.value && tema.options.length <= 1) {
+            cargarTemasMunicipales(municipio.value, tema, municipio.dataset.temaActual || '');
+        }
+    });
+})();
+</script>

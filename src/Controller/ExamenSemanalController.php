@@ -2,7 +2,14 @@
 
 namespace App\Controller;
 
+use App\Entity\Articulo;
+use App\Entity\ExamenBorrador;
 use App\Entity\ExamenSemanal;
+use App\Entity\Ley;
+use App\Entity\Pregunta;
+use App\Entity\PreguntaMunicipal;
+use App\Entity\Tema;
+use App\Entity\TemaMunicipal;
 use App\Entity\User;
 use App\Form\ExamenSemanalType;
 use App\Form\ExamenSemanalGeneralType;
@@ -1104,24 +1111,121 @@ class ExamenSemanalController extends AbstractController
             // Validar que fechaCierre sea posterior a fechaApertura
             if ($examenSemanal->getFechaCierre() <= $examenSemanal->getFechaApertura()) {
                 $this->addFlash('error', 'La fecha de cierre debe ser posterior a la fecha de apertura.');
-                return $this->render('examen_semanal/edit.html.twig', [
-                    'examenSemanal' => $examenSemanal,
-                    'form' => $form,
-                ]);
+
+                return $this->renderEditar($examenSemanal, $form);
             }
 
             $this->entityManager->flush();
-            
+
             $this->invalidarCacheExamenesSemanales();
 
             $this->addFlash('success', 'Examen semanal actualizado correctamente.');
             return $this->redirectToRoute('app_examen_semanal_index', [], Response::HTTP_SEE_OTHER);
         }
 
-        return $this->render('examen_semanal/edit.html.twig', [
-            'examenSemanal' => $examenSemanal,
-            'form' => $form,
-        ]);
+        return $this->renderEditar($examenSemanal, $form);
+    }
+
+    #[Route('/{id}/preguntas', name: 'app_examen_semanal_pregunta_anadir', methods: ['POST'], requirements: ['id' => '\d+'], priority: 10)]
+    public function anadirPregunta(Request $request, ExamenSemanal $examenSemanal): Response
+    {
+        $bloqueo = $this->rechazarSiNoSePuedenEditarPreguntas($examenSemanal, $request);
+        if ($bloqueo instanceof Response) {
+            return $bloqueo;
+        }
+
+        $datos = $this->datosPreguntaDesdeRequest($request);
+        $pregunta = $this->esPreguntaMunicipal($examenSemanal) ? new PreguntaMunicipal() : new Pregunta();
+        $error = $this->validarDatosPregunta($datos) ?? $this->asignarUbicacion($examenSemanal, $pregunta, $request);
+        if ($error !== null) {
+            return $this->errorPreguntas($examenSemanal, $request, 'nueva', $error);
+        }
+
+        $this->aplicarDatosPregunta($pregunta, $datos);
+        $pregunta->setActivo(true);
+        $this->fijarPreguntas($examenSemanal);
+        $this->entityManager->persist($pregunta);
+        if ($pregunta instanceof PreguntaMunicipal) {
+            $examenSemanal->addPreguntasMunicipale($pregunta);
+        } else {
+            $examenSemanal->addPregunta($pregunta);
+        }
+        $this->sincronizarTemasDesdePreguntas($examenSemanal);
+        $this->entityManager->flush();
+        $this->invalidarCacheExamenesSemanales();
+
+        $this->addFlash('success', 'Pregunta añadida al examen.');
+
+        return $this->volverAEditarPreguntas($examenSemanal);
+    }
+
+    #[Route('/{id}/preguntas/{preguntaId}', name: 'app_examen_semanal_pregunta_actualizar', methods: ['POST'], requirements: ['id' => '\d+', 'preguntaId' => '\d+'], priority: 10)]
+    public function actualizarPregunta(Request $request, ExamenSemanal $examenSemanal, int $preguntaId): Response
+    {
+        $bloqueo = $this->rechazarSiNoSePuedenEditarPreguntas($examenSemanal, $request);
+        if ($bloqueo instanceof Response) {
+            return $bloqueo;
+        }
+
+        $pregunta = $this->buscarPreguntaEditable($examenSemanal, $preguntaId);
+        if ($pregunta === null) {
+            $this->addFlash('error', 'Esa pregunta no está en este examen.');
+
+            return $this->volverAEditarPreguntas($examenSemanal);
+        }
+
+        $datos = $this->datosPreguntaDesdeRequest($request);
+        $error = $this->validarDatosPregunta($datos) ?? $this->asignarUbicacion($examenSemanal, $pregunta, $request);
+        if ($error !== null) {
+            return $this->errorPreguntas($examenSemanal, $request, 'p'.$preguntaId, $error);
+        }
+
+        $this->aplicarDatosPregunta($pregunta, $datos);
+
+        $this->fijarPreguntas($examenSemanal);
+        $this->sincronizarTemasDesdePreguntas($examenSemanal);
+        $this->entityManager->flush();
+        $this->invalidarCacheExamenesSemanales();
+
+        $this->addFlash('success', 'Pregunta actualizada.');
+
+        return $this->volverAEditarPreguntas($examenSemanal);
+    }
+
+    #[Route('/{id}/preguntas/{preguntaId}/quitar', name: 'app_examen_semanal_pregunta_quitar', methods: ['POST'], requirements: ['id' => '\d+', 'preguntaId' => '\d+'], priority: 10)]
+    public function quitarPregunta(Request $request, ExamenSemanal $examenSemanal, int $preguntaId): Response
+    {
+        $bloqueo = $this->rechazarSiNoSePuedenEditarPreguntas($examenSemanal, $request);
+        if ($bloqueo instanceof Response) {
+            return $bloqueo;
+        }
+
+        $pregunta = $this->buscarPreguntaEditable($examenSemanal, $preguntaId);
+        if ($pregunta === null) {
+            $this->addFlash('error', 'Esa pregunta no está en este examen.');
+
+            return $this->volverAEditarPreguntas($examenSemanal);
+        }
+
+        if (count($this->preguntasEditables($examenSemanal)) <= 1) {
+            $this->addFlash('error', 'El examen tiene que conservar al menos una pregunta.');
+
+            return $this->volverAEditarPreguntas($examenSemanal);
+        }
+
+        $this->fijarPreguntas($examenSemanal);
+        if ($pregunta instanceof PreguntaMunicipal) {
+            $examenSemanal->removePreguntasMunicipale($pregunta);
+        } else {
+            $examenSemanal->removePregunta($pregunta);
+        }
+        $this->sincronizarTemasDesdePreguntas($examenSemanal);
+        $this->entityManager->flush();
+        $this->invalidarCacheExamenesSemanales();
+
+        $this->addFlash('success', 'Pregunta eliminada del examen.');
+
+        return $this->volverAEditarPreguntas($examenSemanal);
     }
 
     #[Route('/{id}', name: 'app_examen_semanal_delete', methods: ['POST'])]
@@ -1479,6 +1583,331 @@ class ExamenSemanalController extends AbstractController
             'examenesOrdenados' => $examenes,
             'puedeVerDetalle' => $puedeVerDetalle,
         ]);
+    }
+
+    private function renderEditar(ExamenSemanal $examenSemanal, $form, string $formularioPregunta = '', array $valoresPregunta = []): Response
+    {
+        $motivo = $this->motivoBloqueoPreguntas($examenSemanal);
+        $puedeEditar = $motivo === null && !$examenSemanal->isBorrador();
+        $municipal = $this->esPreguntaMunicipal($examenSemanal);
+        $temasMunicipales = [];
+        if ($puedeEditar && $municipal && $examenSemanal->getMunicipio() !== null) {
+            $temasMunicipales = $this->temaMunicipalRepository->findByMunicipio($examenSemanal->getMunicipio());
+        }
+
+        return $this->render('examen_semanal/edit.html.twig', [
+            'examenSemanal' => $examenSemanal,
+            'form' => $form,
+            'puedeEditarPreguntas' => $puedeEditar,
+            'motivoPreguntas' => $motivo,
+            'preguntasExamen' => $puedeEditar ? $this->preguntasEditables($examenSemanal) : [],
+            'temas' => $puedeEditar && !$municipal ? $this->temaRepository->findActivosOrderedByNombre() : [],
+            'temasMunicipales' => $temasMunicipales,
+            'formularioPregunta' => $formularioPregunta,
+            'valoresPregunta' => $valoresPregunta,
+            'dificultades' => [
+                'facil' => 'Fácil',
+                'moderada' => 'Moderada',
+                'dificil' => 'Difícil',
+                'indeterminado' => 'Indeterminado',
+            ],
+        ]);
+    }
+
+    private function rechazarSiNoSePuedenEditarPreguntas(ExamenSemanal $examenSemanal, Request $request): ?Response
+    {
+        if (!$this->isCsrfTokenValid('examen_preguntas'.$examenSemanal->getId(), (string) $request->request->get('_token', ''))) {
+            $this->addFlash('error', 'No se ha podido guardar el cambio. Vuelve a intentarlo.');
+
+            return $this->volverAEditarPreguntas($examenSemanal);
+        }
+
+        $motivo = $this->motivoBloqueoPreguntas($examenSemanal);
+        if ($examenSemanal->isBorrador()) {
+            $motivo = 'Las preguntas de un borrador se cambian al continuar el borrador.';
+        }
+        if ($motivo !== null) {
+            $this->addFlash('error', $motivo);
+
+            return $this->volverAEditarPreguntas($examenSemanal);
+        }
+
+        return null;
+    }
+
+    private function motivoBloqueoPreguntas(ExamenSemanal $examenSemanal): ?string
+    {
+        if ($examenSemanal->isBorrador()) {
+            return null;
+        }
+        if (!$examenSemanal->getExamenes()->isEmpty()) {
+            return 'Ya hay alumnos que han realizado este examen. Las preguntas no se pueden cambiar.';
+        }
+
+        $borradores = (int) $this->entityManager->getRepository(ExamenBorrador::class)->count(['examenSemanal' => $examenSemanal]);
+        if ($borradores > 0) {
+            return 'Hay un alumno que ya ha empezado este examen. Las preguntas no se pueden cambiar.';
+        }
+
+        return null;
+    }
+
+    private function esPreguntaMunicipal(ExamenSemanal $examenSemanal): bool
+    {
+        return $examenSemanal->getMunicipio() !== null || $examenSemanal->getConvocatoria() !== null;
+    }
+
+    /**
+     * @return array<int, Pregunta|PreguntaMunicipal>
+     */
+    private function preguntasEditables(ExamenSemanal $examenSemanal): array
+    {
+        if ($examenSemanal->getModoCreacion() === 'preguntas_especificas') {
+            $preguntas = $this->esPreguntaMunicipal($examenSemanal)
+                ? $examenSemanal->getPreguntasMunicipales()->toArray()
+                : $examenSemanal->getPreguntas()->toArray();
+            usort($preguntas, static fn ($a, $b) => $a->getId() <=> $b->getId());
+
+            return array_values($preguntas);
+        }
+
+        return $this->examenSemanalPreguntas->paraExamen($examenSemanal);
+    }
+
+    private function buscarPreguntaEditable(ExamenSemanal $examenSemanal, int $preguntaId): Pregunta|PreguntaMunicipal|null
+    {
+        foreach ($this->preguntasEditables($examenSemanal) as $pregunta) {
+            if ($pregunta->getId() === $preguntaId) {
+                return $pregunta;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Deja la lista que verán los alumnos guardada en el examen.
+     * Así, añadir o quitar una pregunta no vuelve a mezclar el temario.
+     */
+    private function fijarPreguntas(ExamenSemanal $examenSemanal): void
+    {
+        if ($examenSemanal->getModoCreacion() === 'preguntas_especificas') {
+            return;
+        }
+
+        $preguntas = $this->examenSemanalPreguntas->paraExamen($examenSemanal);
+        if ($this->esPreguntaMunicipal($examenSemanal)) {
+            foreach ($examenSemanal->getPreguntasMunicipales()->toArray() as $pregunta) {
+                $examenSemanal->removePreguntasMunicipale($pregunta);
+            }
+            foreach ($preguntas as $pregunta) {
+                if ($pregunta instanceof PreguntaMunicipal) {
+                    $examenSemanal->addPreguntasMunicipale($pregunta);
+                }
+            }
+        } else {
+            foreach ($examenSemanal->getPreguntas()->toArray() as $pregunta) {
+                $examenSemanal->removePregunta($pregunta);
+            }
+            foreach ($preguntas as $pregunta) {
+                if ($pregunta instanceof Pregunta) {
+                    $examenSemanal->addPregunta($pregunta);
+                }
+            }
+        }
+
+        $examenSemanal->setModoCreacion('preguntas_especificas');
+    }
+
+    private function sincronizarTemasDesdePreguntas(ExamenSemanal $examenSemanal): void
+    {
+        if ($examenSemanal->getModoCreacion() !== 'preguntas_especificas') {
+            return;
+        }
+
+        if ($this->esPreguntaMunicipal($examenSemanal)) {
+            $actuales = [];
+            foreach ($examenSemanal->getPreguntasMunicipales() as $pregunta) {
+                $tema = $pregunta->getTemaMunicipal();
+                if ($tema !== null) {
+                    $actuales[$tema->getId()] = $tema;
+                }
+            }
+            foreach ($examenSemanal->getTemasMunicipales()->toArray() as $tema) {
+                if (!isset($actuales[$tema->getId()])) {
+                    $examenSemanal->removeTemasMunicipale($tema);
+                }
+            }
+            foreach ($actuales as $tema) {
+                $examenSemanal->addTemasMunicipale($tema);
+            }
+            $examenSemanal->setNumeroPreguntas($examenSemanal->getPreguntasMunicipales()->count());
+
+            return;
+        }
+
+        $actuales = [];
+        foreach ($examenSemanal->getPreguntas() as $pregunta) {
+            $tema = $pregunta->getTema();
+            if ($tema !== null) {
+                $actuales[$tema->getId()] = $tema;
+            }
+        }
+        foreach ($examenSemanal->getTemas()->toArray() as $tema) {
+            if (!isset($actuales[$tema->getId()])) {
+                $examenSemanal->removeTema($tema);
+            }
+        }
+        foreach ($actuales as $tema) {
+            $examenSemanal->addTema($tema);
+        }
+        $examenSemanal->setNumeroPreguntas($examenSemanal->getPreguntas()->count());
+    }
+
+    /**
+     * @param array<string, string> $datos
+     */
+    private function aplicarDatosPregunta(Pregunta|PreguntaMunicipal $pregunta, array $datos): void
+    {
+        $pregunta->setTexto($datos['texto']);
+        $pregunta->setOpcionA($datos['opcionA']);
+        $pregunta->setOpcionB($datos['opcionB']);
+        $pregunta->setOpcionC($datos['opcionC']);
+        $pregunta->setOpcionD($datos['opcionD']);
+        $pregunta->setRespuestaCorrecta($datos['respuestaCorrecta']);
+        $pregunta->setDificultad($datos['dificultad']);
+        $pregunta->setRetroalimentacion($datos['retroalimentacion'] !== '' ? $datos['retroalimentacion'] : null);
+    }
+
+    private function asignarUbicacion(ExamenSemanal $examenSemanal, Pregunta|PreguntaMunicipal $pregunta, Request $request): ?string
+    {
+        if ($pregunta instanceof PreguntaMunicipal) {
+            return $this->asignarUbicacionMunicipal($examenSemanal, $pregunta, $request);
+        }
+
+        return $this->asignarUbicacionGeneral($pregunta, $request);
+    }
+
+    private function asignarUbicacionGeneral(Pregunta $pregunta, Request $request): ?string
+    {
+        $tema = $this->temaRepository->find((int) $request->request->get('temaId'));
+        $ley = $this->leyRepository->find((int) $request->request->get('leyId'));
+        $articulo = $this->articuloRepository->find((int) $request->request->get('articuloId'));
+        if (!$tema instanceof Tema || !$ley instanceof Ley || !$articulo instanceof Articulo) {
+            return 'Selecciona tema, ley y artículo.';
+        }
+        if ($articulo->getLey()?->getId() !== $ley->getId()) {
+            return 'El artículo no pertenece a la ley seleccionada.';
+        }
+
+        $sinCambios = $pregunta->getId() !== null
+            && $pregunta->getTema()?->getId() === $tema->getId()
+            && $pregunta->getLey()?->getId() === $ley->getId()
+            && $pregunta->getArticulo()?->getId() === $articulo->getId();
+        if (!$sinCambios && !$tema->getLeyes()->contains($ley)) {
+            return 'La ley no pertenece al tema seleccionado.';
+        }
+
+        $pregunta->setTema($tema);
+        $pregunta->setLey($ley);
+        $pregunta->setArticulo($articulo);
+
+        return null;
+    }
+
+    private function asignarUbicacionMunicipal(ExamenSemanal $examenSemanal, PreguntaMunicipal $pregunta, Request $request): ?string
+    {
+        if ($examenSemanal->getConvocatoria() !== null) {
+            $municipio = $this->municipioRepository->find((int) $request->request->get('municipioId'));
+            if ($municipio === null || !$examenSemanal->getConvocatoria()->getMunicipios()->contains($municipio)) {
+                return 'Selecciona un municipio de la convocatoria.';
+            }
+        } else {
+            $municipio = $examenSemanal->getMunicipio();
+            if ($municipio === null) {
+                return 'Este examen no tiene municipio.';
+            }
+        }
+
+        $tema = $this->temaMunicipalRepository->find((int) $request->request->get('temaMunicipalId'));
+        if (!$tema instanceof TemaMunicipal || $tema->getMunicipio()?->getId() !== $municipio->getId()) {
+            return 'Selecciona un tema municipal válido.';
+        }
+
+        $pregunta->setMunicipio($municipio);
+        $pregunta->setTemaMunicipal($tema);
+
+        return null;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function datosPreguntaDesdeRequest(Request $request): array
+    {
+        return [
+            'texto' => trim((string) $request->request->get('texto', '')),
+            'opcionA' => trim((string) $request->request->get('opcionA', '')),
+            'opcionB' => trim((string) $request->request->get('opcionB', '')),
+            'opcionC' => trim((string) $request->request->get('opcionC', '')),
+            'opcionD' => trim((string) $request->request->get('opcionD', '')),
+            'respuestaCorrecta' => strtoupper(trim((string) $request->request->get('respuestaCorrecta', ''))),
+            'retroalimentacion' => trim((string) $request->request->get('retroalimentacion', '')),
+            'dificultad' => trim((string) $request->request->get('dificultad', '')),
+        ];
+    }
+
+    /**
+     * @param array<string, string> $datos
+     */
+    private function validarDatosPregunta(array $datos): ?string
+    {
+        if ($datos['texto'] === '') {
+            return 'Escribe el enunciado de la pregunta.';
+        }
+        foreach (['A', 'B', 'C', 'D'] as $letra) {
+            if ($datos['opcion'.$letra] === '') {
+                return 'Escribe la opción '.$letra.'.';
+            }
+        }
+        if (!in_array($datos['respuestaCorrecta'], ['A', 'B', 'C', 'D'], true)) {
+            return 'La respuesta correcta debe ser A, B, C o D.';
+        }
+        if (!in_array($datos['dificultad'], ['facil', 'moderada', 'dificil', 'indeterminado'], true)) {
+            return 'Selecciona la dificultad de la pregunta.';
+        }
+
+        return null;
+    }
+
+    private function errorPreguntas(ExamenSemanal $examenSemanal, Request $request, string $formulario, string $mensaje): Response
+    {
+        $this->addFlash('error', $mensaje);
+        $form = $this->createForm(ExamenSemanalType::class, $examenSemanal, [
+            'is_edit_mode' => true,
+            'examen_semanal' => $examenSemanal,
+        ]);
+
+        return $this->renderEditar($examenSemanal, $form, $formulario, [
+            'texto' => trim((string) $request->request->get('texto', '')),
+            'opcionA' => trim((string) $request->request->get('opcionA', '')),
+            'opcionB' => trim((string) $request->request->get('opcionB', '')),
+            'opcionC' => trim((string) $request->request->get('opcionC', '')),
+            'opcionD' => trim((string) $request->request->get('opcionD', '')),
+            'respuestaCorrecta' => strtoupper(trim((string) $request->request->get('respuestaCorrecta', ''))),
+            'retroalimentacion' => trim((string) $request->request->get('retroalimentacion', '')),
+            'dificultad' => trim((string) $request->request->get('dificultad', '')),
+            'temaId' => (string) $request->request->get('temaId', ''),
+            'leyId' => (string) $request->request->get('leyId', ''),
+            'articuloId' => (string) $request->request->get('articuloId', ''),
+            'temaMunicipalId' => (string) $request->request->get('temaMunicipalId', ''),
+            'municipioId' => (string) $request->request->get('municipioId', ''),
+        ]);
+    }
+
+    private function volverAEditarPreguntas(ExamenSemanal $examenSemanal): Response
+    {
+        return $this->redirect($this->generateUrl('app_examen_semanal_edit', ['id' => $examenSemanal->getId()]).'#preguntas-examen');
     }
 
     /**
