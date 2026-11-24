@@ -171,7 +171,7 @@
                         Elige un tema y su ley, o marca varios temas para que las preguntas se repartan al azar entre ellos. La dificultad se aplica a las {{ cantidadPreguntas }} preguntas.
                     {% endif %}
                 </li>
-                <li>No hace falta elegir artículo. Claude indica el artículo en cada bloque. Si el prompt es de varios temas, también indica el tema y la ley de cada pregunta, y cada una se guarda en el suyo.</li>
+                <li>No hace falta elegir artículo. Claude indica el artículo en cada bloque. Si el texto no cita un artículo, el prompt pide <strong>ARTICULO: 0</strong> y que el enunciado no lo mencione. Si hay varios temas, tienen que salir preguntas de todos: no se deja ninguno fuera por falta de artículos. Cada pregunta indica su tema y su ley, y se guarda en los suyos.</li>
                 <li>Copia el prompt, pégalo en Claude y, debajo de <strong>CONTENIDO:</strong>, pega el texto. El prompt pide {{ cantidadPreguntas }} preguntas{% if paraExamen %}. Si el texto da para menos, el examen se crea con las que sean válidas{% else %}. Como máximo, {{ cantidadPreguntas }}{% endif %}.</li>
             </ol>
         </div>
@@ -560,8 +560,9 @@ document.addEventListener('DOMContentLoaded', function() {
             ...lineasInstruccionExtra(),
             'Reglas:',
             '- Una sola respuesta correcta. La letra de la opción correcta tiene que variar de una pregunta a otra: no puede ser siempre la misma. A lo largo del bloque deben aparecer A, B, C y D. Las otras tres opciones tienen que ser plausibles.',
-            '- Cada enunciado es una pregunta tipo test y cita siempre la norma y el artículo. Nombra la norma exactamente como aparece arriba y el número del artículo.',
-            '- La línea ARTICULO lleva el número del artículo tal como está en el texto (14 o 14 bis). Es el mismo artículo que cita el enunciado. No inventes artículos que no estén en el contenido.',
+            '- Cada enunciado es una pregunta tipo test y cita siempre la norma, con el nombre exacto de arriba.',
+            '- Si el fragmento es un artículo, cítalo también en el enunciado con su número. La línea ARTICULO lleva ese número tal como está en el texto (14 o 14 bis). Es el mismo artículo que cita el enunciado. No inventes artículos que no estén en el contenido.',
+            '- Si no hay artículo que citar, escribe ARTICULO: 0 y no menciones «artículo» en el enunciado. Basta con la norma.',
             '- La explicación cita el fragmento del que sale la respuesta.',
             '- Responde solo con los bloques, sin introducción ni markdown.',
             '- Si el contenido no da para ' + cantidadPreguntas + ', devuelve las que salgan y dilo en una línea al final, fuera de los bloques.',
@@ -581,6 +582,7 @@ document.addEventListener('DOMContentLoaded', function() {
             '---',
             '',
             'La B de CORRECTA en el ejemplo es solo el formato. En las preguntas reales cambia la letra.',
+            'Si no hay artículo, el bloque usa ARTICULO: 0 y el enunciado no dice «artículo».',
             '',
             'CONTENIDO:'
         ].join('\n');
@@ -626,11 +628,13 @@ document.addEventListener('DOMContentLoaded', function() {
             conReparto
                 ? '- Haz exactamente el número de preguntas indicado en cada tema. No pases preguntas de un tema a otro.'
                 : '- Reparte las preguntas al azar entre los temas de la lista. No concentres el bloque en un único tema.',
-            '- Cada enunciado es una pregunta tipo test y cita siempre la norma y el artículo. Nombra la norma exactamente como en la línea LEY y el número del artículo.',
-            '- La línea ARTICULO lleva el número del artículo tal como está en el texto (14 o 14 bis). Es el mismo artículo que cita el enunciado. No inventes artículos que no estén en el contenido.',
+            '- Cada enunciado cita la norma de su línea LEY, con el nombre exacto.',
+            '- Si el fragmento es un artículo, cítalo también en el enunciado. La línea ARTICULO lleva ese número tal como está en el texto (14 o 14 bis). Es el mismo artículo que cita el enunciado. No inventes artículos que no estén en el contenido.',
+            '- Si el texto de un tema no cita un artículo, o apenas lo hace, escribe ARTICULO: 0 y no menciones «artículo» en el enunciado. La pregunta se hace igual, con la norma y el contenido de ese tema.',
+            '- Tienen que salir preguntas de todos los temas de la lista. No dejes ninguno fuera porque apenas cite artículos.',
             '- La explicación cita el fragmento del que sale la respuesta.',
             '- Responde solo con los bloques, sin introducción ni markdown.',
-            '- Si el contenido no da para ' + cantidadPreguntas + ', devuelve las que salgan y dilo en una línea al final, fuera de los bloques.',
+            '- Entrega las ' + cantidadPreguntas + ' preguntas y cubre todos los temas. No abandones un tema por falta de artículos: usa ARTICULO: 0. Solo si el CONTENIDO no habla de un tema, dilo en una línea al final, fuera de los bloques.',
             conReparto
                 ? '- Si después escribo «continúa», genera otras ' + cantidadPreguntas + ' distintas, del mismo contenido, con las mismas cantidades por tema y el mismo formato.'
                 : '- Si después escribo «continúa», genera otras ' + cantidadPreguntas + ' distintas, del mismo contenido, repartidas otra vez al azar entre esos temas, en el mismo formato.',
@@ -651,6 +655,7 @@ document.addEventListener('DOMContentLoaded', function() {
             '---',
             '',
             'La B de CORRECTA en el ejemplo es solo el formato. En las preguntas reales cambia la letra. El TEMA de cada pregunta tiene que ir cambiando entre los de la lista.',
+            'Si no hay artículo, el bloque usa ARTICULO: 0 y el enunciado no dice «artículo».',
             '',
             'CONTENIDO:'
         ].join('\n');

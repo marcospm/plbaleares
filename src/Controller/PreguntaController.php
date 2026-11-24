@@ -2,7 +2,9 @@
 
 namespace App\Controller;
 
+use App\Entity\Articulo;
 use App\Entity\ExamenSemanal;
+use App\Entity\Ley;
 use App\Entity\Pregunta;
 use App\Entity\User;
 use App\Repository\ExamenSemanalRepository;
@@ -412,7 +414,8 @@ class PreguntaController extends AbstractController
         LeyRepository $leyRepository,
         ArticuloRepository $articuloRepository,
         BloquePreguntasParser $parser,
-        ExamenSemanalDesdePegado $examenSemanalDesdePegado
+        ExamenSemanalDesdePegado $examenSemanalDesdePegado,
+        EntityManagerInterface $entityManager
     ): Response {
         $examen = $examenSemanalRepository->find($id);
         if (!$examen instanceof ExamenSemanal || !$examen->isBorrador()) {
@@ -444,7 +447,8 @@ class PreguntaController extends AbstractController
                 $leyRepository,
                 $articuloRepository,
                 $parser,
-                ExamenSemanalDesdePegado::CANTIDAD
+                ExamenSemanalDesdePegado::CANTIDAD,
+                $entityManager
             ),
             $bloque,
             (string) $examen->getDificultad()
@@ -459,7 +463,8 @@ class PreguntaController extends AbstractController
         ArticuloRepository $articuloRepository,
         BloquePreguntasParser $parser,
         ExamenSemanalDesdePegado $examenSemanalDesdePegado,
-        DificultadExamenService $dificultadExamenService
+        DificultadExamenService $dificultadExamenService,
+        EntityManagerInterface $entityManager
     ): Response {
         $preparado = $this->prepararDestinoExamen($request, $examenSemanalDesdePegado, 'general');
         if ($preparado !== null) {
@@ -467,7 +472,7 @@ class PreguntaController extends AbstractController
         }
 
         if ((string) $request->request->get('modo', 'unico') === 'aleatorio') {
-            return $this->procesarPegarAleatorio($request, $temaRepository, $leyRepository, $articuloRepository, $parser, $dificultadExamenService);
+            return $this->procesarPegarAleatorio($request, $temaRepository, $leyRepository, $articuloRepository, $parser, $dificultadExamenService, $entityManager);
         }
 
         $temaId = $request->request->getInt('tema', 0);
@@ -491,16 +496,9 @@ class PreguntaController extends AbstractController
             return $this->redirectToRoute($this->rutaPegado($request));
         }
 
-        $articulos = $articuloRepository->findActivosByLey($leyId);
-        if ($articulos === []) {
-            $this->addFlash('error', 'Esa ley no tiene artículos activos a los que asignar las preguntas.');
-
-            return $this->redirectToRoute($this->rutaPegado($request));
-        }
-
         return $this->previsualizarPegado(
             $request,
-            $this->filtrarPegado($bloque, 'unico', $temaId, $leyId, [], $temaRepository, $leyRepository, $articuloRepository, $parser, $this->maximoPegado($request)),
+            $this->filtrarPegado($bloque, 'unico', $temaId, $leyId, [], $temaRepository, $leyRepository, $articuloRepository, $parser, $this->maximoPegado($request), $entityManager),
             $bloque,
             $dificultad
         );
@@ -754,7 +752,8 @@ class PreguntaController extends AbstractController
                 $leyRepository,
                 $articuloRepository,
                 $parser,
-                $this->maximoPegado($request)
+                $this->maximoPegado($request),
+                $entityManager
             );
             if ($filtrado['fatal'] !== null) {
                 $this->addFlash('error', $filtrado['fatal']);
@@ -1693,7 +1692,8 @@ class PreguntaController extends AbstractController
         LeyRepository $leyRepository,
         ArticuloRepository $articuloRepository,
         BloquePreguntasParser $parser,
-        DificultadExamenService $dificultadExamenService
+        DificultadExamenService $dificultadExamenService,
+        EntityManagerInterface $entityManager
     ): Response {
         $dificultad = (string) $request->request->get('dificultad', '');
         $bloque = (string) $request->request->get('bloque', '');
@@ -1717,7 +1717,7 @@ class PreguntaController extends AbstractController
 
         return $this->previsualizarPegado(
             $request,
-            $this->filtrarPegado($bloque, 'aleatorio', 0, 0, $ids, $temaRepository, $leyRepository, $articuloRepository, $parser, $this->maximoPegado($request)),
+            $this->filtrarPegado($bloque, 'aleatorio', 0, 0, $ids, $temaRepository, $leyRepository, $articuloRepository, $parser, $this->maximoPegado($request), $entityManager),
             $bloque,
             $dificultad
         );
@@ -1746,10 +1746,11 @@ class PreguntaController extends AbstractController
         LeyRepository $leyRepository,
         ArticuloRepository $articuloRepository,
         BloquePreguntasParser $parser,
-        int $maximo = 20
+        int $maximo = 20,
+        ?EntityManagerInterface $entityManager = null
     ): array {
         if ($modo === 'aleatorio') {
-            return $this->filtrarPegadoAleatorio($bloque, $temaIds, $temaRepository, $articuloRepository, $parser, $maximo);
+            return $this->filtrarPegadoAleatorio($bloque, $temaIds, $temaRepository, $articuloRepository, $parser, $maximo, $entityManager);
         }
 
         $tema = $temaRepository->find($temaId);
@@ -1760,20 +1761,19 @@ class PreguntaController extends AbstractController
         }
 
         $articulos = $articuloRepository->findActivosByLey($leyId);
-        if ($articulos === []) {
-            return $this->resultadoPegadoVacio('Esa ley no tiene artículos activos a los que asignar las preguntas.');
-        }
 
         $resultado = $parser->parsear($bloque, $maximo);
         $omitidas = $resultado['errores'];
         $validas = [];
         foreach ($resultado['preguntas'] as $pregunta) {
-            $articulo = $this->buscarArticuloIndicado((string) $pregunta['articulo'], $articulos);
-            if (!$articulo) {
-                $omitidas[] = 'Bloque ' . $pregunta['linea'] . ': no existe el artículo «' . $pregunta['articulo'] . '» en «' . $ley->getNombre() . '».';
+            $resuelto = $this->resolverArticuloPegado($pregunta, $ley, $articulos, $articuloRepository, $entityManager);
+            if ($resuelto['error'] !== null || !$resuelto['articulo']) {
+                $omitidas[] = 'Bloque ' . $pregunta['linea'] . ': ' . ($resuelto['error'] ?? 'no se pudo asignar el artículo.');
                 continue;
             }
-            if (!$this->enunciadoCitaArticulo($pregunta['texto'], $articulo)) {
+            $articulo = $resuelto['articulo'];
+            $sinArticulo = $this->esArticuloCero((string) $articulo->getNumeroCompleto());
+            if (!$sinArticulo && !$this->enunciadoCitaArticulo($pregunta['texto'], $articulo)) {
                 $omitidas[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el artículo ' . $articulo->getNumeroCompleto() . '.';
                 continue;
             }
@@ -1782,8 +1782,8 @@ class PreguntaController extends AbstractController
                 continue;
             }
             $pregunta['articuloId'] = $articulo->getId();
-            $pregunta['articuloLabel'] = 'Art. ' . $articulo->getNumeroCompleto();
-            if ($articulo->getNombre()) {
+            $pregunta['articuloLabel'] = $sinArticulo ? 'Sin artículo' : 'Art. ' . $articulo->getNumeroCompleto();
+            if (!$sinArticulo && $articulo->getNombre()) {
                 $pregunta['articuloLabel'] .= ' - ' . $articulo->getNombre();
             }
             $validas[] = $pregunta;
@@ -1820,7 +1820,8 @@ class PreguntaController extends AbstractController
         TemaRepository $temaRepository,
         ArticuloRepository $articuloRepository,
         BloquePreguntasParser $parser,
-        int $maximo = 20
+        int $maximo = 20,
+        ?EntityManagerInterface $entityManager = null
     ): array {
         if (count($ids) < 2) {
             return $this->resultadoPegadoVacio('Elige al menos dos temas y la dificultad.', true, $ids);
@@ -1895,17 +1896,15 @@ class PreguntaController extends AbstractController
             if (!isset($articulosPorLey[$leyId])) {
                 $articulosPorLey[$leyId] = $articuloRepository->findActivosByLey($leyId);
             }
-            if ($articulosPorLey[$leyId] === []) {
-                $omitidas[] = 'Bloque ' . $pregunta['linea'] . ': la ley «' . $ley->getNombre() . '» no tiene artículos activos.';
-                continue;
-            }
 
-            $articulo = $this->buscarArticuloIndicado((string) $pregunta['articulo'], $articulosPorLey[$leyId]);
-            if (!$articulo) {
-                $omitidas[] = 'Bloque ' . $pregunta['linea'] . ': no existe el artículo «' . $pregunta['articulo'] . '» en «' . $ley->getNombre() . '».';
+            $resuelto = $this->resolverArticuloPegado($pregunta, $ley, $articulosPorLey[$leyId], $articuloRepository, $entityManager);
+            if ($resuelto['error'] !== null || !$resuelto['articulo']) {
+                $omitidas[] = 'Bloque ' . $pregunta['linea'] . ': ' . ($resuelto['error'] ?? 'no se pudo asignar el artículo.');
                 continue;
             }
-            if (!$this->enunciadoCitaArticulo($pregunta['texto'], $articulo)) {
+            $articulo = $resuelto['articulo'];
+            $sinArticulo = $this->esArticuloCero((string) $articulo->getNumeroCompleto());
+            if (!$sinArticulo && !$this->enunciadoCitaArticulo($pregunta['texto'], $articulo)) {
                 $omitidas[] = 'Bloque ' . $pregunta['linea'] . ': el enunciado tiene que citar el artículo ' . $articulo->getNumeroCompleto() . '.';
                 continue;
             }
@@ -1919,8 +1918,8 @@ class PreguntaController extends AbstractController
             $pregunta['temaNombre'] = (string) $tema->getNombre();
             $pregunta['leyNombre'] = (string) $ley->getNombre();
             $pregunta['articuloId'] = $articulo->getId();
-            $pregunta['articuloLabel'] = 'Art. ' . $articulo->getNumeroCompleto();
-            if ($articulo->getNombre()) {
+            $pregunta['articuloLabel'] = $sinArticulo ? 'Sin artículo' : 'Art. ' . $articulo->getNumeroCompleto();
+            if (!$sinArticulo && $articulo->getNombre()) {
                 $pregunta['articuloLabel'] .= ' - ' . $articulo->getNombre();
             }
             $validas[] = $pregunta;
@@ -2052,6 +2051,84 @@ class PreguntaController extends AbstractController
         }
 
         return $mensaje;
+    }
+
+    /**
+     * @param array<string, mixed> $pregunta
+     * @param list<Articulo> $articulos
+     * @return array{articulo: ?Articulo, error: ?string}
+     */
+    private function resolverArticuloPegado(
+        array $pregunta,
+        Ley $ley,
+        array &$articulos,
+        ArticuloRepository $articuloRepository,
+        ?EntityManagerInterface $entityManager
+    ): array {
+        $indicado = (string) $pregunta['articulo'];
+        if ($this->esArticuloCero($indicado)) {
+            $articulo = $this->articuloCero($ley, $articulos, $articuloRepository, $entityManager);
+            if (!$articulo) {
+                return ['articulo' => null, 'error' => 'no se pudo dejar la pregunta sin artículo en «' . $ley->getNombre() . '».'];
+            }
+
+            return ['articulo' => $articulo, 'error' => null];
+        }
+
+        if ($articulos === []) {
+            return ['articulo' => null, 'error' => 'la ley «' . $ley->getNombre() . '» no tiene artículos activos.'];
+        }
+
+        $articulo = $this->buscarArticuloIndicado($indicado, $articulos);
+        if (!$articulo) {
+            return ['articulo' => null, 'error' => 'no existe el artículo «' . $indicado . '» en «' . $ley->getNombre() . '».'];
+        }
+
+        return ['articulo' => $articulo, 'error' => null];
+    }
+
+    /**
+     * @param list<Articulo> $articulos
+     */
+    private function articuloCero(
+        Ley $ley,
+        array &$articulos,
+        ArticuloRepository $articuloRepository,
+        ?EntityManagerInterface $entityManager
+    ): ?Articulo {
+        foreach ($articulos as $articulo) {
+            if ($this->esArticuloCero((string) $articulo->getNumeroCompleto())) {
+                return $articulo;
+            }
+        }
+
+        foreach ($articuloRepository->findBy(['ley' => $ley, 'numero' => 0]) as $articulo) {
+            if ($this->esArticuloCero((string) $articulo->getNumeroCompleto())) {
+                $articulos[] = $articulo;
+
+                return $articulo;
+            }
+        }
+
+        if (!$entityManager) {
+            return null;
+        }
+
+        $articulo = new Articulo();
+        $articulo->setNumero(0);
+        $articulo->setSufijo(null);
+        $articulo->setActivo(true);
+        $articulo->setLey($ley);
+        $entityManager->persist($articulo);
+        $entityManager->flush();
+        $articulos[] = $articulo;
+
+        return $articulo;
+    }
+
+    private function esArticuloCero(string $indicado): bool
+    {
+        return $this->normalizarArticulo($indicado) === '0';
     }
 
     /**

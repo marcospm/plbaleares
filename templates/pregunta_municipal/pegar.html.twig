@@ -163,7 +163,7 @@
                         Elige el municipio. Luego un tema, o varios de ese municipio para repartir las preguntas al azar. La dificultad se aplica a las {{ cantidadPreguntas }} preguntas.
                     {% endif %}
                 </li>
-                <li>No hace falta elegir artículo. La respuesta indica el artículo en cada bloque. Si no hay artículo (una calle, un callejero u otro dato que no es un artículo), el prompt pide que se ponga 0 y que el enunciado no lo mencione. Si el prompt es de varios temas, también indica el tema de cada pregunta, y cada una se guarda en el suyo.</li>
+                <li>No hace falta elegir artículo. La respuesta indica el artículo en cada bloque. Si no hay artículo (una calle, un callejero u otro dato que no es un artículo), el prompt pide <strong>ARTICULO: 0</strong> y que el enunciado no lo mencione. Si hay varios temas, tienen que salir preguntas de todos: no se deja ninguno fuera por falta de artículos, y cada una se guarda en el suyo.</li>
                 <li>Copia el prompt, pégalo en el chat y, debajo de <strong>CONTENIDO:</strong>, pega el texto. El prompt pide {{ cantidadPreguntas }} preguntas{% if paraExamen %}. Si el texto da para menos, el examen se crea con las que sean válidas{% else %}. Como máximo, {{ cantidadPreguntas }}{% endif %}.</li>
             </ol>
         </div>
@@ -662,10 +662,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 : '- Reparte las preguntas al azar entre los temas de la lista. No concentres el bloque en un único tema.',
             '- Cada enunciado es una pregunta tipo test y cita siempre el municipio y el tema, con el nombre exacto de arriba.',
             '- Si el fragmento es un artículo, cítalo también en el enunciado con su número. La línea ARTICULO lleva ese número tal como está en el texto (14 o 14 bis). Es el mismo artículo que cita el enunciado. No inventes artículos que no estén en el contenido.',
-            '- Si no hay artículo que poner, porque es una calle, una plaza, un callejero u otro dato que no es un artículo, escribe ARTICULO: 0. En las preguntas municipales el artículo no es relevante en ese caso: no lo menciones en el enunciado. Basta con el municipio y el tema.',
+            '- Si no hay artículo que poner, porque es una calle, una plaza, un callejero u otro dato que no es un artículo, o porque el texto apenas cita artículos, escribe ARTICULO: 0. No lo menciones en el enunciado. Basta con el municipio y el tema. La pregunta se hace igual.',
+            '- Tienen que salir preguntas de todos los temas de la lista. No dejes ninguno fuera porque apenas cite artículos.',
             '- La explicación cita el fragmento del que sale la respuesta.',
             '- Responde solo con los bloques, sin introducción ni markdown.',
-            '- Si el contenido no da para ' + cantidadPreguntas + ', devuelve las que salgan y dilo en una línea al final, fuera de los bloques.',
+            '- Entrega las ' + cantidadPreguntas + ' preguntas y cubre todos los temas. No abandones un tema por falta de artículos: usa ARTICULO: 0. Solo si el CONTENIDO no habla de un tema, dilo en una línea al final, fuera de los bloques.',
             conReparto
                 ? '- Si después escribo «continúa», genera otras ' + cantidadPreguntas + ' distintas, del mismo contenido, con las mismas cantidades por tema y el mismo formato.'
                 : '- Si después escribo «continúa», genera otras ' + cantidadPreguntas + ' distintas, del mismo contenido, repartidas otra vez al azar entre esos temas, en el mismo formato.',
