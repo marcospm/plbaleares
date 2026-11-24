@@ -10,6 +10,7 @@
     <div class="mb-3">
         <label class="form-label" for="examen-nombre">Nombre <span class="text-danger">*</span></label>
         <input type="text" class="form-control" name="nombre" id="examen-nombre" maxlength="255" required value="{{ datosExamen.nombre|default('') }}">
+        {% include 'examen_semanal/_sugerir_titulo.html.twig' %}
     </div>
     <div class="mb-3">
         <label class="form-label" for="examen-descripcion">Descripción</label>

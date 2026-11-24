@@ -1,0 +1,76 @@
+<button type="button" class="btn btn-secondary btn-sm sugerir-titulo-examen" style="margin-top: 0.5rem;">Sugerir título</button>
+{% if sugerir_titulo_script is not defined %}
+    {% set sugerir_titulo_script = true %}
+    <script>
+        (function () {
+            if (window.sugerirTituloExamenListo) {
+                return;
+            }
+            window.sugerirTituloExamenListo = true;
+
+            function ventana() {
+                var hoy = new Date();
+                var viernes = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+                var dias = (5 - viernes.getDay() + 7) % 7;
+                viernes.setDate(viernes.getDate() + dias);
+                viernes.setHours(0, 1, 0, 0);
+                var lunes = new Date(viernes.getFullYear(), viernes.getMonth(), viernes.getDate() + 3, 23, 59, 0, 0);
+                return { viernes: viernes, lunes: lunes };
+            }
+
+            function fechaLocal(fecha) {
+                function dos(numero) {
+                    return String(numero).padStart(2, '0');
+                }
+                return fecha.getFullYear() + '-' + dos(fecha.getMonth() + 1) + '-' + dos(fecha.getDate()) + 'T' + dos(fecha.getHours()) + ':' + dos(fecha.getMinutes());
+            }
+
+            function tituloSugerido(fechas) {
+                return 'Examen Semanal ' + fechas.viernes.getDate() + ' y ' + fechas.lunes.getDate();
+            }
+
+            function ponerSiVacio(campo, valor) {
+                if (campo && campo.value.trim() === '') {
+                    campo.value = valor;
+                }
+            }
+
+            function rellenarFechas(raiz) {
+                var fechas = ventana();
+                var apertura = fechaLocal(fechas.viernes);
+                var cierre = fechaLocal(fechas.lunes);
+                raiz.querySelectorAll('#examen-apertura, #fechaApertura, input[name="fechaApertura"], input[name$="[fechaApertura]"]').forEach(function (campo) {
+                    ponerSiVacio(campo, apertura);
+                });
+                raiz.querySelectorAll('#examen-cierre, #fechaCierre, input[name="fechaCierre"], input[name$="[fechaCierre]"]').forEach(function (campo) {
+                    ponerSiVacio(campo, cierre);
+                });
+            }
+
+            document.addEventListener('click', function (evento) {
+                var boton = evento.target.closest('.sugerir-titulo-examen');
+                if (!boton) {
+                    return;
+                }
+                var formulario = boton.closest('form') || document;
+                var nombre = formulario.querySelector('#examen-nombre, #nombreExamen, input[name$="[nombre]"]');
+                if (!nombre) {
+                    return;
+                }
+                nombre.value = tituloSugerido(ventana());
+                nombre.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+
+            function iniciar() {
+                rellenarFechas(document);
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', iniciar);
+            } else {
+                iniciar();
+            }
+            document.addEventListener('turbo:load', iniciar);
+        })();
+    </script>
+{% endif %}

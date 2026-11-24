@@ -214,6 +214,7 @@
                     <div class="form-group">
                         {{ form_label(form.nombre) }}
                         {{ form_widget(form.nombre, {'attr': {'class': 'form-control'}}) }}
+                        {% include 'examen_semanal/_sugerir_titulo.html.twig' %}
                         {{ form_errors(form.nombre) }}
                         {{ form_help(form.nombre) }}
                     </div>
