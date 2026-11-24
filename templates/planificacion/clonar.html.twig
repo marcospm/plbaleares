@@ -14,11 +14,10 @@
                 <label for="alumno_origen" class="form-label" style="font-weight: 600; color: #333; margin-bottom: 0.5rem;">
                     Alumno Origen <span style="color: #dc3545;">*</span>
                 </label>
+                {% import 'form/_opciones_alumnos.html.twig' as alumnos %}
                 <select id="alumno_origen" name="alumno_origen" class="form-select" required style="padding: 0.625rem 0.75rem; font-size: 0.95rem;">
                     <option value="">-- Selecciona el alumno origen --</option>
-                    {% for usuario in usuarios %}
-                        <option value="{{ usuario.id }}">{{ usuario.nombreDisplay }}</option>
-                    {% endfor %}
+                    {{ alumnos.opciones(usuarios, null) }}
                 </select>
                 <small class="form-text text-muted">Alumno del cual se copiará la planificación</small>
             </div>
@@ -29,9 +28,7 @@
                 </label>
                 <select id="alumno_destino" name="alumno_destino" class="form-select" required style="padding: 0.625rem 0.75rem; font-size: 0.95rem;">
                     <option value="">-- Selecciona el alumno destino --</option>
-                    {% for usuario in usuarios %}
-                        <option value="{{ usuario.id }}">{{ usuario.nombreDisplay }}</option>
-                    {% endfor %}
+                    {{ alumnos.opciones(usuarios, null) }}
                 </select>
                 <small class="form-text text-muted">Alumno al cual se copiará la planificación (se eliminarán todas sus planificaciones actuales)</small>
             </div>

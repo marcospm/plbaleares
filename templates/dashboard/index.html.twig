@@ -494,6 +494,7 @@
                 id: {{ alumno.id }},
                 nombre: "{{ alumno.nombreDisplay|e('js') }}",
                 username: "{{ alumno.username|e('js') }}",
+                categoria: "{{ alumno.categoriaLabel|e('js') }}",
                 activo: {{ alumno.isActivo ? 'true' : 'false' }},
                 url: "{{ path('app_examen_profesor', {'usuario': alumno.id})|e('js') }}"
             }{% if not loop.last %},{% endif %}
@@ -535,9 +536,25 @@
                     return;
                 }
                 
-                let html = '<div style="display: flex; flex-direction: column;">';
+                let html = '';
+                const orden = ['Policía', 'Oficial', 'Subinspector', 'Inspector', 'Mayor', 'Comisario', 'Intendente'];
+                const grupos = {};
                 filtered.forEach(alumno => {
-                    html += `
+                    const categoria = alumno.categoria || 'Sin categoría';
+                    if (!grupos[categoria]) {
+                        grupos[categoria] = [];
+                    }
+                    grupos[categoria].push(alumno);
+                });
+                const categorias = Object.keys(grupos).sort((a, b) => {
+                    const ia = orden.indexOf(a);
+                    const ib = orden.indexOf(b);
+                    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+                });
+                categorias.forEach(categoria => {
+                    html += `<div style="padding: 0.45rem 1rem; background: #f3f7fb; color: var(--color-primary); font-weight: 700; font-size: 0.8rem; letter-spacing: 0.02em;">${categoria}</div>`;
+                    grupos[categoria].forEach(alumno => {
+                        html += `
                         <div 
                             class="alumno-result-item" 
                             data-id="${alumno.id}"
@@ -555,8 +572,8 @@
                             </div>
                         </div>
                     `;
+                    });
                 });
-                html += '</div>';
                 resultsContainer.innerHTML = html;
                 resultsContainer.style.display = 'block';
             }
@@ -1010,6 +1027,17 @@
         </div>
     {% endif %}
     
+    {% if acceso_reducido() %}
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <h1 style="margin: 0;">Temario de {{ app.user.categoria.getLabel() }}</h1>
+            </div>
+            <div class="card-body">
+                <p style="margin-top: 0; color: #666;">El resto de la plataforma se irá habilitando para tu categoría. De momento puedes consultar el temario y los recursos.</p>
+                <a href="{{ path('app_recurso_publico_index') }}" class="btn btn-primary">Ver temario y recursos</a>
+            </div>
+        </div>
+    {% else %}
     {# Sección de Convocatorias #}
     {% if convocatorias|length > 0 %}
         <div class="card" style="margin-bottom: 1.5rem; border: 2px solid var(--color-primary); background-color: #f0f7ff;">
@@ -1355,6 +1383,7 @@
             {% endif %}
         </div>
     </div>
+    {% endif %}
 {% endif %}
 {% endblock %}
 

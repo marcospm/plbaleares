@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\RecursoEspecifico;
 use App\Entity\User;
+use App\Form\AlumnosPorCategoria;
 use App\Form\RecursoEspecificoType;
 use App\Repository\RecursoEspecificoRepository;
 use App\Repository\UserRepository;
@@ -74,9 +75,8 @@ class RecursoEspecificoController extends AbstractController
                     ->where('u.id IN (:alumnosIds)')
                     ->andWhere('u.activo = :activo')
                     ->setParameter('alumnosIds', $alumnosIds)
-                    ->setParameter('activo', true)
-                    ->orderBy('u.nombre', 'ASC')
-                    ->addOrderBy('u.username', 'ASC');
+                    ->setParameter('activo', true);
+                AlumnosPorCategoria::ordenar($alumnosQueryBuilder);
             }
         } else {
             // Si es admin, puede asignar a cualquier alumno activo
@@ -86,9 +86,8 @@ class RecursoEspecificoController extends AbstractController
                 ->andWhere('u.roles NOT LIKE :roleAdmin')
                 ->setParameter('activo', true)
                 ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
-                ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
-                ->orderBy('u.nombre', 'ASC')
-                ->addOrderBy('u.username', 'ASC');
+                ->setParameter('roleAdmin', '%"ROLE_ADMIN"%');
+            AlumnosPorCategoria::ordenar($alumnosQueryBuilder);
         }
 
         // Obtener grupos disponibles para el profesor
@@ -226,9 +225,8 @@ class RecursoEspecificoController extends AbstractController
                     ->where('u.id IN (:alumnosIds)')
                     ->andWhere('u.activo = :activo')
                     ->setParameter('alumnosIds', $alumnosIds)
-                    ->setParameter('activo', true)
-                    ->orderBy('u.nombre', 'ASC')
-                    ->addOrderBy('u.username', 'ASC');
+                    ->setParameter('activo', true);
+                AlumnosPorCategoria::ordenar($alumnosQueryBuilder);
             }
         } else {
             $alumnosQueryBuilder = $userRepository->createQueryBuilder('u')
@@ -237,9 +235,8 @@ class RecursoEspecificoController extends AbstractController
                 ->andWhere('u.roles NOT LIKE :roleAdmin')
                 ->setParameter('activo', true)
                 ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
-                ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
-                ->orderBy('u.nombre', 'ASC')
-                ->addOrderBy('u.username', 'ASC');
+                ->setParameter('roleAdmin', '%"ROLE_ADMIN"%');
+            AlumnosPorCategoria::ordenar($alumnosQueryBuilder);
         }
 
         // Obtener grupos disponibles para el profesor

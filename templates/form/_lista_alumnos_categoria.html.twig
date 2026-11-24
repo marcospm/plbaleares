@@ -1,0 +1,37 @@
+{{ include('form/_alumnos_categoria_assets.html.twig') }}
+<div class="lista-alumnos-por-categoria">
+    {% set idsSeleccionados = [] %}
+    {% for id in seleccionados|default([]) %}
+        {% set idsSeleccionados = idsSeleccionados|merge([id ~ '']) %}
+    {% endfor %}
+    {% for etiqueta, lista in alumnos_por_categoria(usuarios) %}
+        <fieldset class="alumnos-categoria">
+            <legend class="alumnos-categoria-leyenda">
+                <span>{{ etiqueta }} <small>({{ lista|length }})</small></span>
+                <label class="alumnos-categoria-marcar">
+                    <input type="checkbox" class="seleccionar-categoria-input">
+                    Toda la categoría
+                </label>
+            </legend>
+            <div class="alumnos-categoria-grid">
+                {% for usuario in lista %}
+                    <div class="alumno-opcion">
+                        <input class="checkbox-alumno" type="checkbox" name="{{ input_name }}" value="{{ usuario.id }}" id="{{ id_prefix }}_{{ usuario.id }}"
+                               {% if (usuario.id ~ '') in idsSeleccionados %}checked{% endif %}>
+                        <label for="{{ id_prefix }}_{{ usuario.id }}">
+                            <strong>{{ usuario.nombreDisplay }}</strong>
+                            {% if mostrar_username|default(false) %}
+                                <span class="alumno-username">({{ usuario.username }})</span>
+                            {% endif %}
+                            {% if not usuario.isActivo %}
+                                <span class="badge badge-danger" style="background-color: var(--color-danger); font-size: 0.75rem;">Inactivo</span>
+                            {% endif %}
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+        </fieldset>
+    {% else %}
+        <p style="color: #666; text-align: center; padding: 2rem;">No hay alumnos disponibles.</p>
+    {% endfor %}
+</div>

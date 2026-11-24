@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Tema;
+use App\Entity\User;
 use App\Entity\TemaMunicipal;
 use App\Service\PdfTitleService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -28,6 +29,8 @@ class TemaPdfController extends AbstractController
     #[Route('/{id}', name: 'app_tema_pdf_ver', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function verTema(Tema $tema): Response
     {
+        $this->assertCategoriaDelAlumno($tema);
+
         return $this->servirPdf(
             $tema->getRutaPdf(),
             $tema->getNombre() ?? 'Tema',
@@ -38,6 +41,8 @@ class TemaPdfController extends AbstractController
     #[Route('/{id}/descargar', name: 'app_tema_pdf_descargar', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function descargarTema(Tema $tema): Response
     {
+        $this->assertCategoriaDelAlumno($tema);
+
         return $this->servirPdf(
             $tema->getRutaPdf(),
             $tema->getNombre() ?? 'Tema',
@@ -63,6 +68,18 @@ class TemaPdfController extends AbstractController
             $temaMunicipal->getNombre() ?? 'Tema municipal',
             inline: false
         );
+    }
+
+    private function assertCategoriaDelAlumno(Tema $tema): void
+    {
+        if ($this->isGranted('ROLE_PROFESOR')) {
+            return;
+        }
+
+        $user = $this->getUser();
+        if ($user instanceof User && $user->getCategoria() !== $tema->getCategoria()) {
+            throw $this->createNotFoundException('Este tema no está disponible para tu categoría.');
+        }
     }
 
     private function servirPdf(?string $rutaPdf, string $titulo, bool $inline): Response

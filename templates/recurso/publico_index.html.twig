@@ -144,10 +144,17 @@
         <h1>Recursos de Estudio</h1>
     </div>
     <div class="card-body">
-        <p style="margin-bottom: 2rem; color: var(--color-text-light);">
-            Accede al temario completo y descarga los exámenes PDF disponibles para tu preparación.
-        </p>
+        {% if accesoReducido %}
+            <p style="margin-bottom: 2rem; color: var(--color-text-light);">
+                Accede al temario de {{ categoriaLabel }} y a los recursos que te haya compartido tu profesor.
+            </p>
+        {% else %}
+            <p style="margin-bottom: 2rem; color: var(--color-text-light);">
+                Accede al temario completo y descarga los exámenes PDF disponibles para tu preparación.
+            </p>
+        {% endif %}
 
+        {% if not accesoReducido %}
         <div class="card" style="margin-bottom: 1.5rem;">
             <div class="card-header" style="background-color: #6f42c1; color: white;">
                 <h2 style="margin: 0; color: white;">Psicotécnicos</h2>
@@ -166,6 +173,7 @@
                 <a href="{{ path('app_psicotecnico_publico_index') }}" class="btn btn-primary">Ver archivos de psicotécnicos</a>
             </div>
         </div>
+        {% endif %}
 
         {# Diseño de dos columnas como el dashboard del alumno #}
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
@@ -174,7 +182,7 @@
                 {# Temario General #}
                 <div class="card" style="margin-bottom: 1.5rem;">
                     <div class="card-header">
-                        <h2>Temario General (30 Temas)</h2>
+                        <h2>{% if accesoReducido %}Temario de {{ categoriaLabel }}{% else %}Temario General (30 Temas){% endif %}</h2>
                     </div>
                     <div class="card-body">
                         {% if temas|length > 0 %}
@@ -291,6 +299,7 @@
 
             {# Columna derecha: Exámenes PDF y Recursos Específicos (mitad cada uno) #}
             <div>
+                {% if not accesoReducido %}
                 {# Exámenes PDF #}
                 <div class="card" style="margin-bottom: 1.5rem;">
                     <div class="card-header">
@@ -395,6 +404,7 @@
                         {% endif %}
                     </div>
                 </div>
+                {% endif %}
 
                 {# Recursos Específicos #}
                 <div class="card">

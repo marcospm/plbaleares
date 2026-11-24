@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\CategoriaOposicion;
 use App\Repository\ExamenRepository;
 use App\Repository\PlanificacionPersonalizadaRepository;
 use App\Repository\TareaAsignadaRepository;
@@ -170,7 +171,7 @@ class DashboardController extends AbstractController
             }
 
             // Estadísticas de contenido (con caché - 1 hora)
-            $cacheKey = 'dashboard_metrics_global';
+            $cacheKey = 'dashboard_metrics_global_policia';
             $metrics = null;
             
             if ($this->cache) {
@@ -184,7 +185,9 @@ class DashboardController extends AbstractController
                 $totalTemas = $temaRepository->createQueryBuilder('t')
                     ->select('COUNT(t.id)')
                     ->where('t.activo = :activo')
+                    ->andWhere('t.categoria = :categoria')
                     ->setParameter('activo', true)
+                    ->setParameter('categoria', CategoriaOposicion::POLICIA)
                     ->getQuery()
                     ->getSingleScalarResult();
 

@@ -9,6 +9,7 @@
     </div>
     <div class="card-body">
         {{ form_start(form) }}
+            {% form_theme form.alumnos 'form/alumnos_por_categoria.html.twig' %}
             <input type="hidden" name="asignar_todos_alumnos" id="asignar-todos-alumnos-input" value="0">
             <div class="form-group">
                 {{ form_label(form.nombre) }}
@@ -58,60 +59,9 @@
             </div>
             
             <style>
-                /* Estilos mejorados para los checkboxes de alumnos */
-                #{{ form.alumnos.vars.id }} {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-                    gap: 0.75rem;
-                }
-                
-                #{{ form.alumnos.vars.id }} > div {
-                    display: flex;
-                    align-items: center;
-                    padding: 0.5rem;
-                    background-color: #fff;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 4px;
-                    transition: all 0.2s ease;
-                }
-                
-                #{{ form.alumnos.vars.id }} > div:hover {
-                    background-color: #f5f5f5;
-                    border-color: var(--color-primary);
-                    box-shadow: 0 2px 4px rgba(0, 113, 181, 0.1);
-                }
-                
-                #{{ form.alumnos.vars.id }} > div input[type="checkbox"]:checked ~ label {
+                #alumnos-list .alumno-opcion input[type="checkbox"]:checked ~ label {
                     color: var(--color-primary);
                     font-weight: 600;
-                }
-                
-                #{{ form.alumnos.vars.id }} > div input[type="checkbox"]:checked {
-                    accent-color: var(--color-primary);
-                }
-                
-                #{{ form.alumnos.vars.id }} label {
-                    display: inline-block;
-                    margin-left: 0.5rem;
-                    margin-bottom: 0;
-                    font-weight: normal;
-                    cursor: pointer;
-                    flex: 1;
-                    user-select: none;
-                }
-                
-                #{{ form.alumnos.vars.id }} input[type="checkbox"] {
-                    margin-right: 0;
-                    vertical-align: middle;
-                    cursor: pointer;
-                    width: 18px;
-                    height: 18px;
-                }
-                
-                @media (max-width: 768px) {
-                    #{{ form.alumnos.vars.id }} {
-                        grid-template-columns: 1fr;
-                    }
                 }
             </style>
             
@@ -122,7 +72,7 @@
                     const contador = document.getElementById('alumnos-seleccionados-count');
 
                     function getCheckboxesAlumnos() {
-                        return alumnosList.querySelectorAll('input[type="checkbox"]');
+                        return alumnosList.querySelectorAll('.alumno-opcion input[type="checkbox"]');
                     }
 
                     function actualizarContadorSeleccion() {
@@ -146,8 +96,12 @@
                         seleccionarTodos.addEventListener('change', function() {
                             getCheckboxesAlumnos().forEach(function(checkbox) {
                                 checkbox.checked = seleccionarTodos.checked;
+                                checkbox.dispatchEvent(new Event('change', { bubbles: true }));
                             });
                             actualizarContadorSeleccion();
+                            if (window.sincronizarAlumnosPorCategoria) {
+                                window.sincronizarAlumnosPorCategoria();
+                            }
                         });
                     }
 

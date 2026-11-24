@@ -1,0 +1,108 @@
+<style>
+    .alumnos-categoria {
+        border: 1px solid #d7e3ee;
+        border-radius: 6px;
+        margin: 0 0 1rem 0;
+        padding: 0.75rem;
+        background: #fff;
+    }
+    .alumnos-categoria-leyenda {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        width: 100%;
+        padding: 0 0.35rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+    .alumnos-categoria-marcar {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin: 0;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #555;
+        cursor: pointer;
+    }
+    .alumnos-categoria-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 0.5rem;
+    }
+    .alumno-opcion {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.45rem 0.55rem;
+        background: #fafafa;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+    }
+    .alumno-opcion label {
+        margin: 0;
+        cursor: pointer;
+        flex: 1;
+    }
+    .alumno-username {
+        color: #666;
+        font-weight: 400;
+    }
+</style>
+<script>
+    if (!window.__alumnosPorCategoriaInit) {
+        window.__alumnosPorCategoriaInit = true;
+
+        function alumnosDeBloque(bloque) {
+            return Array.from(bloque.querySelectorAll('.alumno-opcion input[type="checkbox"], .checkbox-alumno')).filter(function (checkbox) {
+                return !checkbox.classList.contains('seleccionar-categoria-input');
+            });
+        }
+
+        window.sincronizarAlumnosPorCategoria = function () {
+            document.querySelectorAll('.alumnos-categoria').forEach(function (bloque) {
+                const cabecera = bloque.querySelector('.seleccionar-categoria-input');
+                if (!cabecera) {
+                    return;
+                }
+                const alumnos = alumnosDeBloque(bloque);
+                const marcados = alumnos.filter(function (checkbox) { return checkbox.checked; }).length;
+                cabecera.checked = alumnos.length > 0 && marcados === alumnos.length;
+                cabecera.indeterminate = marcados > 0 && marcados < alumnos.length;
+            });
+        };
+
+        document.addEventListener('change', function (event) {
+            const target = event.target;
+            if (!target.classList || !target.classList.contains('seleccionar-categoria-input')) {
+                const bloque = target.closest ? target.closest('.alumnos-categoria') : null;
+                if (bloque) {
+                    window.sincronizarAlumnosPorCategoria();
+                }
+                return;
+            }
+
+            const bloque = target.closest('.alumnos-categoria');
+            if (!bloque) {
+                return;
+            }
+            const marcado = target.checked;
+            alumnosDeBloque(bloque).forEach(function (checkbox) {
+                if (checkbox.checked === marcado) {
+                    return;
+                }
+                checkbox.checked = marcado;
+                checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+            window.sincronizarAlumnosPorCategoria();
+        });
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', window.sincronizarAlumnosPorCategoria);
+        } else {
+            window.sincronizarAlumnosPorCategoria();
+        }
+    }
+</script>

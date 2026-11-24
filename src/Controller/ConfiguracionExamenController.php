@@ -31,7 +31,7 @@ class ConfiguracionExamenController extends AbstractController
     public function index(Request $request): Response
     {
         // Obtener todos los temas activos ordenados por ID
-        $temas = $this->temaRepository->findBy(['activo' => true], ['id' => 'ASC']);
+        $temas = $this->temaRepository->findActivosDePolicia();
 
         // Obtener o crear configuraciones para cada tema
         $configuraciones = [];

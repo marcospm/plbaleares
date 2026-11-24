@@ -11,16 +11,14 @@
         <form method="post">
             <div class="form-group">
                 <label class="form-label"><strong>Selecciona los alumnos que pertenecerán a este grupo:</strong></label>
-                <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 1rem; border-radius: 4px; margin-top: 0.5rem;">
-                    {% for alumno in todosAlumnos %}
-                        <div class="form-check" style="padding: 0.5rem;">
-                            <input class="form-check-input" type="checkbox" name="alumnos[]" value="{{ alumno.id }}" id="alumno_{{ alumno.id }}"
-                                   {% if grupo.alumnos.contains(alumno) %}checked{% endif %}>
-                            <label class="form-check-label" for="alumno_{{ alumno.id }}">
-                                {{ alumno.nombreDisplay }} ({{ alumno.username }})
-                            </label>
-                        </div>
-                    {% endfor %}
+                <div style="max-height: 520px; overflow-y: auto; border: 1px solid #ddd; padding: 1rem; border-radius: 4px; margin-top: 0.5rem;">
+                    {% include 'form/_lista_alumnos_categoria.html.twig' with {
+                        usuarios: todosAlumnos,
+                        input_name: 'alumnos[]',
+                        id_prefix: 'alumno',
+                        seleccionados: grupo.alumnos|map(alumno => alumno.id),
+                        mostrar_username: true
+                    } %}
                 </div>
             </div>
 

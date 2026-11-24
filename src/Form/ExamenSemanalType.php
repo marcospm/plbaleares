@@ -2,6 +2,7 @@
 
 namespace App\Form;
 
+use App\Entity\CategoriaOposicion;
 use App\Entity\ExamenSemanal;
 use App\Entity\Tema;
 use App\Entity\TemaMunicipal;
@@ -126,7 +127,9 @@ class ExamenSemanalType extends AbstractType
                     'query_builder' => function ($er) {
                         return $er->createQueryBuilder('t')
                             ->andWhere('t.activo = :activo')
+                            ->andWhere('t.categoria = :categoria')
                             ->setParameter('activo', true)
+                            ->setParameter('categoria', CategoriaOposicion::POLICIA)
                             ->orderBy('t.id', 'ASC');
                     },
                     'attr' => ['class' => 'form-control'],

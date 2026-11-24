@@ -27,6 +27,9 @@ class Tema
     #[ORM\Column(type: 'boolean', options: ['default' => true])]
     private bool $activo = true;
 
+    #[ORM\Column(length: 20, enumType: CategoriaOposicion::class, options: ['default' => 'policia'])]
+    private CategoriaOposicion $categoria = CategoriaOposicion::POLICIA;
+
     #[ORM\ManyToMany(targetEntity: Ley::class, inversedBy: 'temas')]
     #[ORM\JoinTable(name: 'tema_ley')]
     private Collection $leyes;
@@ -93,6 +96,18 @@ class Tema
     public function setActivo(bool $activo): static
     {
         $this->activo = $activo;
+
+        return $this;
+    }
+
+    public function getCategoria(): CategoriaOposicion
+    {
+        return $this->categoria;
+    }
+
+    public function setCategoria(CategoriaOposicion $categoria): static
+    {
+        $this->categoria = $categoria;
 
         return $this;
     }

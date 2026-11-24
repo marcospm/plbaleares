@@ -2,6 +2,7 @@
 
 namespace App\Form;
 
+use App\Entity\CategoriaOposicion;
 use App\Entity\Tarea;
 use App\Entity\Tema;
 use App\Entity\Ley;
@@ -58,11 +59,14 @@ class TareaType extends AbstractType
                 'required' => true,
                 'mapped' => false,
                 'label' => 'Usuarios',
+                'group_by' => AlumnosPorCategoria::etiqueta(...),
+                'choice_translation_domain' => false,
+                'help' => 'Los alumnos están agrupados por categoría.',
                 'query_builder' => function ($er) {
                     // Alumnos = activos, no eliminados, sin rol profesor/admin.
                     // No exigir ROLE_USER en BD: getRoles() lo añade en memoria y muchos
                     // alumnos lo tienen vacío en la columna roles.
-                    return $er->createQueryBuilder('u')
+                    return AlumnosPorCategoria::ordenar($er->createQueryBuilder('u')
                         ->where('u.activo = :activo')
                         ->andWhere('u.eliminado = :eliminado')
                         ->andWhere('u.roles NOT LIKE :roleProfesor')
@@ -70,8 +74,7 @@ class TareaType extends AbstractType
                         ->setParameter('activo', true)
                         ->setParameter('eliminado', false)
                         ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
-                        ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
-                        ->orderBy('u.username', 'ASC');
+                        ->setParameter('roleAdmin', '%"ROLE_ADMIN"%'));
                 },
                 'attr' => ['class' => 'form-control']
             ])
@@ -84,7 +87,9 @@ class TareaType extends AbstractType
                 'query_builder' => function ($er) {
                     return $er->createQueryBuilder('t')
                         ->andWhere('t.activo = :activo')
+                        ->andWhere('t.categoria = :categoria')
                         ->setParameter('activo', true)
+                        ->setParameter('categoria', CategoriaOposicion::POLICIA)
                         ->orderBy('t.id', 'ASC');
                 },
             ])

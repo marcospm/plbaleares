@@ -2,6 +2,7 @@
 
 namespace App\Form;
 
+use App\Entity\CategoriaOposicion;
 use App\Entity\Tema;
 use App\Entity\Municipio;
 use App\Entity\TemaMunicipal;
@@ -113,7 +114,9 @@ class ExamenIniciarType extends AbstractType
                 'query_builder' => function ($er) {
                     return $er->createQueryBuilder('t')
                         ->where('t.activo = :activo')
+                        ->andWhere('t.categoria = :categoria')
                         ->setParameter('activo', true)
+                        ->setParameter('categoria', CategoriaOposicion::POLICIA)
                         ->orderBy('t.id', 'ASC');
                 },
                 'attr' => ['class' => 'form-check', 'id' => 'temas_general'],

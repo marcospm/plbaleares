@@ -51,16 +51,13 @@
             <form method="post">
                 <div class="form-group">
                     <label class="form-label"><strong>Selecciona los alumnos que tendrán acceso a este municipio:</strong></label>
-                    <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 1rem; border-radius: 4px; margin-top: 0.5rem;">
-                        {% for usuario in usuarios %}
-                            <div class="form-check" style="padding: 0.5rem;">
-                                <input class="form-check-input" type="checkbox" name="usuarios[]" value="{{ usuario.id }}" id="usuario_{{ usuario.id }}"
-                                       {% if municipio.usuarios.contains(usuario) %}checked{% endif %}>
-                                <label class="form-check-label" for="usuario_{{ usuario.id }}">
-                                    {{ usuario.nombreDisplay }}
-                                </label>
-                            </div>
-                        {% endfor %}
+                    <div style="max-height: 520px; overflow-y: auto; border: 1px solid #ddd; padding: 1rem; border-radius: 4px; margin-top: 0.5rem;">
+                        {% include 'form/_lista_alumnos_categoria.html.twig' with {
+                            usuarios: usuarios,
+                            input_name: 'usuarios[]',
+                            id_prefix: 'usuario',
+                            seleccionados: municipio.usuarios|map(usuario => usuario.id)
+                        } %}
                     </div>
                 </div>
 

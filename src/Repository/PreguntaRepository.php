@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Entity\CategoriaOposicion;
 use App\Entity\Pregunta;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -76,10 +77,12 @@ class PreguntaRepository extends ServiceEntityRepository
             ->innerJoin('p.ley', 'l')
             ->addSelect('l')
             ->where('p.activo = :activo')
+            ->andWhere('t.categoria = :categoria')
             ->andWhere('l.id != (' . $subquery2->getDQL() . ')')
             ->andWhere('p.texto IS NOT NULL')
             ->andWhere('p.texto != :vacio')
             ->setParameter('activo', true)
+            ->setParameter('categoria', CategoriaOposicion::POLICIA)
             ->setParameter('nombreLeyExcluida2', 'Accidentes de Tráfico')
             ->setParameter('vacio', '')
             ->orderBy('p.id', 'ASC')
@@ -170,10 +173,12 @@ class PreguntaRepository extends ServiceEntityRepository
             ->innerJoin('p.ley', 'l')
             ->where('p.activo = :activo')
             ->andWhere('t.activo = :activo')
+            ->andWhere('t.categoria = :categoria')
             ->andWhere('l.id != (' . $subquery->getDQL() . ')')
             ->andWhere('p.texto IS NOT NULL')
             ->andWhere('p.texto != :vacio')
             ->setParameter('activo', true)
+            ->setParameter('categoria', CategoriaOposicion::POLICIA)
             ->setParameter('nombreLeyExcluida', 'Accidentes de Tráfico')
             ->setParameter('vacio', '');
 
@@ -267,10 +272,12 @@ class PreguntaRepository extends ServiceEntityRepository
             ->addSelect('a')
             ->where('p.activo = :activo')
             ->andWhere('t.activo = :activo')
+            ->andWhere('t.categoria = :categoria')
             ->andWhere('t.id IN (:temaIds)')
             ->andWhere('p.texto IS NOT NULL')
             ->andWhere('p.texto != :vacio')
             ->setParameter('activo', true)
+            ->setParameter('categoria', CategoriaOposicion::POLICIA)
             ->setParameter('temaIds', $temaIds)
             ->setParameter('vacio', '');
 

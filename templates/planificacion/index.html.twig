@@ -186,9 +186,8 @@
                 <label for="usuario" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">Filtrar por alumno:</label>
                 <select id="usuario" name="usuario" class="form-select">
                     <option value="">Todos los alumnos</option>
-                    {% for usuario in usuarios %}
-                        <option value="{{ usuario.id }}" {% if filtroUsuario == usuario.id %}selected{% endif %}>{{ usuario.nombreDisplay }}</option>
-                    {% endfor %}
+                    {% import 'form/_opciones_alumnos.html.twig' as alumnos %}
+                    {{ alumnos.opciones(usuarios, filtroUsuario) }}
                 </select>
             </div>
             <div class="col-md-4">

@@ -66,7 +66,7 @@ class SesionPublicoController extends AbstractController
         $page = min($page, $totalPages);
 
         // Obtener datos para los filtros - todos los selectores deben estar rellenados de antemano
-        $temas = $temaRepository->findBy(['activo' => true], ['id' => 'ASC']);
+        $temas = $temaRepository->findActivosDePolicia();
         $municipios = $municipioRepository->findBy(['activo' => true], ['nombre' => 'ASC']);
         $convocatorias = [];
         

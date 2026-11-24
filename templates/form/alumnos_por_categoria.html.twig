@@ -1,0 +1,29 @@
+{%- block choice_widget_expanded -%}
+    {{ include('form/_alumnos_categoria_assets.html.twig') }}
+    {% set grupos = {} %}
+    {% for child in form %}
+        {% set categoria = child.vars.attr['data-categoria']|default('Sin categoría') %}
+        {% set grupos = grupos|merge({ (categoria): (grupos[categoria]|default([]))|merge([child]) }) %}
+    {% endfor %}
+    <div {{ block('widget_container_attributes') }}>
+        {% for categoria, hijos in grupos %}
+            <fieldset class="alumnos-categoria">
+                <legend class="alumnos-categoria-leyenda">
+                    <span>{{ categoria }} <small>({{ hijos|length }})</small></span>
+                    <label class="alumnos-categoria-marcar">
+                        <input type="checkbox" class="seleccionar-categoria-input">
+                        Toda la categoría
+                    </label>
+                </legend>
+                <div class="alumnos-categoria-grid">
+                    {% for child in hijos %}
+                        <div class="alumno-opcion">
+                            {{- form_widget(child) -}}
+                            {{- form_label(child, null, {translation_domain: false}) -}}
+                        </div>
+                    {% endfor %}
+                </div>
+            </fieldset>
+        {% endfor %}
+    </div>
+{%- endblock choice_widget_expanded -%}

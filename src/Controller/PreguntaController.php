@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Articulo;
+use App\Entity\CategoriaOposicion;
 use App\Entity\ExamenSemanal;
 use App\Entity\Ley;
 use App\Entity\Pregunta;
@@ -109,7 +110,7 @@ class PreguntaController extends AbstractController
         $preguntasPaginated = array_slice($preguntas, $offset, $itemsPerPage);
 
         // Obtener listas para los filtros
-        $temas = $temaRepository->findBy(['activo' => true], ['id' => 'ASC']);
+        $temas = $temaRepository->findActivosDePolicia();
         $leyes = $leyRepository->findAll();
 
         return $this->render('pregunta/index.html.twig', [
@@ -374,7 +375,9 @@ class PreguntaController extends AbstractController
         // Optimizar consultas con ordenamiento
         $temas = $temaRepository->createQueryBuilder('t')
             ->andWhere('t.activo = :activo')
+            ->andWhere('t.categoria = :categoria')
             ->setParameter('activo', true)
+            ->setParameter('categoria', CategoriaOposicion::POLICIA)
             ->orderBy('t.nombre', 'ASC')
             ->getQuery()
             ->getResult();
@@ -1832,8 +1835,10 @@ class PreguntaController extends AbstractController
             ->addSelect('l')
             ->where('t.id IN (:ids)')
             ->andWhere('t.activo = :activo')
+            ->andWhere('t.categoria = :categoria')
             ->setParameter('ids', $ids)
             ->setParameter('activo', true)
+            ->setParameter('categoria', CategoriaOposicion::POLICIA)
             ->getQuery()
             ->getResult();
 
@@ -2217,7 +2222,9 @@ class PreguntaController extends AbstractController
             ->leftJoin('t.leyes', 'l')
             ->addSelect('l')
             ->andWhere('t.activo = :activo')
+            ->andWhere('t.categoria = :categoria')
             ->setParameter('activo', true)
+            ->setParameter('categoria', CategoriaOposicion::POLICIA)
             ->orderBy('t.nombre', 'ASC')
             ->getQuery()
             ->getResult();

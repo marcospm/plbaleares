@@ -59,12 +59,15 @@ class PlanificacionFechaEspecificaType extends AbstractType
                 'expanded' => false,
                 'mapped' => false,
                 'choice_label' => 'username',
+                'group_by' => AlumnosPorCategoria::etiqueta(...),
+                'choice_translation_domain' => false,
+                'help' => 'Los alumnos están agrupados por categoría.',
                 'placeholder' => 'Selecciona uno o más alumnos',
                 'query_builder' => function ($er) {
                     // Alumnos = activos, no eliminados, sin rol profesor/admin.
                     // No exigir ROLE_USER en BD: getRoles() lo añade en memoria y muchos
                     // alumnos lo tienen vacío en la columna roles.
-                    return $er->createQueryBuilder('u')
+                    return AlumnosPorCategoria::ordenar($er->createQueryBuilder('u')
                         ->where('u.activo = :activo')
                         ->andWhere('u.eliminado = :eliminado')
                         ->andWhere('u.roles NOT LIKE :roleProfesor')
@@ -72,8 +75,7 @@ class PlanificacionFechaEspecificaType extends AbstractType
                         ->setParameter('activo', true)
                         ->setParameter('eliminado', false)
                         ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
-                        ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
-                        ->orderBy('u.username', 'ASC');
+                        ->setParameter('roleAdmin', '%"ROLE_ADMIN"%'));
                 },
                 'attr' => [
                     'class' => 'form-select',

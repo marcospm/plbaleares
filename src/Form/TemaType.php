@@ -2,11 +2,13 @@
 
 namespace App\Form;
 
+use App\Entity\CategoriaOposicion;
 use App\Entity\Tema;
 use App\Entity\Ley;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -18,6 +20,13 @@ class TemaType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
+            ->add('categoria', EnumType::class, [
+                'label' => 'Categoría',
+                'class' => CategoriaOposicion::class,
+                'choice_label' => static fn (CategoriaOposicion $categoria): string => $categoria->getLabel(),
+                'required' => true,
+                'attr' => ['class' => 'form-control'],
+            ])
             ->add('nombre', TextType::class, [
                 'label' => 'Nombre del Tema',
                 'required' => true,

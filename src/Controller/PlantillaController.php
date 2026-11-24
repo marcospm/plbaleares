@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\CategoriaOposicion;
 use App\Entity\Plantilla;
 use App\Entity\PlantillaMunicipal;
 use App\Form\PlantillaType;
@@ -90,7 +91,9 @@ class PlantillaController extends AbstractController
                 ->orderBy('p.tema', 'ASC')
                 ->addOrderBy('p.dificultad', 'ASC')
                 ->andWhere('t.activo = :activoTema')
+                ->andWhere('t.categoria = :categoriaTema')
                 ->setParameter('activoTema', true)
+                ->setParameter('categoriaTema', CategoriaOposicion::POLICIA)
                 ->addOrderBy('p.nombre', 'ASC');
 
             if ($temaId > 0) {
@@ -104,7 +107,7 @@ class PlantillaController extends AbstractController
             }
 
             $plantillas = $qb->getQuery()->getResult();
-            $temas = $this->temaRepository->findBy(['activo' => true], ['nombre' => 'ASC']);
+            $temas = $this->temaRepository->findActivosDePolicia(['nombre' => 'ASC']);
             
             // Calcular número de preguntas activas en batch para todas las plantillas
             $plantillasIds = array_map(fn($p) => $p->getId(), $plantillas);
@@ -251,7 +254,7 @@ class PlantillaController extends AbstractController
         }
 
         $tema = $this->temaRepository->find($temaId);
-        if (!$tema || !$tema->isActivo()) {
+        if (!$tema || !$tema->isActivo() || $tema->getCategoria() !== CategoriaOposicion::POLICIA) {
             return new JsonResponse(['plantillas' => []]);
         }
 

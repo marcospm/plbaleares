@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\CategoriaOposicion;
 use App\Entity\Tema;
 use App\Form\TemaType;
 use App\Repository\TemaRepository;
@@ -34,9 +35,17 @@ class TemaController extends AbstractController
         if (!in_array($estado, ['activas', 'inactivas', 'todas'], true)) {
             $estado = 'activas';
         }
+        $categoria = (string) $request->query->get('categoria', CategoriaOposicion::POLICIA->value);
+        if ($categoria !== 'todas' && CategoriaOposicion::tryFrom($categoria) === null) {
+            $categoria = CategoriaOposicion::POLICIA->value;
+        }
 
         $qb = $temaRepository->createQueryBuilder('t')
             ->orderBy('t.id', 'ASC');
+
+        if ($categoria !== 'todas') {
+            $qb->andWhere('t.categoria = :categoria')->setParameter('categoria', $categoria);
+        }
 
         if ($search !== '') {
             $qb->andWhere('(t.nombre LIKE :search OR t.descripcion LIKE :search)')
@@ -61,6 +70,8 @@ class TemaController extends AbstractController
             'temas' => $temas,
             'search' => $search,
             'estado' => $estado,
+            'categoria' => $categoria,
+            'categorias' => CategoriaOposicion::cases(),
             'pdfIds' => $pdfIds,
         ]);
     }
@@ -122,7 +133,9 @@ class TemaController extends AbstractController
             $entityManager->flush();
 
             $this->addFlash('success', 'Tema creado correctamente.');
-            return $this->redirectToRoute('app_tema_index', [], Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute('app_tema_index', [
+                'categoria' => $tema->getCategoria()->value,
+            ], Response::HTTP_SEE_OTHER);
         }
 
         return $this->render('tema/new.html.twig', [
@@ -212,7 +225,9 @@ class TemaController extends AbstractController
             $entityManager->flush();
 
             $this->addFlash('success', 'Tema actualizado correctamente.');
-            return $this->redirectToRoute('app_tema_index', [], Response::HTTP_SEE_OTHER);
+            return $this->redirectToRoute('app_tema_index', [
+                'categoria' => $tema->getCategoria()->value,
+            ], Response::HTTP_SEE_OTHER);
         }
 
         return $this->render('tema/edit.html.twig', [
@@ -236,8 +251,12 @@ class TemaController extends AbstractController
         if (!in_array($estado, ['activas', 'inactivas', 'todas'], true)) {
             $estado = 'activas';
         }
+        $categoria = (string) $request->request->get('categoria', CategoriaOposicion::POLICIA->value);
+        if ($categoria !== 'todas' && CategoriaOposicion::tryFrom($categoria) === null) {
+            $categoria = CategoriaOposicion::POLICIA->value;
+        }
         $search = trim((string) $request->request->get('search', ''));
-        $filtros = ['estado' => $estado];
+        $filtros = ['estado' => $estado, 'categoria' => $categoria];
         if ($search !== '') {
             $filtros['search'] = $search;
         }

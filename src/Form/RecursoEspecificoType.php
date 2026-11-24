@@ -82,11 +82,16 @@ class RecursoEspecificoType extends AbstractType
                 'expanded' => true,
                 'required' => false,
                 'query_builder' => $options['alumnos_query_builder'],
+                'group_by' => AlumnosPorCategoria::etiqueta(...),
+                'choice_translation_domain' => false,
+                'choice_attr' => static function (User $user): array {
+                    return ['data-categoria' => $user->getCategoria()->getLabel()];
+                },
                 'attr' => [
                     'class' => 'form-control',
                     'id' => 'alumnos-select'
                 ],
-                'help' => 'Selecciona alumnos adicionales si lo deseas. Si has seleccionado un grupo, todos los alumnos del grupo se asignarán automáticamente.'
+                'help' => 'Los alumnos están separados por categoría. Si has seleccionado un grupo, todos los alumnos del grupo se asignarán automáticamente.'
             ])
             ->add('tipoRecurso', ChoiceType::class, [
                 'label' => 'Tipo de recurso',

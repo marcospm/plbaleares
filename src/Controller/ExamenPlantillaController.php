@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\CategoriaOposicion;
 use App\Entity\Plantilla;
 use App\Entity\PlantillaMunicipal;
 use App\Entity\User;
@@ -164,7 +165,7 @@ class ExamenPlantillaController extends AbstractController
             if ($temaId > 0) {
                 // Buscar el tema primero para asegurar que existe
                 $tema = $this->temaRepository->find($temaId);
-                if (!$tema || !$tema->isActivo()) {
+                if (!$tema || !$tema->isActivo() || $tema->getCategoria() !== CategoriaOposicion::POLICIA) {
                     return new JsonResponse(['plantillas' => []]);
                 }
                 // Usar el método del repositorio que ya existe
@@ -175,7 +176,9 @@ class ExamenPlantillaController extends AbstractController
                     ->innerJoin('p.tema', 't')
                     ->addSelect('t')
                     ->andWhere('t.activo = :activo')
+                    ->andWhere('t.categoria = :categoria')
                     ->setParameter('activo', true)
+                    ->setParameter('categoria', CategoriaOposicion::POLICIA)
                     ->orderBy('t.nombre', 'ASC')
                     ->addOrderBy('p.dificultad', 'ASC')
                     ->addOrderBy('p.nombre', 'ASC');
@@ -527,8 +530,7 @@ class ExamenPlantillaController extends AbstractController
     #[Route('/api/temas', name: 'app_examen_plantilla_api_temas', methods: ['GET'])]
     public function getTemas(): JsonResponse
     {
-        $temas = $this->entityManager->getRepository(\App\Entity\Tema::class)
-            ->findBy(['activo' => true], ['nombre' => 'ASC']);
+        $temas = $this->temaRepository->findActivosDePolicia(['nombre' => 'ASC']);
         $temasData = array_map(function($tema) {
             return [
                 'id' => $tema->getId(),

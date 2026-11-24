@@ -113,10 +113,19 @@
 <form method="get" action="{{ path('app_tema_index') }}" style="margin-bottom: 2rem;">
     <div class="card">
         <div class="card-body">
-            <div style="display: grid; grid-template-columns: 1fr 180px auto; gap: 1rem; align-items: end;">
+            <div style="display: grid; grid-template-columns: 1fr 180px 180px auto; gap: 1rem; align-items: end;">
                 <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">Buscar:</label>
                     <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Buscar por nombre o descripción...">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" for="categoria">Categoría:</label>
+                    <select name="categoria" id="categoria" class="form-control">
+                        {% for opcion in categorias %}
+                            <option value="{{ opcion.value }}" {% if categoria == opcion.value %}selected{% endif %}>{{ opcion.getLabel() }}</option>
+                        {% endfor %}
+                        <option value="todas" {% if categoria == 'todas' %}selected{% endif %}>Todas</option>
+                    </select>
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label" for="estado">Estado:</label>
@@ -128,7 +137,7 @@
                 </div>
                 <div>
                     <button type="submit" class="btn btn-primary">Filtrar</button>
-                    {% if search or estado != 'activas' %}
+                    {% if search or estado != 'activas' or categoria != 'policia' %}
                         <a href="{{ path('app_tema_index') }}" class="btn btn-secondary">Limpiar</a>
                     {% endif %}
                 </div>
@@ -153,6 +162,7 @@
                 <tr>
                     <th>Nombre</th>
                     <th>Descripción</th>
+                    <th>Categoría</th>
                     <th>Leyes</th>
                     <th>Estado</th>
                     <th>Acciones</th>
@@ -163,6 +173,7 @@
                     <tr>
                         <td><strong>{{ tema.nombre }}</strong></td>
                         <td>{{ tema.descripcion|default('Sin descripción')|slice(0, 100) }}{% if tema.descripcion|length > 100 %}...{% endif %}</td>
+                        <td>{{ tema.categoria.getLabel() }}</td>
                         <td>
                             {% if tema.leyes|length > 0 %}
                                 <span class="badge badge-facil">{{ tema.leyes|length }} ley(es)</span>
@@ -188,6 +199,7 @@
                                     <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ tema.id) }}">
                                     <input type="hidden" name="search" value="{{ search }}">
                                     <input type="hidden" name="estado" value="{{ estado }}">
+                                    <input type="hidden" name="categoria" value="{{ categoria }}">
                                     <button type="submit" class="btn btn-sm {% if tema.isActivo %}btn-warning{% else %}btn-success{% endif %}">
                                         {% if tema.isActivo %}Desactivar{% else %}Activar{% endif %}
                                     </button>

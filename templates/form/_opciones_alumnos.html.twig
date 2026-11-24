@@ -1,0 +1,9 @@
+{% macro opciones(usuarios, seleccionado) %}
+    {% for etiqueta, lista in alumnos_por_categoria(usuarios) %}
+        <optgroup label="{{ etiqueta }}">
+            {% for usuario in lista %}
+                <option value="{{ usuario.id }}" {% if seleccionado is not null and seleccionado ~ '' == usuario.id ~ '' %}selected{% endif %}>{{ usuario.nombreDisplay }}</option>
+            {% endfor %}
+        </optgroup>
+    {% endfor %}
+{% endmacro %}

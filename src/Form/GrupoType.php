@@ -30,16 +30,16 @@ class GrupoType extends AbstractType
                     return $user->getNombreDisplay() . ' (' . $user->getUsername() . ')';
                 },
                 'query_builder' => function(UserRepository $er) {
-                    return $er->createQueryBuilder('u')
+                    return AlumnosPorCategoria::ordenar($er->createQueryBuilder('u')
                         ->where('u.activo = :activo')
                         ->andWhere('u.roles NOT LIKE :roleProfesor')
                         ->andWhere('u.roles NOT LIKE :roleAdmin')
                         ->setParameter('activo', true)
                         ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
-                        ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
-                        ->orderBy('u.nombre', 'ASC')
-                        ->addOrderBy('u.username', 'ASC');
+                        ->setParameter('roleAdmin', '%"ROLE_ADMIN"%'));
                 },
+                'group_by' => AlumnosPorCategoria::etiqueta(...),
+                'choice_translation_domain' => false,
                 'multiple' => true,
                 'expanded' => false,
                 'required' => false,
@@ -48,7 +48,7 @@ class GrupoType extends AbstractType
                     'size' => 10
                 ],
                 'label' => 'Alumnos',
-                'help' => 'Selecciona los alumnos que pertenecerán a este grupo'
+                'help' => 'Los alumnos están agrupados por categoría. Mantén pulsada Ctrl para elegir varios.'
             ]);
     }
 

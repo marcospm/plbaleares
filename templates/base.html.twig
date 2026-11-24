@@ -541,7 +541,7 @@
                                 contador.style.display = 'none';
                             }
                         });
-                    {% elseif not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
+                    {% elseif not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') and not acceso_reducido() %}
                     fetch('{{ path('app_notificacion_alumno_contador') }}')
                         .then(response => {
                             if (!response.ok) {
@@ -592,6 +592,7 @@
                         });
                     {% endif %}
                     
+                    {% if not acceso_reducido() %}
                     // Actualizar contador de mensajes del chat
                     function updateChatCount() {
                         fetch('{{ path('app_chat_api_contador') }}')
@@ -614,6 +615,7 @@
                     
                     updateChatCount();
                     setInterval(updateChatCount, 15000); // Actualizar cada 15 segundos
+                    {% endif %}
                 });
             </script>
         {% endblock %}
@@ -812,10 +814,12 @@
                                 <a href="{{ path('app_perfil_index') }}" style="border: 1px solid rgba(255,255,255,0.5); padding: 0.4rem 0.8rem; border-radius: 4px; color: white; text-decoration: none; font-size: 0.85rem; background-color: rgba(255,255,255,0.1); transition: background-color 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.1)'" title="Editar mi perfil, email y contraseña">
                                     👤 Mi Perfil
                                 </a>
+                                {% if not acceso_reducido() %}
                                 <a href="{{ path('app_chat_index') }}" style="position: relative; border: 1px solid rgba(255,255,255,0.5); padding: 0.4rem 0.8rem; border-radius: 4px; color: white; text-decoration: none; font-size: 0.85rem; background-color: rgba(255,255,255,0.1); transition: background-color 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.1)'" title="Chat con otros usuarios">
                                     💬 Chat
                                     <span id="chat-badge-nav" style="background-color: #dc3545; color: white; border-radius: 50%; padding: 0.1rem 0.4rem; font-size: 0.7rem; min-width: 1.2rem; text-align: center; display: none; margin-left: 0.25rem;">0</span>
                                 </a>
+                                {% endif %}
                                 {% if is_granted('ROLE_PROFESOR') or is_granted('ROLE_ADMIN') %}
                                     <div class="nav-dropdown" style="position: relative;">
                                         <a href="#" onclick="event.preventDefault(); toggleNotificacionesDropdown('profesor');" style="position: relative; border: 1px solid rgba(255,255,255,0.5); padding: 0.4rem 0.8rem; border-radius: 4px; color: white; text-decoration: none; font-size: 0.85rem; background-color: rgba(255,255,255,0.1); transition: background-color 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.1)'">
@@ -832,7 +836,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                {% elseif not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
+                                {% elseif not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') and not acceso_reducido() %}
                                     <div class="nav-dropdown" style="position: relative;">
                                         <a href="#" onclick="event.preventDefault(); toggleNotificacionesDropdown('alumno');" style="position: relative; border: 1px solid rgba(255,255,255,0.5); padding: 0.4rem 0.8rem; border-radius: 4px; color: white; text-decoration: none; font-size: 0.85rem; background-color: rgba(255,255,255,0.1); transition: background-color 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.1)'">
                                             🔔 Notificaciones
@@ -849,7 +853,7 @@
                                         </div>
                                     </div>
                                 {% endif %}
-                                {% if not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
+                                {% if not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') and not acceso_reducido() %}
                                     <a href="{{ path('app_tutorial') }}" style="border: 1px solid rgba(255,255,255,0.5); padding: 0.4rem 0.8rem; border-radius: 4px; color: white; text-decoration: none; font-size: 0.85rem; background-color: rgba(255,255,255,0.1); transition: background-color 0.2s; white-space: nowrap; margin-right: 0.5rem;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.1)'">📖 Tutorial</a>
                                 {% elseif is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
                                     <a href="{{ path('app_tutorial_profesor') }}" style="border: 1px solid rgba(255,255,255,0.5); padding: 0.4rem 0.8rem; border-radius: 4px; color: white; text-decoration: none; font-size: 0.85rem; background-color: rgba(255,255,255,0.1); transition: background-color 0.2s; white-space: nowrap; margin-right: 0.5rem;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.1)'">📖 Tutorial</a>
@@ -869,7 +873,19 @@
                                 {% endif %}
                                 
                                 {# Menú para ALUMNOS (ROLE_USER sin ROLE_PROFESOR ni ROLE_ADMIN) #}
-                                {% if not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
+                                {% if not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') and acceso_reducido() %}
+                                    <li style="position: relative;">
+                                        <div class="nav-dropdown" style="position: relative;">
+                                            <a href="#" class="nav-link nav-link-alumno dropdown-toggle" onclick="event.preventDefault(); toggleDropdown(this); return false;" style="cursor: pointer;">
+                                                Contenido <span class="dropdown-arrow">▼</span>
+                                            </a>
+                                            <ul class="dropdown-menu" style="left: 0; right: auto;">
+                                                <li><a class="dropdown-item" href="{{ path('app_recurso_publico_index') }}">📚 Temario y Recursos</a></li>
+                                            </ul>
+                                        </div>
+                                    </li>
+                                    <li><a href="{{ path('app_contacto') }}" class="nav-link nav-link-alumno">Contacto</a></li>
+                                {% elseif not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
                                     <li><a href="{{ path('app_planificacion_alumno_index') }}" class="nav-link nav-link-alumno">Planificación</a></li>
                                     <li style="position: relative;">
                                         <div class="nav-dropdown" style="position: relative;">

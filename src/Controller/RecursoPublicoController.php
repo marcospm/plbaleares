@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Entity\CategoriaOposicion;
+use App\Entity\User;
 use App\Repository\RecursoRepository;
 use App\Repository\ExamenPDFRepository;
 use App\Repository\ExamenConvocatoriaRepository;
@@ -31,7 +33,30 @@ class RecursoPublicoController extends AbstractController
         CategoriaPsicotecnicoRepository $categoriaPsicotecnicoRepository
     ): Response {
         $user = $this->getUser();
-        
+        $categoria = $user instanceof User ? $user->getCategoria() : CategoriaOposicion::POLICIA;
+        $accesoReducido = $categoria !== CategoriaOposicion::POLICIA;
+
+        $recursosEspecificos = [];
+        if ($user) {
+            $recursosEspecificos = $this->agruparRecursosEspecificos(
+                $recursoEspecificoRepository->findByAlumno($user)
+            );
+        }
+
+        if ($accesoReducido) {
+            return $this->render('recurso/publico_index.html.twig', [
+                'examenes' => [],
+                'examenesConvocatorias' => [],
+                'recursosEspecificos' => $recursosEspecificos,
+                'temas' => $temaRepository->findActivosByCategoria($categoria),
+                'temasPorMunicipio' => [],
+                'temasPorConvocatoria' => [],
+                'resumenPsicotecnicos' => [],
+                'accesoReducido' => true,
+                'categoriaLabel' => $categoria->getLabel(),
+            ]);
+        }
+
         // Obtener solo los 10 últimos exámenes PDF ordenados por fecha de subida descendente
         $examenes = $examenPDFRepository->findUltimos(10);
         
@@ -41,16 +66,11 @@ class RecursoPublicoController extends AbstractController
             ->getQuery()
             ->getResult();
         
-        // Obtener recursos específicos asignados al usuario
-        $recursosEspecificos = [];
-        if ($user) {
-            $recursosEspecificos = $this->agruparRecursosEspecificos(
-                $recursoEspecificoRepository->findByAlumno($user)
-            );
-        }
-        
-        // Obtener todos los temas activos, ordenados por ID
-        $temas = $temaRepository->findBy(['activo' => true], ['id' => 'ASC']);
+        // Mismos temas activos de siempre: los de Policía, ordenados por ID
+        $temas = $temaRepository->findBy(
+            ['activo' => true, 'categoria' => CategoriaOposicion::POLICIA],
+            ['id' => 'ASC']
+        );
         
         // Obtener temas municipales agrupados por convocatoria y municipio
         $temasPorConvocatoria = [];
@@ -107,6 +127,8 @@ class RecursoPublicoController extends AbstractController
             'temasPorMunicipio' => $temasPorMunicipio,
             'temasPorConvocatoria' => $temasPorConvocatoria,
             'resumenPsicotecnicos' => $categoriaPsicotecnicoRepository->resumenVisible(),
+            'accesoReducido' => false,
+            'categoriaLabel' => $categoria->getLabel(),
         ]);
     }
 

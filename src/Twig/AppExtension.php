@@ -3,8 +3,12 @@
 namespace App\Twig;
 
 use App\Entity\Ley;
+use App\Entity\User;
+use App\Form\AlumnosPorCategoria;
+use App\Service\AccesoPorCategoria;
 use App\Service\BoeLeyService;
 use App\Service\DificultadExamenService;
+use Symfony\Bundle\SecurityBundle\Security;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 use Twig\TwigFilter;
@@ -14,6 +18,8 @@ class AppExtension extends AbstractExtension
     public function __construct(
         private BoeLeyService $boeLeyService,
         private DificultadExamenService $dificultadExamenService,
+        private AccesoPorCategoria $accesoPorCategoria,
+        private Security $security,
     ) {
     }
 
@@ -24,6 +30,8 @@ class AppExtension extends AbstractExtension
             new TwigFunction('ley_actualizada_recientemente', [$this, 'leyActualizadaRecientemente']),
             new TwigFunction('info_actualizacion_ley', [$this, 'infoActualizacionLey']),
             new TwigFunction('dificultades_examen_activas', [$this->dificultadExamenService, 'nivelesActivos']),
+            new TwigFunction('acceso_reducido', [$this, 'accesoReducido']),
+            new TwigFunction('alumnos_por_categoria', [$this, 'alumnosPorCategoria']),
         ];
     }
 
@@ -33,6 +41,23 @@ class AppExtension extends AbstractExtension
             new TwigFilter('markdown', [$this, 'markdownToHtml'], ['is_safe' => ['html']]),
             new TwigFilter('boe_url_visualizacion', [$this, 'convertirBoeUrlAVisualizacion']),
         ];
+    }
+
+    /**
+     * @param iterable<User> $usuarios
+     * @return array<string, list<User>>
+     */
+    public function alumnosPorCategoria(iterable $usuarios): array
+    {
+        return AlumnosPorCategoria::agrupar($usuarios);
+    }
+
+    public function accesoReducido(): bool
+    {
+        return $this->accesoPorCategoria->restringe(
+            $this->security->getUser(),
+            $this->security->isGranted('ROLE_PROFESOR')
+        );
     }
 
     /**

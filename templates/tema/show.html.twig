@@ -9,6 +9,11 @@
     </div>
     <div class="card-body">
         <div class="form-group">
+            <label class="form-label"><strong>Categoría:</strong></label>
+            <p>{{ tema.categoria.getLabel() }}</p>
+        </div>
+
+        <div class="form-group">
             <label class="form-label"><strong>Descripción:</strong></label>
             <p>{{ tema.descripcion|default('Sin descripción') }}</p>
         </div>
