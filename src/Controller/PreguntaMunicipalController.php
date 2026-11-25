@@ -446,7 +446,7 @@ class PreguntaMunicipalController extends AbstractController
 
         return $this->previsualizarPegadoMunicipal(
             $request,
-            $this->filtrarPegadoMunicipal($bloque, 'unico', $municipioId, $temaMunicipalId, [], $municipioRepository, $temaMunicipalRepository, $parser, $this->maximoPegadoMunicipal($request)),
+            $this->filtrarPegadoMunicipal($bloque, 'unico', $municipioId, $temaMunicipalId, [], $municipioRepository, $temaMunicipalRepository, $parser, $this->maximoPegadoMunicipal()),
             $bloque,
             $dificultad
         );
@@ -694,7 +694,7 @@ class PreguntaMunicipalController extends AbstractController
                 $municipioRepository,
                 $temaMunicipalRepository,
                 $parser,
-                $this->maximoPegadoMunicipal($request)
+                $this->maximoPegadoMunicipal()
             );
             if ($filtrado['fatal'] !== null) {
                 $this->addFlash('error', $filtrado['fatal']);
@@ -1285,7 +1285,7 @@ class PreguntaMunicipalController extends AbstractController
 
         return $this->previsualizarPegadoMunicipal(
             $request,
-            $this->filtrarPegadoMunicipal($bloque, 'aleatorio', $municipioId, 0, $ids, $municipioRepository, $temaMunicipalRepository, $parser, $this->maximoPegadoMunicipal($request)),
+            $this->filtrarPegadoMunicipal($bloque, 'aleatorio', $municipioId, 0, $ids, $municipioRepository, $temaMunicipalRepository, $parser, $this->maximoPegadoMunicipal()),
             $bloque,
             $dificultad
         );
@@ -1313,7 +1313,7 @@ class PreguntaMunicipalController extends AbstractController
         MunicipioRepository $municipioRepository,
         TemaMunicipalRepository $temaMunicipalRepository,
         BloquePreguntasParser $parser,
-        int $maximo = 20
+        int $maximo = 50
     ): array {
         if ($modo === 'aleatorio') {
             return $this->filtrarPegadoMunicipalAleatorio($bloque, $municipioId, $temaIds, $municipioRepository, $temaMunicipalRepository, $parser, $maximo);
@@ -1370,7 +1370,7 @@ class PreguntaMunicipalController extends AbstractController
         MunicipioRepository $municipioRepository,
         TemaMunicipalRepository $temaMunicipalRepository,
         BloquePreguntasParser $parser,
-        int $maximo = 20
+        int $maximo = 50
     ): array {
         $municipio = $municipioRepository->find($municipioId);
         if (!$municipio || count($ids) < 2) {
@@ -1641,7 +1641,7 @@ class PreguntaMunicipalController extends AbstractController
         return $this->render('pregunta_municipal/pegar.html.twig', [
             'municipios' => $municipios,
             'paraExamen' => $paraExamen,
-            'cantidadPreguntas' => $paraExamen ? ExamenSemanalDesdePegado::CANTIDAD : 20,
+            'cantidadPreguntas' => ExamenSemanalDesdePegado::CANTIDAD,
             'tituloPagina' => $paraExamen ? 'Examen semanal municipal desde el prompt' : 'Pegar preguntas municipales',
             'rutaCancelar' => $paraExamen ? 'app_examen_semanal_new' : 'app_pregunta_municipal_index',
             'grupos' => $paraExamen && $grupoRepository ? $grupoRepository->findBy([], ['nombre' => 'ASC']) : [],
@@ -1709,17 +1709,9 @@ class PreguntaMunicipalController extends AbstractController
         return is_numeric($grupo) ? (int) $grupo : 0;
     }
 
-    private function maximoPegadoMunicipal(Request $request): int
+    private function maximoPegadoMunicipal(): int
     {
-        if ((string) $request->request->get('destino') === 'examen') {
-            return ExamenSemanalDesdePegado::CANTIDAD;
-        }
-        $datos = $request->getSession()->get('examen_semanal_pegar');
-        if (is_array($datos) && ($datos['tipo'] ?? '') === 'municipal') {
-            return ExamenSemanalDesdePegado::CANTIDAD;
-        }
-
-        return 20;
+        return ExamenSemanalDesdePegado::CANTIDAD;
     }
 
     /**

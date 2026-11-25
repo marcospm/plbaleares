@@ -1,5 +1,5 @@
 {% extends 'base.html.twig' %}
-{% set cantidadPreguntas = cantidadPreguntas|default(20) %}
+{% set cantidadPreguntas = cantidadPreguntas|default(50) %}
 {% set paraExamen = paraExamen|default(false) %}
 {% set tituloPagina = tituloPagina|default(paraExamen ? 'Examen semanal desde el prompt' : 'Pegar preguntas') %}
 {% set rutaCancelar = rutaCancelar|default('app_pregunta_index') %}

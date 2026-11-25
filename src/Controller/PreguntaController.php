@@ -502,7 +502,7 @@ class PreguntaController extends AbstractController
 
         return $this->previsualizarPegado(
             $request,
-            $this->filtrarPegado($bloque, 'unico', $temaId, $leyId, [], $temaRepository, $leyRepository, $articuloRepository, $parser, $this->maximoPegado($request), $entityManager),
+            $this->filtrarPegado($bloque, 'unico', $temaId, $leyId, [], $temaRepository, $leyRepository, $articuloRepository, $parser, $this->maximoPegado(), $entityManager),
             $bloque,
             $dificultad
         );
@@ -756,7 +756,7 @@ class PreguntaController extends AbstractController
                 $leyRepository,
                 $articuloRepository,
                 $parser,
-                $this->maximoPegado($request),
+                $this->maximoPegado(),
                 $entityManager
             );
             if ($filtrado['fatal'] !== null) {
@@ -1721,7 +1721,7 @@ class PreguntaController extends AbstractController
 
         return $this->previsualizarPegado(
             $request,
-            $this->filtrarPegado($bloque, 'aleatorio', 0, 0, $ids, $temaRepository, $leyRepository, $articuloRepository, $parser, $this->maximoPegado($request), $entityManager),
+            $this->filtrarPegado($bloque, 'aleatorio', 0, 0, $ids, $temaRepository, $leyRepository, $articuloRepository, $parser, $this->maximoPegado(), $entityManager),
             $bloque,
             $dificultad
         );
@@ -1750,7 +1750,7 @@ class PreguntaController extends AbstractController
         LeyRepository $leyRepository,
         ArticuloRepository $articuloRepository,
         BloquePreguntasParser $parser,
-        int $maximo = 20,
+        int $maximo = 50,
         ?EntityManagerInterface $entityManager = null
     ): array {
         if ($modo === 'aleatorio') {
@@ -1824,7 +1824,7 @@ class PreguntaController extends AbstractController
         TemaRepository $temaRepository,
         ArticuloRepository $articuloRepository,
         BloquePreguntasParser $parser,
-        int $maximo = 20,
+        int $maximo = 50,
         ?EntityManagerInterface $entityManager = null
     ): array {
         if (count($ids) < 2) {
@@ -2258,7 +2258,7 @@ class PreguntaController extends AbstractController
             'temas' => $temas,
             'temasDatos' => $temasDatos,
             'paraExamen' => $paraExamen,
-            'cantidadPreguntas' => $paraExamen ? ExamenSemanalDesdePegado::CANTIDAD : 20,
+            'cantidadPreguntas' => ExamenSemanalDesdePegado::CANTIDAD,
             'tituloPagina' => $paraExamen ? 'Examen semanal desde el prompt' : 'Pegar preguntas',
             'rutaCancelar' => $paraExamen ? 'app_examen_semanal_new' : 'app_pregunta_index',
             'grupos' => $paraExamen && $grupoRepository ? $grupoRepository->findBy([], ['nombre' => 'ASC']) : [],
@@ -2329,17 +2329,9 @@ class PreguntaController extends AbstractController
         return is_numeric($grupo) ? (int) $grupo : 0;
     }
 
-    private function maximoPegado(Request $request): int
+    private function maximoPegado(): int
     {
-        if ((string) $request->request->get('destino') === 'examen') {
-            return ExamenSemanalDesdePegado::CANTIDAD;
-        }
-        $datos = $request->getSession()->get('examen_semanal_pegar');
-        if (is_array($datos) && ($datos['tipo'] ?? '') === 'general') {
-            return ExamenSemanalDesdePegado::CANTIDAD;
-        }
-
-        return 20;
+        return ExamenSemanalDesdePegado::CANTIDAD;
     }
 
     /**

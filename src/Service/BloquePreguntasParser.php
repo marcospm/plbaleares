@@ -4,7 +4,7 @@ namespace App\Service;
 
 class BloquePreguntasParser
 {
-    private const MAX_PREGUNTAS = 20;
+    private const MAX_PREGUNTAS = 50;
 
     /**
      * @return array{preguntas: list<array{id: null, texto: string, opcionA: string, opcionB: string, opcionC: string, opcionD: string, respuestaCorrecta: string, retroalimentacion: string, articulo: string, linea: int}>, errores: list<string>}
