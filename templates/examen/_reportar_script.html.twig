@@ -1,0 +1,47 @@
+<script>
+if (!window.reportePreguntaIniciado) {
+    window.reportePreguntaIniciado = true;
+
+    document.addEventListener('submit', function (event) {
+        const form = event.target;
+        if (!form || !form.classList || !form.classList.contains('form-reporte-resultado')) {
+            return;
+        }
+        event.preventDefault();
+
+        const preguntaId = form.getAttribute('data-pregunta-id');
+        const boton = form.querySelector('button[type="submit"]');
+        const textoOriginal = boton ? boton.textContent : 'Enviar reporte';
+        if (boton) {
+            boton.disabled = true;
+            boton.textContent = 'Enviando...';
+        }
+
+        fetch('/pregunta/' + preguntaId + '/reportar-error', {
+            method: 'POST',
+            body: new FormData(form),
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' }
+        })
+        .then(function (response) {
+            return response.json().then(function (data) {
+                return { ok: response.ok, data: data };
+            });
+        })
+        .then(function (resultado) {
+            if (resultado.ok && resultado.data && resultado.data.success) {
+                form.innerHTML = '<p style="margin: 0; color: #1e7e34; font-weight: 600;">✓ Reporte enviado. Los profesores han sido notificados.</p>';
+                return;
+            }
+            throw new Error((resultado.data && resultado.data.error) || 'No se pudo enviar el reporte.');
+        })
+        .catch(function (error) {
+            if (boton) {
+                boton.disabled = false;
+                boton.textContent = textoOriginal;
+            }
+            alert(error.message || 'Error al enviar el reporte. Inténtalo de nuevo.');
+        });
+    });
+}
+</script>

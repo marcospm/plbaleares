@@ -208,6 +208,7 @@ class BreadcrumbExtension extends AbstractExtension
             'app_juego_adivina_nombre_articulo' => ['label' => '¿Cómo se Llama el Artículo?', 'parent' => 'app_dashboard'],
             'app_juego_completa_fecha_ley' => ['label' => '¿Cuándo se Publicó la Ley?', 'parent' => 'app_dashboard'],
             'app_juego_pena_articulo' => ['label' => '¿Multa o cárcel?', 'parent' => 'app_dashboard'],
+            'app_flashcard_practicar' => ['label' => 'Repasar flashcards', 'parent' => 'app_dashboard'],
             
             // Alumno - Gamificación
             'app_gamificacion_historial' => ['label' => 'Historial de Gamificación', 'parent' => 'app_dashboard'],
@@ -228,6 +229,8 @@ class BreadcrumbExtension extends AbstractExtension
             
             // Logs (Admin)
             'app_log_index' => ['label' => 'Logs', 'parent' => 'app_dashboard'],
+            'app_informe_uso_index' => ['label' => 'Informe de uso', 'parent' => 'app_dashboard'],
+            'app_informe_uso_pdf' => ['label' => 'PDF del informe', 'parent' => 'app_informe_uso_index'],
         ];
 
         // Construir breadcrumbs recursivamente

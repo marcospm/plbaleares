@@ -309,6 +309,27 @@
                         </details>
                         {% endif %}
                     {% endif %}
+
+                    {% if not esMunicipal and not esConvocatoria and is_granted('ROLE_USER') and not is_granted('ROLE_PROFESOR') and not is_granted('ROLE_ADMIN') %}
+                        {% include 'examen/_reportar_pregunta.html.twig' with { pregunta: item.pregunta } %}
+                    {% endif %}
+
+                    {% if app.user and examen.usuario and examen.usuario.id == app.user.id %}
+                        {% set sugerida = sugeridas[item.pregunta.id]|default(null) %}
+                        {% set anversoSugerido = item.pregunta.texto %}
+                        {% set reversoSugerido = '' %}
+                        {% if sugerida %}
+                            {% set anversoSugerido = sugerida.anverso %}
+                            {% set reversoSugerido = sugerida.reverso %}
+                        {% endif %}
+                        {% include 'flashcard/_generar.html.twig' with {
+                            pregunta: item.pregunta,
+                            municipal: esMunicipal or (esConvocatoria|default(false)),
+                            flashcard: flashcards[item.pregunta.id]|default(null),
+                            anversoSugerido: anversoSugerido,
+                            reversoSugerido: reversoSugerido
+                        } %}
+                    {% endif %}
                 </div>
             </div>
         {% endfor %}
@@ -321,6 +342,9 @@
                 <a href="{{ path('app_examen_profesor') }}" class="btn btn-secondary">Volver a Exámenes</a>
             {% else %}
                 <a href="{{ path('app_examen_historial') }}" class="btn btn-secondary">Volver al Historial</a>
+            {% endif %}
+            {% if app.user and examen.usuario and examen.usuario.id == app.user.id %}
+                <a href="{{ path('app_flashcard_index') }}" class="btn btn-secondary">Mis flashcards</a>
             {% endif %}
             <a href="{{ path('app_dashboard') }}" class="btn btn-secondary">Volver al Dashboard</a>
         </div>
@@ -451,5 +475,7 @@
         });
     });
 </script>
+{% include 'examen/_reportar_script.html.twig' %}
+{% include 'flashcard/_script.html.twig' %}
 {% endblock %}
 

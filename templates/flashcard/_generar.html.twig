@@ -1,0 +1,42 @@
+<div class="flashcard-caja" style="margin-top: 1rem;">
+    {% set clave = (municipal ? 'm' : 'g') ~ '-' ~ pregunta.id %}
+    {% set yaGuardada = flashcard is not null %}
+    {% if yaGuardada %}
+        {% set anversoInicial = flashcard.anverso %}
+        {% set reversoInicial = flashcard.reverso %}
+    {% else %}
+        {% set anversoInicial = anversoSugerido %}
+        {% set reversoInicial = reversoSugerido %}
+    {% endif %}
+    {% if municipal and pregunta.temaMunicipal %}
+        {% set temaNombre = pregunta.temaMunicipal.nombre %}
+        {% if pregunta.temaMunicipal.municipio %}
+            {% set temaNombre = pregunta.temaMunicipal.municipio.nombre ~ ' · ' ~ temaNombre %}
+        {% endif %}
+    {% elseif not municipal and pregunta.tema %}
+        {% set temaNombre = pregunta.tema.nombre %}
+    {% else %}
+        {% set temaNombre = 'Sin tema' %}
+    {% endif %}
+
+    <button type="button"
+            class="btn btn-primary btn-sm"
+            id="flashcard-boton-{{ clave }}"
+            data-flashcard-abrir
+            data-clave="{{ clave }}"
+            data-tipo="{{ municipal ? 'municipal' : 'general' }}"
+            data-pregunta-id="{{ pregunta.id }}"
+            data-tema="{{ temaNombre }}"
+            data-guardada="{{ yaGuardada ? '1' : '0' }}"
+            data-anverso="{{ anversoInicial }}"
+            data-reverso="{{ reversoInicial }}"
+            {% if yaGuardada %}
+                data-sugerido-anverso="{{ anversoSugerido }}"
+                data-sugerido-reverso="{{ reversoSugerido }}"
+            {% endif %}>
+        {{ yaGuardada ? 'Editar flashcard' : 'Generar flashcard' }}
+    </button>
+    {% if yaGuardada %}
+        <span style="margin-left: 0.5rem; color: #1e7e34; font-size: 0.85rem;">Guardada en {{ flashcard.nombreTema }}</span>
+    {% endif %}
+</div>

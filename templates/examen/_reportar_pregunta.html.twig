@@ -1,0 +1,9 @@
+<details style="margin-top: 1rem;">
+    <summary style="cursor: pointer; font-weight: 600; color: #856404;">⚠️ No estoy de acuerdo, reportar esta pregunta</summary>
+    <form class="form-reporte-resultado" data-pregunta-id="{{ pregunta.id }}" data-turbo="false" style="margin-top: 0.75rem; max-width: 520px;">
+        <input type="hidden" name="_token" value="{{ csrf_token('reportar_error_pregunta_' ~ pregunta.id) }}">
+        <textarea name="mensaje" class="form-control" rows="3" required placeholder="Describe el error o por qué no estás de acuerdo con esta pregunta..." style="width: 100%; font-size: 0.9rem;"></textarea>
+        <small style="display: block; color: #666; margin: 0.35rem 0 0.6rem;">Los profesores y administradores serán notificados.</small>
+        <button type="submit" class="btn btn-warning btn-sm">Enviar reporte</button>
+    </form>
+</details>

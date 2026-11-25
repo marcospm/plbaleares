@@ -1,0 +1,197 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mis flashcards{% endblock %}
+
+{% block body %}
+<style>
+    .flashcard-listado.card:hover,
+    .flashcard-listado .card:hover {
+        transform: none;
+    }
+</style>
+<div class="card flashcard-listado">
+    <div class="card-header">
+        <h1>Mis flashcards</h1>
+    </div>
+    <div class="card-body">
+        <p style="margin-top: 0; color: #555;">
+            Se guardan al terminar un examen. Filtra por tema o por ley y elige las que quieras imprimir.
+        </p>
+
+        {% if totalGeneral == 0 %}
+            <div class="alert alert-info">
+                Todavía no tienes flashcards. Cuando termines un examen, en cada pregunta puedes pulsar <strong>Generar flashcard</strong>.
+            </div>
+            <a href="{{ path('app_examen_iniciar') }}" class="btn btn-primary">Hacer un examen</a>
+        {% else %}
+            <form method="get" action="{{ path('app_flashcard_index') }}" data-turbo="false" style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; margin-bottom: 1.25rem;">
+                <div>
+                    <label for="filtro-tema" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Tema</label>
+                    <select id="filtro-tema" name="tema" class="form-control" onchange="this.form.submit()" style="min-width: 220px;">
+                        <option value="">Todos los temas</option>
+                        {% for tema in temas %}
+                            <option value="{{ tema.clave }}" {{ temaSeleccionado == tema.clave ? 'selected' : '' }}>
+                                {{ tema.nombre }} ({{ tema.cantidad }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="filtro-ley" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Ley</label>
+                    <select id="filtro-ley" name="ley" class="form-control" onchange="this.form.submit()" style="min-width: 220px;" {{ leyes is empty ? 'disabled' : '' }}>
+                        <option value="">Todas las leyes</option>
+                        {% for ley in leyes %}
+                            <option value="{{ ley.id }}" {{ leySeleccionada == ley.id ? 'selected' : '' }}>
+                                {{ ley.nombre }} ({{ ley.cantidad }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if temaSeleccionado or leySeleccionada %}
+                    <a href="{{ path('app_flashcard_index') }}" class="btn btn-secondary">Quitar filtros</a>
+                {% endif %}
+            </form>
+
+            {% if total == 0 %}
+                <div class="alert alert-info">Ninguna flashcard coincide con el filtro.</div>
+            {% else %}
+            <form id="form-imprimir" method="get" action="{{ path('app_flashcard_imprimir') }}" data-turbo="false"></form>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem;">
+                <a href="{{ path('app_flashcard_practicar', {tema: temaSeleccionado, ley: leySeleccionada}) }}" class="btn btn-primary">Practicar</a>
+                <button type="submit" class="btn btn-secondary" form="form-imprimir">Imprimir seleccionadas</button>
+                <button type="button" class="btn btn-secondary js-flashcard-todas">Seleccionar todas</button>
+                <span id="flashcard-seleccion" style="color: #666;">0 seleccionadas</span>
+                <span style="color: #666;">{{ total }} {{ total == totalGeneral ? 'en total' : 'de ' ~ totalGeneral }}, {{ grupos|length }} {{ grupos|length == 1 ? 'tema' : 'temas' }}</span>
+            </div>
+
+            {% for grupo in grupos %}
+                <section id="tema-{{ grupo.clave }}" style="margin-bottom: 2rem;">
+                    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem;">
+                        <h2 style="margin: 0; font-size: 1.25rem;">{{ grupo.nombre }}</h2>
+                        <button type="button" class="btn btn-secondary btn-sm js-flashcard-tema" data-tema="{{ grupo.clave }}">
+                            Seleccionar este tema ({{ grupo.flashcards|length }})
+                        </button>
+                    </div>
+
+                    {% for flashcard in grupo.flashcards %}
+                        <article id="flashcard-{{ flashcard.id }}" class="card" style="margin-bottom: 0.75rem; scroll-margin-top: 80px;">
+                            <div class="card-body">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; margin-bottom: 0.75rem; cursor: pointer;">
+                                    <input type="checkbox"
+                                           class="js-flashcard-check"
+                                           name="ids[]"
+                                           value="{{ flashcard.id }}"
+                                           form="form-imprimir"
+                                           data-tema="{{ grupo.clave }}"
+                                           style="width: 18px; height: 18px;">
+                                    Incluir al imprimir
+                                </label>
+
+                                <p style="margin: 0 0 0.75rem; font-weight: 700; color: var(--color-primary);">{{ grupo.nombre }}</p>
+                                {% if flashcard.pregunta and flashcard.pregunta.ley %}
+                                    <p style="margin: -0.45rem 0 0.75rem; color: #555;">{{ flashcard.pregunta.ley.nombre }}</p>
+                                {% endif %}
+
+                                <p style="margin: 0 0 0.35rem; font-size: 0.8rem; color: #777; text-transform: uppercase; letter-spacing: 0.04em;">Pregunta</p>
+                                <div style="margin-bottom: 0.75rem; line-height: 1.5;">{{ flashcard.anverso|nl2br }}</div>
+
+                                <p style="margin: 0 0 0.35rem; font-size: 0.8rem; color: #777; text-transform: uppercase; letter-spacing: 0.04em;">Respuesta</p>
+                                <div style="padding: 0.75rem; background: #e8f5e9; border-left: 3px solid var(--color-success); border-radius: 4px; line-height: 1.5;">{{ flashcard.reverso|nl2br }}</div>
+
+                                <p style="margin: 0.75rem 0; color: #888; font-size: 0.8rem;">
+                                    Actualizada el {{ flashcard.actualizadoEn|date('d/m/Y H:i') }}
+                                </p>
+
+                                <details>
+                                    <summary style="cursor: pointer; font-weight: 600; color: var(--color-primary);">Editar texto</summary>
+                                    <form method="post" action="{{ path('app_flashcard_editar', {id: flashcard.id}) }}" data-turbo="false" style="margin-top: 0.75rem;">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('flashcard_editar_' ~ flashcard.id) }}">
+                                        <label for="anverso-{{ flashcard.id }}" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Pregunta</label>
+                                        <textarea id="anverso-{{ flashcard.id }}" name="anverso" class="form-control" rows="3" required maxlength="8000" style="width: 100%; margin-bottom: 0.75rem;">{{ flashcard.anverso }}</textarea>
+                                        <label for="reverso-{{ flashcard.id }}" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Respuesta</label>
+                                        <textarea id="reverso-{{ flashcard.id }}" name="reverso" class="form-control" rows="5" required maxlength="8000" style="width: 100%; margin-bottom: 0.75rem;">{{ flashcard.reverso }}</textarea>
+                                        <button type="submit" class="btn btn-primary btn-sm">Guardar cambios</button>
+                                        <input type="hidden" name="filtro_tema" value="{{ temaSeleccionado }}">
+                                        <input type="hidden" name="filtro_ley" value="{{ leySeleccionada }}">
+                                    </form>
+                                </details>
+
+                                <form method="post" action="{{ path('app_flashcard_eliminar', {id: flashcard.id}) }}" data-turbo="false" style="margin-top: 0.75rem;" onsubmit="return confirm('¿Eliminar esta flashcard?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('flashcard_eliminar_' ~ flashcard.id) }}">
+                                    <input type="hidden" name="filtro_tema" value="{{ temaSeleccionado }}">
+                                    <input type="hidden" name="filtro_ley" value="{{ leySeleccionada }}">
+                                    <button type="submit" class="btn btn-secondary btn-sm">Eliminar</button>
+                                </form>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </section>
+            {% endfor %}
+
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.5rem;">
+                <button type="submit" class="btn btn-primary" form="form-imprimir">Imprimir seleccionadas</button>
+                <span class="js-flashcard-contador" style="color: #666;">0 seleccionadas</span>
+            </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<script>
+if (!window.flashcardListadoIniciado) {
+    window.flashcardListadoIniciado = true;
+
+    function flashcardsMarcadas() {
+        return document.querySelectorAll('.js-flashcard-check:checked');
+    }
+
+    function actualizarContador() {
+        const total = flashcardsMarcadas().length;
+        const texto = total === 1 ? '1 seleccionada' : total + ' seleccionadas';
+        const contador = document.getElementById('flashcard-seleccion');
+        if (contador) {
+            contador.textContent = texto;
+        }
+        document.querySelectorAll('.js-flashcard-contador').forEach(function (elemento) {
+            elemento.textContent = texto;
+        });
+    }
+
+    document.addEventListener('change', function (event) {
+        if (event.target.classList && event.target.classList.contains('js-flashcard-check')) {
+            actualizarContador();
+        }
+    });
+
+    document.addEventListener('click', function (event) {
+        const tema = event.target.closest('.js-flashcard-tema');
+        if (tema) {
+            const casillas = document.querySelectorAll('.js-flashcard-check[data-tema="' + tema.getAttribute('data-tema') + '"]');
+            const todas = Array.from(casillas).every(function (casilla) { return casilla.checked; });
+            casillas.forEach(function (casilla) { casilla.checked = !todas; });
+            actualizarContador();
+            return;
+        }
+
+        if (event.target.closest('.js-flashcard-todas')) {
+            const casillas = document.querySelectorAll('.js-flashcard-check');
+            const todas = Array.from(casillas).length > 0 && Array.from(casillas).every(function (casilla) { return casilla.checked; });
+            casillas.forEach(function (casilla) { casilla.checked = !todas; });
+            actualizarContador();
+        }
+    });
+
+    document.addEventListener('submit', function (event) {
+        const form = event.target;
+        if (!form || form.id !== 'form-imprimir') {
+            return;
+        }
+        if (flashcardsMarcadas().length === 0) {
+            event.preventDefault();
+            alert('Selecciona al menos una flashcard para imprimir.');
+        }
+    });
+}
+</script>
+{% endblock %}

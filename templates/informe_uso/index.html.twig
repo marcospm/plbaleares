@@ -1,0 +1,126 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Informe de uso{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .informe-uso-wrap {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        .informe-uso-header {
+            background: linear-gradient(135deg, #1a4d7a 0%, #0d3a5f 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+        .informe-uso-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .informe-uso-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .informe-uso-card p,
+        .informe-uso-card li {
+            color: #444;
+            line-height: 1.5;
+        }
+        .informe-uso-card ul {
+            margin: 0 0 1.25rem 1.1rem;
+        }
+        .informe-uso-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+        .informe-uso-field label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.35rem;
+        }
+        .informe-uso-field select {
+            padding: 0.5rem 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            min-width: 180px;
+            background: white;
+        }
+        .informe-uso-btn {
+            padding: 0.55rem 1.25rem;
+            background: #1a4d7a;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .informe-uso-btn:hover {
+            background: #0d3a5f;
+        }
+        @media (max-width: 520px) {
+            .informe-uso-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .informe-uso-btn {
+                width: 100%;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="informe-uso-wrap">
+    <div class="informe-uso-header">
+        <h1>Informe de uso de la plataforma</h1>
+    </div>
+    <div class="informe-uso-card">
+        <p>
+            Genera un PDF del mes que elijas, incluido el mes en curso. El informe compara ese mes con el anterior
+            y muestra la evolución de los seis últimos meses.
+        </p>
+        <ul>
+            <li>Cuenta alumnos con actividad, exámenes, exámenes semanales, juegos, flashcards, chat y tareas.</li>
+            <li>El censo de cuentas y los últimos accesos se calculan a día de hoy.</li>
+            <li>No hay historial de inicios de sesión ni duración de la conexión, así que el tiempo de uso no se puede calcular.</li>
+        </ul>
+        <form method="get" action="{{ path('app_informe_uso_pdf') }}" target="_blank" class="informe-uso-form">
+            <div class="informe-uso-field">
+                <label for="informe_mes">Mes</label>
+                <select name="mes" id="informe_mes">
+                    {% set meses = {
+                        1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+                        5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+                        9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+                    } %}
+                    {% for i in 1..12 %}
+                        <option value="{{ i }}" {% if i == mesActual %}selected{% endif %}>{{ meses[i] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="informe-uso-field">
+                <label for="informe_anio">Año</label>
+                <select name="anio" id="informe_anio">
+                    {% for anio in anioActual..anioMinimo %}
+                        <option value="{{ anio }}">{{ anio }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="informe-uso-btn">Generar PDF</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -4,7 +4,10 @@ namespace App\Controller;
 
 use App\Entity\Examen;
 use App\Entity\Pregunta;
+use App\Entity\PreguntaMunicipal;
 use App\Entity\User;
+use App\Repository\FlashcardRepository;
+use App\Service\FlashcardTexto;
 use App\Form\ExamenIniciarType;
 use App\Repository\ExamenRepository;
 use App\Repository\ExamenBorradorRepository;
@@ -1070,8 +1073,86 @@ class ExamenController extends AbstractController
         ]);
     }
 
+    /**
+     * @param list<array{pregunta: Pregunta|PreguntaMunicipal, respuestaAlumno: mixed, esCorrecta: ?bool}> $preguntas
+     * @return array{flashcards: array<int, \App\Entity\Flashcard>, sugeridas: array<int, array{anverso: string, reverso: string}>}
+     */
+    private function datosFlashcard(array $preguntas, bool $municipal, FlashcardTexto $textos, FlashcardRepository $repositorio, mixed $usuario): array
+    {
+        if (!$usuario instanceof User) {
+            return ['flashcards' => [], 'sugeridas' => []];
+        }
+
+        $ids = [];
+        $sugeridas = [];
+        foreach ($preguntas as $item) {
+            $pregunta = $item['pregunta'] ?? null;
+            if (!$pregunta instanceof Pregunta && !$pregunta instanceof PreguntaMunicipal) {
+                continue;
+            }
+            $id = $pregunta->getId();
+            if ($id === null) {
+                continue;
+            }
+            $ids[] = $id;
+            $sugeridas[$id] = [
+                'anverso' => $textos->anverso($pregunta),
+                'reverso' => $textos->reverso($pregunta),
+            ];
+        }
+
+        return [
+            'flashcards' => $repositorio->indexadasPorPregunta($usuario, $ids, $municipal),
+            'sugeridas' => $sugeridas,
+        ];
+    }
+
+    /**
+     * @param list<int|string> $ids
+     * @return array<int, Pregunta|PreguntaMunicipal>
+     */
+    private function cargarPreguntasPorId(array $ids, bool $municipal): array
+    {
+        $ids = array_values(array_unique(array_filter(
+            array_map(static fn ($id): int => (int) $id, $ids),
+            static fn (int $id): bool => $id > 0
+        )));
+        if ($ids === []) {
+            return [];
+        }
+
+        if ($municipal) {
+            $lista = $this->preguntaMunicipalRepository->createQueryBuilder('p')
+                ->leftJoin('p.temaMunicipal', 'tm')->addSelect('tm')
+                ->leftJoin('tm.municipio', 'tmm')->addSelect('tmm')
+                ->andWhere('p.id IN (:ids)')
+                ->setParameter('ids', $ids)
+                ->getQuery()
+                ->getResult();
+        } else {
+            $lista = $this->preguntaRepository->createQueryBuilder('p')
+                ->leftJoin('p.tema', 't')->addSelect('t')
+                ->leftJoin('p.ley', 'l')->addSelect('l')
+                ->leftJoin('p.articulo', 'a')->addSelect('a')
+                ->leftJoin('a.ley', 'al')->addSelect('al')
+                ->andWhere('p.id IN (:ids)')
+                ->setParameter('ids', $ids)
+                ->getQuery()
+                ->getResult();
+        }
+
+        $mapa = [];
+        foreach ($lista as $pregunta) {
+            if ($pregunta->getId() !== null) {
+                $mapa[$pregunta->getId()] = $pregunta;
+            }
+        }
+
+        return $mapa;
+    }
+
     #[Route('/resultado', name: 'app_examen_resultado', methods: ['GET'])]
-    public function resultado(SessionInterface $session, BloquesTemario $bloquesTemario): Response
+    public function resultado(SessionInterface $session, BloquesTemario $bloquesTemario, FlashcardTexto $flashcardTexto, FlashcardRepository $flashcardRepository): Response
     {
         $preguntasIds = $session->get('examen_preguntas', []);
         $respuestas = $session->get('examen_respuestas', []);
@@ -1093,31 +1174,10 @@ class ExamenController extends AbstractController
         $errores = 0;
         $enBlanco = 0;
         $esMunicipal = $config['es_municipal'] ?? false;
+        $mapaPreguntas = $this->cargarPreguntasPorId($preguntasIds, $esMunicipal);
 
         foreach ($preguntasIds as $preguntaId) {
-            if ($esMunicipal) {
-                $pregunta = $this->preguntaMunicipalRepository->createQueryBuilder('p')
-                    ->leftJoin('p.temaMunicipal', 'tm')
-                    ->addSelect('tm')
-                    ->where('p.id = :id')
-                    ->setParameter('id', $preguntaId)
-                    ->getQuery()
-                    ->getOneOrNullResult();
-            } else {
-                $pregunta = $this->preguntaRepository->createQueryBuilder('p')
-                    ->leftJoin('p.tema', 't')
-                    ->addSelect('t')
-                    ->leftJoin('p.ley', 'l')
-                    ->addSelect('l')
-                    ->leftJoin('p.articulo', 'a')
-                    ->addSelect('a')
-                    ->leftJoin('a.ley', 'al')
-                    ->addSelect('al')
-                    ->where('p.id = :id')
-                    ->setParameter('id', $preguntaId)
-                    ->getQuery()
-                    ->getOneOrNullResult();
-            }
+            $pregunta = $mapaPreguntas[(int) $preguntaId] ?? null;
             if (!$pregunta) {
                 continue;
             }
@@ -1242,10 +1302,10 @@ class ExamenController extends AbstractController
             if (empty($temasMunicipalesIds)) {
                 $temasMunicipalesIds = [];
                 foreach ($preguntasIds as $preguntaId) {
-                    $pregunta = $this->preguntaMunicipalRepository->find($preguntaId);
-                    if ($pregunta && $pregunta->getTemaMunicipal()) {
+                    $pregunta = $mapaPreguntas[(int) $preguntaId] ?? null;
+                    if ($pregunta instanceof PreguntaMunicipal && $pregunta->getTemaMunicipal()) {
                         $temaId = $pregunta->getTemaMunicipal()->getId();
-                        if (!in_array($temaId, $temasMunicipalesIds)) {
+                        if (!in_array($temaId, $temasMunicipalesIds, true)) {
                             $temasMunicipalesIds[] = $temaId;
                         }
                     }
@@ -1304,13 +1364,8 @@ class ExamenController extends AbstractController
                 // Solo marcar como acertada si hay respuesta
                 // Si está en blanco, $esCorrecta queda como false, pero IGUAL se guarda
                 if ($respuestaAlumno !== null && $respuestaAlumno !== '') {
-                    // Buscar la pregunta para obtener la respuesta correcta
-                    if ($esMunicipal) {
-                        $preguntaTemp = $this->preguntaMunicipalRepository->find($preguntaId);
-                    } else {
-                        $preguntaTemp = $this->preguntaRepository->find($preguntaId);
-                    }
-                    
+                    $preguntaTemp = $mapaPreguntas[$preguntaId] ?? null;
+
                     if ($preguntaTemp) {
                         $respuestaCorrecta = strtoupper(trim($preguntaTemp->getRespuestaCorrecta() ?? ''));
                         $respuestaAlumnoStr = strtoupper(trim($respuestaAlumno));
@@ -1401,6 +1456,8 @@ class ExamenController extends AbstractController
         $session->remove('examen_pregunta_actual');
         $session->remove('examen_tiempo_inicio'); // Limpiar tiempo de inicio al finalizar
 
+        $datosFlashcard = $this->datosFlashcard($preguntas, $esMunicipal, $flashcardTexto, $flashcardRepository, $this->getUser());
+
         return $this->render('examen/resultado.html.twig', [
             'examen' => $examen,
             'preguntas' => $preguntas,
@@ -1411,6 +1468,8 @@ class ExamenController extends AbstractController
             'total' => $total,
             'esMunicipal' => $esMunicipal,
             'bloques' => $esMunicipal ? [] : $bloquesTemario->resumir($preguntas),
+            'flashcards' => $datosFlashcard['flashcards'],
+            'sugeridas' => $datosFlashcard['sugeridas'],
         ]);
     }
 
@@ -2445,7 +2504,7 @@ class ExamenController extends AbstractController
     }
 
     #[Route('/detalle/{id}', name: 'app_examen_detalle', methods: ['GET'])]
-    public function detalle(Examen $examen, BloquesTemario $bloquesTemario): Response
+    public function detalle(Examen $examen, BloquesTemario $bloquesTemario, FlashcardTexto $flashcardTexto, FlashcardRepository $flashcardRepository): Response
     {
         // Cargar explícitamente los temas municipales y temas generales
         $examen = $this->examenRepository->createQueryBuilder('e')
@@ -2501,33 +2560,10 @@ class ExamenController extends AbstractController
         $preguntasIds = $examen->getPreguntasIds() ?? [];
         $esMunicipal = $examen->getMunicipio() !== null;
         $esConvocatoria = $examen->getConvocatoria() !== null;
+        $mapaPreguntas = $this->cargarPreguntasPorId($preguntasIds, $esMunicipal || $esConvocatoria);
 
-        // Obtener las preguntas del examen usando los IDs guardados
         foreach ($preguntasIds as $preguntaId) {
-            if ($esMunicipal || $esConvocatoria) {
-                $pregunta = $this->preguntaMunicipalRepository->createQueryBuilder('p')
-                    ->leftJoin('p.temaMunicipal', 'tm')
-                    ->addSelect('tm')
-                    ->where('p.id = :id')
-                    ->setParameter('id', $preguntaId)
-                    ->getQuery()
-                    ->getOneOrNullResult();
-            } else {
-                $pregunta = $this->preguntaRepository->createQueryBuilder('p')
-                    ->leftJoin('p.tema', 't')
-                    ->addSelect('t')
-                    ->leftJoin('p.ley', 'l')
-                    ->addSelect('l')
-                    ->leftJoin('p.articulo', 'a')
-                    ->addSelect('a')
-                    ->leftJoin('a.ley', 'al')
-                    ->addSelect('al')
-                    ->where('p.id = :id')
-                    ->setParameter('id', $preguntaId)
-                    ->getQuery()
-                    ->getOneOrNullResult();
-            }
-            
+            $pregunta = $mapaPreguntas[(int) $preguntaId] ?? null;
             if ($pregunta) {
                 $respuestaAlumno = $respuestas[$preguntaId] ?? null;
                 
@@ -2549,12 +2585,25 @@ class ExamenController extends AbstractController
             }
         }
 
+        $datosFlashcard = ['flashcards' => [], 'sugeridas' => []];
+        if ($usuarioActual instanceof User && $examen->getUsuario()?->getId() === $usuarioActual->getId()) {
+            $datosFlashcard = $this->datosFlashcard(
+                $preguntas,
+                $esMunicipal || $esConvocatoria,
+                $flashcardTexto,
+                $flashcardRepository,
+                $usuarioActual,
+            );
+        }
+
         return $this->render('examen/detalle.html.twig', [
             'examen' => $examen,
             'preguntas' => $preguntas,
             'esMunicipal' => $esMunicipal,
             'esConvocatoria' => $esConvocatoria,
             'bloques' => ($esMunicipal || $esConvocatoria) ? [] : $bloquesTemario->resumir($preguntas),
+            'flashcards' => $datosFlashcard['flashcards'],
+            'sugeridas' => $datosFlashcard['sugeridas'],
         ]);
     }
 

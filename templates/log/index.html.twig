@@ -65,6 +65,18 @@
                             {% endfor %}
                         </select>
                     </div>
+                    <div class="col-md-3">
+                        <label for="exception" class="form-label">Excepción</label>
+                        <select name="exception" id="exception" class="form-select">
+                            <option value="all" {% if exception == 'all' %}selected{% endif %}>Todas</option>
+                            {% for tipo in availableExceptions %}
+                                <option value="{{ tipo }}" {% if exception == tipo %}selected{% endif %}>{{ tipo }}</option>
+                            {% endfor %}
+                            {% if exception != 'all' and exception not in availableExceptions %}
+                                <option value="{{ exception }}" selected>{{ exception }}</option>
+                            {% endif %}
+                        </select>
+                    </div>
                     <div class="col-md-2">
                         <label for="limit" class="form-label">Límite</label>
                         <select name="limit" id="limit" class="form-select">
@@ -75,7 +87,7 @@
                             <option value="1000" {% if limit == 1000 %}selected{% endif %}>1000</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label for="search" class="form-label">Buscar</label>
                         <input type="text" name="search" id="search" class="form-control" 
                                value="{{ search }}" placeholder="Buscar en mensajes y contexto...">
@@ -129,6 +141,9 @@
                                         <td class="small text-muted">{{ log.channel }}</td>
                                         <td>
                                             <div class="log-message" style="max-width: 600px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                                {% if log.exception %}
+                                                    <span class="badge bg-dark">{{ log.exception }}</span>
+                                                {% endif %}
                                                 {{ log.message }}
                                             </div>
                                             {% if log.context is not empty %}
@@ -280,6 +295,7 @@
                 <strong>Canal:</strong>
                 <code>${log.channel}</code>
             </div>
+            ${log.exception ? `<div class="mb-3"><strong>Excepción:</strong> <code>${escapeHtml(log.exception)}</code></div>` : ''}
             
             <div class="mb-3">
                 <strong>Mensaje:</strong>

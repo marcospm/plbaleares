@@ -1,0 +1,194 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Repasar flashcards{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .practica-wrap {
+            max-width: 760px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .practica-wrap h1 {
+            color: var(--color-primary);
+            margin: 0 0 0.35rem;
+            text-align: center;
+        }
+        .practica-intro {
+            text-align: center;
+            color: #666;
+            margin-bottom: 1.25rem;
+        }
+        .practica-contador {
+            background: var(--color-primary);
+            color: white;
+            padding: 0.65rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .practica-tarjeta {
+            background: white;
+            border: 1px solid #d9e2ec;
+            border-radius: 10px;
+            padding: 1.25rem 1.35rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        .practica-tema {
+            margin: 0;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+        .practica-ley {
+            margin: 0.2rem 0 0;
+            color: #555;
+        }
+        .practica-etiqueta {
+            margin: 1rem 0 0.35rem;
+            font-size: 0.8rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #777;
+        }
+        .practica-texto {
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+        .practica-respuesta {
+            margin-top: 0.35rem;
+            padding: 0.85rem;
+            background: #e8f5e9;
+            border-left: 3px solid var(--color-success);
+            border-radius: 4px;
+        }
+        .practica-acciones {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1.25rem;
+        }
+        .practica-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: space-between;
+            margin-top: 1rem;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="practica-wrap">
+    <h1>Repasar flashcards</h1>
+    <p class="practica-intro">Mira la pregunta e intenta responderla. La respuesta solo aparece cuando pulses el botón.</p>
+
+    {% if total == 0 %}
+        <div class="alert alert-info">
+            No hay flashcards para repasar. Guárdalas al terminar un examen, desde cada pregunta.
+        </div>
+        <a href="{{ path('app_flashcard_index') }}" class="btn btn-secondary">Mis flashcards</a>
+        <a href="{{ path('app_examen_iniciar') }}" class="btn btn-primary">Hacer un examen</a>
+    {% else %}
+        <div class="practica-contador" id="practica-contador"></div>
+
+        <article class="practica-tarjeta" id="practica-tarjeta">
+            <p class="practica-tema" id="practica-tema"></p>
+            <p class="practica-ley" id="practica-ley" hidden></p>
+            <p class="practica-etiqueta">Pregunta</p>
+            <div class="practica-texto" id="practica-pregunta"></div>
+            <div id="practica-respuesta-bloque" hidden>
+                <p class="practica-etiqueta">Respuesta</p>
+                <div class="practica-respuesta practica-texto" id="practica-respuesta"></div>
+            </div>
+            <div class="practica-acciones">
+                <button type="button" class="btn btn-primary" id="btn-ver-respuesta">Ver respuesta</button>
+            </div>
+        </article>
+
+        <div class="practica-nav">
+            <button type="button" class="btn btn-secondary" id="btn-anterior">Anterior</button>
+            <button type="button" class="btn btn-secondary" id="btn-siguiente">Siguiente</button>
+        </div>
+
+        <div id="practica-fin" hidden style="text-align: center; margin-top: 1.5rem;">
+            <p style="font-weight: 600;">Has repasado todas las flashcards de esta tanda.</p>
+            <a href="{{ path('app_flashcard_practicar', {tema: temaSeleccionado, ley: leySeleccionada}) }}" class="btn btn-primary">Empezar otra vez</a>
+            <a href="{{ path('app_flashcard_index', {tema: temaSeleccionado, ley: leySeleccionada}) }}" class="btn btn-secondary">Mis flashcards</a>
+        </div>
+
+        <p style="margin-top: 1.25rem;">
+            <a href="{{ path('app_flashcard_index', {tema: temaSeleccionado, ley: leySeleccionada}) }}">Volver a mis flashcards</a>
+        </p>
+
+        <script type="application/json" id="practica-datos">{{ tarjetasJson|raw }}</script>
+        <script>
+            (function () {
+                const tarjetas = JSON.parse(document.getElementById('practica-datos').textContent);
+                for (let i = tarjetas.length - 1; i > 0; i -= 1) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    const intercambio = tarjetas[i];
+                    tarjetas[i] = tarjetas[j];
+                    tarjetas[j] = intercambio;
+                }
+                let indice = 0;
+
+                const contador = document.getElementById('practica-contador');
+                const tema = document.getElementById('practica-tema');
+                const ley = document.getElementById('practica-ley');
+                const pregunta = document.getElementById('practica-pregunta');
+                const bloqueRespuesta = document.getElementById('practica-respuesta-bloque');
+                const respuesta = document.getElementById('practica-respuesta');
+                const botonVer = document.getElementById('btn-ver-respuesta');
+                const botonAnterior = document.getElementById('btn-anterior');
+                const botonSiguiente = document.getElementById('btn-siguiente');
+                const tarjeta = document.getElementById('practica-tarjeta');
+                const navegacion = botonAnterior.parentElement;
+                const fin = document.getElementById('practica-fin');
+
+                function mostrar() {
+                    const actual = tarjetas[indice];
+                    contador.textContent = (indice + 1) + ' de ' + tarjetas.length;
+                    tema.textContent = actual.tema;
+                    ley.textContent = actual.ley;
+                    ley.hidden = actual.ley === '';
+                    pregunta.textContent = actual.pregunta;
+                    respuesta.textContent = '';
+                    bloqueRespuesta.hidden = true;
+                    botonVer.hidden = false;
+                    botonAnterior.disabled = indice === 0;
+                    botonSiguiente.textContent = indice === tarjetas.length - 1 ? 'Terminar' : 'Siguiente';
+                }
+
+                botonVer.addEventListener('click', function () {
+                    respuesta.textContent = tarjetas[indice].respuesta;
+                    bloqueRespuesta.hidden = false;
+                    botonVer.hidden = true;
+                });
+
+                botonAnterior.addEventListener('click', function () {
+                    if (indice > 0) {
+                        indice -= 1;
+                        mostrar();
+                    }
+                });
+
+                botonSiguiente.addEventListener('click', function () {
+                    if (indice < tarjetas.length - 1) {
+                        indice += 1;
+                        mostrar();
+                        return;
+                    }
+                    tarjeta.hidden = true;
+                    navegacion.hidden = true;
+                    contador.hidden = true;
+                    fin.hidden = false;
+                });
+
+                mostrar();
+            })();
+        </script>
+    {% endif %}
+</div>
+{% endblock %}

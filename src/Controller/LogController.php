@@ -28,18 +28,24 @@ class LogController extends AbstractController
         // Por defecto mostrar todos los niveles, incluyendo ERROR y superiores
         $level = $request->query->get('level', 'all');
         $channel = $request->query->get('channel', 'all');
+        $exception = $request->query->get('exception', 'all');
+        if (!is_string($exception) || !preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $exception)) {
+            $exception = 'all';
+        }
         $limit = (int) $request->query->get('limit', 100);
         $search = $request->query->get('search', '');
         
         $logs = [];
         $availableChannels = [];
+        $availableExceptions = [];
         $logFileExists = file_exists($logFile);
         $logDirWritable = is_dir($logDir) && is_writable($logDir);
         
         if ($logFileExists) {
-            $result = $this->parseLogFile($logFile, $level, $channel, $limit, $search);
+            $result = $this->parseLogFile($logFile, $level, $channel, $exception, $limit, $search);
             $logs = $result['logs'];
             $availableChannels = $result['channels'];
+            $availableExceptions = $result['exceptions'];
         } elseif (!$logDirWritable && $environment === 'prod') {
             // En producción, si el directorio no es escribible, intentar crear el archivo
             // Esto puede ayudar en plataformas como Upsun donde el directorio puede no existir inicialmente
@@ -61,6 +67,7 @@ class LogController extends AbstractController
             'logs' => $logs,
             'level' => $level,
             'channel' => $channel,
+            'exception' => $exception,
             'limit' => $limit,
             'search' => $search,
             'environment' => $environment,
@@ -69,6 +76,7 @@ class LogController extends AbstractController
             'logDirWritable' => $logDirWritable,
             'logDir' => $logDir,
             'availableChannels' => $availableChannels,
+            'availableExceptions' => $availableExceptions,
         ]);
     }
 
@@ -93,7 +101,7 @@ class LogController extends AbstractController
         return $this->redirectToRoute('app_log_index');
     }
 
-    private function parseLogFile(string $logFile, string $level, string $channel, int $limit, string $search): array
+    private function parseLogFile(string $logFile, string $level, string $channel, string $exception, int $limit, string $search): array
     {
         $logs = [];
         
@@ -105,7 +113,7 @@ class LogController extends AbstractController
         // Esto evita cargar todo el archivo en memoria
         $handle = fopen($logFile, 'rb');
         if (!$handle) {
-            return ['logs' => [], 'channels' => []];
+            return ['logs' => [], 'channels' => [], 'exceptions' => []];
         }
         
         // Obtener el tamaño del archivo
@@ -114,7 +122,7 @@ class LogController extends AbstractController
         
         if ($fileSize === 0) {
             fclose($handle);
-            return ['logs' => [], 'channels' => []];
+            return ['logs' => [], 'channels' => [], 'exceptions' => []];
         }
         
         // Calcular cuántos bytes leer desde el final
@@ -137,6 +145,7 @@ class LogController extends AbstractController
         // Leer líneas desde la posición calculada
         $lineBuffer = [];
         $channels = [];
+        $exceptions = [];
         $chunkSize = 8192; // 8KB chunks
         $buffer = '';
         
@@ -188,13 +197,20 @@ class LogController extends AbstractController
                 continue;
             }
             
-            // Recopilar canales disponibles
-            if (!in_array($logEntry['channel'], $channels)) {
+            // Recopilar canales y excepciones disponibles en el tramo leído
+            if (!in_array($logEntry['channel'], $channels, true)) {
                 $channels[] = $logEntry['channel'];
+            }
+            if ($logEntry['exception'] !== null && !in_array($logEntry['exception'], $exceptions, true)) {
+                $exceptions[] = $logEntry['exception'];
             }
             
             // Filtrar por canal
             if ($channel !== 'all' && $logEntry['channel'] !== $channel) {
+                continue;
+            }
+
+            if ($exception !== 'all' && $logEntry['exception'] !== $exception) {
                 continue;
             }
             
@@ -223,10 +239,12 @@ class LogController extends AbstractController
         }
         
         sort($channels);
+        sort($exceptions, SORT_STRING);
         
         return [
             'logs' => $logs,
-            'channels' => $channels
+            'channels' => $channels,
+            'exceptions' => $exceptions,
         ];
     }
 
@@ -254,7 +272,7 @@ class LogController extends AbstractController
                 }
             }
             
-            return [
+            $entrada = [
                 'timestamp' => $timestamp,
                 'channel' => $channel,
                 'level' => $level,
@@ -262,11 +280,14 @@ class LogController extends AbstractController
                 'context' => $context,
                 'raw' => $line,
             ];
+            $entrada['exception'] = $this->tipoExcepcion($entrada);
+
+            return $entrada;
         }
         
         // Formato simple con timestamp: [timestamp] message
         if (preg_match('/^\[([^\]]+)\]\s+(.+)$/', $line, $matches)) {
-            return [
+            $entrada = [
                 'timestamp' => $matches[1],
                 'channel' => 'unknown',
                 'level' => 'info',
@@ -274,11 +295,14 @@ class LogController extends AbstractController
                 'context' => [],
                 'raw' => $line,
             ];
+            $entrada['exception'] = $this->tipoExcepcion($entrada);
+
+            return $entrada;
         }
         
         // Si no coincide con ningún formato, devolver como mensaje genérico
         if (!empty(trim($line))) {
-            return [
+            $entrada = [
                 'timestamp' => date('Y-m-d H:i:s'),
                 'channel' => 'unknown',
                 'level' => 'info',
@@ -286,9 +310,37 @@ class LogController extends AbstractController
                 'context' => [],
                 'raw' => $line,
             ];
+            $entrada['exception'] = $this->tipoExcepcion($entrada);
+
+            return $entrada;
         }
         
         return null;
+    }
+
+    /**
+     * @param array{message: string, raw: string} $entrada
+     */
+    private function tipoExcepcion(array $entrada): ?string
+    {
+        $texto = $entrada['message']."\n".$entrada['raw'];
+        $clase = null;
+
+        if (preg_match('/Uncaught PHP Exception\s+((?:\\\\?[A-Za-z_][A-Za-z0-9_]*)(?:\\\\{1,2}[A-Za-z_][A-Za-z0-9_]*)*)/', $texto, $coincidencias) === 1) {
+            $clase = $coincidencias[1];
+        } elseif (preg_match('/\[object\]\s*\(\s*((?:\\\\?[A-Za-z_][A-Za-z0-9_]*)(?:\\\\{1,2}[A-Za-z_][A-Za-z0-9_]*)*)\s*\(code:/', $texto, $coincidencias) === 1) {
+            $clase = $coincidencias[1];
+        }
+
+        if ($clase === null) {
+            return null;
+        }
+
+        $clase = str_replace('\\\\', '\\', $clase);
+        $partes = explode('\\', $clase);
+        $corta = end($partes);
+
+        return is_string($corta) && $corta !== '' ? $corta : null;
     }
 }
 

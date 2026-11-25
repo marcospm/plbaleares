@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Informe de uso - {{ nombreMes }} {{ anio }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 9pt; color: #1f2a33; line-height: 1.35; }
+        h1 { font-size: 16pt; margin-bottom: 2px; }
+        h2 { font-size: 12pt; color: #1a4d7a; margin: 16px 0 6px; }
+        .periodo { font-size: 11pt; color: #1a4d7a; margin-bottom: 2px; }
+        .meta { font-size: 8pt; color: #667; margin-bottom: 10px; }
+        .nota { background: #f4f7fb; border-left: 3px solid #1a4d7a; padding: 8px 10px; margin: 8px 0 12px; font-size: 8pt; color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        th, td { border: 1px solid #d5dde5; padding: 4px 6px; text-align: left; vertical-align: top; }
+        th { background: #1a4d7a; color: #fff; font-weight: 600; }
+        td.num, th.num { text-align: right; }
+        tr.alt td { background: #f7f9fb; }
+        .sube { color: #1e7e34; }
+        .baja { color: #b02a37; }
+        .igual { color: #666; }
+        .pie { margin-top: 14px; font-size: 7.5pt; color: #777; }
+    </style>
+</head>
+<body>
+    <h1>Informe de uso de la plataforma</h1>
+    <p class="periodo">{{ nombreMes }} {{ anio }}</p>
+    <p class="meta">Generado el {{ generadoEn|date('d/m/Y H:i') }}{% if enCurso %}. El mes sigue en curso: las cifras llegan hasta este momento.{% endif %}</p>
+
+    <div class="nota">
+        La participación se mide con la actividad que queda guardada: exámenes, partidas de juego, flashcards, mensajes del chat y tareas completadas.
+        No se guarda un historial de inicios de sesión ni el tiempo de conexión, así que no se puede saber cuánto rato ha estado cada persona dentro.
+        El último acceso de una cuenta es una sola fecha: si alguien entra otra vez más adelante, el mes anterior deja de contar ese acceso.
+        Las partidas multijugador en directo no se archivan. El porcentaje de participación usa el censo de alumnos activos de hoy, porque las cuentas no tienen fecha de alta.
+    </div>
+
+    <h2>Cuentas a día de hoy</h2>
+    <table>
+        <tr>
+            <th>Concepto</th>
+            <th class="num">Número</th>
+        </tr>
+        <tr>
+            <td>Alumnos activos</td>
+            <td class="num">{{ cuentas.alumnosActivos }}</td>
+        </tr>
+        <tr class="alt">
+            <td>Alumnos inactivos</td>
+            <td class="num">{{ cuentas.alumnosInactivos }}</td>
+        </tr>
+        <tr>
+            <td>Alumnos activos sin ningún acceso registrado</td>
+            <td class="num">{{ cuentas.sinLogin }}</td>
+        </tr>
+        <tr class="alt">
+            <td>Alumnos con último acceso en los últimos 7 días</td>
+            <td class="num">{{ cuentas.acceso7dias }}</td>
+        </tr>
+        <tr>
+            <td>Alumnos con último acceso en los últimos 30 días</td>
+            <td class="num">{{ cuentas.acceso30dias }}</td>
+        </tr>
+        <tr class="alt">
+            <td>Alumnos cuyo último acceso cae en {{ nombreMes }} {{ anio }}</td>
+            <td class="num">{{ cuentas.ultimoAccesoEnElMes }}</td>
+        </tr>
+        <tr>
+            <td>Profesores</td>
+            <td class="num">{{ cuentas.profesores }}</td>
+        </tr>
+        <tr class="alt">
+            <td>Administradores</td>
+            <td class="num">{{ cuentas.administradores }}</td>
+        </tr>
+    </table>
+
+    <h2>Actividad del mes, frente a {{ nombreMesAnterior }}</h2>
+    {% set activos = cuentas.alumnosActivos %}
+    {% set pctActual = activos > 0 ? (actual.participantes / activos * 100) : 0 %}
+    <p style="margin-bottom: 6px;">
+        {{ actual.participantes }} alumnos con alguna actividad
+        ({{ pctActual|number_format(1, ',', '.') }} % de los {{ activos }} alumnos activos de hoy).
+    </p>
+    <table>
+        <tr>
+            <th>Indicador</th>
+            <th class="num">{{ nombreMes }} {{ anio }}</th>
+            <th class="num">{{ nombreMesAnterior }}</th>
+            <th class="num">Variación</th>
+        </tr>
+        {% set filas = [
+            {clave: 'participantes', etiqueta: 'Alumnos con actividad'},
+            {clave: 'diasConActividad', etiqueta: 'Días con alguna actividad'},
+            {clave: 'examenes', etiqueta: 'Exámenes realizados'},
+            {clave: 'alumnosExamen', etiqueta: 'Alumnos que hicieron examen'},
+            {clave: 'semanales', etiqueta: 'Exámenes semanales realizados'},
+            {clave: 'alumnosSemanal', etiqueta: 'Alumnos en exámenes semanales'},
+            {clave: 'partidas', etiqueta: 'Partidas de gamificación'},
+            {clave: 'alumnosPartida', etiqueta: 'Alumnos que jugaron'},
+            {clave: 'flashcards', etiqueta: 'Flashcards creadas'},
+            {clave: 'mensajes', etiqueta: 'Mensajes de chat'},
+            {clave: 'tareasCompletadas', etiqueta: 'Tareas completadas'}
+        ] %}
+        {% for fila in filas %}
+            {% set v = variacion[fila.clave] %}
+            <tr class="{{ loop.index is odd ? '' : 'alt' }}">
+                <td>{{ fila.etiqueta }}</td>
+                <td class="num">{{ actual[fila.clave] }}</td>
+                <td class="num">{{ anterior[fila.clave] }}</td>
+                <td class="num {{ v.diff > 0 ? 'sube' : (v.diff < 0 ? 'baja' : 'igual') }}">
+                    {% if v.diff > 0 %}+{% endif %}{{ v.diff|number_format(0, ',', '.') }}
+                    {% if v.pct is not null %}
+                        ({{ v.pct > 0 ? '+' : '' }}{{ v.pct|number_format(1, ',', '.') }} %)
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        {% set v = variacion.notaMedia %}
+        <tr>
+            <td>Nota media de los exámenes</td>
+            <td class="num">{{ actual.notaMedia is null ? '—' : actual.notaMedia|number_format(2, ',', '.') }}</td>
+            <td class="num">{{ anterior.notaMedia is null ? '—' : anterior.notaMedia|number_format(2, ',', '.') }}</td>
+            <td class="num {{ v.diff > 0 ? 'sube' : (v.diff < 0 ? 'baja' : 'igual') }}">
+                {% if actual.notaMedia is null or anterior.notaMedia is null %}
+                    —
+                {% else %}
+                    {% if v.diff > 0 %}+{% endif %}{{ v.diff|number_format(2, ',', '.') }}
+                    {% if v.pct is not null %}
+                        ({{ v.pct > 0 ? '+' : '' }}{{ v.pct|number_format(1, ',', '.') }} %)
+                    {% endif %}
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+
+    <h2>Evolución de los últimos seis meses</h2>
+    <table>
+        <tr>
+            <th>Mes</th>
+            <th class="num">Alumnos</th>
+            <th class="num">Exámenes</th>
+            <th class="num">Semanales</th>
+            <th class="num">Partidas</th>
+            <th class="num">Flashcards</th>
+            <th class="num">Chat</th>
+            <th class="num">Nota</th>
+        </tr>
+        {% for mesFila in evolucion %}
+            <tr class="{{ loop.index is odd ? '' : 'alt' }}">
+                <td>{{ mesFila.etiqueta }}</td>
+                <td class="num">{{ mesFila.participantes }}</td>
+                <td class="num">{{ mesFila.examenes }}</td>
+                <td class="num">{{ mesFila.semanales }}</td>
+                <td class="num">{{ mesFila.partidas }}</td>
+                <td class="num">{{ mesFila.flashcards }}</td>
+                <td class="num">{{ mesFila.mensajes }}</td>
+                <td class="num">{{ mesFila.notaMedia is null ? '—' : mesFila.notaMedia|number_format(2, ',', '.') }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+
+    <h2>Exámenes de {{ nombreMes }}</h2>
+    <table>
+        <tr>
+            <th>Tipo</th>
+            <th class="num">Realizados</th>
+            <th class="num">Alumnos</th>
+        </tr>
+        <tr>
+            <td>Generales (temario)</td>
+            <td class="num">{{ actual.generales }}</td>
+            <td class="num"></td>
+        </tr>
+        <tr class="alt">
+            <td>Municipales</td>
+            <td class="num">{{ actual.municipales }}</td>
+            <td class="num"></td>
+        </tr>
+        <tr>
+            <td>De convocatoria</td>
+            <td class="num">{{ actual.convocatoria }}</td>
+            <td class="num"></td>
+        </tr>
+        <tr class="alt">
+            <td>Semanales</td>
+            <td class="num">{{ actual.semanales }}</td>
+            <td class="num">{{ actual.alumnosSemanal }}</td>
+        </tr>
+        <tr>
+            <td>Hechos sobre un PDF</td>
+            <td class="num">{{ actual.enPdf }}</td>
+            <td class="num"></td>
+        </tr>
+    </table>
+    <p style="font-size: 8pt; color: #555; margin-bottom: 6px;">Los exámenes hechos sobre un PDF ya están incluidos en el tipo que corresponda. La suma de tipos no tiene por qué coincidir con ese dato.</p>
+
+    {% if dificultades is not empty %}
+        <table>
+            <tr>
+                <th>Dificultad</th>
+                <th class="num">Exámenes</th>
+                <th class="num">Nota media</th>
+            </tr>
+            {% for fila in dificultades %}
+                <tr class="{{ loop.index is odd ? '' : 'alt' }}">
+                    <td>{{ fila.dificultad }}</td>
+                    <td class="num">{{ fila.total }}</td>
+                    <td class="num">{{ fila.nota is null ? '—' : fila.nota|number_format(2, ',', '.') }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
+    <h2>Exámenes semanales abiertos en {{ nombreMes }}</h2>
+    {% if semanales is empty %}
+        <p>No se abrió ningún examen semanal en este mes.</p>
+    {% else %}
+        <p style="font-size: 8pt; color: #555; margin-bottom: 6px;">Los realizados cuentan todas las entregas de ese examen, también si el alumno lo terminó justo después del cierre del mes.</p>
+        <table>
+            <tr>
+                <th>Examen</th>
+                <th>Apertura</th>
+                <th>Cierre</th>
+                <th class="num">Alumnos</th>
+                <th class="num">Realizados</th>
+            </tr>
+            {% for examen in semanales %}
+                <tr class="{{ loop.index is odd ? '' : 'alt' }}">
+                    <td>{{ examen.nombre }}</td>
+                    <td>{{ examen.apertura }}</td>
+                    <td>{{ examen.cierre }}</td>
+                    <td class="num">{{ examen.alumnos }}</td>
+                    <td class="num">{{ examen.realizados }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
+    <h2>Gamificación</h2>
+    {% if juegos is empty %}
+        <p>No hay partidas de juego guardadas en este mes.</p>
+    {% else %}
+        <table>
+            <tr>
+                <th>Juego</th>
+                <th class="num">Partidas</th>
+                <th class="num">Alumnos</th>
+            </tr>
+            {% for juego in juegos %}
+                <tr class="{{ loop.index is odd ? '' : 'alt' }}">
+                    <td>{{ juego.nombre }}</td>
+                    <td class="num">{{ juego.partidas }}</td>
+                    <td class="num">{{ juego.alumnos }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
+    <h2>Otra actividad de {{ nombreMes }}</h2>
+    <table>
+        <tr>
+            <th>Concepto</th>
+            <th class="num">Total</th>
+            <th class="num">Alumnos</th>
+        </tr>
+        <tr>
+            <td>Flashcards creadas</td>
+            <td class="num">{{ actual.flashcards }}</td>
+            <td class="num">{{ actual.alumnosFlashcard }}</td>
+        </tr>
+        <tr class="alt">
+            <td>Mensajes de chat enviados por alumnos</td>
+            <td class="num">{{ actual.mensajes }}</td>
+            <td class="num">{{ actual.alumnosMensaje }}</td>
+        </tr>
+        <tr>
+            <td>Tareas asignadas</td>
+            <td class="num">{{ actual.tareasAsignadas }}</td>
+            <td class="num"></td>
+        </tr>
+        <tr class="alt">
+            <td>Tareas completadas</td>
+            <td class="num">{{ actual.tareasCompletadas }}</td>
+            <td class="num">{{ actual.alumnosTarea }}</td>
+        </tr>
+        <tr>
+            <td>Mensajes de contacto recibidos</td>
+            <td class="num">{{ actual.contactos }}</td>
+            <td class="num"></td>
+        </tr>
+    </table>
+
+    <h2>Participación por grupo</h2>
+    {% if grupos is empty %}
+        <p>No hay grupos con alumnos.</p>
+    {% else %}
+        <table>
+            <tr>
+                <th>Grupo</th>
+                <th class="num">Alumnos</th>
+                <th class="num">Con examen</th>
+                <th class="num">Exámenes</th>
+                <th class="num">Con partida</th>
+                <th class="num">Partidas</th>
+            </tr>
+            {% for grupo in grupos %}
+                <tr class="{{ loop.index is odd ? '' : 'alt' }}">
+                    <td>{{ grupo.nombre }}</td>
+                    <td class="num">{{ grupo.alumnos }}</td>
+                    <td class="num">{{ grupo.conExamen }}</td>
+                    <td class="num">{{ grupo.examenes }}</td>
+                    <td class="num">{{ grupo.conPartida }}</td>
+                    <td class="num">{{ grupo.partidas }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+        <p style="font-size: 8pt; color: #555;">Alumnos activos que hoy no están en ningún grupo: {{ alumnosSinGrupo }}.</p>
+    {% endif %}
+
+    <h2>Alumnos con más actividad</h2>
+    {% if topAlumnos is empty %}
+        <p>Ningún alumno registró exámenes, partidas o flashcards en este mes.</p>
+    {% else %}
+        <table>
+            <tr>
+                <th>Alumno</th>
+                <th class="num">Exámenes</th>
+                <th class="num">Semanales</th>
+                <th class="num">Partidas</th>
+                <th class="num">Flashcards</th>
+            </tr>
+            {% for alumno in topAlumnos %}
+                <tr class="{{ loop.index is odd ? '' : 'alt' }}">
+                    <td>{{ alumno.nombre }}{% if alumno.nombre != alumno.usuario %} ({{ alumno.usuario }}){% endif %}</td>
+                    <td class="num">{{ alumno.examenes }}</td>
+                    <td class="num">{{ alumno.semanales }}</td>
+                    <td class="num">{{ alumno.partidas }}</td>
+                    <td class="num">{{ alumno.flashcards }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+        <p style="font-size: 8pt; color: #555;">Los semanales ya están incluidos en la columna de exámenes. Se muestran hasta 20 alumnos.</p>
+    {% endif %}
+
+    <p class="pie">BISPOL Centre de Formació. Informe interno de uso. No incluye profesores ni administradores en la actividad de alumnos.</p>
+</body>
+</html>
