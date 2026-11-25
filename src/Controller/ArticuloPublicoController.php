@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Http\Consulta;
 use App\Repository\ArticuloRepository;
 use App\Repository\LeyRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,7 +19,7 @@ class ArticuloPublicoController extends AbstractController
         LeyRepository $leyRepository,
         Request $request
     ): Response {
-        $leyId = $request->query->getInt('ley');
+        $leyId = Consulta::entero($request->query, 'ley');
         $search = $request->query->get('search', '');
 
         // Parámetros de paginación
@@ -69,7 +70,7 @@ class ArticuloPublicoController extends AbstractController
         }
 
         // Obtener parámetros de filtro de la query string para mantenerlos al volver
-        $leyId = $request->query->getInt('ley');
+        $leyId = Consulta::entero($request->query, 'ley');
         $search = $request->query->get('search', '');
         $page = $request->query->getInt('page', 1);
 

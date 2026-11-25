@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Articulo;
+use App\Http\Consulta;
 use App\Form\ArticuloType;
 use App\Repository\ArticuloRepository;
 use App\Repository\LeyRepository;
@@ -34,7 +35,7 @@ class ArticuloController extends AbstractController
         Request $request
     ): Response {
         $search = trim($request->query->get('search', ''));
-        $leyId = $request->query->getInt('ley', 0);
+        $leyId = Consulta::entero($request->query, 'ley');
         $numero = trim($request->query->get('numero', ''));
 
         // Parámetros de paginación
@@ -139,8 +140,8 @@ class ArticuloController extends AbstractController
         if ($request->query->get('search')) {
             $filtros['search'] = $request->query->get('search');
         }
-        if ($request->query->getInt('ley') > 0) {
-            $filtros['ley'] = $request->query->getInt('ley');
+        if (Consulta::entero($request->query, 'ley') > 0) {
+            $filtros['ley'] = Consulta::entero($request->query, 'ley');
         }
         if ($request->query->get('numero')) {
             $filtros['numero'] = $request->query->get('numero');
@@ -173,7 +174,7 @@ class ArticuloController extends AbstractController
         // Obtener parámetros de filtro de la query string o del request anterior
         $filtros = [];
         $search = $request->query->get('search') ?? $request->request->get('filtro_search');
-        $ley = $request->query->getInt('ley') ?: $request->request->getInt('filtro_ley', 0);
+        $ley = Consulta::entero($request->query, 'ley') ?: Consulta::entero($request->request, 'filtro_ley');
         $numero = $request->query->get('numero') ?? $request->request->get('filtro_numero');
         
         if ($search) {
@@ -237,8 +238,8 @@ class ArticuloController extends AbstractController
         if ($request->query->get('search')) {
             $filtros['search'] = $request->query->get('search');
         }
-        if ($request->query->getInt('ley') > 0) {
-            $filtros['ley'] = $request->query->getInt('ley');
+        if (Consulta::entero($request->query, 'ley') > 0) {
+            $filtros['ley'] = Consulta::entero($request->query, 'ley');
         }
         if ($request->query->get('numero')) {
             $filtros['numero'] = $request->query->get('numero');
@@ -276,8 +277,8 @@ class ArticuloController extends AbstractController
         if ($request->query->get('search')) {
             $filtros['search'] = $request->query->get('search');
         }
-        if ($request->query->getInt('ley') > 0) {
-            $filtros['ley'] = $request->query->getInt('ley');
+        if (Consulta::entero($request->query, 'ley') > 0) {
+            $filtros['ley'] = Consulta::entero($request->query, 'ley');
         }
         if ($request->query->get('numero')) {
             $filtros['numero'] = $request->query->get('numero');

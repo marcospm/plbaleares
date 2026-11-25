@@ -10,6 +10,7 @@ use App\Entity\Pregunta;
 use App\Entity\User;
 use App\Repository\ExamenSemanalRepository;
 use App\Form\PreguntaType;
+use App\Http\Consulta;
 use App\Repository\PreguntaRepository;
 use App\Repository\GrupoRepository;
 use App\Repository\MensajePreguntaRepository;
@@ -43,10 +44,10 @@ class PreguntaController extends AbstractController
     ): Response {
         // Obtener parámetros de la query string
         $search = trim($request->query->get('search', ''));
-        $temaId = $request->query->getInt('tema', 0);
-        $leyId = $request->query->getInt('ley', 0);
+        $temaId = Consulta::entero($request->query, 'tema');
+        $leyId = Consulta::entero($request->query, 'ley');
         $dificultad = trim($request->query->get('dificultad', ''));
-        $numeroArticulo = $request->query->getInt('articulo', 0);
+        $numeroArticulo = Consulta::entero($request->query, 'articulo');
         $mostrarDescartadas = $request->query->getBoolean('mostrar_descartadas', false);
         
         // Parámetros de paginación
@@ -162,17 +163,17 @@ class PreguntaController extends AbstractController
         if ($request->query->get('search')) {
             $filtros['search'] = $request->query->get('search');
         }
-        if ($request->query->getInt('tema') > 0) {
-            $filtros['tema'] = $request->query->getInt('tema');
+        if (Consulta::entero($request->query, 'tema') > 0) {
+            $filtros['tema'] = Consulta::entero($request->query, 'tema');
         }
-        if ($request->query->getInt('ley') > 0) {
-            $filtros['ley'] = $request->query->getInt('ley');
+        if (Consulta::entero($request->query, 'ley') > 0) {
+            $filtros['ley'] = Consulta::entero($request->query, 'ley');
         }
         if ($request->query->get('dificultad')) {
             $filtros['dificultad'] = $request->query->get('dificultad');
         }
-        if ($request->query->getInt('articulo') > 0) {
-            $filtros['articulo'] = $request->query->getInt('articulo');
+        if (Consulta::entero($request->query, 'articulo') > 0) {
+            $filtros['articulo'] = Consulta::entero($request->query, 'articulo');
         }
         // Mantener la página actual
         $page = $request->query->getInt('page', 1);
@@ -201,10 +202,10 @@ class PreguntaController extends AbstractController
         // Obtener parámetros de filtro de la query string o del request anterior
         $filtros = [];
         $search = $request->query->get('search') ?? $request->request->get('filtro_search');
-        $tema = $request->query->getInt('tema') ?: $request->request->getInt('filtro_tema', 0);
-        $ley = $request->query->getInt('ley') ?: $request->request->getInt('filtro_ley', 0);
+        $tema = Consulta::entero($request->query, 'tema') ?: Consulta::entero($request->request, 'filtro_tema');
+        $ley = Consulta::entero($request->query, 'ley') ?: Consulta::entero($request->request, 'filtro_ley');
         $dificultad = $request->query->get('dificultad') ?? $request->request->get('filtro_dificultad');
-        $articulo = $request->query->getInt('articulo') ?: $request->request->getInt('filtro_articulo', 0);
+        $articulo = Consulta::entero($request->query, 'articulo') ?: Consulta::entero($request->request, 'filtro_articulo');
         
         if ($search) {
             $filtros['search'] = $search;
@@ -249,17 +250,17 @@ class PreguntaController extends AbstractController
         if ($request->query->get('search')) {
             $filtros['search'] = $request->query->get('search');
         }
-        if ($request->query->getInt('tema') > 0) {
-            $filtros['tema'] = $request->query->getInt('tema');
+        if (Consulta::entero($request->query, 'tema') > 0) {
+            $filtros['tema'] = Consulta::entero($request->query, 'tema');
         }
-        if ($request->query->getInt('ley') > 0) {
-            $filtros['ley'] = $request->query->getInt('ley');
+        if (Consulta::entero($request->query, 'ley') > 0) {
+            $filtros['ley'] = Consulta::entero($request->query, 'ley');
         }
         if ($request->query->get('dificultad')) {
             $filtros['dificultad'] = $request->query->get('dificultad');
         }
-        if ($request->query->getInt('articulo') > 0) {
-            $filtros['articulo'] = $request->query->getInt('articulo');
+        if (Consulta::entero($request->query, 'articulo') > 0) {
+            $filtros['articulo'] = Consulta::entero($request->query, 'articulo');
         }
         // Mantener la página actual
         $page = $request->query->getInt('page', 1);
@@ -286,17 +287,17 @@ class PreguntaController extends AbstractController
         if ($request->query->get('search')) {
             $filtros['search'] = $request->query->get('search');
         }
-        if ($request->query->getInt('tema') > 0) {
-            $filtros['tema'] = $request->query->getInt('tema');
+        if (Consulta::entero($request->query, 'tema') > 0) {
+            $filtros['tema'] = Consulta::entero($request->query, 'tema');
         }
-        if ($request->query->getInt('ley') > 0) {
-            $filtros['ley'] = $request->query->getInt('ley');
+        if (Consulta::entero($request->query, 'ley') > 0) {
+            $filtros['ley'] = Consulta::entero($request->query, 'ley');
         }
         if ($request->query->get('dificultad')) {
             $filtros['dificultad'] = $request->query->get('dificultad');
         }
-        if ($request->query->getInt('articulo') > 0) {
-            $filtros['articulo'] = $request->query->getInt('articulo');
+        if (Consulta::entero($request->query, 'articulo') > 0) {
+            $filtros['articulo'] = Consulta::entero($request->query, 'articulo');
         }
         // Mantener la página actual
         $page = $request->query->getInt('page', 1);
@@ -478,8 +479,8 @@ class PreguntaController extends AbstractController
             return $this->procesarPegarAleatorio($request, $temaRepository, $leyRepository, $articuloRepository, $parser, $dificultadExamenService, $entityManager);
         }
 
-        $temaId = $request->request->getInt('tema', 0);
-        $leyId = $request->request->getInt('ley', 0);
+        $temaId = Consulta::entero($request->request, 'tema');
+        $leyId = Consulta::entero($request->request, 'ley');
         $dificultad = (string) $request->request->get('dificultad', '');
         $bloque = (string) $request->request->get('bloque', '');
 
@@ -528,9 +529,9 @@ class PreguntaController extends AbstractController
         LeyRepository $leyRepository,
         ArticuloRepository $articuloRepository
     ): Response {
-        $temaId = $request->request->getInt('tema', 0);
-        $leyId = $request->request->getInt('ley', 0);
-        $articuloId = $request->request->getInt('articulo', 0);
+        $temaId = Consulta::entero($request->request, 'tema');
+        $leyId = Consulta::entero($request->request, 'ley');
+        $articuloId = Consulta::entero($request->request, 'articulo');
         $dificultad = $request->request->get('dificultad', '');
 
         // Validar campos requeridos
@@ -1009,7 +1010,7 @@ class PreguntaController extends AbstractController
         TemaRepository $temaRepository,
         Request $request
     ): Response {
-        $temaId = $request->query->getInt('tema', 0);
+        $temaId = Consulta::entero($request->query, 'tema');
         
         if ($temaId <= 0) {
             $this->addFlash('error', 'Debes seleccionar un tema para descargar las preguntas.');

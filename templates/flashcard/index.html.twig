@@ -39,7 +39,7 @@
                 <div>
                     <label for="filtro-ley" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Ley</label>
                     <select id="filtro-ley" name="ley" class="form-control" onchange="this.form.submit()" style="min-width: 220px;" {{ leyes is empty ? 'disabled' : '' }}>
-                        <option value="">Todas las leyes</option>
+                        <option value="0">Todas las leyes</option>
                         {% for ley in leyes %}
                             <option value="{{ ley.id }}" {{ leySeleccionada == ley.id ? 'selected' : '' }}>
                                 {{ ley.nombre }} ({{ ley.cantidad }})

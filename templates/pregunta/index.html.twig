@@ -346,7 +346,7 @@
                 <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">Tema:</label>
                     <select name="tema" class="form-control">
-                        <option value="">Todos los temas</option>
+                        <option value="0">Todos los temas</option>
                         {% for tema in temas %}
                             <option value="{{ tema.id }}" {% if temaSeleccionado == tema.id %}selected{% endif %}>
                                 {{ tema.nombre }}
@@ -357,7 +357,7 @@
                 <div class="form-group" style="margin-bottom: 0;">
                     <label class="form-label">Ley:</label>
                     <select name="ley" class="form-control">
-                        <option value="">Todas las leyes</option>
+                        <option value="0">Todas las leyes</option>
                         {% for ley in leyes %}
                             <option value="{{ ley.id }}" {% if leySeleccionada == ley.id %}selected{% endif %}>
                                 {{ ley.nombre }}

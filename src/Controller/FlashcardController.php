@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Flashcard;
+use App\Http\Consulta;
 use App\Entity\Pregunta;
 use App\Entity\PreguntaMunicipal;
 use App\Entity\User;
@@ -305,7 +306,7 @@ class FlashcardController extends AbstractController
             $tema = '';
         }
 
-        $ley = $request->query->getInt('ley');
+        $ley = Consulta::entero($request->query, 'ley');
         if ($ley <= 0 || !in_array($ley, array_column($leyes, 'id'), true)) {
             $ley = 0;
         }
@@ -350,7 +351,7 @@ class FlashcardController extends AbstractController
             $extra['tema'] = $tema;
         }
 
-        $ley = $request->request->getInt('filtro_ley');
+        $ley = Consulta::entero($request->request, 'filtro_ley');
         if ($ley > 0) {
             $extra['ley'] = $ley;
         }
