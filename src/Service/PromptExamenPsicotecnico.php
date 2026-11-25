@@ -92,10 +92,9 @@ final class PromptExamenPsicotecnico
         $total = count($claves) * self::PREGUNTAS_POR_AREA;
         $minutos = count($claves) * self::MINUTOS_POR_AREA;
         $maximo = $total * 3;
-        $nivelPortada = $nivel === self::NIVEL_ALTO ? 'Alto (muy difícil)' : 'Normal';
         $bloqueNivel = $this->bloqueNivel($nivel, $claves);
         $lamina = $this->bloqueLamina($claves);
-        $estructura = $this->estructura($claves, $nivelPortada, $total, $minutos, $maximo);
+        $estructura = $this->estructura($claves, $total, $minutos, $maximo);
         $cierre = $this->antesDeEntregar($claves);
 
         return <<<PROMPT
@@ -223,7 +222,7 @@ LAMINA;
     /**
      * @param list<string> $claves
      */
-    private function estructura(array $claves, string $nivelPortada, int $total, int $minutos, int $maximo): string
+    private function estructura(array $claves, int $total, int $minutos, int $maximo): string
     {
         $n = count($claves);
         $aptitudes = $n === 1 ? 'la aptitud' : "las {$n} aptitudes";
@@ -234,7 +233,7 @@ LAMINA;
         }
 
         $pasos = [
-            "1. Portada: bloque azul marino #312d45 con el logo adjunto en blanco (la gorra\n   en blanco con sus detalles en azul marino), título «Simulacro psicotécnico»\n   y subtítulo «PRUEBA APTITUDINAL · POLICÍA LOCAL». Debajo del subtítulo,\n   indica el nivel: «{$nivelPortada}». Debajo, las instrucciones:\n   {$tiempo}, puntuación +3 por acierto,\n   −1 por fallo, 0 en blanco, máximo {$maximo}. Añade una tabla con {$aptitudes}\n   y su rango de preguntas.",
+            "1. Portada: bloque azul marino #312d45 con el logo adjunto en blanco (la gorra\n   en blanco con sus detalles en azul marino), título «Simulacro psicotécnico»\n   y subtítulo «PRUEBA APTITUDINAL · POLICÍA LOCAL». Debajo del subtítulo,\n   las instrucciones: {$tiempo}, puntuación +3 por acierto,\n   −1 por fallo, 0 en blanco, máximo {$maximo}. Añade una tabla con {$aptitudes}\n   y su rango de preguntas.",
         ];
         $numero = 2;
         if (in_array('memoria', $claves, true)) {

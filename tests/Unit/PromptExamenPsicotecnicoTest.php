@@ -13,7 +13,8 @@ class PromptExamenPsicotecnicoTest extends TestCase
 
         self::assertStringContainsString('Dificultad: normal, la de una convocatoria estándar.', $prompt);
         self::assertStringNotContainsString('Dificultad: alto.', $prompt);
-        self::assertStringContainsString('«Normal»', $prompt);
+        self::assertStringNotContainsString('«Normal»', $prompt);
+        self::assertStringNotContainsString('indica el nivel', $prompt);
         self::assertStringContainsString('Memoria visual (1–14)', $prompt);
         self::assertStringContainsString('Atención (71–84)', $prompt);
         self::assertStringContainsString('máximo 252', $prompt);
@@ -32,7 +33,8 @@ class PromptExamenPsicotecnicoTest extends TestCase
         self::assertStringContainsString('Dificultad: alto.', $prompt);
         self::assertStringContainsString('muy difícil', $prompt);
         self::assertStringContainsString('dos reglas a la vez', $prompt);
-        self::assertStringContainsString('«Alto (muy difícil)»', $prompt);
+        self::assertStringNotContainsString('«Alto (muy difícil)»', $prompt);
+        self::assertStringNotContainsString('indica el nivel', $prompt);
         self::assertStringNotContainsString('Dificultad: normal,', $prompt);
         self::assertStringContainsString('84 preguntas', $prompt);
         self::assertStringContainsString('Atención (71–84)', $prompt);
