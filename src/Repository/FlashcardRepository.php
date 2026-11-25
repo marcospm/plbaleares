@@ -109,4 +109,63 @@ class FlashcardRepository extends ServiceEntityRepository
 
         return $mapa;
     }
+
+    /**
+     * Flashcards guardadas por alumno activo. No cuenta profesores ni administradores.
+     *
+     * @param int[]|null $alumnosIds
+     * @return list<array{usuario: User, cantidad: int}>
+     */
+    public function rankingPorAlumno(?array $alumnosIds = null): array
+    {
+        $qb = $this->createQueryBuilder('f')
+            ->select('IDENTITY(f.usuario) as usuarioId, COUNT(f.id) as cantidad')
+            ->innerJoin('f.usuario', 'u')
+            ->andWhere('u.activo = :activo')
+            ->andWhere('u.roles NOT LIKE :roleProfesor')
+            ->andWhere('u.roles NOT LIKE :roleAdmin')
+            ->setParameter('activo', true)
+            ->setParameter('roleProfesor', '%"ROLE_PROFESOR"%')
+            ->setParameter('roleAdmin', '%"ROLE_ADMIN"%')
+            ->groupBy('f.usuario')
+            ->orderBy('cantidad', 'DESC');
+
+        if ($alumnosIds !== null && $alumnosIds !== []) {
+            $qb->andWhere('u.id IN (:alumnosIds)')
+                ->setParameter('alumnosIds', $alumnosIds);
+        }
+
+        $result = $qb->getQuery()->getResult();
+        $usuarioIds = array_column($result, 'usuarioId');
+        if ($usuarioIds === []) {
+            return [];
+        }
+
+        $usuarios = $this->getEntityManager()
+            ->getRepository(User::class)
+            ->createQueryBuilder('u')
+            ->where('u.id IN (:ids)')
+            ->setParameter('ids', $usuarioIds)
+            ->getQuery()
+            ->getResult();
+
+        $usuariosMap = [];
+        foreach ($usuarios as $usuario) {
+            $usuariosMap[$usuario->getId()] = $usuario;
+        }
+
+        $ranking = [];
+        foreach ($result as $row) {
+            $usuarioId = (int) $row['usuarioId'];
+            if (!isset($usuariosMap[$usuarioId])) {
+                continue;
+            }
+            $ranking[] = [
+                'usuario' => $usuariosMap[$usuarioId],
+                'cantidad' => (int) $row['cantidad'],
+            ];
+        }
+
+        return $ranking;
+    }
 }

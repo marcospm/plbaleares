@@ -1,0 +1,148 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Prompt de examen psicotécnico{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    {% include 'psicotecnico/_estilos_vista.html.twig' %}
+    <style>
+        .psico-areas {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .psico-area {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            min-height: 40px;
+            margin: 0;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #d4c4ee;
+            border-radius: 999px;
+            background: #fff;
+            color: #4a1d96;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .psico-area input {
+            margin: 0;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="psico-pagina">
+    <div class="psico-cabecera">
+        <div>
+            <h1>Prompt de examen psicotécnico</h1>
+            <p>Elige una o varias áreas, copia el prompt y adjunta el logo de Bispol y el PDF Simulacro_psicotecnico_Bispol.</p>
+        </div>
+        <div class="psico-cabecera-acciones">
+            <a href="{{ path('app_archivo_psicotecnico_index') }}" class="btn btn-secondary">Archivos</a>
+        </div>
+    </div>
+
+    <form method="get" action="{{ path('app_psicotecnico_prompt_examen') }}">
+        <div class="psico-panel">
+            <input type="hidden" name="formulario" value="1">
+            <div class="form-group" style="margin-bottom: 0.9rem;">
+                <span class="form-label">Áreas</span>
+                <div class="psico-areas">
+                    {% for clave, nombre in areas %}
+                        <label class="psico-area">
+                            <input type="checkbox" name="areas[]" value="{{ clave }}" {% if clave in seleccion %}checked{% endif %} onchange="this.form.requestSubmit()">
+                            {{ nombre }}
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="psico-filtros">
+                <div class="form-group">
+                    <label class="form-label" for="psico-nivel">Nivel de dificultad</label>
+                    <select id="psico-nivel" name="nivel" class="form-control" onchange="this.form.requestSubmit()">
+                        {% for valor, etiqueta in niveles %}
+                            <option value="{{ valor }}" {% if nivel == valor %}selected{% endif %}>{{ etiqueta }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="psico-filtros-botones">
+                    <button type="submit" class="btn btn-primary">Actualizar prompt</button>
+                    <button type="button" class="btn btn-secondary" id="psico-copiar">Copiar prompt</button>
+                </div>
+            </div>
+            <p class="psico-resumen" style="margin-top: 0.9rem;">
+                {% if seleccion is empty %}
+                    Selecciona al menos un área.
+                {% else %}
+                    {{ total }} preguntas en {{ minutos }} minutos
+                    ({{ seleccion|length }} {{ seleccion|length == 1 ? 'área' : 'áreas' }}).
+                    La portada lleva la distribución, después las preguntas y al final las soluciones.
+                    {% if 'memoria' in seleccion %}
+                        Si entra memoria visual, el PDF incluye la lámina antes de las preguntas.
+                    {% endif %}
+                {% endif %}
+                {% if nivel == 'alto' %}
+                    El nivel alto pide preguntas muy difíciles, de varios pasos, con distractores que cazan el cálculo a medias.
+                {% else %}
+                    El nivel normal pide preguntas de convocatoria estándar, de uno o dos pasos.
+                {% endif %}
+                Al pegar el prompt adjunta dos archivos: el
+                <a href="{{ asset('images/logo-bispol.png') }}" target="_blank" rel="noopener">logo de Bispol</a>
+                y el PDF <strong>Simulacro_psicotecnico_Bispol</strong>, para que copie su formato y sus estilos.
+            </p>
+        </div>
+    </form>
+
+    <div class="psico-panel">
+        <label class="form-label" for="psico-prompt">Prompt para copiar</label>
+        <textarea id="psico-prompt" class="form-control" readonly rows="28" style="width: 100%; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; line-height: 1.45;">{{ prompt|default('') }}</textarea>
+        <p id="psico-copiado" class="psico-resumen" hidden>Prompt copiado.</p>
+    </div>
+</div>
+<script>
+(function () {
+    const boton = document.getElementById('psico-copiar');
+    const area = document.getElementById('psico-prompt');
+    const aviso = document.getElementById('psico-copiado');
+    if (!boton || !area) {
+        return;
+    }
+    const formulario = boton.closest('form') || document.querySelector('.psico-pagina form');
+    if (formulario) {
+        formulario.addEventListener('submit', function (event) {
+            if (formulario.querySelectorAll('input[name="areas[]"]:checked').length === 0) {
+                event.preventDefault();
+                alert('Selecciona al menos un área.');
+            }
+        });
+    }
+    boton.addEventListener('click', function () {
+        const texto = area.value;
+        if (texto.trim() === '') {
+            alert('Selecciona al menos un área.');
+            return;
+        }
+        const listo = function () {
+            if (!aviso) {
+                return;
+            }
+            aviso.hidden = false;
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(texto).then(listo).catch(function () {
+                area.select();
+                document.execCommand('copy');
+                listo();
+            });
+            return;
+        }
+        area.select();
+        document.execCommand('copy');
+        listo();
+    });
+})();
+</script>
+{% endblock %}

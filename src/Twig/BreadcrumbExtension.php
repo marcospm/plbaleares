@@ -52,6 +52,7 @@ class BreadcrumbExtension extends AbstractExtension
             'app_recurso_publico_index' => ['label' => 'Temario y Recursos', 'parent' => 'app_dashboard'],
             'app_psicotecnico_publico_index' => ['label' => 'Psicotécnicos', 'parent' => 'app_dashboard'],
             'app_archivo_psicotecnico_index' => ['label' => 'Archivos de psicotécnicos', 'parent' => 'app_dashboard'],
+            'app_psicotecnico_prompt_examen' => ['label' => 'Prompt de examen', 'parent' => 'app_archivo_psicotecnico_index'],
             'app_archivo_psicotecnico_new' => ['label' => 'Nuevo archivo', 'parent' => 'app_archivo_psicotecnico_index'],
             'app_archivo_psicotecnico_edit' => ['label' => 'Editar archivo', 'parent' => 'app_archivo_psicotecnico_index'],
             'app_categoria_psicotecnico_index' => ['label' => 'Categorías de psicotécnicos', 'parent' => 'app_dashboard'],

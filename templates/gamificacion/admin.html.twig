@@ -28,6 +28,7 @@
                 <h2 style="color:white;">📊 Partidas por Jugador</h2>
             </div>
             <div class="card-body">
+                <p style="color: #666; margin-top: 0;">La columna Flashcards cuenta las tarjetas que cada alumno ha guardado. El total sigue siendo solo la suma de partidas.</p>
                 {% if partidasPorUsuario|length > 0 %}
                     <div style="overflow-x: auto;">
                         <table class="table" style="width: 100%;">
@@ -40,6 +41,7 @@
                                     <th style="text-align: center;">📄 Texto</th>
                                     <th style="text-align: center;">✅ Correcto</th>
                                     <th style="text-align: center;">⚖️ Pena</th>
+                                    <th style="text-align: center;">🗂️ Flashcards</th>
                                     <th style="text-align: center;">Total</th>
                                 </tr>
                             </thead>
@@ -68,6 +70,9 @@
                                         <td style="text-align: center; font-weight: 600; color: var(--color-primary);">
                                             {{ entry.partidas['pena_articulo'] ?? 0 }}
                                         </td>
+                                        <td style="text-align: center; font-weight: 600; color: var(--color-primary);">
+                                            {{ entry.flashcards|default(0) }}
+                                        </td>
                                         <td style="text-align: center; font-weight: bold; font-size: 1.1rem; color: var(--color-primary);">
                                             {{ (entry.partidas['adivina_numero_articulo'] ?? 0) + (entry.partidas['adivina_nombre_articulo'] ?? 0) + (entry.partidas['completa_fecha_ley'] ?? 0) + (entry.partidas['completa_texto_legal'] ?? 0) + (entry.partidas['articulo_correcto'] ?? 0) + (entry.partidas['pena_articulo'] ?? 0) }}
                                         </td>
@@ -79,7 +84,7 @@
                 {% else %}
                     <div style="text-align: center; padding: 3rem; color: #666;">
                         <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
-                        <p style="font-size: 1.1rem;">No hay partidas registradas</p>
+                        <p style="font-size: 1.1rem;">No hay partidas ni flashcards registradas</p>
                     </div>
                 {% endif %}
             </div>
@@ -99,6 +104,7 @@
                             {% elseif tipo == 'completa_texto_legal' %}📄
                             {% elseif tipo == 'articulo_correcto' %}✅
                             {% elseif tipo == 'pena_articulo' %}⚖️
+                            {% elseif tipo == 'flashcards' %}🗂️
                             {% endif %}
                             {{ datos.nombre }}
                         </h3>
@@ -111,7 +117,7 @@
                                         <tr>
                                             <th style="width: 50px;">#</th>
                                             <th>Jugador</th>
-                                            <th style="text-align: right;">Partidas</th>
+                                            <th style="text-align: right;">{{ datos.unidad|default('Partidas') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody>

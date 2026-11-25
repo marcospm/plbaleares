@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Repository\FlashcardRepository;
 use App\Repository\PartidaJuegoRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -13,7 +14,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class GamificacionController extends AbstractController
 {
     public function __construct(
-        private PartidaJuegoRepository $partidaJuegoRepository
+        private PartidaJuegoRepository $partidaJuegoRepository,
+        private FlashcardRepository $flashcardRepository,
     ) {
     }
 
@@ -131,6 +133,8 @@ class GamificacionController extends AbstractController
 
         // Obtener partidas por usuario (ya filtrado en el repositorio)
         $partidasPorUsuario = $this->partidaJuegoRepository->getPartidasPorUsuario($alumnosIds);
+        $rankingFlashcards = $this->flashcardRepository->rankingPorAlumno($alumnosIds);
+        $partidasPorUsuario = $this->incorporarFlashcards($partidasPorUsuario, $rankingFlashcards);
 
         // Obtener rankings por tipo de juego (ya filtrado en el repositorio)
         $rankings = [];
@@ -140,8 +144,14 @@ class GamificacionController extends AbstractController
             $rankings[$tipo] = [
                 'nombre' => $nombre,
                 'ranking' => $rankingFiltrado,
+                'unidad' => 'Partidas',
             ];
         }
+        $rankings['flashcards'] = [
+            'nombre' => 'Flashcards guardadas',
+            'ranking' => $rankingFlashcards,
+            'unidad' => 'Tarjetas',
+        ];
 
         return $this->render('gamificacion/admin.html.twig', [
             'partidasPorUsuario' => $partidasPorUsuario,
@@ -150,5 +160,46 @@ class GamificacionController extends AbstractController
             'tipoJuegoSeleccionado' => $tipoJuegoSeleccionado,
             'esAdmin' => $esAdmin,
         ]);
+    }
+
+    /**
+     * @param list<array{usuario: \App\Entity\User, partidas: array<string, int>}> $partidasPorUsuario
+     * @param list<array{usuario: \App\Entity\User, cantidad: int}> $rankingFlashcards
+     * @return list<array{usuario: \App\Entity\User, partidas: array<string, int>, flashcards: int}>
+     */
+    private function incorporarFlashcards(array $partidasPorUsuario, array $rankingFlashcards): array
+    {
+        $porId = [];
+        foreach ($partidasPorUsuario as $entry) {
+            $id = $entry['usuario']->getId();
+            if ($id === null) {
+                continue;
+            }
+            $entry['flashcards'] = 0;
+            $porId[$id] = $entry;
+        }
+
+        foreach ($rankingFlashcards as $entry) {
+            $id = $entry['usuario']->getId();
+            if ($id === null) {
+                continue;
+            }
+            if (!isset($porId[$id])) {
+                $porId[$id] = [
+                    'usuario' => $entry['usuario'],
+                    'partidas' => [],
+                    'flashcards' => $entry['cantidad'],
+                ];
+                continue;
+            }
+            $porId[$id]['flashcards'] = $entry['cantidad'];
+        }
+
+        $listado = array_values($porId);
+        usort($listado, static function (array $a, array $b): int {
+            return strcasecmp($a['usuario']->getNombreDisplay(), $b['usuario']->getNombreDisplay());
+        });
+
+        return $listado;
     }
 }
