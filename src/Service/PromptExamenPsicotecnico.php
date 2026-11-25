@@ -104,9 +104,10 @@ Genera un simulacro NUEVO de la prueba aptitudinal psicotécnica de Policía Loc
 a las de simulacros anteriores, y entrégamelo en PDF con la imagen de Bispol.
 
 ARCHIVO DE REFERENCIA
-- Te adjunto el PDF «Simulacro_psicotecnico_Bispol». Ábrelo y copia su formato y sus estilos: portada, cabecera, pie, colores, tipografías, franjas de título, márgenes, tamaño de página, numeración, cómo se presentan las preguntas y las opciones, la lámina de memoria y la página de soluciones.
-- El contenido nuevo (preguntas, áreas, dificultad, número de ítems y tiempos) es el de este mensaje. El aspecto visual es el de ese PDF. Si una indicación de estilo de este texto no coincide con el archivo, manda el archivo.
+- Te adjunto el PDF «Simulacro_psicotecnico_Bispol». Copia solo su maqueta: portada, cabecera, pie, colores, tipografías, franjas de título, márgenes, tamaño de página, numeración y la forma tipográfica de enunciado y opciones.
+- No copies sus preguntas ni el tipo de ejercicio de ninguna aptitud. El archivo no es un modelo de tareas. Si una indicación de estilo de este texto no coincide con el archivo, manda el archivo en la maqueta y este mensaje en los ejercicios.
 {$this->alcance($claves)}
+{$this->ejerciciosDistintos($claves)}
 FORMATO DEL EXAMEN
 - {$total} preguntas, 4 opciones (A–D), una sola correcta. Reparte la letra correcta al azar.
 {$this->listadoAreas($claves)}
@@ -142,6 +143,23 @@ PROMPT;
         }
 
         return "Es un ómnibus solo de estas aptitudes: {$lista}. No incluyas ninguna otra.\n";
+    }
+
+    /**
+     * @param list<string> $claves
+     */
+    private function ejerciciosDistintos(array $claves): string
+    {
+        $lineas = [
+            'EJERCICIOS DISTINTOS DE LOS DEL PDF',
+            '- Antes de redactar, mira qué tipo de tarea usa el PDF en cada aptitud incluida y elige otro. No vale cambiar colores, números, palabras o figuras dentro del mismo planteamiento.',
+            '- Cada examen tiene que salir distinto del archivo y distinto de un simulacro anterior. No reutilices el mismo tipo de ejercicio.',
+        ];
+        foreach ($claves as $clave) {
+            $lineas[] = $this->definicion()[$clave]['variacion'];
+        }
+
+        return implode("\n", $lineas)."\n";
     }
 
     /**
@@ -192,10 +210,13 @@ PROMPT;
 
         return <<<'LAMINA'
 LÁMINA DE MEMORIA
-- Una página propia: una cuadrícula 3×3 de figuras de colores, cada una con
-  un número y una letra, y una franja con 3 vehículos y sus matrículas.
-  Cambia figuras, colores, números, letras, vehículos y matrículas respecto
-  a otros simulacros.
+- Una página propia, solo con el material que hay que memorizar, sin preguntas
+  ni soluciones. Tiene que dar para 14 preguntas distintas.
+- No uses el tipo de lámina del PDF de ejemplo. Si ese archivo muestra una
+  cuadrícula de figuras con letras o números y una franja de vehículos o
+  matrículas, no hagas esa lámina ni una variante. Inventa otro soporte: una
+  escena, un plano, un panel, una habitación, una secuencia de señales u otro
+  que no aparezca en el archivo.
 LAMINA;
     }
 
@@ -246,6 +267,7 @@ ANTES DE ENTREGAR
   pliegues de los cubos, que las piezas sean asimétricas y que en cada
   pregunta haya 4 opciones distintas y una sola correcta.
 - Revisa visualmente el PDF y envíamelo.
+- Confirma que ningún tipo de ejercicio, y en especial la lámina de memoria, repite el del PDF adjunto.
 CIERRE;
         }
 
@@ -262,10 +284,14 @@ CIERRE;
 
         $comprobacion = $this->unir($partes);
 
+        $memoria = in_array('memoria', $claves, true)
+            ? "\n- Confirma que la lámina de memoria no repite el tipo de ejercicio del PDF adjunto."
+            : "\n- Confirma que ningún tipo de ejercicio repite el del PDF adjunto.";
+
         return <<<CIERRE
 ANTES DE ENTREGAR
 - Comprueba con código cada respuesta: {$comprobacion}.
-- Revisa visualmente el PDF y envíamelo.
+- Revisa visualmente el PDF y envíamelo.{$memoria}
 CIERRE;
     }
 
@@ -305,46 +331,52 @@ NIVEL;
     }
 
     /**
-     * @return array<string, array{nombre: string, detalle: string, normal: string, alto: string}>
+     * @return array<string, array{nombre: string, detalle: string, variacion: string, normal: string, alto: string}>
      */
     private function definicion(): array
     {
         return [
             'memoria' => [
                 'nombre' => 'Memoria visual',
-                'detalle' => 'preguntas sobre una lámina que se memoriza antes.',
-                'normal' => '- Memoria: figuras, colores y matrículas bien distinguibles. Pregunta por un dato principal (figura, color, número, letra, vehículo o matrícula).',
-                'alto' => '- Memoria: mantén la cuadrícula 3×3 y la franja de 3 vehículos, pero acerca figuras, colores, letras y matrículas para que se confundan. Pregunta por un detalle secundario (una letra pequeña, la posición o un número que no es el más visible), no por el elemento que más destaca.',
+                'detalle' => 'preguntas sobre una lámina que se memoriza antes, con un soporte distinto del PDF de ejemplo.',
+                'variacion' => '- Memoria visual: cambia el tipo de lámina, no solo los dibujos. Prohibido repetir la cuadrícula con letras, números y vehículos o matrículas si eso es lo que trae el ejemplo.',
+                'normal' => '- Memoria: elementos bien distinguibles. Pregunta por un dato principal de la lámina nueva (qué había, de qué color, cuántos o dónde).',
+                'alto' => '- Memoria: en la lámina nueva, acerca elementos parecidos para que se confundan. Pregunta por un detalle secundario, no por lo que más destaca.',
             ],
             'verbal' => [
                 'nombre' => 'Razonamiento verbal',
-                'detalle' => 'sinónimos, antónimos, analogías, palabra que no encaja, significado de palabras, ortografía, refranes, frase correcta.',
-                'normal' => '- Verbal: sinónimos, antónimos y analogías de una sola relación, con vocabulario frecuente. Ortografía y refranes sin trampas de redacción.',
+                'detalle' => 'sinónimos, antónimos, analogías, palabra que no encaja, significado de palabras, ortografía, refranes o frase correcta, eligiendo tipos que no sean los del PDF.',
+                'variacion' => '- Razonamiento verbal: no repitas el mismo subtipo de ítem que el PDF (si allí predominan sinónimos, no hagas otra tanda de sinónimos). Reparte otros subtipos de la lista.',
+                'normal' => '- Verbal: relaciones simples y vocabulario frecuente. Ortografía y refranes sin trampas de redacción.',
                 'alto' => '- Verbal: analogías con un matiz (parte/todo, grado o función) y un distractor que solo cumple la mitad de la relación. En ortografía y frase correcta, el fallo tiene que ser fino.',
             ],
             'numerico' => [
                 'nombre' => 'Razonamiento numérico',
-                'detalle' => 'series numéricas y problemas cortos (proporciones, porcentajes, medias, ecuaciones sencillas).',
+                'detalle' => 'series y problemas cortos con un planteamiento distinto del PDF de ejemplo.',
+                'variacion' => '- Razonamiento numérico: no repitas el mismo tipo de serie o de problema que el PDF. Si el ejemplo es una serie de una operación, usa otra estructura.',
                 'normal' => '- Numérico: series de un solo patrón y problemas de un cálculo (una proporción, un porcentaje, una media o una ecuación sencilla).',
                 'alto' => '- Numérico: series con dos patrones alternos, porcentajes encadenados o una media en dos pasos. Las cifras que salen si el cálculo se queda a medias van como opciones.',
             ],
             'abstracto' => [
                 'nombre' => 'Razonamiento abstracto',
-                'detalle' => 'series de figuras, matrices 3×3 con casilla «?», figura diferente. Todas dibujadas en SVG.',
-                'normal' => '- Abstracto: una sola regla por serie o matriz (forma, número, giro o relleno). Sigue dibujándolas en SVG.',
-                'alto' => '- Abstracto: matrices 3×3 con dos reglas a la vez. Las opciones erróneas cumplen solo una de las dos. Siguen dibujadas en SVG.',
+                'detalle' => 'series de figuras, matrices o figura diferente, dibujadas en SVG y con un esquema que no copie el del PDF.',
+                'variacion' => '- Razonamiento abstracto: cambia el tipo de matriz o de serie respecto al PDF. No repitas el mismo casillero ni la misma regla disfrazada con otras formas. Dibuja en SVG.',
+                'normal' => '- Abstracto: una sola regla (forma, número, giro o relleno), en un esquema distinto del ejemplo. Sigue dibujándolas en SVG.',
+                'alto' => '- Abstracto: dos reglas a la vez, en un esquema distinto del ejemplo. Las opciones erróneas cumplen solo una de las dos. Siguen dibujadas en SVG.',
             ],
             'espacial' => [
                 'nombre' => 'Razonamiento espacial',
-                'detalle' => 'giros de piezas frente a su imagen en espejo, reflejos, desarrollos de cubo (cara opuesta), contar cubos en isométrico, giros de cuadrículas. Todas dibujadas en SVG.',
-                'normal' => '- Espacial: una sola transformación (giro, reflejo o desarrollo). Las piezas siguen en SVG y son asimétricas.',
-                'alto' => '- Espacial: dos transformaciones combinadas (giro y espejo, o un desarrollo con dos caras marcadas). Incluye la imagen especular de la solución como distractor. Todo en SVG, con piezas asimétricas.',
+                'detalle' => 'giros, reflejos, desarrollos o recuentos dibujados en SVG, con un tipo de pieza que no sea el del PDF.',
+                'variacion' => '- Razonamiento espacial: no repitas el mismo tipo de pieza del PDF (si el ejemplo despliega cubos, usa otro ejercicio espacial, y al revés). Dibuja en SVG.',
+                'normal' => '- Espacial: una sola transformación (giro, reflejo o desarrollo) sobre piezas distintas de las del ejemplo. Siguen en SVG y son asimétricas.',
+                'alto' => '- Espacial: dos transformaciones combinadas, sobre un tipo de pieza que no sea el del PDF. Incluye la imagen especular de la solución como distractor. Todo en SVG, con piezas asimétricas.',
             ],
             'atencion' => [
                 'nombre' => 'Atención',
-                'detalle' => 'contar letras, números o símbolos; elegir la opción idéntica (códigos, matrículas, DNI, nombres); claves letra-número; filas iguales o distintas.',
+                'detalle' => 'contar, comparar o codificar, con consignas y materiales distintos de los del PDF.',
+                'variacion' => '- Atención: no repitas el mismo material del PDF (si allí hay matrículas, códigos o filas de letras, usa otro soporte y otra consigna).',
                 'normal' => '- Atención: el objetivo se distingue sin una excepción escondida en la consigna.',
-                'alto' => '- Atención: filas largas y una consigna con una excepción explícita. El error de contar de más o de menos es una de las opciones.',
+                'alto' => '- Atención: filas largas y una consigna con una excepción explícita, sobre un material distinto del PDF. El error de contar de más o de menos es una de las opciones.',
             ],
         ];
     }

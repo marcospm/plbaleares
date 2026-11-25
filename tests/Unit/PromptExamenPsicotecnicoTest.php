@@ -20,7 +20,9 @@ class PromptExamenPsicotecnicoTest extends TestCase
         self::assertStringContainsString('uno o dos pasos', $prompt);
         self::assertStringContainsString('Soluciones: número, letra correcta', $prompt);
         self::assertStringContainsString('Simulacro_psicotecnico_Bispol', $prompt);
-        self::assertStringContainsString('copia su formato y sus estilos', $prompt);
+        self::assertStringContainsString('No copies sus preguntas ni el tipo de ejercicio', $prompt);
+        self::assertStringContainsString('No uses el tipo de lámina del PDF de ejemplo', $prompt);
+        self::assertStringNotContainsString('cuadrícula 3×3', $prompt);
     }
 
     public function testAltoMantieneElSimulacroYSubeLaDificultad(): void
