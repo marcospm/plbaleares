@@ -28,7 +28,7 @@
                 <h2 style="color:white;">📊 Partidas por Jugador</h2>
             </div>
             <div class="card-body">
-                <p style="color: #666; margin-top: 0;">La columna Flashcards cuenta las tarjetas que cada alumno ha guardado. El total sigue siendo solo la suma de partidas.</p>
+                <p style="color: #666; margin-top: 0;">La columna Flashcards cuenta las tarjetas que cada alumno ha guardado. Ver abre el texto de cada una. El total sigue siendo solo la suma de partidas.</p>
                 {% if partidasPorUsuario|length > 0 %}
                     <div style="overflow-x: auto;">
                         <table class="table" style="width: 100%;">
@@ -41,6 +41,7 @@
                                     <th style="text-align: center;">📄 Texto</th>
                                     <th style="text-align: center;">✅ Correcto</th>
                                     <th style="text-align: center;">⚖️ Pena</th>
+                                    <th style="text-align: center;">✖️ Tablas</th>
                                     <th style="text-align: center;">🗂️ Flashcards</th>
                                     <th style="text-align: center;">Total</th>
                                 </tr>
@@ -71,10 +72,18 @@
                                             {{ entry.partidas['pena_articulo'] ?? 0 }}
                                         </td>
                                         <td style="text-align: center; font-weight: 600; color: var(--color-primary);">
-                                            {{ entry.flashcards|default(0) }}
+                                            {{ entry.partidas['tablas_multiplicar'] ?? 0 }}
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <a href="{{ path('app_gamificacion_admin_flashcards', {id: entry.usuario.id}) }}" style="font-weight: 600; color: var(--color-primary);">
+                                                {{ entry.flashcards|default(0) }}
+                                            </a>
+                                            <div style="margin-top: 0.2rem;">
+                                                <a href="{{ path('app_gamificacion_admin_flashcards', {id: entry.usuario.id}) }}" style="font-size: 0.8rem;">Ver</a>
+                                            </div>
                                         </td>
                                         <td style="text-align: center; font-weight: bold; font-size: 1.1rem; color: var(--color-primary);">
-                                            {{ (entry.partidas['adivina_numero_articulo'] ?? 0) + (entry.partidas['adivina_nombre_articulo'] ?? 0) + (entry.partidas['completa_fecha_ley'] ?? 0) + (entry.partidas['completa_texto_legal'] ?? 0) + (entry.partidas['articulo_correcto'] ?? 0) + (entry.partidas['pena_articulo'] ?? 0) }}
+                                            {{ (entry.partidas['adivina_numero_articulo'] ?? 0) + (entry.partidas['adivina_nombre_articulo'] ?? 0) + (entry.partidas['completa_fecha_ley'] ?? 0) + (entry.partidas['completa_texto_legal'] ?? 0) + (entry.partidas['articulo_correcto'] ?? 0) + (entry.partidas['pena_articulo'] ?? 0) + (entry.partidas['tablas_multiplicar'] ?? 0) }}
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -104,6 +113,7 @@
                             {% elseif tipo == 'completa_texto_legal' %}📄
                             {% elseif tipo == 'articulo_correcto' %}✅
                             {% elseif tipo == 'pena_articulo' %}⚖️
+                            {% elseif tipo == 'tablas_multiplicar' %}✖️
                             {% elseif tipo == 'flashcards' %}🗂️
                             {% endif %}
                             {{ datos.nombre }}
@@ -137,6 +147,9 @@
                                                 <td>
                                                     <strong>{{ entry.usuario.nombreDisplay }}</strong>
                                                     <div style="font-size: 0.8rem; color: #666;">{{ entry.usuario.username }}</div>
+                                                    {% if tipo == 'flashcards' %}
+                                                        <a href="{{ path('app_gamificacion_admin_flashcards', {id: entry.usuario.id}) }}" style="font-size: 0.8rem;">Ver flashcards</a>
+                                                    {% endif %}
                                                 </td>
                                                 <td style="text-align: right; font-weight: 600; color: var(--color-primary);">
                                                     {{ entry.cantidad }}

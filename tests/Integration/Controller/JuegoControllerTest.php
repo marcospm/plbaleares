@@ -38,6 +38,17 @@ class JuegoControllerTest extends TestCase
         $this->assertResponseIsSuccessful();
     }
     
+    public function testTablasMultiplicarAccessible(): void
+    {
+        $user = $this->createTestUser();
+        $this->loginAsUser($user);
+
+        $this->client->request('GET', '/juegos/tablas-multiplicar');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('h1', 'Tablas de multiplicar');
+    }
+
     public function testCompletaTextoLegalAccessible(): void
     {
         $user = $this->createTestUser();

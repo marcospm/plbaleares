@@ -3,13 +3,17 @@
 namespace App\Controller;
 
 use App\Entity\Flashcard;
+use App\Entity\Ley;
+use App\Entity\Tema;
 use App\Http\Consulta;
 use App\Entity\Pregunta;
 use App\Entity\PreguntaMunicipal;
 use App\Entity\User;
 use App\Repository\FlashcardRepository;
+use App\Repository\LeyRepository;
 use App\Repository\PreguntaMunicipalRepository;
 use App\Repository\PreguntaRepository;
+use App\Repository\TemaRepository;
 use App\Service\FlashcardTexto;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -30,6 +34,8 @@ class FlashcardController extends AbstractController
         private PreguntaRepository $preguntaRepository,
         private PreguntaMunicipalRepository $preguntaMunicipalRepository,
         private FlashcardTexto $flashcardTexto,
+        private TemaRepository $temaRepository,
+        private LeyRepository $leyRepository,
     ) {
     }
 
@@ -50,6 +56,8 @@ class FlashcardController extends AbstractController
             'leyes' => $leyes,
             'temaSeleccionado' => $tema,
             'leySeleccionada' => $ley,
+            'temasParaCrear' => $this->temaRepository->findActivosByCategoria($usuario->getCategoria()),
+            'leyesParaCrear' => $this->leyRepository->findActivasOrderedByNombre(),
         ]);
     }
 
@@ -64,7 +72,7 @@ class FlashcardController extends AbstractController
 
         $tarjetas = [];
         foreach ($filtradas as $flashcard) {
-            $nombreLey = $flashcard->getPregunta()?->getLey()?->getNombre();
+            $nombreLey = $flashcard->getLeyVisible()?->getNombre();
             $tarjetas[] = [
                 'tema' => $flashcard->getNombreTema(),
                 'ley' => is_string($nombreLey) && trim($nombreLey) !== '' ? trim($nombreLey) : '',
@@ -146,6 +154,47 @@ class FlashcardController extends AbstractController
         return $this->redirectToRoute('app_flashcard_index');
     }
 
+    #[Route('/crear', name: 'app_flashcard_crear', methods: ['POST'])]
+    public function crear(Request $request): Response
+    {
+        $usuario = $this->usuarioActual();
+        if (!$this->isCsrfTokenValid('flashcard_crear', $request->request->getString('_token'))) {
+            $this->addFlash('error', 'La sesión ha caducado. Vuelve a intentarlo.');
+
+            return $this->redirectToRoute('app_flashcard_index');
+        }
+
+        $textos = $this->textosDelRequest($request);
+        $clasificacion = $this->clasificacionDelRequest($request, $usuario);
+        if ($textos === null) {
+            $this->addFlash('error', 'Escribe la pregunta y la respuesta. Cada una puede tener hasta '.self::MAXIMO.' caracteres.');
+
+            return $this->redirectToRoute('app_flashcard_index');
+        }
+        if (is_string($clasificacion)) {
+            $this->addFlash('error', $clasificacion);
+
+            return $this->redirectToRoute('app_flashcard_index');
+        }
+
+        $flashcard = new Flashcard();
+        $flashcard->setUsuario($usuario);
+        $flashcard->setAnverso($textos['anverso']);
+        $flashcard->setReverso($textos['reverso']);
+        $flashcard->setTema($clasificacion['tema']);
+        $flashcard->setLey($clasificacion['ley']);
+        $flashcard->setTemaMunicipal(null);
+        $flashcard->setPregunta(null);
+        $flashcard->setPreguntaMunicipal(null);
+        $this->entityManager->persist($flashcard);
+        $this->entityManager->flush();
+        $this->addFlash('success', 'Flashcard creada en '.$flashcard->getNombreTema().'.');
+
+        return $this->redirectToRoute('app_flashcard_index', [
+            '_fragment' => 'flashcard-'.$flashcard->getId(),
+        ]);
+    }
+
     #[Route('/{id}/editar', name: 'app_flashcard_editar', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function editar(Request $request, Flashcard $flashcard): Response
     {
@@ -161,6 +210,18 @@ class FlashcardController extends AbstractController
             $this->addFlash('error', 'Escribe la pregunta y la respuesta. Cada una puede tener hasta '.self::MAXIMO.' caracteres.');
 
             return $this->redirectToRoute('app_flashcard_index');
+        }
+
+        if ($flashcard->getPregunta() === null && $flashcard->getPreguntaMunicipal() === null) {
+            $clasificacion = $this->clasificacionDelRequest($request, $this->usuarioActual(), $flashcard->getTema(), $flashcard->getLey());
+            if (is_string($clasificacion)) {
+                $this->addFlash('error', $clasificacion);
+
+                return $this->redirectToRoute('app_flashcard_index', $this->filtrosDeVuelta($request));
+            }
+            $flashcard->setTema($clasificacion['tema']);
+            $flashcard->setLey($clasificacion['ley']);
+            $flashcard->setTemaMunicipal(null);
         }
 
         $flashcard->setAnverso($textos['anverso']);
@@ -272,7 +333,7 @@ class FlashcardController extends AbstractController
     {
         $mapa = [];
         foreach ($flashcards as $flashcard) {
-            $ley = $flashcard->getPregunta()?->getLey();
+            $ley = $flashcard->getLeyVisible();
             $id = $ley?->getId();
             if ($id === null) {
                 continue;
@@ -335,7 +396,7 @@ class FlashcardController extends AbstractController
                     return false;
                 }
 
-                return $ley <= 0 || $flashcard->getPregunta()?->getLey()?->getId() === $ley;
+                return $ley <= 0 || $flashcard->getLeyVisible()?->getId() === $ley;
             }
         ));
     }
@@ -357,6 +418,30 @@ class FlashcardController extends AbstractController
         }
 
         return $extra;
+    }
+
+    /**
+     * @return array{tema: Tema, ley: Ley}|string
+     */
+    private function clasificacionDelRequest(Request $request, User $usuario, ?Tema $temaActual = null, ?Ley $leyActual = null): array|string
+    {
+        $tema = $this->temaRepository->find($request->request->getInt('tema'));
+        if (!$tema instanceof Tema || $tema->getCategoria() !== $usuario->getCategoria()) {
+            return 'Elige un tema de tu temario.';
+        }
+        if (!$tema->isActivo() && $tema->getId() !== $temaActual?->getId()) {
+            return 'Elige un tema de tu temario.';
+        }
+
+        $ley = $this->leyRepository->find($request->request->getInt('ley'));
+        if (!$ley instanceof Ley) {
+            return 'Elige una ley.';
+        }
+        if (!$ley->isActivo() && $ley->getId() !== $leyActual?->getId()) {
+            return 'Elige una ley.';
+        }
+
+        return ['tema' => $tema, 'ley' => $ley];
     }
 
     private function usuarioActual(): User

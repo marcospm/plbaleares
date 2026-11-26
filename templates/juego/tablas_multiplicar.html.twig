@@ -1,0 +1,322 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tablas de multiplicar - Gamificación - BISPOL{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .tablas-marcador {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .tablas-marca {
+            background: #f4f7fb;
+            border-radius: 8px;
+            padding: 0.65rem 0.4rem;
+            text-align: center;
+        }
+
+        .tablas-marca strong {
+            display: block;
+            font-size: 1.35rem;
+            color: var(--color-primary);
+            line-height: 1.1;
+        }
+
+        .tablas-marca span {
+            font-size: 0.78rem;
+            color: #666;
+        }
+
+        #tablas-pregunta {
+            font-size: clamp(2rem, 8vw, 3rem);
+            font-weight: 700;
+            color: #222;
+            text-align: center;
+            margin: 0.25rem 0 1rem;
+            letter-spacing: 0.02em;
+        }
+
+        #tablas-respuesta {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 1.6rem;
+            text-align: center;
+            padding: 0.75rem;
+            border: 2px solid var(--color-border, #ced4da);
+            border-radius: 8px;
+            margin-bottom: 0.85rem;
+        }
+
+        #tablas-respuesta:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 0.2rem rgba(26, 77, 122, 0.2);
+        }
+
+        .tablas-teclado {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .tablas-tecla {
+            min-height: 52px;
+            font-size: 1.35rem;
+            font-weight: 700;
+            border: 2px solid var(--color-border, #ced4da);
+            background: #fff;
+            color: #222;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .tablas-tecla:active {
+            background: #e8f1f8;
+        }
+
+        .tablas-acciones {
+            display: flex;
+            gap: 0.6rem;
+        }
+
+        .tablas-acciones .btn {
+            flex: 1;
+            min-height: 48px;
+            font-size: 1.05rem;
+        }
+
+        #tablas-feedback {
+            margin-top: 1rem;
+            padding: 0.9rem 1rem;
+            border-radius: 8px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        #tablas-feedback.ok {
+            background: #e8f8ef;
+            color: #146c43;
+        }
+
+        #tablas-feedback.ko {
+            background: #fdecea;
+            color: #922b21;
+        }
+
+        @media (max-width: 768px) {
+            #btn-salir-juego {
+                width: 100%;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div style="max-width: 480px; margin: 1.5rem auto; padding: 0 1rem;">
+    <div style="text-align: center; margin-bottom: 1.25rem;">
+        <h1 style="color: var(--color-primary); margin-bottom: 0.5rem;">Tablas de multiplicar</h1>
+        <p style="color: #666; margin: 0;">Practica del 1 al 10. En cada ronda salen las 100 operaciones, sin repetir.</p>
+        <button id="btn-salir-juego" class="btn btn-danger" style="margin-top: 1rem; min-width: 120px; padding: 0.5rem 1rem; font-size: 0.9rem;">
+            🚪 Salir del juego
+        </button>
+    </div>
+
+    <div class="card">
+        <div class="card-body" style="padding: 1.25rem;">
+            <div class="tablas-marcador">
+                <div class="tablas-marca">
+                    <strong id="tablas-aciertos">0</strong>
+                    <span>Aciertos</span>
+                </div>
+                <div class="tablas-marca">
+                    <strong id="tablas-fallos">0</strong>
+                    <span>Fallos</span>
+                </div>
+                <div class="tablas-marca">
+                    <strong id="tablas-progreso">1/100</strong>
+                    <span>Esta ronda</span>
+                </div>
+            </div>
+
+            <p id="tablas-pregunta">1 × 1 = ?</p>
+            <input id="tablas-respuesta" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" autocapitalize="off" autocorrect="off" maxlength="3" placeholder="Tu respuesta" aria-label="Tu respuesta">
+
+            <div class="tablas-teclado" aria-label="Teclado numérico">
+                <button type="button" class="tablas-tecla" data-digito="1">1</button>
+                <button type="button" class="tablas-tecla" data-digito="2">2</button>
+                <button type="button" class="tablas-tecla" data-digito="3">3</button>
+                <button type="button" class="tablas-tecla" data-digito="4">4</button>
+                <button type="button" class="tablas-tecla" data-digito="5">5</button>
+                <button type="button" class="tablas-tecla" data-digito="6">6</button>
+                <button type="button" class="tablas-tecla" data-digito="7">7</button>
+                <button type="button" class="tablas-tecla" data-digito="8">8</button>
+                <button type="button" class="tablas-tecla" data-digito="9">9</button>
+                <button type="button" class="tablas-tecla" id="tablas-borrar" aria-label="Borrar">⌫</button>
+                <button type="button" class="tablas-tecla" data-digito="0">0</button>
+                <button type="button" class="tablas-tecla" id="tablas-tecla-ok" aria-label="Verificar">✓</button>
+            </div>
+
+            <div class="tablas-acciones">
+                <button type="button" id="tablas-verificar" class="btn btn-primary">Verificar</button>
+                <button type="button" id="tablas-siguiente" class="btn btn-secondary" style="display: none;">Siguiente</button>
+            </div>
+            <div id="tablas-feedback" style="display: none;" role="status"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const preguntaEl = document.getElementById('tablas-pregunta');
+    const respuestaEl = document.getElementById('tablas-respuesta');
+    const feedbackEl = document.getElementById('tablas-feedback');
+    const btnVerificar = document.getElementById('tablas-verificar');
+    const btnSiguiente = document.getElementById('tablas-siguiente');
+    const aciertosEl = document.getElementById('tablas-aciertos');
+    const fallosEl = document.getElementById('tablas-fallos');
+    const progresoEl = document.getElementById('tablas-progreso');
+
+    let mazo = [];
+    let indice = 0;
+    let aciertos = 0;
+    let fallos = 0;
+    let esperando = false;
+    let avance = null;
+
+    function barajar(lista) {
+        for (let i = lista.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [lista[i], lista[j]] = [lista[j], lista[i]];
+        }
+        return lista;
+    }
+
+    function crearMazo() {
+        const operaciones = [];
+        for (let a = 1; a <= 10; a++) {
+            for (let b = 1; b <= 10; b++) {
+                operaciones.push([a, b]);
+            }
+        }
+        return barajar(operaciones);
+    }
+
+    function mostrarPregunta() {
+        if (indice >= mazo.length) {
+            mazo = crearMazo();
+            indice = 0;
+        }
+        const [a, b] = mazo[indice];
+        preguntaEl.textContent = a + ' × ' + b + ' = ?';
+        respuestaEl.dataset.correcto = String(a * b);
+        respuestaEl.value = '';
+        respuestaEl.disabled = false;
+        feedbackEl.style.display = 'none';
+        feedbackEl.className = '';
+        btnVerificar.style.display = '';
+        btnSiguiente.style.display = 'none';
+        esperando = false;
+        progresoEl.textContent = (indice + 1) + '/100';
+        if (!window.matchMedia('(pointer: coarse)').matches) {
+            respuestaEl.focus();
+        }
+    }
+
+    function anadirDigito(digito) {
+        if (esperando || respuestaEl.value.length >= 3) {
+            return;
+        }
+        respuestaEl.value += digito;
+    }
+
+    function programarSiguiente(ms) {
+        clearTimeout(avance);
+        avance = setTimeout(function () {
+            indice += 1;
+            mostrarPregunta();
+        }, ms);
+    }
+
+    function pasarYa() {
+        clearTimeout(avance);
+        indice += 1;
+        mostrarPregunta();
+    }
+
+    function verificar() {
+        if (esperando) {
+            return;
+        }
+        const escrito = respuestaEl.value.trim();
+        if (escrito === '' || !/^\d+$/.test(escrito)) {
+            feedbackEl.style.display = 'block';
+            feedbackEl.className = 'ko';
+            feedbackEl.textContent = 'Escribe un número.';
+            return;
+        }
+
+        esperando = true;
+        respuestaEl.disabled = true;
+        fetch('{{ path('app_juego_api_guardar_partida') }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tipoJuego: 'tablas_multiplicar' })
+        }).catch(function () {});
+        const correcto = parseInt(respuestaEl.dataset.correcto, 10);
+        const usuario = parseInt(escrito, 10);
+        feedbackEl.style.display = 'block';
+        btnVerificar.style.display = 'none';
+        btnSiguiente.style.display = '';
+
+        if (usuario === correcto) {
+            aciertos += 1;
+            aciertosEl.textContent = String(aciertos);
+            feedbackEl.className = 'ok';
+            feedbackEl.textContent = '¡Correcto!';
+            programarSiguiente(900);
+        } else {
+            fallos += 1;
+            fallosEl.textContent = String(fallos);
+            feedbackEl.className = 'ko';
+            feedbackEl.textContent = 'Incorrecto. La respuesta es ' + correcto + '.';
+            programarSiguiente(2200);
+        }
+    }
+
+    document.querySelectorAll('.tablas-tecla[data-digito]').forEach(function (tecla) {
+        tecla.addEventListener('click', function () {
+            anadirDigito(tecla.dataset.digito);
+        });
+    });
+    document.getElementById('tablas-borrar').addEventListener('click', function () {
+        if (!esperando) {
+            respuestaEl.value = respuestaEl.value.slice(0, -1);
+        }
+    });
+    document.getElementById('tablas-tecla-ok').addEventListener('click', verificar);
+    btnVerificar.addEventListener('click', verificar);
+    btnSiguiente.addEventListener('click', pasarYa);
+    respuestaEl.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            if (esperando) {
+                pasarYa();
+            } else {
+                verificar();
+            }
+        }
+    });
+    document.getElementById('btn-salir-juego').addEventListener('click', function () {
+        window.location.href = '{{ path('app_dashboard') }}';
+    });
+
+    mazo = crearMazo();
+    mostrarPregunta();
+</script>
+{% endblock %}

@@ -15,12 +15,48 @@
     </div>
     <div class="card-body">
         <p style="margin-top: 0; color: #555;">
-            Se guardan al terminar un examen. Filtra por tema o por ley y elige las que quieras imprimir.
+            Puedes crear una desde cero o guardarla al terminar un examen. El tema y la ley sirven para filtrarlas después.
         </p>
+
+        <details {{ totalGeneral == 0 ? 'open' : '' }} style="margin-bottom: 1.25rem; border: 1px solid #dee2e6; border-radius: 8px; padding: 0.75rem 1rem;">
+            <summary style="cursor: pointer; font-weight: 700; color: var(--color-primary);">Crear flashcard</summary>
+            {% if temasParaCrear is empty or leyesParaCrear is empty %}
+                <p style="margin: 0.75rem 0 0;">No hay temas o leyes disponibles para clasificar una flashcard.</p>
+            {% else %}
+                <form method="post" action="{{ path('app_flashcard_crear') }}" data-turbo="false" style="margin-top: 0.75rem;">
+                    <input type="hidden" name="_token" value="{{ csrf_token('flashcard_crear') }}">
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <label for="crear-tema" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Tema</label>
+                            <select id="crear-tema" name="tema" class="form-control" required style="width: 100%;">
+                                <option value="">Elige un tema</option>
+                                {% for tema in temasParaCrear %}
+                                    <option value="{{ tema.id }}">{{ tema.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label for="crear-ley" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Ley</label>
+                            <select id="crear-ley" name="ley" class="form-control" required style="width: 100%;">
+                                <option value="">Elige una ley</option>
+                                {% for ley in leyesParaCrear %}
+                                    <option value="{{ ley.id }}">{{ ley.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <label for="crear-anverso" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Pregunta</label>
+                    <textarea id="crear-anverso" name="anverso" class="form-control" rows="3" required maxlength="8000" style="width: 100%; margin-bottom: 0.75rem;"></textarea>
+                    <label for="crear-reverso" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Respuesta</label>
+                    <textarea id="crear-reverso" name="reverso" class="form-control" rows="5" required maxlength="8000" style="width: 100%; margin-bottom: 0.75rem;"></textarea>
+                    <button type="submit" class="btn btn-primary">Guardar flashcard</button>
+                </form>
+            {% endif %}
+        </details>
 
         {% if totalGeneral == 0 %}
             <div class="alert alert-info">
-                Todavía no tienes flashcards. Cuando termines un examen, en cada pregunta puedes pulsar <strong>Generar flashcard</strong>.
+                Todavía no tienes flashcards. Crea una arriba o, al terminar un examen, pulsa <strong>Generar flashcard</strong> en una pregunta.
             </div>
             <a href="{{ path('app_examen_iniciar') }}" class="btn btn-primary">Hacer un examen</a>
         {% else %}
@@ -89,8 +125,8 @@
                                 </label>
 
                                 <p style="margin: 0 0 0.75rem; font-weight: 700; color: var(--color-primary);">{{ grupo.nombre }}</p>
-                                {% if flashcard.pregunta and flashcard.pregunta.ley %}
-                                    <p style="margin: -0.45rem 0 0.75rem; color: #555;">{{ flashcard.pregunta.ley.nombre }}</p>
+                                {% if flashcard.leyVisible %}
+                                    <p style="margin: -0.45rem 0 0.75rem; color: #555;">{{ flashcard.leyVisible.nombre }}</p>
                                 {% endif %}
 
                                 <p style="margin: 0 0 0.35rem; font-size: 0.8rem; color: #777; text-transform: uppercase; letter-spacing: 0.04em;">Pregunta</p>
@@ -104,9 +140,23 @@
                                 </p>
 
                                 <details>
-                                    <summary style="cursor: pointer; font-weight: 600; color: var(--color-primary);">Editar texto</summary>
+                                    <summary style="cursor: pointer; font-weight: 600; color: var(--color-primary);">Editar</summary>
                                     <form method="post" action="{{ path('app_flashcard_editar', {id: flashcard.id}) }}" data-turbo="false" style="margin-top: 0.75rem;">
                                         <input type="hidden" name="_token" value="{{ csrf_token('flashcard_editar_' ~ flashcard.id) }}">
+                                        {% if flashcard.pregunta is null and flashcard.preguntaMunicipal is null %}
+                                            <label for="tema-{{ flashcard.id }}" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Tema</label>
+                                            <select id="tema-{{ flashcard.id }}" name="tema" class="form-control" required style="width: 100%; margin-bottom: 0.75rem;">
+                                                {% for tema in temasParaCrear %}
+                                                    <option value="{{ tema.id }}" {{ flashcard.tema and flashcard.tema.id == tema.id ? 'selected' : '' }}>{{ tema.nombre }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <label for="ley-{{ flashcard.id }}" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Ley</label>
+                                            <select id="ley-{{ flashcard.id }}" name="ley" class="form-control" required style="width: 100%; margin-bottom: 0.75rem;">
+                                                {% for ley in leyesParaCrear %}
+                                                    <option value="{{ ley.id }}" {{ flashcard.ley and flashcard.ley.id == ley.id ? 'selected' : '' }}>{{ ley.nombre }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        {% endif %}
                                         <label for="anverso-{{ flashcard.id }}" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Pregunta</label>
                                         <textarea id="anverso-{{ flashcard.id }}" name="anverso" class="form-control" rows="3" required maxlength="8000" style="width: 100%; margin-bottom: 0.75rem;">{{ flashcard.anverso }}</textarea>
                                         <label for="reverso-{{ flashcard.id }}" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Respuesta</label>

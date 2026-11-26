@@ -2,8 +2,11 @@
 
 namespace App\Controller;
 
+use App\Entity\Flashcard;
+use App\Entity\User;
 use App\Repository\FlashcardRepository;
 use App\Repository\PartidaJuegoRepository;
+use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -46,6 +49,7 @@ class GamificacionController extends AbstractController
             'completa_texto_legal' => 'Completa el Artículo',
             'articulo_correcto' => 'El artículo correcto',
             'pena_articulo' => '¿Multa o cárcel?',
+            'tablas_multiplicar' => 'Tablas de multiplicar',
         ];
 
         return $this->render('gamificacion/historial.html.twig', [
@@ -69,6 +73,7 @@ class GamificacionController extends AbstractController
             'completa_texto_legal' => 'Completa el Artículo',
             'articulo_correcto' => 'El artículo correcto',
             'pena_articulo' => '¿Multa o cárcel?',
+            'tablas_multiplicar' => 'Tablas de multiplicar',
         ];
 
         if (!isset($tiposJuegos[$tipoJuego])) {
@@ -114,6 +119,7 @@ class GamificacionController extends AbstractController
             'completa_texto_legal' => 'Completa el Artículo',
             'articulo_correcto' => 'El artículo correcto',
             'pena_articulo' => '¿Multa o cárcel?',
+            'tablas_multiplicar' => 'Tablas de multiplicar',
         ];
 
         // Obtener tipo de juego seleccionado
@@ -162,6 +168,23 @@ class GamificacionController extends AbstractController
         ]);
     }
 
+    #[Route('/admin/flashcards/{id}', name: 'app_gamificacion_admin_flashcards', methods: ['GET'], requirements: ['id' => '\d+'])]
+    #[IsGranted('ROLE_PROFESOR')]
+    public function flashcardsAlumno(#[MapEntity(id: 'id')] User $alumno): Response
+    {
+        if (!$this->puedeVerAlumno($alumno)) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $flashcards = $this->flashcardRepository->findPropias($alumno);
+
+        return $this->render('gamificacion/flashcards_alumno.html.twig', [
+            'alumno' => $alumno,
+            'grupos' => $this->agruparFlashcards($flashcards),
+            'total' => count($flashcards),
+        ]);
+    }
+
     /**
      * @param list<array{usuario: \App\Entity\User, partidas: array<string, int>}> $partidasPorUsuario
      * @param list<array{usuario: \App\Entity\User, cantidad: int}> $rankingFlashcards
@@ -201,5 +224,48 @@ class GamificacionController extends AbstractController
         });
 
         return $listado;
+    }
+
+    private function puedeVerAlumno(User $alumno): bool
+    {
+        if ($this->isGranted('ROLE_ADMIN')) {
+            return true;
+        }
+
+        $profesor = $this->getUser();
+        if (!$profesor instanceof User) {
+            return false;
+        }
+
+        foreach ($profesor->getAlumnos() as $asignado) {
+            if ($asignado->getId() === $alumno->getId()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param Flashcard[] $flashcards
+     * @return list<array{nombre: string, flashcards: Flashcard[]}>
+     */
+    private function agruparFlashcards(array $flashcards): array
+    {
+        $grupos = [];
+        foreach ($flashcards as $flashcard) {
+            $clave = $flashcard->getClaveTema();
+            if (!isset($grupos[$clave])) {
+                $grupos[$clave] = [
+                    'nombre' => $flashcard->getNombreTema(),
+                    'flashcards' => [],
+                ];
+            }
+            $grupos[$clave]['flashcards'][] = $flashcard;
+        }
+
+        uasort($grupos, static fn (array $a, array $b): int => strnatcasecmp($a['nombre'], $b['nombre']));
+
+        return array_values($grupos);
     }
 }

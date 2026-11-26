@@ -652,6 +652,7 @@ class InformeUsoPlataformaService
             'completa_texto_legal' => 'Completa el artículo',
             'articulo_correcto' => 'El artículo correcto',
             'pena_articulo' => '¿Multa o cárcel?',
+            'tablas_multiplicar' => 'Tablas de multiplicar',
             default => $tipo !== '' ? $tipo : 'Juego',
         };
     }

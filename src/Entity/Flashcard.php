@@ -30,6 +30,10 @@ class Flashcard
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Ley $ley = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Pregunta $pregunta = null;
 
     #[ORM\ManyToOne]
@@ -82,6 +86,23 @@ class Flashcard
         $this->tema = $tema;
 
         return $this;
+    }
+
+    public function getLey(): ?Ley
+    {
+        return $this->ley;
+    }
+
+    public function setLey(?Ley $ley): static
+    {
+        $this->ley = $ley;
+
+        return $this;
+    }
+
+    public function getLeyVisible(): ?Ley
+    {
+        return $this->pregunta?->getLey() ?? $this->ley;
     }
 
     public function getTemaMunicipal(): ?TemaMunicipal

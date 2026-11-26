@@ -72,6 +72,13 @@ class JuegoController extends AbstractController
         return $this->render('juego/pena_articulo.html.twig');
     }
 
+    #[Route('/juegos/tablas-multiplicar', name: 'app_juego_tablas_multiplicar')]
+    #[IsGranted('ROLE_USER')]
+    public function tablasMultiplicar(): Response
+    {
+        return $this->render('juego/tablas_multiplicar.html.twig');
+    }
+
     /**
      * Los temas 25, 26 y 27 comparten el Código Penal. Sus artículos son los de
      * patrimonio (234-269), seguridad vial (379-385) y derechos fundamentales (510-521).
@@ -156,6 +163,7 @@ class JuegoController extends AbstractController
             'completa_texto_legal',
             'articulo_correcto',
             'pena_articulo',
+            'tablas_multiplicar',
         ];
 
         if (!$tipoJuego || !in_array($tipoJuego, $tiposValidos)) {

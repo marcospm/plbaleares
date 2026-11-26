@@ -86,6 +86,7 @@ class PartidaJuego
             'completa_texto_legal' => 'Completa el Artículo',
             'articulo_correcto' => 'El artículo correcto',
             'pena_articulo' => '¿Multa o cárcel?',
+            'tablas_multiplicar' => 'Tablas de multiplicar',
             default => $this->tipoJuego,
         };
     }
