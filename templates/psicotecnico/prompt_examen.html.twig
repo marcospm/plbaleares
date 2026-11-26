@@ -38,7 +38,7 @@
     <div class="psico-cabecera">
         <div>
             <h1>Prompt de examen psicotécnico</h1>
-            <p>Elige una o varias áreas, copia el prompt y adjunta el logo de Bispol y el PDF Simulacro_psicotecnico_Bispol.</p>
+            <p>Elige una o varias áreas. Si dejas el número de preguntas vacío, sale el simulacro de 14 por área. Si indicas un total, ese número manda y se reparte a partes iguales. Copia el prompt y adjunta el logo de Bispol y el PDF Simulacro_psicotecnico_Bispol.</p>
         </div>
         <div class="psico-cabecera-acciones">
             <a href="{{ path('app_archivo_psicotecnico_index') }}" class="btn btn-secondary">Archivos</a>
@@ -62,31 +62,57 @@
             <div class="psico-filtros">
                 <div class="form-group">
                     <label class="form-label" for="psico-nivel">Nivel de dificultad</label>
-                    <select id="psico-nivel" name="nivel" class="form-control" onchange="this.form.requestSubmit()">
+                    <select id="psico-nivel" name="nivel" class="form-control">
                         {% for valor, etiqueta in niveles %}
                             <option value="{{ valor }}" {% if nivel == valor %}selected{% endif %}>{{ etiqueta }}</option>
                         {% endfor %}
                     </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="psico-preguntas">Número de preguntas</label>
+                    <input id="psico-preguntas" type="number" name="preguntas" class="form-control" min="1" max="{{ maximoPreguntas }}" step="1" inputmode="numeric" placeholder="Vacío: 14 por área" value="{{ preguntasTexto }}" onchange="this.form.requestSubmit()">
                 </div>
                 <div class="psico-filtros-botones">
                     <button type="submit" class="btn btn-primary">Actualizar prompt</button>
                     <button type="button" class="btn btn-secondary" id="psico-copiar">Copiar prompt</button>
                 </div>
             </div>
+            <div class="form-group" id="psico-nivel-libre" style="margin-top: 0.85rem;" {% if nivel != 'otro' %}hidden{% endif %}>
+                <label class="form-label" for="psico-nivel-texto">Nivel que quieres</label>
+                <input id="psico-nivel-texto" type="text" name="nivel_texto" class="form-control" maxlength="{{ maximoNivel }}" placeholder="Por ejemplo: primero de la ESO" value="{{ nivelTexto }}" onchange="this.form.requestSubmit()">
+            </div>
             <p class="psico-resumen" style="margin-top: 0.9rem;">
-                {% if seleccion is empty %}
-                    Selecciona al menos un área.
+                {% if prompt is null %}
+                    {% if seleccion is empty %}
+                        Selecciona al menos un área.
+                    {% elseif nivelPendiente %}
+                        Escribe el nivel de dificultad. Por ejemplo: primero de la ESO.
+                    {% else %}
+                        Corrige el número de preguntas para generar el prompt. Vacío usa 14 por área; un total se reparte a partes iguales y hace falta al menos una pregunta por área.
+                    {% endif %}
+                {% elseif personalizado %}
+                    {{ total }} preguntas en {{ minutos }} minutos
+                    ({{ seleccion|length }} {{ seleccion|length == 1 ? 'área' : 'áreas' }}:
+                    {% for clave in seleccion %}{{ areas[clave] }} {{ reparto[clave] }}{% if not loop.last %}, {% endif %}{% endfor %}).
+                    Este total sustituye a las 14 por área del simulacro.
+                    La portada lleva la distribución, después las preguntas y al final las soluciones.
+                    {% if 'memoria' in seleccion %}
+                        Si entra memoria visual, el PDF incluye la lámina antes de las preguntas.
+                    {% endif %}
                 {% else %}
                     {{ total }} preguntas en {{ minutos }} minutos
                     ({{ seleccion|length }} {{ seleccion|length == 1 ? 'área' : 'áreas' }}).
+                    Sin un total, el prompt es el del simulacro: 14 preguntas por área.
                     La portada lleva la distribución, después las preguntas y al final las soluciones.
                     {% if 'memoria' in seleccion %}
                         Si entra memoria visual, el PDF incluye la lámina antes de las preguntas.
                     {% endif %}
                 {% endif %}
-                {% if nivel == 'alto' %}
+                {% if nivel == 'otro' and nivelTexto %}
+                    El nivel del prompt es «{{ nivelTexto }}».
+                {% elseif nivel == 'alto' %}
                     El nivel alto pide preguntas muy difíciles, de varios pasos, con distractores que cazan el cálculo a medias.
-                {% else %}
+                {% elseif nivel != 'otro' %}
                     El nivel normal pide preguntas de convocatoria estándar, de uno o dos pasos.
                 {% endif %}
                 El PDF de ejemplo marca la maqueta, no los ejercicios: cada examen tiene que cambiar el tipo de tarea, también la lámina de memoria.
@@ -112,6 +138,23 @@
         return;
     }
     const formulario = boton.closest('form') || document.querySelector('.psico-pagina form');
+    const nivel = document.getElementById('psico-nivel');
+    const nivelLibre = document.getElementById('psico-nivel-libre');
+    const nivelTexto = document.getElementById('psico-nivel-texto');
+    if (nivel && nivelLibre) {
+        nivel.addEventListener('change', function () {
+            const otro = nivel.value === 'otro';
+            nivelLibre.hidden = !otro;
+            if (!otro && nivelTexto) {
+                nivelTexto.value = '';
+                nivel.form.requestSubmit();
+                return;
+            }
+            if (nivelTexto) {
+                nivelTexto.focus();
+            }
+        });
+    }
     if (formulario) {
         formulario.addEventListener('submit', function (event) {
             if (formulario.querySelectorAll('input[name="areas[]"]:checked').length === 0) {
@@ -123,7 +166,7 @@
     boton.addEventListener('click', function () {
         const texto = area.value;
         if (texto.trim() === '') {
-            alert('Selecciona al menos un área.');
+            alert('No hay prompt para copiar. Revisa las áreas y el número de preguntas.');
             return;
         }
         const listo = function () {

@@ -20,24 +20,69 @@ class PsicotecnicoPromptController extends AbstractController
             $nivel = PromptExamenPsicotecnico::NIVEL_NORMAL;
         }
 
+        $nivelTexto = trim($request->query->getString('nivel_texto'));
+        $nivelLibre = null;
+        $nivelPendiente = false;
+        if ($nivel === PromptExamenPsicotecnico::NIVEL_OTRO) {
+            if ($nivelTexto === '') {
+                $nivelPendiente = true;
+            } else {
+                try {
+                    $nivelLibre = $prompts->interpretarNivelLibre($nivelTexto);
+                    $nivelTexto = $nivelLibre;
+                } catch (\InvalidArgumentException $e) {
+                    $nivelPendiente = true;
+                    $this->addFlash('error', $e->getMessage());
+                }
+            }
+        } else {
+            $nivelTexto = '';
+        }
+
         $seleccion = $request->query->get('formulario') === '1'
             ? $prompts->normalizar($request->query->all('areas'))
             : $prompts->normalizar(null);
+
+        $preguntasTexto = trim($request->query->getString('preguntas'));
+        $preguntas = null;
+        $preguntasInvalidas = false;
+        if ($preguntasTexto !== '') {
+            try {
+                $preguntas = $prompts->interpretarTotal($preguntasTexto);
+            } catch (\InvalidArgumentException $e) {
+                $preguntasInvalidas = true;
+                $this->addFlash('error', $e->getMessage());
+            }
+        }
+
         $prompt = null;
+        $plan = null;
         if ($seleccion === []) {
             $this->addFlash('error', 'Selecciona al menos un área.');
-        } else {
-            $prompt = $prompts->generar($nivel, $seleccion);
+        } elseif (!$preguntasInvalidas && !$nivelPendiente) {
+            try {
+                $plan = $prompts->planificar($seleccion, $preguntas);
+                $prompt = $prompts->generar($nivel, $seleccion, $preguntas, $nivelLibre);
+            } catch (\InvalidArgumentException $e) {
+                $this->addFlash('error', $e->getMessage());
+            }
         }
 
         return $this->render('psicotecnico/prompt_examen.html.twig', [
             'nivel' => $nivel,
+            'nivelTexto' => $nivelTexto,
+            'nivelPendiente' => $nivelPendiente,
+            'maximoNivel' => PromptExamenPsicotecnico::MAXIMO_NIVEL,
             'niveles' => $prompts->niveles(),
             'areas' => $prompts->areas(),
             'seleccion' => $seleccion,
             'prompt' => $prompt,
-            'total' => count($seleccion) * 14,
-            'minutos' => count($seleccion) * 10,
+            'preguntasTexto' => $preguntasTexto,
+            'maximoPreguntas' => PromptExamenPsicotecnico::MAXIMO_PREGUNTAS,
+            'personalizado' => $plan['personalizado'] ?? false,
+            'reparto' => $plan['porArea'] ?? [],
+            'total' => $plan['total'] ?? 0,
+            'minutos' => $plan['minutos'] ?? 0,
         ]);
     }
 }
