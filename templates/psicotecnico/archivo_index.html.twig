@@ -73,7 +73,21 @@
                     </div>
                     <div class="psico-archivos">
                         {% for archivo in grupo.archivos %}
-                            {{ psico.enlace(archivo) }}
+                            <div class="psico-archivo-bloque">
+                                {{ psico.enlace(archivo) }}
+                                {% set uso = aperturas[archivo.id]|default(null) %}
+                                {% set veces = uso ? uso.veces : 0 %}
+                                {% set alumnos = uso ? uso.alumnos : 0 %}
+                                <p class="psico-aperturas">
+                                    {% if veces == 0 %}
+                                        Descargado 0 veces
+                                    {% elseif veces == 1 %}
+                                        Descargado 1 vez por 1 alumno
+                                    {% else %}
+                                        Descargado {{ veces }} veces por {{ alumnos }} {{ alumnos == 1 ? 'alumno' : 'alumnos' }}
+                                    {% endif %}
+                                </p>
+                            </div>
                         {% endfor %}
                     </div>
                     <div class="psico-card-acciones">

@@ -28,7 +28,7 @@
     <p class="meta">Generado el {{ generadoEn|date('d/m/Y H:i') }}{% if enCurso %}. El mes sigue en curso: las cifras llegan hasta este momento.{% endif %}</p>
 
     <div class="nota">
-        La participación se mide con la actividad que queda guardada: exámenes, partidas de juego, flashcards, mensajes del chat y tareas completadas.
+        La participación se mide con la actividad que queda guardada: exámenes, partidas de juego, flashcards, mensajes del chat, tareas completadas y cada vez que un alumno pulsa Abrir en un archivo de psicotécnicos.
         No se guarda un historial de inicios de sesión ni el tiempo de conexión, así que no se puede saber cuánto rato ha estado cada persona dentro.
         El último acceso de una cuenta es una sola fecha: si alguien entra otra vez más adelante, el mes anterior deja de contar ese acceso.
         Las partidas multijugador en directo no se archivan. El porcentaje de participación usa el censo de alumnos activos de hoy, porque las cuentas no tienen fecha de alta.
@@ -99,7 +99,9 @@
             {clave: 'alumnosPartida', etiqueta: 'Alumnos que jugaron'},
             {clave: 'flashcards', etiqueta: 'Flashcards creadas'},
             {clave: 'mensajes', etiqueta: 'Mensajes de chat'},
-            {clave: 'tareasCompletadas', etiqueta: 'Tareas completadas'}
+            {clave: 'tareasCompletadas', etiqueta: 'Tareas completadas'},
+            {clave: 'aperturasPsicotecnico', etiqueta: 'Aperturas de psicotécnicos'},
+            {clave: 'alumnosPsicotecnico', etiqueta: 'Alumnos que abrieron un psicotécnico'}
         ] %}
         {% for fila in filas %}
             {% set v = variacion[fila.clave] %}
@@ -143,6 +145,7 @@
             <th class="num">Partidas</th>
             <th class="num">Flashcards</th>
             <th class="num">Chat</th>
+            <th class="num">Psicot.</th>
             <th class="num">Nota</th>
         </tr>
         {% for mesFila in evolucion %}
@@ -154,6 +157,7 @@
                 <td class="num">{{ mesFila.partidas }}</td>
                 <td class="num">{{ mesFila.flashcards }}</td>
                 <td class="num">{{ mesFila.mensajes }}</td>
+                <td class="num">{{ mesFila.aperturasPsicotecnico }}</td>
                 <td class="num">{{ mesFila.notaMedia is null ? '—' : mesFila.notaMedia|number_format(2, ',', '.') }}</td>
             </tr>
         {% endfor %}
@@ -251,6 +255,29 @@
                     <td>{{ juego.nombre }}</td>
                     <td class="num">{{ juego.partidas }}</td>
                     <td class="num">{{ juego.alumnos }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+
+    <h2>Archivos de psicotécnicos</h2>
+    <p style="font-size: 8pt; color: #555; margin-bottom: 6px;">Cada pulsación del botón Abrir de un alumno cuenta una vez. En {{ nombreMes }} hubo {{ actual.aperturasPsicotecnico }} aperturas, hechas por {{ actual.alumnosPsicotecnico }} {{ actual.alumnosPsicotecnico == 1 ? 'alumno' : 'alumnos' }}.</p>
+    {% if psicotecnicos is empty %}
+        <p>Nadie abrió un archivo de psicotécnicos en este mes.</p>
+    {% else %}
+        <table>
+            <tr>
+                <th>Publicación</th>
+                <th>Archivo</th>
+                <th class="num">Aperturas</th>
+                <th class="num">Alumnos</th>
+            </tr>
+            {% for archivo in psicotecnicos %}
+                <tr class="{{ loop.index is odd ? '' : 'alt' }}">
+                    <td>{{ archivo.publicacion }}</td>
+                    <td>{{ archivo.archivo }}</td>
+                    <td class="num">{{ archivo.veces }}</td>
+                    <td class="num">{{ archivo.alumnos }}</td>
                 </tr>
             {% endfor %}
         </table>

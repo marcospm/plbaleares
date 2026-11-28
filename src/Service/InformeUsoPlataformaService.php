@@ -47,6 +47,7 @@ class InformeUsoPlataformaService
             'grupos' => $this->grupos($inicio, $fin),
             'alumnosSinGrupo' => $this->alumnosSinGrupo(),
             'topAlumnos' => $this->topAlumnos($inicio, $fin),
+            'psicotecnicos' => $this->psicotecnicos($inicio, $fin),
         ];
     }
 
@@ -84,6 +85,8 @@ class InformeUsoPlataformaService
                 'tareasAsignadas' => 0,
                 'contactos' => 0,
                 'semanalesAbiertos' => 0,
+                'aperturasPsicotecnico' => 0,
+                'alumnosPsicotecnico' => 0,
             ];
             $cursor = $cursor->modify('+1 month');
         }
@@ -172,6 +175,17 @@ class InformeUsoPlataformaService
             $params
         ), 'tareasCompletadas', 'alumnosTarea');
 
+        $this->volcarConteo($filas, $this->connection->fetchAllAssociative(
+            "SELECT DATE_FORMAT(ap.fecha, '%Y-%m') AS mes,
+                    COUNT(*) AS total,
+                    COUNT(DISTINCT ap.usuario_id) AS alumnos
+             FROM apertura_archivo_psicotecnico ap
+             INNER JOIN `user` u ON u.id = ap.usuario_id
+             WHERE ap.fecha >= :desde AND ap.fecha <= :hasta AND $alumno
+             GROUP BY mes",
+            $params
+        ), 'aperturasPsicotecnico', 'alumnosPsicotecnico');
+
         $asignadas = $this->connection->fetchAllAssociative(
             "SELECT DATE_FORMAT(ta.fecha_asignacion, '%Y-%m') AS mes, COUNT(*) AS total
              FROM tarea_asignada ta
@@ -247,6 +261,11 @@ class InformeUsoPlataformaService
                  WHERE ta.fecha_completada IS NOT NULL
                    AND ta.fecha_completada >= :desde AND ta.fecha_completada <= :hasta
                    AND $alumno
+                 UNION
+                 SELECT DATE_FORMAT(ap.fecha, '%Y-%m'), ap.usuario_id
+                 FROM apertura_archivo_psicotecnico ap
+                 INNER JOIN `user` u ON u.id = ap.usuario_id
+                 WHERE ap.fecha >= :desde AND ap.fecha <= :hasta AND $alumno
              ) actividad
              GROUP BY mes",
             $params
@@ -279,6 +298,11 @@ class InformeUsoPlataformaService
                  FROM mensaje m
                  INNER JOIN `user` u ON u.id = m.remitente_id
                  WHERE m.fecha_envio >= :desde AND m.fecha_envio <= :hasta AND $alumno
+                 UNION
+                 SELECT DATE_FORMAT(ap.fecha, '%Y-%m'), DATE(ap.fecha)
+                 FROM apertura_archivo_psicotecnico ap
+                 INNER JOIN `user` u ON u.id = ap.usuario_id
+                 WHERE ap.fecha >= :desde AND ap.fecha <= :hasta AND $alumno
              ) actividad
              GROUP BY mes",
             $params
@@ -378,6 +402,38 @@ class InformeUsoPlataformaService
                 'dificultad' => $this->etiquetaDificultad(is_string($fila['dificultad']) ? $fila['dificultad'] : null),
                 'total' => (int) $fila['total'],
                 'nota' => $fila['nota'] !== null ? (float) $fila['nota'] : null,
+            ];
+        }, $filas);
+    }
+
+    /**
+     * @return array<int, array{publicacion: string, archivo: string, veces: int, alumnos: int}>
+     */
+    private function psicotecnicos(\DateTimeImmutable $inicio, \DateTimeImmutable $fin): array
+    {
+        $filas = $this->connection->fetchAllAssociative(
+            "SELECT a.nombre AS publicacion,
+                    COALESCE(NULLIF(a.nombre_archivo_original, ''), a.nombre) AS archivo,
+                    COUNT(*) AS veces,
+                    COUNT(DISTINCT ap.usuario_id) AS alumnos
+             FROM apertura_archivo_psicotecnico ap
+             INNER JOIN archivo_psicotecnico a ON a.id = ap.archivo_id
+             INNER JOIN `user` u ON u.id = ap.usuario_id
+             WHERE ap.fecha >= :desde AND ap.fecha <= :hasta AND ".$this->filtroAlumno('u')."
+             GROUP BY a.id, a.nombre, a.nombre_archivo_original
+             ORDER BY veces DESC, a.nombre ASC, archivo ASC",
+            $this->params([
+                'desde' => $inicio->format('Y-m-d H:i:s'),
+                'hasta' => $fin->format('Y-m-d H:i:s'),
+            ])
+        );
+
+        return array_map(static function (array $fila): array {
+            return [
+                'publicacion' => (string) $fila['publicacion'],
+                'archivo' => (string) $fila['archivo'],
+                'veces' => (int) $fila['veces'],
+                'alumnos' => (int) $fila['alumnos'],
             ];
         }, $filas);
     }
@@ -577,6 +633,8 @@ class InformeUsoPlataformaService
             'flashcards',
             'mensajes',
             'tareasCompletadas',
+            'aperturasPsicotecnico',
+            'alumnosPsicotecnico',
             'notaMedia',
         ];
         $resultado = [];

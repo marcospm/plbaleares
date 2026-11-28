@@ -23,7 +23,7 @@
         } %}
         {% set tipo = extension in tipos|keys ? tipos[extension] : 'otro' %}
         {% set etiqueta = extension|length > 0 and extension|length <= 4 ? extension|upper : 'FILE' %}
-        <a class="psico-archivo" href="{{ archivo.rutaArchivo }}" target="_blank" rel="noopener noreferrer" aria-label="Abrir {{ nombreVisible }}">
+        <a class="psico-archivo" href="{{ path('app_psicotecnico_publico_abrir', {id: archivo.id}) }}" target="_blank" rel="noopener noreferrer" aria-label="Abrir {{ nombreVisible }}">
             <span class="psico-ext psico-ext-{{ tipo }}" aria-hidden="true">{{ etiqueta }}</span>
             <span class="psico-archivo-nombre">{{ nombreVisible }}</span>
             <span class="psico-archivo-accion">Abrir</span>

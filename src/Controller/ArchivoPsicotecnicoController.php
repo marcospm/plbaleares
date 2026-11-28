@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\ArchivoPsicotecnico;
 use App\Entity\User;
 use App\Form\ArchivoPsicotecnicoType;
+use App\Repository\AperturaArchivoPsicotecnicoRepository;
 use App\Repository\ArchivoPsicotecnicoRepository;
 use App\Repository\CategoriaPsicotecnicoRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -36,16 +37,19 @@ class ArchivoPsicotecnicoController extends AbstractController
         Request $request,
         ArchivoPsicotecnicoRepository $archivoRepository,
         CategoriaPsicotecnicoRepository $categoriaRepository,
+        AperturaArchivoPsicotecnicoRepository $aperturaRepository,
     ): Response {
         $search = trim((string) $request->query->get('search', ''));
         $categoriaId = $request->query->getInt('categoria');
         $categoriaId = $categoriaId > 0 ? $categoriaId : null;
+        $grupos = $archivoRepository->findGruposParaAdmin($categoriaId, $search !== '' ? $search : null);
 
         return $this->render('psicotecnico/archivo_index.html.twig', [
-            'grupos' => $archivoRepository->findGruposParaAdmin($categoriaId, $search !== '' ? $search : null),
+            'grupos' => $grupos,
             'categorias' => $categoriaRepository->findOrdenadas(),
             'search' => $search,
             'categoriaId' => $categoriaId,
+            'aperturas' => $aperturaRepository->conteoPorArchivo($this->idsDeGrupos($grupos)),
         ]);
     }
 
@@ -144,6 +148,25 @@ class ArchivoPsicotecnicoController extends AbstractController
         }
 
         return $this->redirectToRoute('app_archivo_psicotecnico_index');
+    }
+
+    /**
+     * @param list<array{archivos: list<ArchivoPsicotecnico>}> $grupos
+     * @return list<int>
+     */
+    private function idsDeGrupos(array $grupos): array
+    {
+        $ids = [];
+        foreach ($grupos as $grupo) {
+            foreach ($grupo['archivos'] as $archivo) {
+                $id = $archivo->getId();
+                if ($id !== null) {
+                    $ids[] = $id;
+                }
+            }
+        }
+
+        return $ids;
     }
 
     /**
